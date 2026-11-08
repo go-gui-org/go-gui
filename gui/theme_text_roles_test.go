@@ -114,12 +114,12 @@ func TestTextRolesExplicitOverride(t *testing.T) {
 	cfg.ColorTextSecondary = want
 
 	th := ThemeMaker(cfg)
-	if !th.TextStyleSecondary.Color.eq(want) {
+	if !th.TextStyleSecondary.Color.Eq(want) {
 		t.Errorf("secondary = %v, want the configured %v",
 			th.TextStyleSecondary.Color, want)
 	}
 	// The roles that were not overridden still derive.
-	if th.TextStyleDisabled.Color.eq(want) {
+	if th.TextStyleDisabled.Color.Eq(want) {
 		t.Error("overriding secondary must not move disabled")
 	}
 }
@@ -357,7 +357,7 @@ func TestFieldLabelFeedsA11Y(t *testing.T) {
 func TestInspectorHelpFromSecondaryRole(t *testing.T) {
 	th := ThemeMaker(baseCfg())
 	s := inspectorStyleFor(th.TextStyleSecondary)
-	if !s.colorTextHelp.eq(th.TextStyleSecondary.Color) {
+	if !s.colorTextHelp.Eq(th.TextStyleSecondary.Color) {
 		t.Errorf("help color = %v, want secondary %v",
 			s.colorTextHelp, th.TextStyleSecondary.Color)
 	}

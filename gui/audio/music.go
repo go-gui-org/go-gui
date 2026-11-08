@@ -91,7 +91,8 @@ func FadeOutMusic(ms int) {
 }
 
 // PauseMusic pauses music playback.
-func pauseMusic() {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func PauseMusic() {
 	initMu.Lock()
 	defer initMu.Unlock()
 	if initialized {
@@ -100,7 +101,8 @@ func pauseMusic() {
 }
 
 // ResumeMusic resumes paused music.
-func resumeMusic() {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func ResumeMusic() {
 	initMu.Lock()
 	defer initMu.Unlock()
 	if initialized {
@@ -109,21 +111,24 @@ func resumeMusic() {
 }
 
 // IsMusicPlaying reports whether music is currently playing.
-func isMusicPlaying() bool {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func IsMusicPlaying() bool {
 	initMu.Lock()
 	defer initMu.Unlock()
 	return initialized && backend.IsMusicPlaying()
 }
 
 // IsMusicPaused reports whether music is currently paused.
-func isMusicPaused() bool {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func IsMusicPaused() bool {
 	initMu.Lock()
 	defer initMu.Unlock()
 	return initialized && backend.IsMusicPaused()
 }
 
 // RewindMusic rewinds to the beginning.
-func rewindMusic() {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func RewindMusic() {
 	initMu.Lock()
 	defer initMu.Unlock()
 	if initialized {

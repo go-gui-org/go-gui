@@ -171,7 +171,7 @@ func TestUserScrollDropsPendingIndexScroll(t *testing.T) {
 		t.Fatal("request settled immediately; the test needs it pending")
 	}
 
-	w.scrollVerticalBy("vl-drop", 120)
+	w.ScrollVerticalBy("vl-drop", 120)
 	if len(w.virtualScrolls) != 0 {
 		t.Fatalf("pending requests = %d after a direct scroll, want 0",
 			len(w.virtualScrolls))

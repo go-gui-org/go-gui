@@ -917,7 +917,7 @@ func TestInputCursorRenderedWhenFocused(t *testing.T) {
 		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -942,7 +942,7 @@ func TestInputCursorNotRenderedWhenUnfocused(t *testing.T) {
 	shape := &Shape{
 		Focusable: true, ID: "f700",
 		shapeType: shapeText,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -962,7 +962,7 @@ func TestInputCursorTransparentWhenBlinkOff(t *testing.T) {
 	shape := &Shape{
 		Focusable: true, ID: "f701",
 		shapeType: shapeText,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -995,7 +995,7 @@ func TestInputCursorRenderedViaFocusOwner(t *testing.T) {
 		shapeType:  shapeText,
 		Width:      200,
 		Height:     20,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -1024,7 +1024,7 @@ func TestInputCursorNotRenderedWhenFocusOwnerUnfocused(t *testing.T) {
 	shape := &Shape{
 		focusOwner: "f704",
 		shapeType:  shapeText,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -1047,7 +1047,7 @@ func TestInputCursorNotRenderedForPlainText(t *testing.T) {
 	shape := &Shape{
 		ID:        "f705",
 		shapeType: shapeText,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -1070,7 +1070,7 @@ func TestInputCursorUsesColumnZeroForPlaceholder(t *testing.T) {
 		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:              "Add your task",
 			TextStyle:         &style,
 			textIsPlaceholder: true,
@@ -1098,7 +1098,7 @@ func TestInputSelectionRendered(t *testing.T) {
 		shapeType: shapeText,
 		Width:     200,
 		Height:    20,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:       "hello",
 			TextStyle:  &style,
 			textSelBeg: 1,
@@ -1123,7 +1123,7 @@ func TestInputSelectionNotRenderedWhenNoSelection(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		shapeType: shapeText,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:       "hello",
 			TextStyle:  &style,
 			textSelBeg: 0,
@@ -1145,7 +1145,7 @@ func TestInputSelectionMultiline(t *testing.T) {
 		shapeType: shapeText,
 		Width:     200,
 		Height:    60,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:       text,
 			TextStyle:  &style,
 			TextMode:   TextModeWrapKeepSpaces,
@@ -1357,7 +1357,7 @@ func TestMakeInputOnKeyUp_NilHandler(t *testing.T) {
 // ReadOnly is a field that keeps focus and selection while refusing
 // edits.
 func newInputTestReadOnly(
-	text string, focusID string, cursorPos int, mode inputMode,
+	text string, focusID string, cursorPos int, mode InputMode,
 ) *inputTestCtx {
 	ctx := &inputTestCtx{}
 	ctx.w = newTestWindow()
@@ -1397,7 +1397,7 @@ func TestInputReadOnlyIsFocusableAndAnnouncedReadOnly(t *testing.T) {
 }
 
 func TestInputReadOnlyBlocksTyping(t *testing.T) {
-	ctx := newInputTestReadOnly("hello", "ro1", 5, inputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro1", 5, InputSingleLine)
 	ctx.fireChar('!')
 	if ctx.lastText != "hello" {
 		t.Fatalf("typing mutated read-only field: got %q", ctx.lastText)
@@ -1405,7 +1405,7 @@ func TestInputReadOnlyBlocksTyping(t *testing.T) {
 }
 
 func TestInputReadOnlyBlocksIMEText(t *testing.T) {
-	ctx := newInputTestReadOnly("hello", "ro_ime", 5, inputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro_ime", 5, InputSingleLine)
 	e := &Event{Type: EventChar, CharCode: 'a', IMEText: "日本"}
 	ctx.layout.Shape.events.OnChar(EventCtx{&ctx.layout, e, ctx.w})
 	if ctx.lastText != "hello" {
@@ -1450,7 +1450,7 @@ func TestInputReadOnlyBlocksDeleteKeys(t *testing.T) {
 		code KeyCode
 	}{{"backspace", KeyBackspace}, {"delete", KeyDelete}} {
 		ctx := newInputTestReadOnly("hello", "ro_"+key.name, 3,
-			inputSingleLine)
+			InputSingleLine)
 		ctx.fireKeyDown(key.code, 0)
 		if ctx.lastText != "hello" {
 			t.Errorf("%s mutated read-only field: got %q",
@@ -1460,7 +1460,7 @@ func TestInputReadOnlyBlocksDeleteKeys(t *testing.T) {
 }
 
 func TestInputReadOnlyBlocksPaste(t *testing.T) {
-	ctx := newInputTestReadOnly("hello", "ro2", 5, inputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro2", 5, InputSingleLine)
 	ctx.w.SetClipboardGetFn(func() string { return "XX" })
 	ctx.fireKeyDown(KeyV, ModCtrl)
 	if ctx.lastText != "hello" {
@@ -1470,7 +1470,7 @@ func TestInputReadOnlyBlocksPaste(t *testing.T) {
 
 func TestInputReadOnlyBlocksCut(t *testing.T) {
 	var clipboard string
-	ctx := newInputTestReadOnly("abcd", "ro3", 2, inputSingleLine)
+	ctx := newInputTestReadOnly("abcd", "ro3", 2, InputSingleLine)
 	ctx.w.SetClipboardFn(func(s string) { clipboard = s })
 	setInputState(ctx.w, "ro3", inputState{
 		CursorPos: 2, selectBeg: 1, selectEnd: 3,
@@ -1539,7 +1539,7 @@ func TestInputReadOnlySingleLineEnterStillCommits(t *testing.T) {
 // Navigation, selection, and copy are the whole reason ReadOnly is not
 // just Focusable: false — they must keep working.
 func TestInputReadOnlyAllowsNavigation(t *testing.T) {
-	ctx := newInputTestReadOnly("hello", "ro7", 0, inputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro7", 0, InputSingleLine)
 	ctx.fireKeyDown(KeyRight, 0)
 	if got := ctx.state().CursorPos; got != 1 {
 		t.Fatalf("CursorPos = %d, want 1: arrows must work read-only", got)
@@ -1547,7 +1547,7 @@ func TestInputReadOnlyAllowsNavigation(t *testing.T) {
 }
 
 func TestInputReadOnlyAllowsSelectAll(t *testing.T) {
-	ctx := newInputTestReadOnly("abc", "ro8", 1, inputSingleLine)
+	ctx := newInputTestReadOnly("abc", "ro8", 1, InputSingleLine)
 	ctx.fireKeyDown(KeyA, ModCtrl)
 	is := ctx.state()
 	if is.selectBeg != 0 || is.selectEnd != 3 {
@@ -1558,7 +1558,7 @@ func TestInputReadOnlyAllowsSelectAll(t *testing.T) {
 
 func TestInputReadOnlyAllowsCopy(t *testing.T) {
 	var clipboard string
-	ctx := newInputTestReadOnly("hello", "ro9", 5, inputSingleLine)
+	ctx := newInputTestReadOnly("hello", "ro9", 5, InputSingleLine)
 	ctx.w.SetClipboardFn(func(s string) { clipboard = s })
 	setInputState(ctx.w, "ro9", inputState{
 		CursorPos: 5, selectBeg: 0, selectEnd: 5,
@@ -2329,7 +2329,7 @@ func TestInputBlurCommitMaySetFocus(t *testing.T) {
 		w.TestRender(view)
 		w.SetFocus("f394")
 		w.TestRender(nil)
-		next, _ := w.testTab(tabForward)
+		next, _ := w.TestTab(TabForward)
 		done <- next
 	}()
 

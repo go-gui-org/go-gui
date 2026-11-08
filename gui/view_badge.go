@@ -3,11 +3,11 @@ package gui
 import "strconv"
 
 // BadgeVariant selects the badge color preset.
-type badgeVariant uint8
+type BadgeVariant uint8
 
 // BadgeVariant values.
 const (
-	badgeDefault badgeVariant = iota
+	BadgeDefault BadgeVariant = iota
 	BadgeInfo
 	BadgeSuccess
 	BadgeWarning
@@ -29,7 +29,7 @@ type BadgeCfg struct {
 	DotSize Opt[float32]
 
 	Color   Color
-	Variant badgeVariant
+	Variant BadgeVariant
 	Dot     bool
 }
 

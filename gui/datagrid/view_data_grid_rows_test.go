@@ -23,7 +23,7 @@ func TestResolveCellFormatNoOverride(t *testing.T) {
 
 func TestResolveCellFormatTextColor(t *testing.T) {
 	base := gg.TextStyle{Color: gg.RGBA(100, 0, 0, 0)}
-	format := GridCellFormat{hasTextColor: true, textColor: gg.RGBA(200, 0, 0, 0)}
+	format := GridCellFormat{HasTextColor: true, TextColor: gg.RGBA(200, 0, 0, 0)}
 	ts, _ := dataGridResolveCellFormat(base, format)
 	if ts.Color.R != 200 {
 		t.Errorf("got R=%d, want 200", ts.Color.R)
@@ -32,7 +32,7 @@ func TestResolveCellFormatTextColor(t *testing.T) {
 
 func TestResolveCellFormatBGColor(t *testing.T) {
 	base := gg.TextStyle{}
-	format := GridCellFormat{hasBGColor: true, bGColor: gg.RGBA(0, 150, 0, 0)}
+	format := GridCellFormat{HasBGColor: true, BGColor: gg.RGBA(0, 150, 0, 0)}
 	_, bg := dataGridResolveCellFormat(base, format)
 	if bg.G != 150 {
 		t.Errorf("got G=%d, want 150", bg.G)
@@ -622,7 +622,7 @@ func TestAnchorRowIDExFromStateMap(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	dgRange := gg.StateMap[string, dataGridRangeState](w, nsDgRange, 4)
 	dgRange.Set("g1", dataGridRangeState{anchorRowID: "b"})
-	sel := GridSelection{anchorRowID: "a"}
+	sel := GridSelection{AnchorRowID: "a"}
 	got := dataGridAnchorRowIDEx(sel, "g1", rows, w, "fallback")
 	if got != "b" {
 		t.Errorf("got %q, want b", got)
@@ -633,7 +633,7 @@ func TestAnchorRowIDExFallbackToSelection(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
-	sel := GridSelection{anchorRowID: "b"}
+	sel := GridSelection{AnchorRowID: "b"}
 	got := dataGridAnchorRowIDEx(sel, "g1", rows, w, "fallback")
 	if got != "b" {
 		t.Errorf("got %q, want b", got)
@@ -673,8 +673,8 @@ func TestComputeRowSelectionPlain(t *testing.T) {
 	sel := GridSelection{}
 	got := dataGridComputeRowSelection(rows, sel, "g1", true, true, "b",
 		&gg.Event{}, w)
-	if got.activeRowID != "b" {
-		t.Errorf("active: got %q, want b", got.activeRowID)
+	if got.ActiveRowID != "b" {
+		t.Errorf("active: got %q, want b", got.ActiveRowID)
 	}
 	if len(got.SelectedRowIDs) != 1 || !got.SelectedRowIDs["b"] {
 		t.Errorf("selected: %v", got.SelectedRowIDs)
@@ -700,7 +700,7 @@ func TestComputeRowSelectionShiftRange(t *testing.T) {
 	defer w.Close()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
 	sel := GridSelection{
-		anchorRowID:    "a",
+		AnchorRowID:    "a",
 		SelectedRowIDs: map[string]bool{"a": true},
 	}
 	got := dataGridComputeRowSelection(rows, sel, "g1", true, true, "c",
@@ -738,8 +738,8 @@ func TestRowClickWithCallback(t *testing.T) {
 		func(s GridSelection, ctx gg.EventCtx) { selected = s },
 		false, "", 0, 0, "a", "g1",
 		[]GridColumnCfg{}, e, w)
-	if selected.activeRowID != "a" {
-		t.Errorf("active: got %q, want a", selected.activeRowID)
+	if selected.ActiveRowID != "a" {
+		t.Errorf("active: got %q, want a", selected.ActiveRowID)
 	}
 	if !e.IsHandled {
 		t.Fatal("should be handled")

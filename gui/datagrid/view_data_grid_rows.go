@@ -350,12 +350,12 @@ func dataGridRowDeleteButton(dctx dataGridCtx, rowID string) gg.View {
 
 func dataGridResolveCellFormat(base gg.TextStyle, format GridCellFormat) (gg.TextStyle, gg.Color) {
 	textStyle := base
-	if format.hasTextColor {
-		textStyle.Color = format.textColor
+	if format.HasTextColor {
+		textStyle.Color = format.TextColor
 	}
 	bgColor := gg.ColorTransparent
-	if format.hasBGColor {
-		bgColor = format.bGColor
+	if format.HasBGColor {
+		bgColor = format.BGColor
 	}
 	return textStyle, bgColor
 }
@@ -415,30 +415,30 @@ func dataGridComputeRowSelection(rows []GridRow, selection GridSelection, gridID
 		}
 		dataGridSetAnchor(gridID, anchor, w)
 		return GridSelection{
-			anchorRowID:    anchor,
-			activeRowID:    rowID,
+			AnchorRowID:    anchor,
+			ActiveRowID:    rowID,
 			SelectedRowIDs: selected,
 		}
 	} else if multiSelect && isToggle {
 		selected := dataGridToggleSelectedRowIDs(selection.SelectedRowIDs, rowID)
 		dataGridSetAnchor(gridID, rowID, w)
 		return GridSelection{
-			anchorRowID:    rowID,
-			activeRowID:    rowID,
+			AnchorRowID:    rowID,
+			ActiveRowID:    rowID,
 			SelectedRowIDs: selected,
 		}
 	}
 	dataGridSetAnchor(gridID, rowID, w)
 	if dataGridSelectionIsSingleRow(selection.SelectedRowIDs, rowID) {
 		return GridSelection{
-			anchorRowID:    rowID,
-			activeRowID:    rowID,
+			AnchorRowID:    rowID,
+			ActiveRowID:    rowID,
 			SelectedRowIDs: selection.SelectedRowIDs,
 		}
 	}
 	return GridSelection{
-		anchorRowID:    rowID,
-		activeRowID:    rowID,
+		AnchorRowID:    rowID,
+		ActiveRowID:    rowID,
 		SelectedRowIDs: map[string]bool{rowID: true},
 	}
 }
@@ -448,8 +448,8 @@ func dataGridAnchorRowIDEx(selection GridSelection, gridID string, rows []GridRo
 	if st, ok := dgRange.Get(gridID); ok && st.anchorRowID != "" && dataGridHasRowID(rows, st.anchorRowID) {
 		return st.anchorRowID
 	}
-	if selection.anchorRowID != "" && dataGridHasRowID(rows, selection.anchorRowID) {
-		return selection.anchorRowID
+	if selection.AnchorRowID != "" && dataGridHasRowID(rows, selection.AnchorRowID) {
+		return selection.AnchorRowID
 	}
 	return fallback
 }

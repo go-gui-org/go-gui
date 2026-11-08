@@ -164,7 +164,7 @@ func (sv *segmentedControlView) GenerateLayout(w *Window) Layout {
 	// A Fill width on the control shares the width out evenly: every
 	// segment fills, so they all grow to the same width.
 	segSizing := FitFit
-	if cfg.Sizing.Width == sizingFill {
+	if cfg.Sizing.Width == SizingFill {
 		segSizing = FillFit
 	}
 

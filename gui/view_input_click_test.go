@@ -143,7 +143,7 @@ func TestInputScrollbarKeepsItsPress(t *testing.T) {
 	field := clickTestField(t, w, "ta")
 	var bar *Shape
 	for i := range field.Children {
-		if s := field.Children[i].Shape; s.scrollbarOrientation == scrollbarVertical {
+		if s := field.Children[i].Shape; s.scrollbarOrientation == ScrollbarVertical {
 			bar = s
 		}
 	}
@@ -283,7 +283,7 @@ func TestInputRightPressOnScrollbarTravelsOn(t *testing.T) {
 	field := clickTestField(t, w, "ta")
 	var bar *Shape
 	for i := range field.Children {
-		if s := field.Children[i].Shape; s.scrollbarOrientation == scrollbarVertical {
+		if s := field.Children[i].Shape; s.scrollbarOrientation == ScrollbarVertical {
 			bar = s
 		}
 	}

@@ -32,11 +32,11 @@ type inputMemento struct {
 }
 
 // InputMode selects single-line or multiline behavior.
-type inputMode uint8
+type InputMode uint8
 
 // InputMode constants.
 const (
-	inputSingleLine inputMode = iota
+	InputSingleLine InputMode = iota
 	InputMultiline
 )
 

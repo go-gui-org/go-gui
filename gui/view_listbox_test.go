@@ -106,11 +106,11 @@ func TestListBoxSelectedRowTextColor(t *testing.T) {
 	if unselected == nil || selected == nil {
 		t.Fatal("row text missing")
 	}
-	if !selected.TextStyle.Color.eq(DefaultTextStyle.Color) {
+	if !selected.TextStyle.Color.Eq(DefaultTextStyle.Color) {
 		t.Errorf("selected row color = %v, want body %v",
 			selected.TextStyle.Color, DefaultTextStyle.Color)
 	}
-	if !unselected.TextStyle.Color.eq(DefaultTextStyle.Color) {
+	if !unselected.TextStyle.Color.Eq(DefaultTextStyle.Color) {
 		t.Errorf("unselected row color = %v, want body %v",
 			unselected.TextStyle.Color, DefaultTextStyle.Color)
 	}
@@ -264,7 +264,7 @@ func TestListBoxFillVirtualizesNextFrame(t *testing.T) {
 		t.Fatalf("frame 1 rows = %d, want %d-row probe plus spacer",
 			len(rows), virtualListProbeRows)
 	}
-	if !rows[len(rows)-1].Shape.Color.eq(ColorTransparent) {
+	if !rows[len(rows)-1].Shape.Color.Eq(ColorTransparent) {
 		t.Error("trailing probe spacer missing")
 	}
 
@@ -284,11 +284,11 @@ func TestListBoxFillVirtualizesNextFrame(t *testing.T) {
 		t.Fatalf("frame 2 children = %d, want spacer+rows+spacer",
 			len(second.Children))
 	}
-	if !second.Children[0].Shape.Color.eq(ColorTransparent) {
+	if !second.Children[0].Shape.Color.Eq(ColorTransparent) {
 		t.Error("leading virtualization spacer missing")
 	}
 	if !second.Children[len(second.Children)-1].Shape.Color.
-		eq(ColorTransparent) {
+		Eq(ColorTransparent) {
 		t.Error("trailing virtualization spacer missing")
 	}
 }

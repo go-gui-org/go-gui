@@ -238,7 +238,7 @@ func TestLoadSvgNoParser(t *testing.T) {
 
 func TestGetSvgDimensionsNoParser(t *testing.T) {
 	w := &Window{}
-	_, _, err := w.getSvgDimensions("<svg></svg>")
+	_, _, err := w.GetSvgDimensions("<svg></svg>")
 	if err == nil {
 		t.Fatal("expected error with no parser")
 	}
@@ -268,13 +268,13 @@ func TestLoadSvgRespectsAllowedRoots(t *testing.T) {
 func TestClearSvgCacheNoOp(_ *testing.T) {
 	w := &Window{}
 	// Should not panic.
-	w.clearSvgCache()
+	w.ClearSvgCache()
 }
 
 func TestRemoveSvgFromCacheNoOp(_ *testing.T) {
 	w := &Window{}
 	// Should not panic.
-	w.removeSvgFromCache("nonexistent.svg")
+	w.RemoveSvgFromCache("nonexistent.svg")
 }
 
 func TestCachedSvgTextDrawsEmpty(t *testing.T) {
@@ -537,7 +537,7 @@ func TestBuildBaseByPath_DedupesFirstWriteWins(t *testing.T) {
 func TestBuildBaseByPath_ScansFilteredGroups(t *testing.T) {
 	anims := []SvgAnimation{{Kind: SvgAnimRotate, GroupID: "g",
 		TargetPathIDs: []uint32{1}}}
-	groups := []cachedFilteredGroup{
+	groups := []CachedFilteredGroup{
 		{
 			renderPaths: []cachedSvgPath{{
 				PathID:       1,

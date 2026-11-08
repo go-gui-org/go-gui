@@ -644,7 +644,7 @@ func TestColorSwatchColorLayerHasOutline(t *testing.T) {
 	var found bool
 	var walk func(*Layout)
 	walk = func(n *Layout) {
-		if s := n.Shape; s != nil && s.Float && s.Color.eq(White) {
+		if s := n.Shape; s != nil && s.Float && s.Color.Eq(White) {
 			found = true
 			if s.SizeBorder <= 0 {
 				t.Errorf("color layer border = %v, want > 0",

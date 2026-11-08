@@ -192,7 +192,7 @@ func listThumb(t *testing.T, w *Window) *Shape {
 	}
 	for i := range sc.Children {
 		bar := &sc.Children[i]
-		if bar.Shape.scrollbarOrientation == scrollbarVertical && len(bar.Children) > 0 {
+		if bar.Shape.scrollbarOrientation == ScrollbarVertical && len(bar.Children) > 0 {
 			return bar.Children[0].Shape
 		}
 	}
@@ -355,7 +355,7 @@ func barOf(t *testing.T, w *Window, id string, o ScrollbarOrientation) *Layout {
 // bar moves the page, and the bar neither jumps nor holds the finger.
 func TestTouchPanAcrossScrollbarScrolls(t *testing.T) {
 	w := wideRowWindow(t)
-	bar := barOf(t, w, ScopeID("page", "wide"), scrollbarHorizontal)
+	bar := barOf(t, w, ScopeID("page", "wide"), ScrollbarHorizontal)
 	// The middle of the track, right of the thumb at the start.
 	x := bar.Shape.X + bar.Shape.Width*0.7
 	y := bar.Shape.Y + bar.Shape.Height/2
@@ -379,7 +379,7 @@ func TestTouchPanAcrossScrollbarScrolls(t *testing.T) {
 // there, at the lift.
 func TestTouchTapOnTrackJumps(t *testing.T) {
 	w := wideRowWindow(t)
-	bar := barOf(t, w, ScopeID("page", "wide"), scrollbarHorizontal)
+	bar := barOf(t, w, ScopeID("page", "wide"), ScrollbarHorizontal)
 	x := bar.Shape.X + bar.Shape.Width*0.7
 	y := bar.Shape.Y + bar.Shape.Height/2
 	touchAt(w, EventTouchesBegan, 0, x, y)

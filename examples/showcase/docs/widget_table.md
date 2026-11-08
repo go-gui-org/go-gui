@@ -23,6 +23,11 @@ if err != nil { log.Fatal(err) }
 w.Table(gui.TableCfg{ID: "csv-table", RawData: records})
 ```
 
+`gui.TableCfgFromCSV(data)` does the parse and builds the `TableCfg` with the
+first row as header. `w.TableFromCSV(data)` goes one step further and returns
+the view, showing the parse error as a one-cell table when the input is
+malformed; `gui.TableCfgError(msg)` builds that error table.
+
 ## Custom Rows
 
 ```go
@@ -43,6 +48,10 @@ w.Table(gui.TableCfg{
     },
 })
 ```
+
+`gui.TH(value)` and `gui.TD(value)` build a header cell and a data cell, so the
+rows above can be written as `gui.TH("Name"), gui.TH("Score")` and
+`gui.TD("Alice"), gui.TD("95")`.
 
 ## Virtualization
 

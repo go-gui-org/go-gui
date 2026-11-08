@@ -253,7 +253,7 @@ func mergeTextStyle(s, fallback TextStyle) TextStyle {
 }
 
 // ToGlyphStyle converts a gui TextStyle to a glyph.TextStyle.
-func (ts TextStyle) toGlyphStyle() glyph.TextStyle {
+func (ts TextStyle) ToGlyphStyle() glyph.TextStyle {
 	return glyph.TextStyle{
 		FontName:      ts.Family,
 		Color:         colorToGlyph(ts.Color),

@@ -170,7 +170,7 @@ func tableEstimateRowHeight(cfg *TableCfg, w *Window) float32 {
 
 // ClearTableCache removes cached column widths for the given
 // table ID.
-func (w *Window) clearTableCache(id string) {
+func (w *Window) ClearTableCache(id string) {
 	cache := StateMapRead[string, tableColWidthCache](
 		w, nsTableColWidths)
 	if cache != nil {
@@ -179,7 +179,7 @@ func (w *Window) clearTableCache(id string) {
 }
 
 // ClearAllTableCaches removes all cached table column widths.
-func (w *Window) clearAllTableCaches() {
+func (w *Window) ClearAllTableCaches() {
 	cache := StateMapRead[string, tableColWidthCache](
 		w, nsTableColWidths)
 	if cache != nil {

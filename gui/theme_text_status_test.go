@@ -111,7 +111,7 @@ func TestStatusTextUnchangedWhenReadable(t *testing.T) {
 		contrastRatio(src, ThemeDark.ColorPanel) < wantStatusTextAA {
 		t.Skip("dark warning no longer readable as-is; pick another case")
 	}
-	if got := ThemeDark.TextStyleWarning.Color; !got.eq(src) {
+	if got := ThemeDark.TextStyleWarning.Color; !got.Eq(src) {
 		t.Errorf("readable color moved: %v, want %v", got, src)
 	}
 }
@@ -128,10 +128,10 @@ func TestStatusTextCustomColor(t *testing.T) {
 	cfg.ColorError = src
 	custom := ThemeMaker(cfg)
 	got := custom.TextStyleError.Color
-	if got.eq(src) {
+	if got.Eq(src) {
 		t.Fatalf("pink on a light surface not moved: %v", got)
 	}
-	if got.eq(ThemeLight.TextStyleError.Color) {
+	if got.Eq(ThemeLight.TextStyleError.Color) {
 		t.Fatalf("custom ColorError ignored: %v", got)
 	}
 	for _, bg := range []Color{custom.ColorBackground, custom.ColorPanel} {
@@ -167,7 +167,7 @@ func TestStatusTextFollowsWithColors(t *testing.T) {
 			applyOverridesToCfg(&cfg, over)
 			return cfg
 		}())
-		if !r.role(got).Color.eq(r.role(want).Color) {
+		if !r.role(got).Color.Eq(r.role(want).Color) {
 			t.Errorf("%s derived: %v, want %v",
 				r.name, r.role(got).Color, r.role(want).Color)
 		}
@@ -180,7 +180,7 @@ func TestStatusTextFollowsWithColors(t *testing.T) {
 	forked.TextStyleWarning.Color = own
 	got := forked.WithColors(over)
 	for _, r := range statusRoles {
-		if !r.role(got).Color.eq(own) {
+		if !r.role(got).Color.Eq(own) {
 			t.Errorf("%s forked: %v, want kept %v",
 				r.name, r.role(got).Color, own)
 		}

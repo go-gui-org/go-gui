@@ -54,10 +54,10 @@ func TestInputDateSelectedDayTextColor(t *testing.T) {
 		Date:              time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
 		ColorTextOnSelect: White,
 	})
-	if got := textColorOf(t, w, v, "15"); !got.eq(White) {
+	if got := textColorOf(t, w, v, "15"); !got.Eq(White) {
 		t.Errorf("selected day color = %v, want %v", got, White)
 	}
-	if got := textColorOf(t, w, v, "16"); !got.eq(DefaultTextStyle.Color) {
+	if got := textColorOf(t, w, v, "16"); !got.Eq(DefaultTextStyle.Color) {
 		t.Errorf("plain day color = %v, want body %v",
 			got, DefaultTextStyle.Color)
 	}

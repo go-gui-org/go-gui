@@ -415,7 +415,7 @@ func TestHasRowID(t *testing.T) {
 
 func TestActiveRowIndex(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
-	sel := GridSelection{activeRowID: "b"}
+	sel := GridSelection{ActiveRowID: "b"}
 	got := dataGridActiveRowIndex(rows, sel)
 	if got != 1 {
 		t.Errorf("got %d, want 1", got)
@@ -424,7 +424,7 @@ func TestActiveRowIndex(t *testing.T) {
 
 func TestActiveRowIndexFallbackToFirst(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
-	sel := GridSelection{activeRowID: "z"}
+	sel := GridSelection{ActiveRowID: "z"}
 	got := dataGridActiveRowIndex(rows, sel)
 	if got != 0 {
 		t.Errorf("got %d, want 0", got)
@@ -432,7 +432,7 @@ func TestActiveRowIndexFallbackToFirst(t *testing.T) {
 }
 
 func TestActiveRowIndexEmptyRows(t *testing.T) {
-	got := dataGridActiveRowIndex(nil, GridSelection{activeRowID: "a"})
+	got := dataGridActiveRowIndex(nil, GridSelection{ActiveRowID: "a"})
 	if got != -1 {
 		t.Errorf("got %d, want -1", got)
 	}
@@ -442,7 +442,7 @@ func TestActiveRowIndexEmptyRows(t *testing.T) {
 
 func TestActiveRowIndexStrict(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
-	sel := GridSelection{activeRowID: "b"}
+	sel := GridSelection{ActiveRowID: "b"}
 	got := dataGridActiveRowIndexStrict(rows, sel)
 	if got != 1 {
 		t.Errorf("got %d, want 1", got)
@@ -452,7 +452,7 @@ func TestActiveRowIndexStrict(t *testing.T) {
 func TestActiveRowIndexStrictFallbackToSelected(t *testing.T) {
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
 	sel := GridSelection{
-		activeRowID:    "",
+		ActiveRowID:    "",
 		SelectedRowIDs: map[string]bool{"b": true},
 	}
 	got := dataGridActiveRowIndexStrict(rows, sel)

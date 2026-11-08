@@ -37,7 +37,7 @@ func TestContrastLinkCorrected(t *testing.T) {
 	if got, _ := worstContrast(th.ColorSelect, page...); got >= contrastText {
 		t.Skipf("macOS ColorSelect already reads (%.2f); pick another case", got)
 	}
-	if !th.ColorSelect.eq(th.Cfg.ColorSelect) {
+	if !th.ColorSelect.Eq(th.Cfg.ColorSelect) {
 		t.Errorf("ColorSelect moved: %v, cfg %v", th.ColorSelect, th.Cfg.ColorSelect)
 	}
 	if got, _ := worstContrast(th.TextStyleLink.Color, page...); got < contrastText {
@@ -115,7 +115,7 @@ func TestContrastExplicitKept(t *testing.T) {
 	faint := RGB(200, 200, 200)
 	cfg.ColorTextSecondary = faint
 	th := ThemeMaker(cfg)
-	if !th.TextStyleSecondary.Color.eq(faint) {
+	if !th.TextStyleSecondary.Color.Eq(faint) {
 		t.Fatalf("explicit secondary moved: %v, want %v",
 			th.TextStyleSecondary.Color, faint)
 	}
@@ -157,7 +157,7 @@ func TestContrastLinkFollowsWithColors(t *testing.T) {
 		applyOverridesToCfg(&cfg, over)
 		return cfg
 	}())
-	if !got.TextStyleLink.Color.eq(want.TextStyleLink.Color) {
+	if !got.TextStyleLink.Color.Eq(want.TextStyleLink.Color) {
 		t.Errorf("derived link %v, want %v",
 			got.TextStyleLink.Color, want.TextStyleLink.Color)
 	}
@@ -165,7 +165,7 @@ func TestContrastLinkFollowsWithColors(t *testing.T) {
 	forked := ThemeLight
 	own := RGB(1, 2, 3)
 	forked.TextStyleLink.Color = own
-	if c := forked.WithColors(over).TextStyleLink.Color; !c.eq(own) {
+	if c := forked.WithColors(over).TextStyleLink.Color; !c.Eq(own) {
 		t.Errorf("forked link %v, want kept %v", c, own)
 	}
 }
@@ -179,7 +179,7 @@ func TestContrastBareCfgUntouched(t *testing.T) {
 	if th.ColorBackground.IsSet() || th.ColorPanel.IsSet() {
 		t.Skip("bare cfg now resolves its surfaces; case no longer applies")
 	}
-	if !th.TextStyleLink.Color.eq(sel) {
+	if !th.TextStyleLink.Color.Eq(sel) {
 		t.Errorf("link moved on a theme with no surfaces: %v, want %v",
 			th.TextStyleLink.Color, sel)
 	}
@@ -194,7 +194,7 @@ func TestReadableAlphaEdges(t *testing.T) {
 		t.Errorf("unreachable floor: alpha %d, want 255", got.A)
 	}
 	in := RGBA(120, 120, 120, 40)
-	if got := readableAlpha(in, contrastText); !got.eq(in) {
+	if got := readableAlpha(in, contrastText); !got.Eq(in) {
 		t.Errorf("no surface: %v, want %v unchanged", got, in)
 	}
 	if got, on := worstContrast(in); got != 21 || on.IsSet() {

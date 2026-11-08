@@ -286,7 +286,7 @@ func dataGridActiveRowIndexStrict(rows []GridRow, selection GridSelection) int {
 	if len(rows) == 0 {
 		return -1
 	}
-	hasActive := selection.activeRowID != ""
+	hasActive := selection.ActiveRowID != ""
 	hasSelected := len(selection.SelectedRowIDs) > 0
 	if !hasActive && !hasSelected {
 		return -1
@@ -294,7 +294,7 @@ func dataGridActiveRowIndexStrict(rows []GridRow, selection GridSelection) int {
 	firstSelected := -1
 	for idx, row := range rows {
 		id := dataGridRowID(row, idx)
-		if hasActive && id == selection.activeRowID {
+		if hasActive && id == selection.ActiveRowID {
 			return idx
 		}
 		if firstSelected < 0 && hasSelected && selection.SelectedRowIDs[id] {

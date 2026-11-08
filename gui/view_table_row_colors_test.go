@@ -48,8 +48,8 @@ func TestTableSelectedRowHovers(t *testing.T) {
 		ID:       "tbl-sel-hover",
 		OnSelect: func(map[int]bool, int, EventCtx) {},
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{tD("a")}),
-			TR([]TableCellCfg{tD("b")}),
+			TR([]TableCellCfg{TD("a")}),
+			TR([]TableCellCfg{TD("b")}),
 		},
 		Selected: map[int]bool{1: true},
 	}), w)
@@ -81,8 +81,8 @@ func TestTableActiveRowPaintsFocus(t *testing.T) {
 		ID:        "tbl-active-focus",
 		Focusable: true,
 		Data: []TableRowCfg{
-			TR([]TableCellCfg{tD("a")}),
-			TR([]TableCellCfg{tD("b")}),
+			TR([]TableCellCfg{TD("a")}),
+			TR([]TableCellCfg{TD("b")}),
 		},
 	}), w)
 	rows := tableRows(&layout)

@@ -25,13 +25,12 @@ const dropLogInterval = int64(time.Second)
 
 // ExitMode controls when the application exits. Use the
 // ExitOnMainClose / ExitOnTrayRemoved constants; the zero value
-// is ExitOnMainClose. The type is unexported to restrict values
-// to those constants — infer it with := rather than naming it.
-type exitMode int
+// is ExitOnMainClose.
+type ExitMode int
 
 const (
 	// ExitOnMainClose exits when the main (first) window is closed.
-	ExitOnMainClose exitMode = iota
+	ExitOnMainClose ExitMode = iota
 	// ExitOnTrayRemoved keeps the app alive while a system tray
 	// icon exists, even if all windows are closed.
 	ExitOnTrayRemoved
@@ -48,7 +47,7 @@ type App struct {
 	pending  chan WindowCfg
 	trays    map[int]*SystemTrayHandle
 	order    []uint32
-	ExitMode exitMode
+	ExitMode ExitMode
 	mu       sync.Mutex
 	mainID   uint32
 	// wakeMu guards wakeMainFn separately from mu so OpenWindow

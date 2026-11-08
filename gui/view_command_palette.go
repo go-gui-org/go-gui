@@ -182,7 +182,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 			if onAction != nil {
 				onAction(itemID, EventCtx{nil, ctx.Event, ctx.Window})
 			}
-			commandPaletteDismiss(paletteID, ctx.Window)
+			CommandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
 				onDismiss(ctx.Window)
 			}
@@ -218,7 +218,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 		Sound: resolveSoundCue(
 			guiTheme.Sounds.Click, cfg.Sound, cfg.SoundDisabled),
 		OnClick: func(ctx EventCtx) {
-			commandPaletteDismiss(paletteID, ctx.Window)
+			CommandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
 				onDismiss(ctx.Window)
 			}
@@ -285,7 +285,8 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 
 // CommandPaletteShow makes the palette visible and focuses input.
 // It always resets the results scroll (keyed ScopeID(id, "scroll")) to the top.
-func commandPaletteShow(id string, w *Window) {
+// exportaudit:keep — documented API (showcase docs/widget_command_palette.md)
+func CommandPaletteShow(id string, w *Window) {
 	ss := StateMap[string, bool](w, nsCmdPalette, capModerate)
 	ss.Set(id, true)
 	sq := StateMap[string, string](w, nsCmdPaletteQuery, capModerate)
@@ -302,7 +303,8 @@ func commandPaletteShow(id string, w *Window) {
 }
 
 // CommandPaletteDismiss hides the palette.
-func commandPaletteDismiss(id string, w *Window) {
+// exportaudit:keep — documented API (showcase docs/widget_command_palette.md)
+func CommandPaletteDismiss(id string, w *Window) {
 	ss := StateMap[string, bool](w, nsCmdPalette, capModerate)
 	ss.Set(id, false)
 	sq := StateMap[string, string](w, nsCmdPaletteQuery, capModerate)
@@ -316,14 +318,15 @@ func commandPaletteDismiss(id string, w *Window) {
 func CommandPaletteToggle(id string, w *Window) {
 	visible := StateReadOr(w, nsCmdPalette, id, false)
 	if visible {
-		commandPaletteDismiss(id, w)
+		CommandPaletteDismiss(id, w)
 	} else {
-		commandPaletteShow(id, w)
+		CommandPaletteShow(id, w)
 	}
 }
 
 // CommandPaletteIsVisible returns whether the palette is showing.
-func commandPaletteIsVisible(id string, w *Window) bool {
+// exportaudit:keep — documented API (showcase docs/widget_command_palette.md)
+func CommandPaletteIsVisible(id string, w *Window) bool {
 	return StateReadOr(w, nsCmdPalette, id, false)
 }
 
@@ -347,7 +350,7 @@ func makePaletteOnEnter(paletteID string, onAction func(string, EventCtx), onDis
 		if cur >= 0 && cur < itemCount && onAction != nil &&
 			!filtered[cur].Disabled {
 			onAction(filteredIDs[cur], EventCtx{nil, ctx.Event, ctx.Window})
-			commandPaletteDismiss(paletteID, ctx.Window)
+			CommandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {
 				onDismiss(ctx.Window)
 			}
@@ -398,7 +401,7 @@ func makePaletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onD
 
 func paletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onDismiss func(*Window), filtered []listCoreItem, filteredIDs []string, e *Event, w *Window) {
 	if e.KeyCode == KeyEscape {
-		commandPaletteDismiss(paletteID, w)
+		CommandPaletteDismiss(paletteID, w)
 		if onDismiss != nil {
 			onDismiss(w)
 		}
@@ -416,7 +419,7 @@ func paletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onDismi
 		if cur >= 0 && cur < itemCount && onAction != nil &&
 			!filtered[cur].Disabled {
 			onAction(filteredIDs[cur], EventCtx{nil, e, w})
-			commandPaletteDismiss(paletteID, w)
+			CommandPaletteDismiss(paletteID, w)
 			if onDismiss != nil {
 				onDismiss(w)
 			}

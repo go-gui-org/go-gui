@@ -122,7 +122,7 @@ func TestMatch_HoverFocus(t *testing.T) {
 		`circle:hover { fill: red } rect:focus { fill: blue }`,
 		ParseOptions{})
 	circHover := Match(rules,
-		ElementInfo{Tag: "circle", State: matchState{Hover: true}},
+		ElementInfo{Tag: "circle", State: MatchState{Hover: true}},
 		nil, nil)
 	if len(circHover) != 1 || circHover[0].Value != "red" {
 		t.Errorf(":hover match: %+v", circHover)
@@ -132,7 +132,7 @@ func TestMatch_HoverFocus(t *testing.T) {
 		t.Errorf(":hover matched without state: %+v", circNoHover)
 	}
 	rectFocus := Match(rules,
-		ElementInfo{Tag: "rect", State: matchState{Focus: true}},
+		ElementInfo{Tag: "rect", State: MatchState{Focus: true}},
 		nil, nil)
 	if len(rectFocus) != 1 || rectFocus[0].Value != "blue" {
 		t.Errorf(":focus match: %+v", rectFocus)
@@ -258,7 +258,7 @@ func TestMatch_HoverWithSiblingCombinator(t *testing.T) {
 		`rect + circle:hover { fill: red }`, ParseOptions{})
 	got := Match(rules, ElementInfo{
 		Tag:   "circle",
-		State: matchState{Hover: true},
+		State: MatchState{Hover: true},
 	}, nil, []ElementInfo{{Tag: "rect"}})
 	if len(got) != 1 {
 		t.Errorf("rect + circle:hover w/ hover: %+v", got)

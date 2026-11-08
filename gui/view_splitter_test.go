@@ -134,7 +134,7 @@ func TestSplitterEffectiveCollapsed(t *testing.T) {
 	if c := splitterEffectiveCollapsed(core, SplitterCollapseFirst); c != SplitterCollapseFirst {
 		t.Error("first collapsible → first")
 	}
-	if c := splitterEffectiveCollapsed(core, SplitterCollapseSecond); c != splitterCollapseNone {
+	if c := splitterEffectiveCollapsed(core, SplitterCollapseSecond); c != SplitterCollapseNone {
 		t.Error("second not collapsible → none")
 	}
 }
@@ -161,7 +161,7 @@ func TestSplitterToggleTarget(t *testing.T) {
 		second: splitterPaneCore{collapsible: true},
 	}
 	// Not collapsed → toggle targets first collapsible.
-	if tgt := splitterToggleTarget(core, splitterCollapseNone); tgt != SplitterCollapseFirst {
+	if tgt := splitterToggleTarget(core, SplitterCollapseNone); tgt != SplitterCollapseFirst {
 		t.Errorf("none → got %d, want first", tgt)
 	}
 	// Already collapsed first → returns first (to uncollapse).
@@ -173,12 +173,12 @@ func TestSplitterToggleTarget(t *testing.T) {
 		first:  splitterPaneCore{collapsible: false},
 		second: splitterPaneCore{collapsible: true},
 	}
-	if tgt := splitterToggleTarget(core2, splitterCollapseNone); tgt != SplitterCollapseSecond {
+	if tgt := splitterToggleTarget(core2, SplitterCollapseNone); tgt != SplitterCollapseSecond {
 		t.Errorf("only-second → got %d, want second", tgt)
 	}
 	// Neither collapsible.
 	core3 := &splitterCore{}
-	if tgt := splitterToggleTarget(core3, splitterCollapseNone); tgt != splitterCollapseNone {
+	if tgt := splitterToggleTarget(core3, SplitterCollapseNone); tgt != SplitterCollapseNone {
 		t.Errorf("neither → got %d, want none", tgt)
 	}
 }
@@ -189,18 +189,18 @@ func TestSplitterToggleCollapse(t *testing.T) {
 		second: splitterPaneCore{collapsible: true},
 	}
 	// Not collapsed → collapse first.
-	next, ok := splitterToggleCollapse(core, splitterCollapseNone)
+	next, ok := splitterToggleCollapse(core, SplitterCollapseNone)
 	if !ok || next != SplitterCollapseFirst {
 		t.Errorf("none → got %d/%v, want first/true", next, ok)
 	}
 	// Already collapsed first → uncollapse.
 	next, ok = splitterToggleCollapse(core, SplitterCollapseFirst)
-	if !ok || next != splitterCollapseNone {
+	if !ok || next != SplitterCollapseNone {
 		t.Errorf("first → got %d/%v, want none/true", next, ok)
 	}
 	// Neither collapsible → no-op.
 	core2 := &splitterCore{}
-	next, ok = splitterToggleCollapse(core2, splitterCollapseNone)
+	next, ok = splitterToggleCollapse(core2, SplitterCollapseNone)
 	if ok {
 		t.Errorf("neither → got %d/%v, want unchanged/false", next, ok)
 	}
@@ -247,7 +247,7 @@ func TestSplitterArrowStep(t *testing.T) {
 
 func TestSplitterOrientationMarshalText(t *testing.T) {
 	tests := []struct {
-		o    splitterOrientation
+		o    SplitterOrientation
 		want string
 	}{
 		{SplitterHorizontal, "horizontal"},
@@ -261,7 +261,7 @@ func TestSplitterOrientationMarshalText(t *testing.T) {
 		if string(b) != tt.want {
 			t.Errorf("got %q, want %q", b, tt.want)
 		}
-		var got splitterOrientation
+		var got SplitterOrientation
 		if err := got.UnmarshalText(b); err != nil {
 			t.Fatalf("UnmarshalText(%q): %v", b, err)
 		}
@@ -272,7 +272,7 @@ func TestSplitterOrientationMarshalText(t *testing.T) {
 }
 
 func TestSplitterOrientationUnmarshalTextUnknown(t *testing.T) {
-	var o splitterOrientation
+	var o SplitterOrientation
 	if err := o.UnmarshalText([]byte("diagonal")); err == nil {
 		t.Error("expected error for unknown value")
 	}
@@ -283,7 +283,7 @@ func TestSplitterCollapsedMarshalText(t *testing.T) {
 		c    SplitterCollapsed
 		want string
 	}{
-		{splitterCollapseNone, "none"},
+		{SplitterCollapseNone, "none"},
 		{SplitterCollapseFirst, "first"},
 		{SplitterCollapseSecond, "second"},
 	}
@@ -350,7 +350,7 @@ func TestSplitterStateNormalizeInvalidCollapsed(t *testing.T) {
 		Ratio:     0.5,
 		Collapsed: SplitterCollapsed(99),
 	})
-	if s.Collapsed != splitterCollapseNone {
+	if s.Collapsed != SplitterCollapseNone {
 		t.Errorf("collapsed = %d, want SplitterCollapseNone", s.Collapsed)
 	}
 }

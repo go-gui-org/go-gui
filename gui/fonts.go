@@ -17,7 +17,7 @@ const IconFontName = "feathericon"
 //go:embed assets/feathericon.ttf
 var IconFontData []byte
 
-// AppFontPaths lists application font files to register with the
+// appFontPaths lists application font files to register with the
 // text system at backend init time. Append paths via RegisterAppFont
 // before calling backend.RunApp / backend.Run. Paths are loaded
 // process-globally so any window can resolve them by Family name.
@@ -48,7 +48,7 @@ func RegisterAppFont(path string) {
 	appFontPaths = append(appFontPaths, path)
 }
 
-// AppFontData lists in-memory application fonts (TTF/OTF) to register
+// appFontData lists in-memory application fonts (TTF/OTF) to register
 // with the text system at backend init time. Append via
 // RegisterAppFontBytes before calling backend.RunApp / backend.Run.
 //
@@ -57,7 +57,7 @@ func RegisterAppFont(path string) {
 // does not have to manage one.
 //
 // Consumed by the GL, Metal, iOS and Android backends, matching where
-// AppFontPaths is consumed. Only the web backend ignores both lists; on
+// appFontPaths is consumed. Only the web backend ignores both lists; on
 // web use the browser FontFace API instead.
 //
 // To retarget the themed icon styles at a registered font, set that

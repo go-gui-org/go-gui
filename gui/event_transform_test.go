@@ -519,7 +519,7 @@ func TestTransformTestClickRespectsAncestorClip(t *testing.T) {
 		t.Fatalf("partly visible widget: %d clicks, want 1", clicks)
 	}
 	w.TestRender(xfClippedCardView(300, &clicks))
-	if err := w.TestClick(id); !errors.Is(err, errTestNotVisible) {
+	if err := w.TestClick(id); !errors.Is(err, ErrTestNotVisible) {
 		t.Fatalf("widget moved out of its parent: err = %v, want not visible", err)
 	}
 }
@@ -601,7 +601,7 @@ func TestTransformMouseLockUnderQuarterTurn(t *testing.T) {
 // and the root mapped it through the transform a second time.
 func TestTransformDragScrollTapReplay(t *testing.T) {
 	clicks := 0
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{onClick: &clicks})
 	v := w.layout.Children[0].Shape
 	v.xf = &shapeTransform{static: Translate(200, 0)}
 	v.xf.update(v, w)
@@ -625,7 +625,7 @@ func TestTransformDragScrollNestedClaim(t *testing.T) {
 	w := &Window{}
 	inner := Layout{Shape: &Shape{
 		shapeType: shapeRectangle, Scrollable: true, DragScroll: true,
-		ID: "inner", X: 20, Y: 20, Width: 60, Height: 60, ScrollMode: scrollBoth,
+		ID: "inner", X: 20, Y: 20, Width: 60, Height: 60, ScrollMode: ScrollBoth,
 		shapeClip: drawClip{X: 20, Y: 20, Width: 60, Height: 60},
 		xf:        &shapeTransform{static: Translate(30, 0)},
 	}}
@@ -636,7 +636,7 @@ func TestTransformDragScrollNestedClaim(t *testing.T) {
 		Shape: &Shape{shapeType: shapeRectangle, shapeClip: drawClip{Width: 800, Height: 600}},
 		Children: []Layout{{Shape: &Shape{
 			shapeType: shapeRectangle, Scrollable: true, DragScroll: true,
-			ID: "outer", X: 10, Y: 10, Width: 100, Height: 100, ScrollMode: scrollBoth,
+			ID: "outer", X: 10, Y: 10, Width: 100, Height: 100, ScrollMode: ScrollBoth,
 			shapeClip: drawClip{X: 10, Y: 10, Width: 100, Height: 100},
 		}, Children: []Layout{inner}}},
 	}

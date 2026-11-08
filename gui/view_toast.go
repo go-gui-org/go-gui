@@ -92,7 +92,7 @@ func toastContainerView(w *Window) View {
 	style := defaultToastStyle
 
 	// Map anchor to float attach.
-	var anchor, tieOff floatAttach
+	var anchor, tieOff FloatAttach
 	var offsetX, offsetY float32
 
 	switch style.Anchor {

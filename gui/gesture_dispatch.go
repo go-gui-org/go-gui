@@ -11,12 +11,12 @@ func gestureEvent(
 	cx, cy float32,
 ) Event {
 	return Event{
-		Type:           eventGesture,
+		Type:           EventGesture,
 		GestureType:    gt,
 		GesturePhase:   phase,
 		CentroidX:      cx,
 		CentroidY:      cy,
-		gestureTouches: gs.numTouches,
+		GestureTouches: gs.numTouches,
 		VelocityX:      gs.velocityX,
 		VelocityY:      gs.velocityY,
 	}

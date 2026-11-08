@@ -636,10 +636,10 @@ func TestTextViewWrapSizing(t *testing.T) {
 		Mode: TextModeWrap,
 	})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Sizing.Width != sizingFill {
+	if layout.Shape.Sizing.Width != SizingFill {
 		t.Error("wrap mode should use FillFit width")
 	}
-	if layout.Shape.Sizing.Height != sizingFit {
+	if layout.Shape.Sizing.Height != SizingFit {
 		t.Error("wrap mode should use FillFit height")
 	}
 }
@@ -674,10 +674,10 @@ func TestTextViewA11Y(t *testing.T) {
 func TestTextMultilineSizing(t *testing.T) {
 	v := Text(TextCfg{Text: "line1\nline2", Mode: TextModeMultiline})
 	layout := v.GenerateLayout(&Window{})
-	if layout.Shape.Sizing.Width != sizingFit {
+	if layout.Shape.Sizing.Width != SizingFit {
 		t.Error("multiline should use FitFit width")
 	}
-	if layout.Shape.Sizing.Height != sizingFit {
+	if layout.Shape.Sizing.Height != SizingFit {
 		t.Error("multiline should use FitFit height")
 	}
 }
@@ -777,7 +777,7 @@ func TestButtonAmendLayoutFocus(t *testing.T) {
 	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 
 	// Color should change to focus color
-	if layout.Shape.Color.eq(RGB(50, 50, 50)) {
+	if layout.Shape.Color.Eq(RGB(50, 50, 50)) {
 		t.Error("color should change on focus")
 	}
 }
@@ -873,7 +873,7 @@ func TestRectangleInvisible(t *testing.T) {
 func TestRectangleNoPadding(t *testing.T) {
 	v := Rectangle(RectangleCfg{Width: 10, Height: 10})
 	layout := v.GenerateLayout(&Window{})
-	if !layout.Shape.Padding.isNone() {
+	if !layout.Shape.Padding.IsNone() {
 		t.Error("rectangle should have no padding")
 	}
 }

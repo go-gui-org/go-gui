@@ -260,12 +260,12 @@ func TestInputReadOnlyBlocksCommandEmacsEdits(t *testing.T) {
 	setKeyBindingForTest(t, KeyBindingCommand)
 	for _, k := range []KeyCode{KeyD, KeyH, KeyK, KeyY} {
 		e := &Event{KeyCode: k, Modifiers: ModCtrl}
-		if !inputKeyMutatesText(e, inputSingleLine) {
+		if !inputKeyMutatesText(e, InputSingleLine) {
 			t.Errorf("read-only lets Ctrl+%d through on macOS", k)
 		}
 	}
 	e := &Event{KeyCode: KeyV, Modifiers: ModCtrl}
-	if inputKeyMutatesText(e, inputSingleLine) {
+	if inputKeyMutatesText(e, InputSingleLine) {
 		t.Error("read-only swallows Ctrl+V on macOS, which is not paste")
 	}
 }

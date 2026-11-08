@@ -1,11 +1,11 @@
 package gui
 
 // DialogType identifies the kind of dialog.
-type dialogType uint8
+type DialogType uint8
 
 // DialogType constants.
 const (
-	DialogMessage dialogType = iota
+	DialogMessage DialogType = iota
 	DialogConfirm
 	DialogPrompt
 	DialogCustom
@@ -74,7 +74,7 @@ type DialogCfg struct {
 	oldFocusID   string
 	Color        Color
 	ColorBorder  Color
-	DialogType   dialogType
+	DialogType   DialogType
 	AlignButtons HorizontalAlign // ergonomics-audit:opt-plain — zero (HAlignStart) is the natural default; no distinct unset behavior
 
 	// DefaultButton selects which confirm-dialog button gets initial
@@ -202,7 +202,7 @@ func dialogViewGenerator(cfg DialogCfg) View {
 func dialogSizing(cfg *DialogCfg, dn *DialogStyle) (minWidth, maxWidth float32, sizing Sizing) {
 	sizing = FitFit
 	if cfg.Width > 0 {
-		sizing.Width = sizingFixed
+		sizing.Width = SizingFixed
 		minWidth = cfg.MinWidth.Get(0)
 		maxWidth = cfg.MaxWidth.Get(0)
 	} else {
@@ -213,7 +213,7 @@ func dialogSizing(cfg *DialogCfg, dn *DialogStyle) (minWidth, maxWidth float32, 
 		}
 	}
 	if cfg.Height > 0 {
-		sizing.Height = sizingFixed
+		sizing.Height = SizingFixed
 	}
 	return minWidth, maxWidth, sizing
 }

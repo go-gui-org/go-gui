@@ -12,7 +12,7 @@ import (
 func inputLayoutWithText(t *testing.T, text string, gl *glyph.Layout) *Layout {
 	t.Helper()
 	style := DefaultTextStyle
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		Text:            text,
 		TextStyle:       &style,
 		TextMode:        TextModeSingleLine,

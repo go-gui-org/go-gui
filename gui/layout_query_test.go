@@ -308,5 +308,5 @@ func TestFindByIDEmptyIDNeverMatches(t *testing.T) {
 // still being built. It must be a no-op, not a panic.
 func TestScrollToViewBeforeLayout(t *testing.T) {
 	var w Window
-	w.scrollToView("some-id")
+	w.ScrollToView("some-id")
 }

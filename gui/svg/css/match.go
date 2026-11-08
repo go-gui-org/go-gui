@@ -139,7 +139,7 @@ func (cs complexSelector) Matches(
 // other declarations during the cascade walk.
 type MatchedDecl struct {
 	Decl
-	Origin origin
+	Origin Origin
 	spec   Specificity
 	Source int
 }
@@ -174,7 +174,7 @@ func Match(
 		for _, d := range r.Decls {
 			out = append(out, MatchedDecl{
 				Decl:   d,
-				Origin: originRule,
+				Origin: OriginRule,
 				spec:   spec,
 				Source: r.Source,
 			})

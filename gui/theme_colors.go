@@ -172,10 +172,10 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	// override moves both, stating both sets them apart.
 	sel := colorOr(o.ColorSelect, oldSel)
 	accent := colorOr(o.ColorAccent, oldAccent)
-	if !o.ColorAccent.IsSet() && o.ColorSelect.IsSet() && oldAccent.eq(oldSel) {
+	if !o.ColorAccent.IsSet() && o.ColorSelect.IsSet() && oldAccent.Eq(oldSel) {
 		accent = sel
 	}
-	if !o.ColorSelect.IsSet() && o.ColorAccent.IsSet() && oldAccent.eq(oldSel) {
+	if !o.ColorSelect.IsSet() && o.ColorAccent.IsSet() && oldAccent.Eq(oldSel) {
 		sel = accent
 	}
 

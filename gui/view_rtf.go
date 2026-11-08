@@ -38,7 +38,7 @@ type RTFCfg struct {
 	markdownID         string
 	markdownBlockStart uint32
 	markdownSel        bool
-	Mode               textMode
+	Mode               TextMode
 	Invisible          bool
 	Clip               bool
 	FocusSkip          bool
@@ -175,7 +175,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 	var baseStyle glyph.TextStyle
 	var lineSpacing float32
 	if v.BaseTextStyle != nil {
-		baseStyle = v.BaseTextStyle.toGlyphStyle()
+		baseStyle = v.BaseTextStyle.ToGlyphStyle()
 		lineSpacing = v.BaseTextStyle.LineSpacing
 	} else if len(v.RichText.Runs) > 0 {
 		baseStyle = vgRT.Runs[0].Style
@@ -613,7 +613,7 @@ func rtfOpenLink(w *Window, link, markdownID string) {
 	}
 	if link[0] == '#' {
 		if id, ok := rtfResolveAnchor(w, markdownID, link[1:]); ok {
-			w.scrollToView(id)
+			w.ScrollToView(id)
 			return
 		}
 		short := rtfLinkShort(link)

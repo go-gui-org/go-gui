@@ -21,7 +21,7 @@ func TestSpringRetarget(t *testing.T) {
 	sp := NewSpringAnimation("s", func(float32, *Window) {})
 	sp.SpringTo(0, 50)
 	sp.state.velocity = 5
-	sp.retarget(200)
+	sp.Retarget(200)
 	if sp.state.target != 200 {
 		t.Error("target not updated")
 	}

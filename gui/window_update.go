@@ -393,11 +393,11 @@ func (w *Window) updateLocked() {
 	// accumulates on the main axis, and the subsequent fill pass still
 	// distributes the remaining space to any Fill children.
 	ensureLayoutShape(&rootLayout)
-	if rootLayout.Shape.Sizing.Width == sizingFill {
+	if rootLayout.Shape.Sizing.Width == SizingFill {
 		rootLayout.Shape.MinWidth = float32(w.windowWidth)
 		rootLayout.Shape.MaxWidth = float32(w.windowWidth)
 	}
-	if rootLayout.Shape.Sizing.Height == sizingFill {
+	if rootLayout.Shape.Sizing.Height == SizingFill {
 		rootLayout.Shape.MinHeight = float32(w.windowHeight)
 		rootLayout.Shape.MaxHeight = float32(w.windowHeight)
 	}

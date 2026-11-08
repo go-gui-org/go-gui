@@ -19,6 +19,7 @@ references it:
 | self     | its own package only                        | hard failure          |
 | selftest | its own package or its tests                | hard failure          |
 | internal | other gui/ packages                         | accepted (deferred)   |
+| reach    | its own package's exported surface, by type | pass                  |
 | testext  | gui/ external test packages                 | pass                  |
 | example  | examples/                                   | pass                  |
 | consumer | sibling repos (go-charts, go-edit, go-kite, | pass                  |
@@ -35,6 +36,23 @@ only there misclassifies as none/self. The in-repo run alone can only report (it
 never hard-fails). `make export-audit` clones nothing. It uses `../go-*`
 checkouts when present. CI shallow-clones the five sibling repos into `../`, so
 the gate is authoritative there.
+
+## Reach class: type closure
+
+`reach` (`tools/exportaudit/reach.go`) is not a reference count but a closure.
+It starts at the package's exported functions, constants and variables and
+follows type names through signatures, exported struct fields (callback fields
+included), exported interface methods and the exported methods of every type it
+reaches. A type in the closure, its exported fields and methods, and the
+exported constants of its type pass the gate with no reference at all: an app
+implementing `DataGridDataSource` must fill `GridDataCapabilities`, whether or
+not any Go file in the scan does. Exported types that nothing names stay outside
+the closure, so an orphan struct still fails.
+
+The 2026-08 sweep (#230) checked function signatures only. Payload structs that
+only `gui/` itself filled lost their fields, and enums set through a Cfg field
+lost their type name; #1221 restored them and added this class so the gate
+protects that shape instead of eroding it.
 
 ## Internal class: accepted by policy
 

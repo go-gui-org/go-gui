@@ -14,7 +14,7 @@ func imeEditTargetLayout(id string) Layout {
 				Shape: &Shape{
 					shapeType:  shapeText,
 					focusOwner: id,
-					TC:         &shapeTextConfig{Text: "hi"},
+					TC:         &ShapeTextConfig{Text: "hi"},
 				},
 			}},
 		}},
@@ -33,7 +33,7 @@ func TestShapeIsIMEEditTarget(t *testing.T) {
 			&Shape{
 				shapeType:  shapeText,
 				focusOwner: "in",
-				TC:         &shapeTextConfig{},
+				TC:         &ShapeTextConfig{},
 			},
 			true,
 		},
@@ -42,7 +42,7 @@ func TestShapeIsIMEEditTarget(t *testing.T) {
 			&Shape{
 				shapeType:  shapeText,
 				focusOwner: "in",
-				TC:         &shapeTextConfig{textReadOnly: true},
+				TC:         &ShapeTextConfig{textReadOnly: true},
 			},
 			false,
 		},
@@ -52,7 +52,7 @@ func TestShapeIsIMEEditTarget(t *testing.T) {
 				shapeType: shapeText,
 				Focusable: true,
 				ID:        "label",
-				TC:        &shapeTextConfig{},
+				TC:        &ShapeTextConfig{},
 			},
 			false,
 		},
@@ -282,7 +282,7 @@ func TestShapeDrawsCaret(t *testing.T) {
 			&Shape{
 				shapeType:  shapeText,
 				focusOwner: "in",
-				TC:         &shapeTextConfig{},
+				TC:         &ShapeTextConfig{},
 			},
 			true,
 		},
@@ -291,7 +291,7 @@ func TestShapeDrawsCaret(t *testing.T) {
 			&Shape{
 				shapeType:  shapeText,
 				focusOwner: "in",
-				TC:         &shapeTextConfig{textReadOnly: true},
+				TC:         &ShapeTextConfig{textReadOnly: true},
 			},
 			true,
 		},
@@ -301,14 +301,14 @@ func TestShapeDrawsCaret(t *testing.T) {
 				shapeType: shapeText,
 				Focusable: true,
 				ID:        "label",
-				TC:        &shapeTextConfig{},
+				TC:        &ShapeTextConfig{},
 			},
 			true,
 		},
 		{"button", &Shape{Focusable: true, ID: "b"}, false},
 		{
 			"plain text renders no caret",
-			&Shape{shapeType: shapeText, ID: "t", TC: &shapeTextConfig{}},
+			&Shape{shapeType: shapeText, ID: "t", TC: &ShapeTextConfig{}},
 			false,
 		},
 	}
@@ -553,7 +553,7 @@ func TestFindEditTargetsDepthCap(t *testing.T) {
 	leaf := Layout{Shape: &Shape{
 		shapeType:  shapeText,
 		focusOwner: "deep",
-		TC:         &shapeTextConfig{Text: "hi"},
+		TC:         &ShapeTextConfig{Text: "hi"},
 	}}
 	for range maxEventDepth + 10 {
 		leaf = Layout{

@@ -660,7 +660,7 @@ func (w *Window) allocAccessInfo(src accessInfo) *accessInfo {
 // text shape's config is rebuilt every frame and carries no cache past
 // it, so it lives in the view-phase arena with the shape rather than on
 // the view, which is a heap object paid once per Text.
-func (w *Window) allocTextConfig(src shapeTextConfig) *shapeTextConfig {
+func (w *Window) allocTextConfig(src ShapeTextConfig) *ShapeTextConfig {
 	if w == nil {
 		cp := src
 		return &cp

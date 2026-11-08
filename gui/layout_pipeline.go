@@ -572,7 +572,7 @@ func rtfLayoutCacheStore(
 	vs.rtfLayoutCache[key] = rtfLayoutEntry{Layout: layout, seen: w.viewPass}
 }
 
-func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
+func layoutWrapRTF(shape *Shape, tc *ShapeTextConfig, w *Window) {
 	if tc.rtf == nil || tc.rtf.rTFRuns == nil {
 		return
 	}
@@ -675,7 +675,7 @@ func wrapParentHAlign(layout *Layout) HorizontalAlign {
 // caller needs so the parent's content-width cache can follow.
 func layoutPlainText(
 	shape *Shape,
-	tc *shapeTextConfig,
+	tc *ShapeTextConfig,
 	style TextStyle,
 	parentHAlign HorizontalAlign,
 	w *Window,
@@ -703,7 +703,7 @@ func layoutPlainText(
 	}
 	shape.Height = plainTextBoxHeight(l, style, w)
 	if tc.TextMode == TextModeMultiline &&
-		shape.Sizing.Width != sizingFixed && l.Width > 0 {
+		shape.Sizing.Width != SizingFixed && l.Width > 0 {
 		shape.Width = l.Width
 	}
 	shrank := shrinkWrapToInk(shape, tc, style, l, parentHAlign)
@@ -742,7 +742,7 @@ func layoutPlainText(
 // to the shaper is the same every frame.
 func shrinkWrapToInk(
 	shape *Shape,
-	tc *shapeTextConfig,
+	tc *ShapeTextConfig,
 	style TextStyle,
 	l glyph.Layout,
 	parentHAlign HorizontalAlign,
@@ -769,7 +769,7 @@ func shrinkWrapToInk(
 		// leaves Parent pointing at that container. Its HAlign says
 		// nothing about where this box goes.
 		return false
-	case shape.Sizing.Width == sizingFixed:
+	case shape.Sizing.Width == SizingFixed:
 		return false
 	case style.Align != TextAlignLeft:
 		// glyph centred the lines against the wrap width already.

@@ -30,8 +30,8 @@ func TestMdRenderHR(t *testing.T) {
 	if shape.Height != 1 {
 		t.Errorf("HR height = %g, want 1", shape.Height)
 	}
-	if shape.Color != style.hRColor {
-		t.Errorf("HR color = %v, want %v", shape.Color, style.hRColor)
+	if shape.Color != style.HRColor {
+		t.Errorf("HR color = %v, want %v", shape.Color, style.HRColor)
 	}
 	if shape.Sizing != FillFixed {
 		t.Errorf("HR sizing = %v, want FillFixed", shape.Sizing)
@@ -161,9 +161,9 @@ func TestMdRenderDefValue(t *testing.T) {
 	if shape == nil {
 		t.Fatal("expected shape")
 	}
-	if shape.Padding.Left != style.nestIndent {
+	if shape.Padding.Left != style.NestIndent {
 		t.Errorf("value padding left = %g, want %g",
-			shape.Padding.Left, style.nestIndent)
+			shape.Padding.Left, style.NestIndent)
 	}
 	if len(layout.Children) != 1 {
 		t.Fatalf("value children = %d, want 1 (the RTF)",
@@ -232,9 +232,9 @@ func TestMarkdownBuildContentRendersHRInPipeline(t *testing.T) {
 	if layout.Shape == nil || layout.Shape.Height != 1 {
 		t.Errorf("pipeline HR height = %v, want 1", layout.Shape)
 	}
-	if layout.Shape.Color != style.hRColor {
+	if layout.Shape.Color != style.HRColor {
 		t.Errorf("pipeline HR color = %v, want %v",
-			layout.Shape.Color, style.hRColor)
+			layout.Shape.Color, style.HRColor)
 	}
 }
 

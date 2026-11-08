@@ -260,7 +260,7 @@ var ActiveLocale = localeDefaults()
 // effectiveTextDir resolves the text direction for a shape,
 // falling back to the global locale when set to Auto.
 func effectiveTextDir(shape *Shape) TextDirection {
-	if shape.TextDir != textDirAuto {
+	if shape.TextDir != TextDirAuto {
 		return shape.TextDir
 	}
 	return activeTextDir()

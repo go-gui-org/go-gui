@@ -57,7 +57,7 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 			Kind:        RenderFilterBegin,
 			BlurRadius:  sanitizeFilterBlur(fx.BlurRadius),
 			Layers:      1,
-			ColorMatrix: &fx.ColorFilter.matrix,
+			ColorMatrix: &fx.ColorFilter.Matrix,
 		}, w)
 		if opened {
 			w.inFilter = true
@@ -73,11 +73,11 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 	shapeClip := clip
 	if layout.Shape.OverDraw {
 		shapeClip = renderShapeClip(layout.Shape, clip, w)
-		if layout.Shape.scrollbarOrientation == scrollbarVertical {
+		if layout.Shape.scrollbarOrientation == ScrollbarVertical {
 			shapeClip.Y = clip.Y
 			shapeClip.Height = clip.Height
 		}
-		if layout.Shape.scrollbarOrientation == scrollbarHorizontal {
+		if layout.Shape.scrollbarOrientation == ScrollbarHorizontal {
 			shapeClip.X = clip.X
 			shapeClip.Width = clip.Width
 		}

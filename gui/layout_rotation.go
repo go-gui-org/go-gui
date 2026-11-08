@@ -47,14 +47,14 @@ func reaccumulateAncestors(layout *Layout) {
 		layout.Shape.contentW = computeContentWidth(layout)
 		layout.Shape.contentH = computeContentHeight(layout)
 		changed := false
-		if layout.Shape.Sizing.Width == sizingFit {
+		if layout.Shape.Sizing.Width == SizingFit {
 			old := layout.Shape.Width
 			layout.Shape.Width = recomputeFitWidth(layout)
 			if layout.Shape.Width != old {
 				changed = true
 			}
 		}
-		if layout.Shape.Sizing.Height == sizingFit {
+		if layout.Shape.Sizing.Height == SizingFit {
 			old := layout.Shape.Height
 			layout.Shape.Height = recomputeFitHeight(layout)
 			if layout.Shape.Height != old {

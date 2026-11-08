@@ -147,7 +147,7 @@ type InputCfg struct {
 
 	// Mode controls input behavior: single-line, multiline, or
 	// search with clear button. See InputMode constants.
-	Mode inputMode
+	Mode InputMode
 
 	// IsPassword masks displayed characters with dots/bullets.
 	IsPassword bool
@@ -483,7 +483,7 @@ type inputHandlerCfg struct {
 	scrollID   string
 	IsPassword bool
 	ReadOnly   bool
-	Mode       inputMode
+	Mode       InputMode
 	MaskPreset InputMaskPreset
 }
 

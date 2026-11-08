@@ -32,33 +32,39 @@ var (
 	// requested ID. Usually one of: the view never rendered, the ID is
 	// misspelled, or the widget is inside a collapsed/hidden branch that
 	// the view function did not emit this frame.
-	errTestNoSuchID = errors.New("gui: no widget with that ID")
+	// exportaudit:keep — documented API (wiki Testing; errors.Is target)
+	ErrTestNoSuchID = errors.New("gui: no widget with that ID")
 
 	// ErrTestDisabled means the widget exists but is Disabled. Event
 	// traversal skips disabled subtrees entirely (isChildEnabled), so
 	// synthesizing the event would silently do nothing.
-	errTestDisabled = errors.New("gui: widget is disabled")
+	// exportaudit:keep — documented API (wiki Testing; errors.Is target)
+	ErrTestDisabled = errors.New("gui: widget is disabled")
 
 	// ErrTestNotFocusable means the widget cannot hold focus, so a
 	// keyboard event addressed to it can never be delivered. Requires
 	// both Focusable and a non-empty ID (isFocusedTarget), and tab
 	// order additionally requires !FocusSkip.
-	errTestNotFocusable = errors.New("gui: widget is not focusable")
+	// exportaudit:keep — documented API (wiki Testing; errors.Is target)
+	ErrTestNotFocusable = errors.New("gui: widget is not focusable")
 
 	// ErrTestNoHandler means the widget has no handler that could
 	// respond to the synthesized event.
-	errTestNoHandler = errors.New("gui: widget has no handler for that event")
+	// exportaudit:keep — documented API (wiki Testing; errors.Is target)
+	ErrTestNoHandler = errors.New("gui: widget has no handler for that event")
 
 	// ErrTestNotVisible means the widget has an empty clip rectangle, so
 	// no coordinate hits it. A widget scrolled out of view, sized to
 	// zero, or clipped away by an ancestor lands here.
-	errTestNotVisible = errors.New("gui: widget has no visible area")
+	// exportaudit:keep — documented API (wiki Testing; errors.Is target)
+	ErrTestNotVisible = errors.New("gui: widget has no visible area")
 
 	// ErrTestUnhandled means the event was dispatched and reached the
 	// end of traversal with nothing claiming it. The widget is present
 	// and hittable, but something above it in z-order absorbed the
 	// event, or no handler along the way called ctx.Consume().
-	errTestUnhandled = errors.New("gui: event was not handled by any widget")
+	// exportaudit:keep — documented API (wiki Testing; errors.Is target)
+	ErrTestUnhandled = errors.New("gui: event was not handled by any widget")
 
 	// ErrTestNoScrollRoom means the widget is Scrollable but its
 	// content fits inside it on the requested axis, so there is
@@ -67,7 +73,8 @@ var (
 	// (give the container more content, or less height), whereas
 	// ErrTestUnhandled from a scroll says the container is real but
 	// already pinned at its limit.
-	errTestNoScrollRoom = errors.New("gui: scroll container has no room to scroll")
+	// exportaudit:keep — documented API (wiki Testing; errors.Is target)
+	ErrTestNoScrollRoom = errors.New("gui: scroll container has no room to scroll")
 )
 
 // TabDirection selects forward or backward traversal for TestTab.
@@ -76,9 +83,9 @@ type TabDirection int
 
 const (
 	// TabForward is plain Tab.
-	tabForward TabDirection = iota
+	TabForward TabDirection = iota
 	// TabBackward is Shift-Tab.
-	tabBackward
+	TabBackward
 )
 
 // Cleanuper is the part of testing.TB that NewTestWindow needs.
@@ -245,13 +252,13 @@ const maxSettlePasses = maxDeferredCallbackBatches
 func (w *Window) testTarget(effectiveID string) (*Layout, error) {
 	ly, ok := w.layout.FindByID(effectiveID)
 	if !ok {
-		return nil, fmt.Errorf("%w: %q", errTestNoSuchID, effectiveID)
+		return nil, fmt.Errorf("%w: %q", ErrTestNoSuchID, effectiveID)
 	}
 	if ly.Shape == nil {
-		return nil, fmt.Errorf("%w: %q", errTestNoSuchID, effectiveID)
+		return nil, fmt.Errorf("%w: %q", ErrTestNoSuchID, effectiveID)
 	}
 	if ly.Shape.Disabled {
-		return nil, fmt.Errorf("%w: %q", errTestDisabled, effectiveID)
+		return nil, fmt.Errorf("%w: %q", ErrTestDisabled, effectiveID)
 	}
 	return ly, nil
 }
@@ -269,7 +276,7 @@ func (w *Window) testTarget(effectiveID string) (*Layout, error) {
 func testHitPoint(ly *Layout, effectiveID string) (x, y float32, err error) {
 	x, y, ok := shapeHitPoint(ly)
 	if !ok {
-		return 0, 0, fmt.Errorf("%w: %q", errTestNotVisible, effectiveID)
+		return 0, 0, fmt.Errorf("%w: %q", ErrTestNotVisible, effectiveID)
 	}
 	return x, y, nil
 }
@@ -312,7 +319,7 @@ func (w *Window) TestClick(effectiveID string) error {
 		(ev.OnClick != nil || ev.OnMouseDown != nil)
 	if !hasClick && !ly.Shape.Focusable {
 		return fmt.Errorf("%w: %q has no click handler and is not focusable",
-			errTestNoHandler, effectiveID)
+			ErrTestNoHandler, effectiveID)
 	}
 	x, y, err := testHitPoint(ly, effectiveID)
 	if err != nil {
@@ -334,7 +341,7 @@ func (w *Window) TestClick(effectiveID string) error {
 	w.EventFn(&up)
 	w.settle()
 	if !down.IsHandled {
-		return fmt.Errorf("%w: click on %q", errTestUnhandled, effectiveID)
+		return fmt.Errorf("%w: click on %q", ErrTestUnhandled, effectiveID)
 	}
 	return nil
 }
@@ -350,7 +357,7 @@ func (w *Window) testFocusable(effectiveID string) (*Layout, error) {
 		return nil, err
 	}
 	if !ly.Shape.canTakeFocus() {
-		return nil, fmt.Errorf("%w: %q", errTestNotFocusable, effectiveID)
+		return nil, fmt.Errorf("%w: %q", ErrTestNotFocusable, effectiveID)
 	}
 	return ly, nil
 }
@@ -360,7 +367,7 @@ func (w *Window) testFocusable(effectiveID string) (*Layout, error) {
 //
 // FocusSkip is not rejected: a skipped widget is out of tab order but
 // can still be focused programmatically, which is what this does.
-func (w *Window) testFocus(effectiveID string) error {
+func (w *Window) TestFocus(effectiveID string) error {
 	if _, err := w.testFocusable(effectiveID); err != nil {
 		return err
 	}
@@ -381,7 +388,7 @@ func (w *Window) testFocus(effectiveID string) error {
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) TestKey(effectiveID string, key KeyCode, mods Modifier) error {
-	if err := w.testFocus(effectiveID); err != nil {
+	if err := w.TestFocus(effectiveID); err != nil {
 		return err
 	}
 	down := Event{Type: EventKeyDown, KeyCode: key, Modifiers: mods}
@@ -404,7 +411,7 @@ func (w *Window) TestKey(effectiveID string, key KeyCode, mods Modifier) error {
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) TestType(effectiveID string, text string) error {
-	if err := w.testFocus(effectiveID); err != nil {
+	if err := w.TestFocus(effectiveID); err != nil {
 		return err
 	}
 	for _, r := range text {
@@ -426,9 +433,9 @@ func (w *Window) TestType(effectiveID string, text string) error {
 // An empty returned ID means nothing is focused — typically no widget in
 // the tree qualifies for tab order (Focusable, non-empty ID, !FocusSkip,
 // !Disabled).
-func (w *Window) testTab(dir TabDirection) (focusedID string, err error) {
+func (w *Window) TestTab(dir TabDirection) (focusedID string, err error) {
 	mods := Modifier(0)
-	if dir == tabBackward {
+	if dir == TabBackward {
 		mods = ModShift
 	}
 	e := Event{Type: EventKeyDown, KeyCode: KeyTab, Modifiers: mods}
@@ -477,7 +484,7 @@ func (w *Window) TestScroll(effectiveID string, dx, dy float32) error {
 	hasScroll := ly.Shape.hasEvents() && ly.Shape.events.OnMouseScroll != nil
 	if !ly.Shape.Scrollable && !hasScroll {
 		return fmt.Errorf("%w: %q is not Scrollable and has no OnMouseScroll",
-			errTestNoHandler, effectiveID)
+			ErrTestNoHandler, effectiveID)
 	}
 	x, y, err := testHitPoint(ly, effectiveID)
 	if err != nil {
@@ -498,7 +505,7 @@ func (w *Window) TestScroll(effectiveID string, dx, dy float32) error {
 				return err
 			}
 		}
-		return fmt.Errorf("%w: scroll on %q", errTestUnhandled, effectiveID)
+		return fmt.Errorf("%w: scroll on %q", ErrTestUnhandled, effectiveID)
 	}
 	return nil
 }
@@ -525,7 +532,7 @@ func testScrollRoomErr(ly *Layout, effectiveID string, dx, dy float32) error {
 	}
 	return fmt.Errorf(
 		"%w: %q content is %.0fx%.0f inside a %.0fx%.0f viewport",
-		errTestNoScrollRoom, effectiveID,
+		ErrTestNoScrollRoom, effectiveID,
 		contentWidth(ly), contentHeight(ly),
 		ly.Shape.Width-ly.Shape.paddingWidth(),
 		ly.Shape.Height-ly.Shape.paddingHeight(),
@@ -553,7 +560,7 @@ func (w *Window) TestScrollOffset(effectiveID string) (x, y float32, err error) 
 		return 0, 0, err
 	}
 	if !ly.Shape.Scrollable {
-		return 0, 0, fmt.Errorf("%w: %q is not Scrollable", errTestNoHandler, effectiveID)
+		return 0, 0, fmt.Errorf("%w: %q is not Scrollable", ErrTestNoHandler, effectiveID)
 	}
 	// Read-only accessors: a query must not allocate the state maps as a
 	// side effect of being asked about a container that never scrolled.

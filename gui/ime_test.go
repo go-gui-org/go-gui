@@ -301,7 +301,7 @@ func renderIMEPreedit(t *testing.T, text string, cursor int,
 		Focusable: true, ID: id,
 		Width: 200, Height: 20,
 		Opacity: 1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:              text,
 			TextStyle:         &style,
 			textIsPlaceholder: placeholder,

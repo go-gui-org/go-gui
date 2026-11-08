@@ -3,11 +3,11 @@ package gui
 import "time"
 
 // SkeletonVariant selects the skeleton shape.
-type skeletonVariant uint8
+type SkeletonVariant uint8
 
 // SkeletonVariant constants.
 const (
-	skeletonRect skeletonVariant = iota
+	SkeletonRect SkeletonVariant = iota
 	SkeletonCircle
 )
 
@@ -25,7 +25,7 @@ type SkeletonCfg struct {
 	Color          Color
 	ColorHighlight Color
 	Sizing         Sizing
-	Variant        skeletonVariant
+	Variant        SkeletonVariant
 	Disabled       bool
 	Invisible      bool
 }

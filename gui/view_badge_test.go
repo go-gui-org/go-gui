@@ -34,10 +34,10 @@ func TestBadgeDotMode(t *testing.T) {
 func TestBadgeVariantColors(t *testing.T) {
 	style := guiTheme.badgeStyle
 	tests := []struct {
-		variant badgeVariant
+		variant BadgeVariant
 		want    Color
 	}{
-		{badgeDefault, style.Colors.Base},
+		{BadgeDefault, style.Colors.Base},
 		{BadgeInfo, style.colorInfo},
 		{BadgeSuccess, style.ColorSuccess},
 		{BadgeWarning, style.ColorWarning},

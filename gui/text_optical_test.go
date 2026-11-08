@@ -60,7 +60,7 @@ func bandTestFrame(text string, style TextStyle) Layout {
 	frame.Children = []Layout{{Shape: &Shape{
 		shapeType: shapeText,
 		X:         0, Y: 0, Width: 40, Height: 20,
-		TC: &shapeTextConfig{Text: text, TextStyle: &style},
+		TC: &ShapeTextConfig{Text: text, TextStyle: &style},
 	}}}
 	return frame
 }

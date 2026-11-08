@@ -37,7 +37,7 @@ func (c Color) ToHSV() (h, s, v float32) {
 // ColorFromHSV creates a Color from HSV values.
 // h: 0–360, s: 0–1, v: 0–1. Alpha defaults to 255.
 func ColorFromHSV(h, s, v float32) Color {
-	return colorFromHSVA(h, s, v, 255)
+	return ColorFromHSVA(h, s, v, 255)
 }
 
 // ColorFromHSVA creates a Color from HSVA values.
@@ -45,7 +45,8 @@ func ColorFromHSV(h, s, v float32) Color {
 // Out-of-range s/v are clamped and non-finite inputs map to zero,
 // mirroring HSLA.Normalized: f32Mod lets NaN through and the
 // float→uint8 conversion below is implementation-defined for it.
-func colorFromHSVA(h, s, v float32, a uint8) Color {
+// exportaudit:keep — documented API (showcase docs/widget_color_picker.md)
+func ColorFromHSVA(h, s, v float32, a uint8) Color {
 	if !f32IsFinite(h) {
 		h = 0
 	}
@@ -92,14 +93,15 @@ func sectorRGB(hh, c, x float32) (r, g, b float32) {
 }
 
 // HueColor returns the pure color for a given hue (s=1, v=1).
-func hueColor(h float32) Color {
+// exportaudit:keep — documented API (showcase docs/widget_color_picker.md)
+func HueColor(h float32) Color {
 	return ColorFromHSV(h, 1.0, 1.0)
 }
 
 // ToHexString returns "#RRGGBB" or "#RRGGBBAA" when alpha != 255.
 // Built with a hex table into a stack-sized buffer instead of fmt:
 // this runs on the readout path.
-func (c Color) toHexString() string {
+func (c Color) ToHexString() string {
 	const digits = "0123456789ABCDEF"
 	var buf [9]byte
 	buf[0] = '#'
@@ -119,7 +121,8 @@ func (c Color) toHexString() string {
 
 // ColorFromHexString parses "#RRGGBB" or "#RRGGBBAA".
 // Returns (Color, false) on invalid input.
-func colorFromHexString(s string) (Color, bool) {
+// exportaudit:keep — documented API (showcase docs/widget_color_picker.md)
+func ColorFromHexString(s string) (Color, bool) {
 	raw := s
 	if len(raw) > 0 && raw[0] == '#' {
 		raw = raw[1:]

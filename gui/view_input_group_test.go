@@ -62,7 +62,7 @@ func TestInputGroupSegmentsHaveNoBorderOrRadius(t *testing.T) {
 			t.Errorf("%s: border %v radius %v, want 0 and 0",
 				id, s.SizeBorder, s.Radius)
 		}
-		if s.Sizing.Height != sizingFill {
+		if s.Sizing.Height != SizingFill {
 			t.Errorf("%s: height sizing %v, want fill", id, s.Sizing.Height)
 		}
 	}
@@ -228,7 +228,7 @@ func TestInputGroupKeepsCallerWidthAndPadding(t *testing.T) {
 		})
 	})
 	user := igFind(t, w, "grp:user").Shape
-	if user.Sizing.Width != sizingFill || user.Sizing.Height != sizingFill {
+	if user.Sizing.Width != SizingFill || user.Sizing.Height != SizingFill {
 		t.Errorf("input sizing %+v, want fill width and height", user.Sizing)
 	}
 	btn := igFind(t, w, "grp:go").Shape

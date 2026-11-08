@@ -23,7 +23,7 @@ func TestCommandPaletteHidden(t *testing.T) {
 
 func TestCommandPaletteVisible(t *testing.T) {
 	w := &Window{}
-	commandPaletteShow("__cmd_palette__", w)
+	CommandPaletteShow("__cmd_palette__", w)
 
 	v := CommandPalette(CommandPaletteCfg{
 		ID: "__cmd_palette__",
@@ -44,7 +44,7 @@ func TestCommandPaletteVisible(t *testing.T) {
 // (visual-refresh §4.3).
 func TestCommandPaletteHighlightedTextColor(t *testing.T) {
 	w := &Window{}
-	commandPaletteShow("cp-sel-text", w)
+	CommandPaletteShow("cp-sel-text", w)
 
 	v := CommandPalette(CommandPaletteCfg{
 		ID: "cp-sel-text",
@@ -61,11 +61,11 @@ func TestCommandPaletteHighlightedTextColor(t *testing.T) {
 	// The highlighted row paints the subtle wash, so its label keeps
 	// the body color — a tint needs no paired foreground
 	// (visual-refresh §4.3).
-	if got := textColorOf(t, w, v, "Save"); !got.eq(DefaultTextStyle.Color) {
+	if got := textColorOf(t, w, v, "Save"); !got.Eq(DefaultTextStyle.Color) {
 		t.Errorf("highlighted row color = %v, want body %v",
 			got, DefaultTextStyle.Color)
 	}
-	if got := textColorOf(t, w, v, "Open"); !got.eq(DefaultTextStyle.Color) {
+	if got := textColorOf(t, w, v, "Open"); !got.Eq(DefaultTextStyle.Color) {
 		t.Errorf("plain row color = %v, want body %v",
 			got, DefaultTextStyle.Color)
 	}
@@ -74,12 +74,12 @@ func TestCommandPaletteHighlightedTextColor(t *testing.T) {
 func TestCommandPaletteShowDismiss(t *testing.T) {
 	w := &Window{}
 	id := "cp-sd"
-	commandPaletteShow(id, w)
-	if !commandPaletteIsVisible(id, w) {
+	CommandPaletteShow(id, w)
+	if !CommandPaletteIsVisible(id, w) {
 		t.Error("expected visible after show")
 	}
-	commandPaletteDismiss(id, w)
-	if commandPaletteIsVisible(id, w) {
+	CommandPaletteDismiss(id, w)
+	if CommandPaletteIsVisible(id, w) {
 		t.Error("expected hidden after dismiss")
 	}
 }
@@ -88,18 +88,18 @@ func TestCommandPaletteToggle(t *testing.T) {
 	w := &Window{}
 	id := "cp-tog"
 	CommandPaletteToggle(id, w)
-	if !commandPaletteIsVisible(id, w) {
+	if !CommandPaletteIsVisible(id, w) {
 		t.Error("first toggle should show")
 	}
 	CommandPaletteToggle(id, w)
-	if commandPaletteIsVisible(id, w) {
+	if CommandPaletteIsVisible(id, w) {
 		t.Error("second toggle should hide")
 	}
 }
 
 func TestPaletteOnKeyDownEscape(t *testing.T) {
 	w := &Window{}
-	commandPaletteShow("cp-esc", w)
+	CommandPaletteShow("cp-esc", w)
 	dismissed := false
 	e := &Event{KeyCode: KeyEscape}
 	items := []listCoreItem{{ID: "a", Label: "A"}}
@@ -109,14 +109,14 @@ func TestPaletteOnKeyDownEscape(t *testing.T) {
 	if !dismissed {
 		t.Error("escape should dismiss")
 	}
-	if commandPaletteIsVisible("cp-esc", w) {
+	if CommandPaletteIsVisible("cp-esc", w) {
 		t.Error("should be hidden after escape")
 	}
 }
 
 func TestPaletteOnKeyDownSelect(t *testing.T) {
 	w := &Window{}
-	commandPaletteShow("cp-sel", w)
+	CommandPaletteShow("cp-sel", w)
 	selected := ""
 	e := &Event{KeyCode: KeyEnter}
 	items := []listCoreItem{
@@ -134,7 +134,7 @@ func TestPaletteOnKeyDownSelect(t *testing.T) {
 
 func TestPaletteOnKeyDownDisabledBlocked(t *testing.T) {
 	w := &Window{}
-	commandPaletteShow("cp-dis", w)
+	CommandPaletteShow("cp-dis", w)
 	selected := ""
 	e := &Event{KeyCode: KeyEnter}
 	items := []listCoreItem{
@@ -155,7 +155,7 @@ func TestPaletteOnKeyDownDisabledBlocked(t *testing.T) {
 func TestPaletteOnKeyDownArrowCycle(t *testing.T) {
 	w := &Window{}
 	id := "cp-nav"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 	items := []listCoreItem{
 		{ID: "a", Label: "A"},
 		{ID: "b", Label: "B"},
@@ -192,7 +192,7 @@ func TestPaletteOnKeyDownArrowCycle(t *testing.T) {
 func TestPaletteQueryFiltering(t *testing.T) {
 	w := &Window{}
 	id := "cp-filter"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 
 	makeView := func(query string) {
 		StateMap[string, string](w, nsCmdPaletteQuery, capModerate).
@@ -222,7 +222,7 @@ func TestPaletteQueryFiltering(t *testing.T) {
 func TestCommandPaletteItemsCacheInvalidatesOnItemsChange(t *testing.T) {
 	w := &Window{}
 	id := "cp-cache"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 
 	v := CommandPalette(CommandPaletteCfg{
 		ID: id,
@@ -263,7 +263,7 @@ func TestCommandPaletteItemsCacheInvalidatesOnItemsChange(t *testing.T) {
 func TestCommandPaletteCacheInvalidatesOnContentChange(t *testing.T) {
 	w := &Window{}
 	id := "cp-content"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 
 	makeView := func(label string) uint64 {
 		v := CommandPalette(CommandPaletteCfg{
@@ -296,7 +296,7 @@ func TestPaletteScrollResetOnShow(t *testing.T) {
 	sy := w.scrollY()
 	sy.Set(idScroll, 150)
 
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 	scrollY, _ := sy.Get(idScroll)
 	if scrollY != 0 {
 		t.Errorf("scroll should reset on show, got %v", scrollY)
@@ -306,7 +306,7 @@ func TestPaletteScrollResetOnShow(t *testing.T) {
 func TestPaletteBackdropDismiss(t *testing.T) {
 	w := &Window{}
 	id := "cp-backdrop"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 
 	dismissed := false
 	v := CommandPalette(CommandPaletteCfg{
@@ -334,7 +334,7 @@ func TestPaletteBackdropDismiss(t *testing.T) {
 	if !e.IsHandled {
 		t.Error("backdrop click should mark event handled")
 	}
-	if commandPaletteIsVisible(id, w) {
+	if CommandPaletteIsVisible(id, w) {
 		t.Error("palette should be hidden after backdrop click")
 	}
 }
@@ -342,7 +342,7 @@ func TestPaletteBackdropDismiss(t *testing.T) {
 func TestPaletteOnEnterSelectsHighlighted(t *testing.T) {
 	w := &Window{}
 	id := "cp-enter"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 
 	// Highlight index 1.
 	sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
@@ -363,7 +363,7 @@ func TestPaletteOnEnterSelectsHighlighted(t *testing.T) {
 	if selected != "b" {
 		t.Errorf("OnEnter selected = %q, want b", selected)
 	}
-	if commandPaletteIsVisible(id, w) {
+	if CommandPaletteIsVisible(id, w) {
 		t.Error("palette should dismiss after Enter select")
 	}
 }
@@ -371,7 +371,7 @@ func TestPaletteOnEnterSelectsHighlighted(t *testing.T) {
 func TestPaletteOnEnterDisabledBlocked(t *testing.T) {
 	w := &Window{}
 	id := "cp-enter-dis"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 
 	selected := ""
 	items := []listCoreItem{
@@ -392,7 +392,7 @@ func TestPaletteOnEnterDisabledBlocked(t *testing.T) {
 func TestPaletteKeyboardDispatchIntegration(t *testing.T) {
 	w := &Window{}
 	id := "cp-integ"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 
 	selected := ""
 	v := CommandPalette(CommandPaletteCfg{
@@ -431,7 +431,7 @@ func TestPaletteKeyboardDispatchIntegration(t *testing.T) {
 	}
 
 	// Palette should be dismissed.
-	if commandPaletteIsVisible(id, w) {
+	if CommandPaletteIsVisible(id, w) {
 		t.Error("palette should be dismissed after Enter")
 	}
 }
@@ -454,7 +454,7 @@ func TestPaletteFloatZIndexDefault(t *testing.T) {
 func TestCommandPaletteScrollFollowsOffset(t *testing.T) {
 	w := &Window{}
 	const id = "cp-scroll-follow"
-	commandPaletteShow(id, w)
+	CommandPaletteShow(id, w)
 
 	items := make([]CommandPaletteItem, 200)
 	for i := range items {

@@ -6,35 +6,35 @@ import "testing"
 
 func TestDockClassifyZoneCenter(t *testing.T) {
 	z := dockClassifyZone(0.5, 0.5)
-	if z != dockDropCenter {
+	if z != DockDropCenter {
 		t.Fatalf("got %d, want center", z)
 	}
 }
 
 func TestDockClassifyZoneTop(t *testing.T) {
 	z := dockClassifyZone(0.5, 0.1)
-	if z != dockDropTop {
+	if z != DockDropTop {
 		t.Fatalf("got %d, want top", z)
 	}
 }
 
 func TestDockClassifyZoneBottom(t *testing.T) {
 	z := dockClassifyZone(0.5, 0.9)
-	if z != dockDropBottom {
+	if z != DockDropBottom {
 		t.Fatalf("got %d, want bottom", z)
 	}
 }
 
 func TestDockClassifyZoneLeft(t *testing.T) {
 	z := dockClassifyZone(0.1, 0.5)
-	if z != dockDropLeft {
+	if z != DockDropLeft {
 		t.Fatalf("got %d, want left", z)
 	}
 }
 
 func TestDockClassifyZoneRight(t *testing.T) {
 	z := dockClassifyZone(0.9, 0.5)
-	if z != dockDropRight {
+	if z != DockDropRight {
 		t.Fatalf("got %d, want right", z)
 	}
 }
@@ -43,7 +43,7 @@ func TestDockClassifyZoneEdgeBoundary(t *testing.T) {
 	// Exactly at edge ratio boundary
 	edge := dockDragEdgeRatio
 	z := dockClassifyZone(edge, edge)
-	if z != dockDropCenter {
+	if z != DockDropCenter {
 		t.Fatalf("at boundary should be center, got %d", z)
 	}
 }
@@ -51,7 +51,7 @@ func TestDockClassifyZoneEdgeBoundary(t *testing.T) {
 func TestDockClassifyZoneTopLeftCorner(t *testing.T) {
 	// Top takes priority over left when both in edge
 	z := dockClassifyZone(0.1, 0.1)
-	if z != dockDropTop {
+	if z != DockDropTop {
 		t.Fatalf("top-left corner should be top, got %d", z)
 	}
 }
@@ -105,7 +105,7 @@ func TestDockDragCaptureLossDoesNotDrop(t *testing.T) {
 		// Hovering a drop zone: a release here would dock the panel.
 		state := dockDragGet(w, "dock")
 		state.active = true
-		state.hoverZone = dockDropRight
+		state.hoverZone = DockDropRight
 		state.hoverGroupID = "g1"
 		dockDragSet(w, "dock", state)
 		return w
@@ -150,7 +150,7 @@ func TestDockDragDetectZoneNoLayout(t *testing.T) {
 	w := &Window{}
 	w.layout = Layout{Shape: &Shape{ID: "other"}}
 	zone, _ := dockDragDetectZone("dock1", nil, 50, 50, "", w)
-	if zone != dockDropNone {
+	if zone != DockDropNone {
 		t.Fatal("should be none with no matching layout")
 	}
 }
@@ -169,10 +169,10 @@ func TestDockDragDetectZoneWindowEdges(t *testing.T) {
 		x, y float32
 		want DockDropZone
 	}{
-		{5, 300, dockDropWindowLeft},
-		{795, 300, dockDropWindowRight},
-		{400, 5, dockDropWindowTop},
-		{400, 595, dockDropWindowBottom},
+		{5, 300, DockDropWindowLeft},
+		{795, 300, DockDropWindowRight},
+		{400, 5, DockDropWindowTop},
+		{400, 595, DockDropWindowBottom},
 	}
 	for _, tc := range tests {
 		zone, _ := dockDragDetectZone("dock1", nil, tc.x, tc.y, "", w)
@@ -206,7 +206,7 @@ func TestDockDragDetectZoneGroupZone(t *testing.T) {
 	zone, gid := dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		300, 250, "other", w)
-	if zone != dockDropCenter || gid != "g1" {
+	if zone != DockDropCenter || gid != "g1" {
 		t.Fatalf("center: zone=%d, gid=%s", zone, gid)
 	}
 
@@ -214,7 +214,7 @@ func TestDockDragDetectZoneGroupZone(t *testing.T) {
 	zone, gid = dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		300, 110, "other", w)
-	if zone != dockDropTop || gid != "g1" {
+	if zone != DockDropTop || gid != "g1" {
 		t.Fatalf("top: zone=%d, gid=%s", zone, gid)
 	}
 }
@@ -239,7 +239,7 @@ func TestDockDragDetectZoneSkipsEmptyGroupID(t *testing.T) {
 	zone, gid := dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		400, 300, "other", w)
-	if zone != dockDropNone || gid != "" {
+	if zone != DockDropNone || gid != "" {
 		t.Fatalf("zone=%d, gid=%q; an ID-less group is not a drop target", zone, gid)
 	}
 }
@@ -267,7 +267,7 @@ func TestDockDragDetectZoneSkipSinglePanelSource(t *testing.T) {
 	zone, _ := dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		300, 250, "g1", w)
-	if zone != dockDropNone {
+	if zone != DockDropNone {
 		t.Fatal("should skip single-panel source group")
 	}
 }
@@ -295,7 +295,7 @@ func TestDockDragDetectZoneSkipCenterSameGroup(t *testing.T) {
 	zone, _ := dockDragDetectZone(
 		"dock1", []*DockNode{groupNode},
 		300, 250, "g1", w)
-	if zone != dockDropNone {
+	if zone != DockDropNone {
 		t.Fatal("should skip center drop on same group")
 	}
 }
@@ -321,7 +321,7 @@ func TestDockDragAmendOverlayWindowTop(t *testing.T) {
 	w := &Window{}
 	dockDragSet(w, "dock1", dockDragState{
 		active:    true,
-		hoverZone: dockDropWindowTop,
+		hoverZone: DockDropWindowTop,
 	})
 
 	layout := &Layout{
@@ -361,7 +361,7 @@ func TestDockDragAmendOverlayGroupRight(t *testing.T) {
 
 	dockDragSet(w, "dock1", dockDragState{
 		active:       true,
-		hoverZone:    dockDropRight,
+		hoverZone:    DockDropRight,
 		hoverGroupID: "g1",
 	})
 
@@ -414,15 +414,15 @@ func TestDockDragZoneOverlayView(t *testing.T) {
 // --- DockDropZone constants ---
 
 func TestDockDropZoneValues(t *testing.T) {
-	if dockDropNone != 0 {
+	if DockDropNone != 0 {
 		t.Fatal("DockDropNone should be 0")
 	}
 	// Verify all zones have distinct values
 	zones := []DockDropZone{
-		dockDropNone, dockDropCenter, dockDropTop,
-		dockDropBottom, dockDropLeft, dockDropRight,
-		dockDropWindowTop, dockDropWindowBottom,
-		dockDropWindowLeft, dockDropWindowRight,
+		DockDropNone, DockDropCenter, DockDropTop,
+		DockDropBottom, DockDropLeft, DockDropRight,
+		DockDropWindowTop, DockDropWindowBottom,
+		DockDropWindowLeft, DockDropWindowRight,
 	}
 	seen := make(map[DockDropZone]bool)
 	for _, z := range zones {
@@ -459,7 +459,7 @@ func buildDragZoneDock(t *testing.T) (*Window, *DockNode) {
 // only the window-edge zones worked.
 func TestDockDragDetectZoneInsideGroup(t *testing.T) {
 	w, root := buildDragZoneDock(t)
-	nodes := dockTreeCollectPanelNodes(root)
+	nodes := DockTreeCollectPanelNodes(root)
 	g2, ok := w.layout.FindByID(ScopeID("dock", "g2"))
 	if !ok {
 		t.Fatal("group g2 not found in rendered layout")
@@ -473,11 +473,11 @@ func TestDockDragDetectZoneInsideGroup(t *testing.T) {
 		rx, ry float32
 		want   DockDropZone
 	}{
-		{"center", 0.5, 0.5, dockDropCenter},
-		{"top", 0.5, 0.15, dockDropTop},
-		{"bottom", 0.5, 0.9, dockDropBottom},
-		{"left", 0.1, 0.5, dockDropLeft},
-		{"right", 0.9, 0.5, dockDropRight},
+		{"center", 0.5, 0.5, DockDropCenter},
+		{"top", 0.5, 0.15, DockDropTop},
+		{"bottom", 0.5, 0.9, DockDropBottom},
+		{"left", 0.1, 0.5, DockDropLeft},
+		{"right", 0.9, 0.5, DockDropRight},
 	}
 	for _, c := range cases {
 		zone, gid := dockDragDetectZone("dock", nodes,
@@ -507,7 +507,7 @@ func TestDockDragAmendOverlayScopedGroup(t *testing.T) {
 		panelID:      "b",
 		sourceGroup:  "g1",
 		hoverGroupID: "g2",
-		hoverZone:    dockDropRight,
+		hoverZone:    DockDropRight,
 	})
 	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()

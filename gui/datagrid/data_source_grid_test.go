@@ -10,8 +10,8 @@ import (
 func TestEffectivePaginationKindCursorPreferred(t *testing.T) {
 	// Cursor preferred + both supported → cursor.
 	caps := GridDataCapabilities{
-		supportsCursorPagination: true,
-		supportsOffsetPagination: true,
+		SupportsCursorPagination: true,
+		SupportsOffsetPagination: true,
 	}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationCursor, caps)
 	if got != GridPaginationCursor {
@@ -22,7 +22,7 @@ func TestEffectivePaginationKindCursorPreferred(t *testing.T) {
 func TestEffectivePaginationKindCursorFallbackToOffset(t *testing.T) {
 	// Cursor preferred but only offset supported → offset.
 	caps := GridDataCapabilities{
-		supportsOffsetPagination: true,
+		SupportsOffsetPagination: true,
 	}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationCursor, caps)
 	if got != GridPaginationOffset {
@@ -42,8 +42,8 @@ func TestEffectivePaginationKindCursorNeitherSupported(t *testing.T) {
 func TestEffectivePaginationKindOffsetPreferred(t *testing.T) {
 	// Offset preferred + both supported → offset.
 	caps := GridDataCapabilities{
-		supportsCursorPagination: true,
-		supportsOffsetPagination: true,
+		SupportsCursorPagination: true,
+		SupportsOffsetPagination: true,
 	}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationOffset, caps)
 	if got != GridPaginationOffset {
@@ -54,7 +54,7 @@ func TestEffectivePaginationKindOffsetPreferred(t *testing.T) {
 func TestEffectivePaginationKindOffsetFallbackToCursor(t *testing.T) {
 	// Offset preferred but only cursor supported → cursor.
 	caps := GridDataCapabilities{
-		supportsCursorPagination: true,
+		SupportsCursorPagination: true,
 	}
 	got := dataGridSourceEffectivePaginationKind(GridPaginationOffset, caps)
 	if got != GridPaginationCursor {
@@ -329,7 +329,7 @@ func TestDataGridSourceRowPositionText(t *testing.T) {
 		Rows: []GridRow{
 			{ID: "r0"}, {ID: "r1"}, {ID: "r2"},
 		},
-		Selection: GridSelection{activeRowID: "r1"},
+		Selection: GridSelection{ActiveRowID: "r1"},
 	}
 	state := dataGridSourceState{
 		OffsetStart: 20,
@@ -704,7 +704,7 @@ func TestSourcePendingJumpDefersCallbackAndScrolls(t *testing.T) {
 		ID:   "g1",
 		Rows: rows,
 		OnSelectionChange: func(s GridSelection, ctx gg.EventCtx) {
-			got = append(got, s.activeRowID)
+			got = append(got, s.ActiveRowID)
 		},
 	}
 	// Absolute row 101 on the page starting at 100 is local row 1.
@@ -879,14 +879,14 @@ func TestSourcePagerRowJumpOnlyInOffset(t *testing.T) {
 	cfg := &DataGridCfg{ID: "g1"}
 	applyDataGridDefaults(cfg)
 	offset := dataGridSourceState{PaginationKind: GridPaginationOffset}
-	offsetCaps := GridDataCapabilities{supportsOffsetPagination: true}
+	offsetCaps := GridDataCapabilities{SupportsOffsetPagination: true}
 	offsetLayout := gg.GenerateViewLayout(
 		dataGridSourcePagerRow(cfg, "", offset, offsetCaps, ""), w)
 	if !findShapeID(&offsetLayout, "g1:jump") {
 		t.Fatal("jump input missing in offset mode")
 	}
 	cursor := dataGridSourceState{PaginationKind: GridPaginationCursor}
-	cursorCaps := GridDataCapabilities{supportsCursorPagination: true}
+	cursorCaps := GridDataCapabilities{SupportsCursorPagination: true}
 	cursorLayout := gg.GenerateViewLayout(
 		dataGridSourcePagerRow(cfg, "", cursor, cursorCaps, ""), w)
 	if findShapeID(&cursorLayout, "g1:jump") {

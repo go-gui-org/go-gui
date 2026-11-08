@@ -267,7 +267,7 @@ func TestPasswordMaskInRenderText(t *testing.T) {
 		Width:     100,
 		Height:    20,
 		Opacity:   1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:           "secret",
 			textIsPassword: true,
 			TextStyle:      &TextStyle{Color: RGB(255, 255, 255), Size: 16},
@@ -303,7 +303,7 @@ func TestRenderTextWrapSetsWidth(t *testing.T) {
 		Width:     250,
 		Height:    20,
 		Opacity:   1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:     "wrap me",
 			TextMode: TextModeWrap,
 			TextStyle: &TextStyle{
@@ -339,7 +339,7 @@ func TestRenderTextNoWrapOmitsWidth(t *testing.T) {
 		Width:     250,
 		Height:    20,
 		Opacity:   1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text: "no wrap",
 			TextStyle: &TextStyle{
 				Color: RGB(255, 255, 255), Size: 16,

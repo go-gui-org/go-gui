@@ -770,7 +770,7 @@ func TestDialogButtonsUseLocaleStrings(t *testing.T) {
 
 	w := &Window{}
 	for _, tt := range []struct {
-		kind dialogType
+		kind DialogType
 		want []string
 	}{
 		{DialogMessage, []string{de.StrOK}},

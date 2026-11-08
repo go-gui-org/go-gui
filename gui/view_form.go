@@ -26,7 +26,7 @@ const (
 )
 
 // FormIssueKind distinguishes error from warning.
-type formIssueKind uint8
+type FormIssueKind uint8
 
 // FormValidationTrigger indicates which user action triggered
 // validation.
@@ -37,7 +37,7 @@ type FormValidationTrigger uint8
 const (
 	FormTriggerChange FormValidationTrigger = iota
 	FormTriggerBlur
-	formTriggerSubmit
+	FormTriggerSubmit
 )
 
 // ---------- public data types ----------
@@ -47,13 +47,13 @@ type FormIssue struct {
 	// exportaudit:keep — json-tagged or same-named member
 	Code string
 	Msg  string
-	Kind formIssueKind
+	Kind FormIssueKind
 }
 
 // FormFieldSnapshot is a read-only snapshot of one field,
 // passed to validators.
 type FormFieldSnapshot struct {
-	formID  string
+	FormID  string
 	FieldID string
 	Value   string
 	Touched bool
@@ -80,14 +80,14 @@ type FormFieldState struct {
 type FormSnapshot struct {
 	Values map[string]string
 	Fields map[string]FormFieldState
-	formID string
+	FormID string
 }
 
 // FormSummaryState aggregates validation state across all
 // fields.
 // exportaudit:keep — reachable from an exported signature
 type FormSummaryState struct {
-	issues       map[string][]FormIssue
+	Issues       map[string][]FormIssue
 	InvalidCount int
 	PendingCount int
 	Valid        bool
@@ -97,7 +97,7 @@ type FormSummaryState struct {
 // FormPendingState lists fields with pending async validation.
 // exportaudit:keep — reachable from an exported signature
 type FormPendingState struct {
-	formID       string
+	FormID       string
 	FieldIDs     []string
 	PendingCount int
 }
@@ -106,7 +106,7 @@ type FormPendingState struct {
 type FormSubmitEvent struct {
 	State   FormSummaryState
 	Values  map[string]string
-	formID  string
+	FormID  string
 	Valid   bool
 	Pending bool
 }
@@ -114,7 +114,7 @@ type FormSubmitEvent struct {
 // FormResetEvent is delivered to OnReset handlers.
 type FormResetEvent struct {
 	Values map[string]string
-	formID string
+	FormID string
 }
 
 // ---------- validator function types ----------
@@ -265,13 +265,13 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 	copy(children, fv.content)
 
 	if cfg.ErrorSlot != nil {
-		fieldIDs := make([]string, 0, len(summary.issues))
-		for fid := range summary.issues {
+		fieldIDs := make([]string, 0, len(summary.Issues))
+		for fid := range summary.Issues {
 			fieldIDs = append(fieldIDs, fid)
 		}
 		slices.Sort(fieldIDs)
 		for _, fid := range fieldIDs {
-			children = append(children, cfg.ErrorSlot(fid, summary.issues[fid]))
+			children = append(children, cfg.ErrorSlot(fid, summary.Issues[fid]))
 		}
 	}
 	if cfg.SummarySlot != nil {

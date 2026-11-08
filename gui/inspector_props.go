@@ -45,7 +45,7 @@ type inspectorNodeProps struct {
 	Color       Color
 	Sizing      Sizing
 	HAlign      HorizontalAlign
-	VAlign      verticalAlign
+	VAlign      VerticalAlign
 	IsFloat     bool
 	Clip        bool
 }
@@ -89,12 +89,12 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 			"size: "+strconv.Itoa(int(p.Width))+" x "+
 				strconv.Itoa(int(p.Height)), ps, pis),
 	)
-	if p.Sizing.Width != sizingFit || p.Sizing.Height != sizingFit {
+	if p.Sizing.Width != SizingFit || p.Sizing.Height != SizingFit {
 		nodes = append(nodes,
 			inspectorPropNode(inspectorPropSizingID,
 				"sizing: "+inspectorSizingString(p.Sizing), ps, pis))
 	}
-	if !p.Padding.isNone() {
+	if !p.Padding.IsNone() {
 		nodes = append(nodes,
 			inspectorPropNode(inspectorPropPaddingID,
 				"pad: "+strconv.Itoa(int(p.Padding.Top))+" "+

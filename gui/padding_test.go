@@ -34,10 +34,10 @@ func TestPaddingWidthHeight(t *testing.T) {
 }
 
 func TestPaddingIsNone(t *testing.T) {
-	if !PaddingNone.isNone() {
+	if !PaddingNone.IsNone() {
 		t.Error("PaddingNone should be none")
 	}
-	if PadAll(1).isNone() {
+	if PadAll(1).IsNone() {
 		t.Error("PadAll(1) should not be none")
 	}
 }

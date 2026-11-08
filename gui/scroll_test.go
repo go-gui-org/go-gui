@@ -245,7 +245,7 @@ func TestScrollToView(t *testing.T) {
 	}
 	w.layout.Children[0].Parent = &w.layout
 
-	w.scrollToView("target")
+	w.ScrollToView("target")
 	sy := w.scrollY()
 	v, ok := sy.Get("5")
 	if !ok {
@@ -260,7 +260,7 @@ func TestScrollToViewNotFound(t *testing.T) {
 	t.Parallel()
 	w := &Window{}
 	w.layout = Layout{Shape: &Shape{shapeType: shapeRectangle}}
-	w.scrollToView("nonexistent") // should not panic
+	w.ScrollToView("nonexistent") // should not panic
 }
 
 func TestScrollByAndTo(t *testing.T) {
@@ -268,7 +268,7 @@ func TestScrollByAndTo(t *testing.T) {
 	t.Run("horizontal", func(t *testing.T) {
 		t.Parallel()
 		w := &Window{}
-		w.scrollHorizontalBy("10", -30)
+		w.ScrollHorizontalBy("10", -30)
 		sx := w.scrollX()
 		v, _ := sx.Get("10")
 		if v != -30 {
@@ -283,7 +283,7 @@ func TestScrollByAndTo(t *testing.T) {
 	t.Run("vertical", func(t *testing.T) {
 		t.Parallel()
 		w := &Window{}
-		w.scrollVerticalBy("10", -20)
+		w.ScrollVerticalBy("10", -20)
 		sy := w.scrollY()
 		v, _ := sy.Get("10")
 		if v != -20 {
@@ -509,7 +509,7 @@ func TestScrollToViewClampsOffset(t *testing.T) {
 	}
 	w.layout.Children[0].Parent = &w.layout
 
-	w.scrollToView("above")
+	w.ScrollToView("above")
 	sy := w.scrollY()
 	v, ok := sy.Get("14")
 	if !ok {
@@ -529,7 +529,7 @@ func TestScrollVerticalByAndToWithClampAndOnScroll(t *testing.T) {
 		onScroll: func(ctx EventCtx) { fired++ },
 	}
 
-	w.scrollVerticalBy("15", -50)
+	w.ScrollVerticalBy("15", -50)
 	sy := w.scrollY()
 	v, _ := sy.Get("15")
 	if v != -50 {
@@ -576,7 +576,7 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 		onScroll: func(ctx EventCtx) { fired++ },
 	}
 
-	w.scrollHorizontalBy("16", -50)
+	w.ScrollHorizontalBy("16", -50)
 	sx := w.scrollX()
 	v, _ := sx.Get("16")
 	if v != -50 {
@@ -599,7 +599,7 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 // preciseScrollWindow renders a 200x100 scroll column holding 800x400 of
 // content, so both axes have room, and returns the window. mode selects the
 // container's ScrollMode.
-func preciseScrollWindow(t *testing.T, mode scrollMode) *Window {
+func preciseScrollWindow(t *testing.T, mode ScrollMode) *Window {
 	t.Helper()
 	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
 	w.TestRender(func(_ *Window) View {
@@ -629,7 +629,7 @@ func preciseScrollWindow(t *testing.T, mode scrollMode) *Window {
 // modifier. It must move the horizontal axis; it used to be dropped because
 // only Shift read ScrollX (issue #585).
 func TestScrollPreciseNoModifierScrollsHorizontal(t *testing.T) {
-	w := preciseScrollWindow(t, scrollBoth)
+	w := preciseScrollWindow(t, ScrollBoth)
 	if err := w.TestScroll("s", -50, 0); err != nil {
 		t.Fatalf("TestScroll: %v", err)
 	}
@@ -644,7 +644,7 @@ func TestScrollPreciseNoModifierScrollsHorizontal(t *testing.T) {
 
 // A diagonal trackpad swipe moves each axis the container allows.
 func TestScrollPreciseNoModifierScrollsBothAxes(t *testing.T) {
-	w := preciseScrollWindow(t, scrollBoth)
+	w := preciseScrollWindow(t, ScrollBoth)
 	if err := w.TestScroll("s", -30, -40); err != nil {
 		t.Fatalf("TestScroll: %v", err)
 	}
@@ -676,13 +676,13 @@ func TestScrollPreciseVerticalOnlyIgnoresX(t *testing.T) {
 func TestScrollDiscreteNoModifierScrollsHorizontal(t *testing.T) {
 	tests := []struct {
 		name   string
-		mode   scrollMode
+		mode   ScrollMode
 		dx, dy float32
 		movesX bool
 		movesY bool
 	}{
-		{name: "sideways", mode: scrollBoth, dx: -3, movesX: true},
-		{name: "diagonal", mode: scrollBoth, dx: -3, dy: -2, movesX: true, movesY: true},
+		{name: "sideways", mode: ScrollBoth, dx: -3, movesX: true},
+		{name: "diagonal", mode: ScrollBoth, dx: -3, dy: -2, movesX: true, movesY: true},
 		{name: "vertical only", mode: ScrollVerticalOnly, dx: -3},
 		{name: "horizontal only ignores y", mode: ScrollHorizontalOnly, dy: -3},
 		{name: "horizontal only diagonal", mode: ScrollHorizontalOnly, dx: -3, dy: -2, movesX: true},
@@ -729,7 +729,7 @@ func TestScrollDiscreteNoModifierScrollsHorizontal(t *testing.T) {
 func TestScrollShiftWheelScrollsHorizontal(t *testing.T) {
 	tests := []struct {
 		name    string
-		mode    scrollMode
+		mode    ScrollMode
 		dx, dy  float32
 		precise bool
 		movesX  bool
@@ -781,7 +781,7 @@ func TestScrollShiftWheelScrollsHorizontal(t *testing.T) {
 // smoother would otherwise create an entry for the axis before it rejects
 // the target.
 func TestScrollAxisByDropsNonFinite(t *testing.T) {
-	w := preciseScrollWindow(t, scrollBoth)
+	w := preciseScrollWindow(t, ScrollBoth)
 	ly, ok := w.layout.FindByID("s")
 	if !ok {
 		t.Fatal("scroll container not found")
@@ -817,7 +817,7 @@ func TestScrollPreciseNonFiniteDeltaIgnored(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			w := preciseScrollWindow(t, scrollBoth)
+			w := preciseScrollWindow(t, ScrollBoth)
 			ly, ok := w.layout.FindByID("s")
 			if !ok {
 				t.Fatal("scroll container not found")

@@ -24,7 +24,7 @@ type TextCfg struct {
 	// A wrap mode also defaults Sizing to FillFit, because wrapping
 	// needs a width to wrap to. Sizing places the box; the alignment
 	// of the lines inside it is TextStyle.Align.
-	Mode textMode
+	Mode TextMode
 
 	Invisible  bool
 	Clip       bool
@@ -131,7 +131,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 
 	// From the arena, not the view: the same View placed twice in one
 	// frame gets one config per shape.
-	tc := w.allocTextConfig(shapeTextConfig{
+	tc := w.allocTextConfig(ShapeTextConfig{
 		Text:              c.Text,
 		TextStyle:         ts,
 		textIsPassword:    c.IsPassword,
@@ -195,14 +195,14 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		layout.Shape.Height = fallbackLineHeight(*ts)
 	}
 	if c.Mode == TextModeSingleLine ||
-		layout.Shape.Sizing.Width == sizingFixed {
+		layout.Shape.Sizing.Width == SizingFixed {
 		layout.Shape.MinWidth = f32Max(
 			layout.Shape.Width, layout.Shape.MinWidth,
 		)
 		layout.Shape.Width = layout.Shape.MinWidth
 	}
 	if c.Mode == TextModeSingleLine ||
-		layout.Shape.Sizing.Height == sizingFixed {
+		layout.Shape.Sizing.Height == SizingFixed {
 		layout.Shape.MinHeight = f32Max(
 			layout.Shape.Height, layout.Shape.MinHeight,
 		)

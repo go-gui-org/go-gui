@@ -21,7 +21,7 @@ func TestPresetThemesDefined(t *testing.T) {
 		if tt.theme.Name == "" {
 			t.Errorf("%s: empty name", tt.name)
 		}
-		if tt.theme.ColorBackground.eq(Color{}) {
+		if tt.theme.ColorBackground.Eq(Color{}) {
 			t.Errorf("%s: zero background", tt.name)
 		}
 	}

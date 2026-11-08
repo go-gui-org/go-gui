@@ -223,7 +223,7 @@ func mergeFormat(parent, child Format) Format {
 		return FormatCode
 	}
 	switch parent {
-	case formatPlain:
+	case FormatPlain:
 		return child
 	case FormatBold:
 		if child == FormatItalic ||

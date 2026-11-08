@@ -2037,7 +2037,7 @@ func goldenCases() []goldenCase {
 			// color by the bar's OnHover.
 			name: "scroll_column_hover",
 			build: func(w *Window) View {
-				return goldenScrollColumnBar(&ScrollbarCfg{Overflow: scrollbarOnHover})
+				return goldenScrollColumnBar(&ScrollbarCfg{Overflow: ScrollbarOnHover})
 			},
 			hoverX: 128, hoverY: 40,
 		},
@@ -2141,7 +2141,7 @@ func goldenScrollColumn(*Window) View {
 // goldenScrollColumnBar is goldenScrollColumn with a vertical scrollbar
 // override.
 func goldenScrollColumnBar(barY *ScrollbarCfg) View {
-	return goldenScrollColumnDir(barY, textDirAuto)
+	return goldenScrollColumnDir(barY, TextDirAuto)
 }
 
 // goldenScrollColumnDir is goldenScrollColumnBar in a given text

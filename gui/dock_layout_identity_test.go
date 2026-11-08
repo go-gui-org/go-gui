@@ -62,7 +62,7 @@ func newDockIdentityFixture(t *testing.T) *dockIdentityFixture {
 // rearrange drops panel b on group g1's bottom edge — the same tree
 // edit a completed drag performs — and re-renders.
 func (f *dockIdentityFixture) rearrange() {
-	f.root = dockTreeMovePanel(f.root, "b", "g1", dockDropBottom)
+	f.root = DockTreeMovePanel(f.root, "b", "g1", DockDropBottom)
 	f.w.markLayoutRefresh(refreshTest)
 	f.w.FrameFn()
 }
@@ -123,8 +123,8 @@ func TestDockMintedNodeIDsHaveNoIDSep(t *testing.T) {
 		DockPanelGroup("g1", []string{"a"}, "a"),
 		DockPanelGroup("g2", []string{"b"}, "b"))
 	trees := map[string]*DockNode{
-		"split at group": dockTreeMovePanel(root, "b", "g1", dockDropBottom),
-		"window edge":    dockTreeMovePanel(root, "b", "", dockDropWindowLeft),
+		"split at group": DockTreeMovePanel(root, "b", "g1", DockDropBottom),
+		"window edge":    DockTreeMovePanel(root, "b", "", DockDropWindowLeft),
 	}
 	for name, tree := range trees {
 		dockWalkNodes(tree, func(nd *DockNode) {

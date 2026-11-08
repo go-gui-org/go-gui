@@ -41,13 +41,14 @@ func mdWithScriptFeature(
 func markdownToBlocks(
 	source string, style MarkdownStyle,
 ) []markdownBlock {
-	blocks := markdown.Parse(source, style.hardLineBreaks)
+	blocks := markdown.Parse(source, style.HardLineBreaks)
 	return styleMdBlocks(blocks, style)
 }
 
 // MarkdownToRichText parses markdown and returns a single
 // RichText (exported for tests).
-func markdownToRichText(
+// exportaudit:keep — documented API (showcase docs/widget_markdown.md)
+func MarkdownToRichText(
 	source string, style MarkdownStyle,
 ) RichText {
 	blocks := markdownToBlocks(source, style)
@@ -122,7 +123,7 @@ func styleMdBlock(
 	// the inline-code fill: the block already paints CodeBlockBG, and a
 	// per-run fill would draw darker strips over it.
 	if block.IsCode {
-		sz := style.codeBlockText.Size
+		sz := style.CodeBlockText.Size
 		for i := range mb.Content.Runs {
 			mb.Content.Runs[i].Style.Size = sz
 			mb.Content.Runs[i].Style.BgColor = Color{}
@@ -192,7 +193,7 @@ func styleMdRun(
 		s.Strikethrough = true
 	}
 	if run.Highlight {
-		s.BgColor = style.highlightBG
+		s.BgColor = style.HighlightBG
 	}
 	// Script runs keep the base size and only gain their feature tag:
 	// the shaper derives 0.58x size and baseline shift from the run
@@ -207,7 +208,7 @@ func styleMdRun(
 		s.Underline = true
 	}
 	if run.Link != "" {
-		s.Color = style.linkColor
+		s.Color = style.LinkColor
 		s.Underline = true
 	}
 
@@ -328,7 +329,7 @@ func highlightCodeBlock(
 		return nil
 	}
 	base := existing[0].Style
-	base.Color = style.codeOperatorColor
+	base.Color = style.CodeOperatorColor
 	out := make([]RichTextRun, len(toks))
 	for i, tk := range toks {
 		s := base
@@ -341,23 +342,23 @@ func highlightCodeBlock(
 func colorForKind(k highlight.Kind, style *MarkdownStyle) Color {
 	switch k {
 	case highlight.KindKeyword:
-		return style.codeKeywordColor
+		return style.CodeKeywordColor
 	case highlight.KindString:
-		return style.codeStringColor
+		return style.CodeStringColor
 	case highlight.KindNumber:
-		return style.codeNumberColor
+		return style.CodeNumberColor
 	case highlight.KindComment:
-		return style.codeCommentColor
+		return style.CodeCommentColor
 	case highlight.KindOperator, highlight.KindPunctuation:
-		return style.codeOperatorColor
+		return style.CodeOperatorColor
 	case highlight.KindType:
-		return style.codeTypeColor
+		return style.CodeTypeColor
 	case highlight.KindFunction:
-		return style.codeFunctionColor
+		return style.CodeFunctionColor
 	case highlight.KindBuiltin:
-		return style.codeBuiltinColor
+		return style.CodeBuiltinColor
 	}
-	return style.codeOperatorColor
+	return style.CodeOperatorColor
 }
 
 func mdCodeTokenStyle(
@@ -366,15 +367,15 @@ func mdCodeTokenStyle(
 	s := style.Code
 	switch kind {
 	case markdown.TokenKeyword:
-		s.Color = style.codeKeywordColor
+		s.Color = style.CodeKeywordColor
 	case markdown.TokenString:
-		s.Color = style.codeStringColor
+		s.Color = style.CodeStringColor
 	case markdown.TokenNumber:
-		s.Color = style.codeNumberColor
+		s.Color = style.CodeNumberColor
 	case markdown.TokenComment:
-		s.Color = style.codeCommentColor
+		s.Color = style.CodeCommentColor
 	case markdown.TokenOperator:
-		s.Color = style.codeOperatorColor
+		s.Color = style.CodeOperatorColor
 	}
 	// Token colors are semantic and stay; the size follows the base
 	// outside body text, the same rule mdInheritBaseGeometry applies.
@@ -390,7 +391,7 @@ func styleMdTable(
 	headers := make([]RichText, 0, len(table.Headers))
 	for _, h := range table.Headers {
 		headers = append(headers,
-			styleMdRuns(h, style.tableHeadStyle, style))
+			styleMdRuns(h, style.TableHeadStyle, style))
 	}
 
 	rows := make([][]RichText, 0, len(table.Rows))
@@ -400,7 +401,7 @@ func styleMdTable(
 			// GFM drops cells past the delimiter column count;
 			// short rows keep zero (empty) cells from the make.
 			if j < table.ColCount {
-				sr[j] = styleMdRuns(cell, style.tableCellStyle, style)
+				sr[j] = styleMdRuns(cell, style.TableCellStyle, style)
 			}
 		}
 		rows = append(rows, sr)

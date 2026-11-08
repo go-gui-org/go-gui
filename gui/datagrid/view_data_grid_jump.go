@@ -91,8 +91,8 @@ func dataGridJumpToLocalRow(ctx dataGridJumpContext, targetIdx int, e *gg.Event,
 	targetRowID := dataGridRowID(ctx.rows[targetIdx], targetIdx)
 	if ctx.onSelectionChange != nil {
 		next := GridSelection{
-			anchorRowID:    targetRowID,
-			activeRowID:    targetRowID,
+			AnchorRowID:    targetRowID,
+			ActiveRowID:    targetRowID,
 			SelectedRowIDs: map[string]bool{targetRowID: true},
 		}
 		ctx.onSelectionChange(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
@@ -193,15 +193,15 @@ func dataGridSelectionForTargetRow(kc dataGridKeydownContext, targetRowID string
 		selectedRows := dataGridRangeSelectedRows(kc.rows, start, end, targetRowID)
 		dataGridSetAnchor(kc.gridID, anchorRowID, w)
 		return GridSelection{
-			anchorRowID:    anchorRowID,
-			activeRowID:    targetRowID,
+			AnchorRowID:    anchorRowID,
+			ActiveRowID:    targetRowID,
 			SelectedRowIDs: selectedRows,
 		}
 	}
 	dataGridSetAnchor(kc.gridID, targetRowID, w)
 	return GridSelection{
-		anchorRowID:    targetRowID,
-		activeRowID:    targetRowID,
+		AnchorRowID:    targetRowID,
+		ActiveRowID:    targetRowID,
 		SelectedRowIDs: map[string]bool{targetRowID: true},
 	}
 }

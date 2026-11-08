@@ -51,7 +51,7 @@ func TestSanitizeLatex(t *testing.T) {
 
 func TestMarkdownToRichText(t *testing.T) {
 	style := DefaultMarkdownStyle()
-	rt := markdownToRichText("**bold** and *italic*", style)
+	rt := MarkdownToRichText("**bold** and *italic*", style)
 	if len(rt.Runs) == 0 {
 		t.Fatal("expected runs")
 	}
@@ -100,7 +100,7 @@ func TestMarkdownStyledLinkColor(t *testing.T) {
 	for _, b := range blocks {
 		for _, r := range b.Content.Runs {
 			if r.Link == "https://example.com" {
-				if r.Style.Color != style.linkColor {
+				if r.Style.Color != style.LinkColor {
 					t.Error("link should use LinkColor")
 				}
 				if !r.Style.Underline {
@@ -117,7 +117,7 @@ func TestMarkdownStyledHighlightBG(t *testing.T) {
 	for _, b := range blocks {
 		for _, r := range b.Content.Runs {
 			if strings.TrimSpace(r.Text) == "marked" {
-				if r.Style.BgColor != style.highlightBG {
+				if r.Style.BgColor != style.HighlightBG {
 					t.Error("highlight should use HighlightBG")
 				}
 			}
@@ -380,7 +380,7 @@ func TestRenderMdMathErrorsWrap(t *testing.T) {
 	}
 }
 
-func firstMarkdownTextMode(layout Layout) (textMode, bool) {
+func firstMarkdownTextMode(layout Layout) (TextMode, bool) {
 	if layout.Shape != nil && layout.Shape.TC != nil {
 		return layout.Shape.TC.TextMode, true
 	}
@@ -392,7 +392,7 @@ func firstMarkdownTextMode(layout Layout) (textMode, bool) {
 	return 0, false
 }
 
-func findTextModeByText(layout Layout, text string) (textMode, bool) {
+func findTextModeByText(layout Layout, text string) (TextMode, bool) {
 	if layout.Shape != nil && layout.Shape.TC != nil &&
 		layout.Shape.TC.Text == text {
 		return layout.Shape.TC.TextMode, true

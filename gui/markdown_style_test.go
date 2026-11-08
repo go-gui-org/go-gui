@@ -282,11 +282,11 @@ func TestMarkdownCommentColorUsesSecondaryRole(t *testing.T) {
 		}
 		applyTheme(&theme)
 		style := DefaultMarkdownStyle()
-		if !style.codeCommentColor.eq(theme.TextStyleSecondary.Color) {
+		if !style.CodeCommentColor.Eq(theme.TextStyleSecondary.Color) {
 			t.Errorf("%s: comment %v, want secondary %v",
-				name, style.codeCommentColor, theme.TextStyleSecondary.Color)
+				name, style.CodeCommentColor, theme.TextStyleSecondary.Color)
 		}
-		if style.codeCommentColor.eq(theme.ColorBorder) {
+		if style.CodeCommentColor.Eq(theme.ColorBorder) {
 			t.Errorf("%s: comment equals the border color %v",
 				name, theme.ColorBorder)
 		}
@@ -310,7 +310,7 @@ func TestMarkdownCommentReadable(t *testing.T) {
 		applyTheme(&theme)
 		style := DefaultMarkdownStyle()
 		bg := style.CodeBlockBG.Over(theme.ColorPanel)
-		fg := style.codeCommentColor.Over(bg)
+		fg := style.CodeCommentColor.Over(bg)
 		if got := contrastRatio(fg, bg); got < wantAA {
 			t.Errorf("%s: comment %v on code fill %v is contrast "+
 				"%.2f, want >= %.2f", name, fg, bg, got, wantAA)
@@ -374,9 +374,9 @@ func TestDefaultMarkdownStyleUsesBodyRoles(t *testing.T) {
 		{"H5", style.H5.Size, th.TextStyleBodySmall.Size},
 		{"H6", style.H6.Size, th.TextStyleCaption.Size},
 		{"Code", style.Code.Size, th.TextStyleBody.Size - 2},
-		{"codeBlockText", style.codeBlockText.Size, th.TextStyleCodeSmall.Size},
-		{"tableCellStyle", style.tableCellStyle.Size, th.TextStyleBody.Size},
-		{"tableHeadStyle", style.tableHeadStyle.Size, th.TextStyleBody.Size},
+		{"codeBlockText", style.CodeBlockText.Size, th.TextStyleCodeSmall.Size},
+		{"tableCellStyle", style.TableCellStyle.Size, th.TextStyleBody.Size},
+		{"tableHeadStyle", style.TableHeadStyle.Size, th.TextStyleBody.Size},
 	}
 	for _, c := range cases {
 		if c.got != c.want {
@@ -563,13 +563,13 @@ func TestMarkdownSyntaxColorsReadable(t *testing.T) {
 				role  string
 				color Color
 			}{
-				{"keyword", style.codeKeywordColor},
-				{"string", style.codeStringColor},
-				{"number", style.codeNumberColor},
-				{"type", style.codeTypeColor},
-				{"function", style.codeFunctionColor},
-				{"builtin", style.codeBuiltinColor},
-				{"operator", style.codeOperatorColor},
+				{"keyword", style.CodeKeywordColor},
+				{"string", style.CodeStringColor},
+				{"number", style.CodeNumberColor},
+				{"type", style.CodeTypeColor},
+				{"function", style.CodeFunctionColor},
+				{"builtin", style.CodeBuiltinColor},
+				{"operator", style.CodeOperatorColor},
 			} {
 				fg := c.color.Over(bg)
 				if got := contrastRatio(fg, bg); got < wantAA {

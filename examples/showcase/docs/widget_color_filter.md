@@ -110,6 +110,7 @@ gui.Column(gui.ContainerCfg{
 | ColorFilterContrast(amount)   | Scale around 0.5 midpoint            |
 | ColorFilterHueRotate(deg)     | Rotate hue in degrees                |
 | ColorFilterInvert()           | Negate RGB, keep alpha               |
+| ColorFilterCompose(a, b)      | Combine two filters into one matrix  |
 
 ## Custom Matrix
 

@@ -29,6 +29,10 @@ you drop it. `UseImage` is a cache: register again each frame, and if one frame
 needs more than 32 MiB of `UseImage` images, raise the cache with
 `gui.SetMemImageBudget`, or some of them draw blank.
 
+A file name that comes from the user goes through `gui.ValidateImagePath(name)`
+first: it checks that the path is safe to load and has a supported image
+extension. `gui.ValidateImageExtension(name)` checks the extension alone.
+
 ## Formats
 
 PNG, JPEG and GIF decode from `RegisterEncodedImage` on every backend, and from

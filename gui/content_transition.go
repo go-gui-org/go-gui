@@ -213,7 +213,7 @@ func pruneContentTransitionStates(
 // not shown for a while, and for a password just made visible, a
 // value that was typed while masked. Reading staleness here costs the
 // early returns below nothing, which matters: they run for every Text.
-func applyContentTransition(tv *textView, w *Window, tc *shapeTextConfig) {
+func applyContentTransition(tv *textView, w *Window, tc *ShapeTextConfig) {
 	cfg := &tv.cfg
 	// A password starts nothing: the run draws its from and to texts
 	// as given, and renderText is what masks a password.

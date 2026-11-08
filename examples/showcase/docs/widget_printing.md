@@ -71,7 +71,12 @@ ignored there.
 | Bottom | float32 | Bottom margin in points |
 | Left   | float32 | Left margin in points   |
 
-The default margins are 36 points (0.5 inch) on all sides.
+The default margins are 36 points (0.5 inch) on all sides;
+`gui.DefaultPrintMargins()` returns them as a value to start from.
+`gui.PrintPageSize(paper, orientation)` returns the page width and height in
+points, and `gui.NormalizePrintPageRanges(ranges)` sorts a `PageRanges` list and
+merges overlapping entries, the same normalization `PrintJob` applies before
+printing.
 
 ## PrintExportResult
 

@@ -101,6 +101,24 @@ and this project adheres to
 
 ### Fixed
 
+- **The API the 2026-08 unexport sweep took private is public again (#1221).**
+  Commit a80087ec (#230) unexported 1,835 identifiers by reference count and
+  missed that a struct handed to the app is public by shape. A custom
+  `DataGridDataSource` could not fill `GridDataCapabilities`, read
+  `GridDataRequest.Page` or return `GridDataResult.NextCursor`; the ORM adapter
+  had no reachable constructor; `MarkdownStyle` hid 31 of its 45 fields and
+  `FormSummaryState` its issues; the `ErrTest*` sentinels, the lifecycle
+  `Event*` constants, the `Vibrancy*` materials and most of the `audio`
+  package's music and channel controls were gone; and the enum types behind
+  exported Cfg fields (`FloatAttach`, `SizingType`, `DockNodeKind`,
+  `RenderKind`, …) could not be named. All of these, plus the scroll, command
+  palette, dock tree, color, print and table helpers that had no replacement,
+  are exported again under their original names, and the two alias repairs in
+  `datagrid` go with them. `tools/exportaudit` gained a `reach` class, a type
+  closure from each package's exported functions, constants and variables, so
+  payload fields, enum members and methods on reachable types pass the gate on
+  their own and only orphans fail (`docs/specs/exportaudit-surface-policy.md`).
+
 - **Android: the soft keyboard height no longer comes out short on Android 15
   (#1171).** The demo host subtracted the navigation bar from the keyboard, but
   from Android 15 the view reaches under that bar, so the reported height was 24

@@ -188,12 +188,12 @@ func TestButtonInheritedDisabledPaintsColorsDisabled(t *testing.T) {
 	})
 	layout := generateViewLayout(v, &Window{})
 	btn := &layout.Children[0]
-	if !btn.Shape.Color.eq(base) {
+	if !btn.Shape.Color.Eq(base) {
 		t.Fatalf("before layoutDisables: fill = %v, want Base %v",
 			btn.Shape.Color, base)
 	}
 	layoutDisables(&layout, false)
-	if !btn.Shape.Color.eq(dis) {
+	if !btn.Shape.Color.Eq(dis) {
 		t.Errorf("inherited disabled fill = %v, want %v", btn.Shape.Color, dis)
 	}
 	if fillDims(btn.Shape) {
@@ -213,7 +213,7 @@ func TestButtonDisabledWithoutSlotKeepsDim(t *testing.T) {
 	})
 	layout := generateViewLayout(v, &Window{})
 	layoutDisables(&layout, false)
-	if !layout.Shape.Color.eq(base) {
+	if !layout.Shape.Color.Eq(base) {
 		t.Errorf("fill = %v, want Base %v", layout.Shape.Color, base)
 	}
 	if !fillDims(layout.Shape) {
@@ -242,7 +242,7 @@ func TestBreadcrumbDisabledTrailPaintsColorsDisabled(t *testing.T) {
 			continue // separator
 		}
 		found++
-		if !crumb.Shape.Color.eq(dis) {
+		if !crumb.Shape.Color.Eq(dis) {
 			t.Errorf("crumb %d fill = %v, want %v", i, crumb.Shape.Color, dis)
 		}
 	}

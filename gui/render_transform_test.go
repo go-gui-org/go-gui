@@ -19,8 +19,8 @@ func xfShape(x, y, w, h float32, tr Transform) *Shape {
 }
 
 // xfKinds returns the kinds of the emitted commands, in order.
-func xfKinds(w *Window) []renderKind {
-	out := make([]renderKind, 0, len(w.renderers))
+func xfKinds(w *Window) []RenderKind {
+	out := make([]RenderKind, 0, len(w.renderers))
 	for _, r := range w.renderers {
 		out = append(out, r.Kind)
 	}

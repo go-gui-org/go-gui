@@ -322,7 +322,7 @@ func TestSvgFilterBeginBalancedWithZeroBlurLayers(t *testing.T) {
 		Scale:  1,
 		Width:  10,
 		Height: 10,
-		FilteredGroups: []cachedFilteredGroup{{
+		FilteredGroups: []CachedFilteredGroup{{
 			Filter: SvgFilter{StdDev: 2, BlurLayers: 0},
 			bBox:   [4]float32{0, 0, 10, 10},
 		}},
@@ -392,7 +392,7 @@ func TestSvgFilterBlurOverflowStaysBalanced(t *testing.T) {
 		Scale:  34,
 		Width:  10,
 		Height: 10,
-		FilteredGroups: []cachedFilteredGroup{{
+		FilteredGroups: []CachedFilteredGroup{{
 			Filter: SvgFilter{StdDev: 1e38, BlurLayers: 2},
 			bBox:   [4]float32{0, 0, 10, 10},
 		}},
@@ -436,7 +436,7 @@ func TestColorFilterBracketSkippedWhenBeginDropped(t *testing.T) {
 	// unbalanced for the whole frame.
 	w := &Window{}
 	cf := &ColorFilter{}
-	cf.matrix[0] = float32(math.NaN())
+	cf.Matrix[0] = float32(math.NaN())
 	layout := Layout{Shape: &Shape{
 		shapeType: shapeRectangle,
 		Width:     10,
@@ -463,7 +463,7 @@ func TestColorFilterDescendantOpensWhenOuterDropped(t *testing.T) {
 	// pair.
 	w := &Window{}
 	outer := &ColorFilter{}
-	outer.matrix[0] = float32(math.NaN())
+	outer.Matrix[0] = float32(math.NaN())
 	layout := Layout{Shape: &Shape{
 		shapeType: shapeRectangle,
 		Width:     10,

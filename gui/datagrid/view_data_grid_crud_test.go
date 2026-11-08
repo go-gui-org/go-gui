@@ -42,7 +42,7 @@ func TestCrudHasUnsavedDeleted(t *testing.T) {
 
 func TestCrudRowDeleteEnabledCrudDisabled(t *testing.T) {
 	cfg := &DataGridCfg{ShowCRUDToolbar: false}
-	if dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{supportsDelete: true}) {
+	if dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{SupportsDelete: true}) {
 		t.Fatal("should be false when CRUD toolbar disabled")
 	}
 }
@@ -50,7 +50,7 @@ func TestCrudRowDeleteEnabledCrudDisabled(t *testing.T) {
 func TestCrudRowDeleteEnabledAllowDeleteFalse(t *testing.T) {
 	f := false
 	cfg := &DataGridCfg{ShowCRUDToolbar: true, AllowDelete: &f}
-	if dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{supportsDelete: true}) {
+	if dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{SupportsDelete: true}) {
 		t.Fatal("should be false when AllowDelete is false")
 	}
 }
@@ -64,14 +64,14 @@ func TestCrudRowDeleteEnabledNoSource(t *testing.T) {
 
 func TestCrudRowDeleteEnabledSourceNoSupport(t *testing.T) {
 	cfg := &DataGridCfg{ShowCRUDToolbar: true}
-	if dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{supportsDelete: false}) {
+	if dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{SupportsDelete: false}) {
 		t.Fatal("should be false when source lacks delete support")
 	}
 }
 
 func TestCrudRowDeleteEnabledSourceWithSupport(t *testing.T) {
 	cfg := &DataGridCfg{ShowCRUDToolbar: true}
-	if !dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{supportsDelete: true}) {
+	if !dataGridCrudRowDeleteEnabled(cfg, true, GridDataCapabilities{SupportsDelete: true}) {
 		t.Fatal("should be true when source supports delete")
 	}
 }
@@ -313,19 +313,19 @@ func TestCrudDefaultCellsEmpty(t *testing.T) {
 
 func TestSelectionRemoveIDs(t *testing.T) {
 	sel := GridSelection{
-		anchorRowID: "a",
-		activeRowID: "b",
+		AnchorRowID: "a",
+		ActiveRowID: "b",
 		SelectedRowIDs: map[string]bool{
 			"a": true, "b": true, "c": true,
 		},
 	}
 	remove := map[string]bool{"a": true, "c": true}
 	result := dataGridSelectionRemoveIDs(sel, remove)
-	if result.anchorRowID != "" {
-		t.Fatalf("anchor should be cleared, got %q", result.anchorRowID)
+	if result.AnchorRowID != "" {
+		t.Fatalf("anchor should be cleared, got %q", result.AnchorRowID)
 	}
-	if result.activeRowID != "b" {
-		t.Fatalf("active should remain b, got %q", result.activeRowID)
+	if result.ActiveRowID != "b" {
+		t.Fatalf("active should remain b, got %q", result.ActiveRowID)
 	}
 	if len(result.SelectedRowIDs) != 1 || !result.SelectedRowIDs["b"] {
 		t.Fatalf("selected should be {b}, got %v", result.SelectedRowIDs)
@@ -334,8 +334,8 @@ func TestSelectionRemoveIDs(t *testing.T) {
 
 func TestSelectionRemoveIDsNoneRemoved(t *testing.T) {
 	sel := GridSelection{
-		anchorRowID:    "x",
-		activeRowID:    "y",
+		AnchorRowID:    "x",
+		ActiveRowID:    "y",
 		SelectedRowIDs: map[string]bool{"x": true, "y": true},
 	}
 	result := dataGridSelectionRemoveIDs(sel, map[string]bool{})
@@ -418,8 +418,8 @@ func TestSortedMapKeysBoolMapEmpty(t *testing.T) {
 
 func TestCrudRemapSelection(t *testing.T) {
 	sel := GridSelection{
-		anchorRowID:    "__draft_1",
-		activeRowID:    "__draft_2",
+		AnchorRowID:    "__draft_1",
+		ActiveRowID:    "__draft_2",
 		SelectedRowIDs: map[string]bool{"__draft_1": true, "__draft_2": true, "keep": true},
 	}
 	replaceIDs := map[string]string{
@@ -430,11 +430,11 @@ func TestCrudRemapSelection(t *testing.T) {
 	cb := func(s GridSelection, ctx gg.EventCtx) { captured = s }
 	dataGridCrudRemapSelection(sel, cb, replaceIDs, &gg.Event{}, nil)
 
-	if captured.anchorRowID != "server_1" {
-		t.Fatalf("anchor: got %q", captured.anchorRowID)
+	if captured.AnchorRowID != "server_1" {
+		t.Fatalf("anchor: got %q", captured.AnchorRowID)
 	}
-	if captured.activeRowID != "server_2" {
-		t.Fatalf("active: got %q", captured.activeRowID)
+	if captured.ActiveRowID != "server_2" {
+		t.Fatalf("active: got %q", captured.ActiveRowID)
 	}
 	if !captured.SelectedRowIDs["server_1"] || !captured.SelectedRowIDs["server_2"] || !captured.SelectedRowIDs["keep"] {
 		t.Fatalf("selected: %v", captured.SelectedRowIDs)
@@ -693,7 +693,7 @@ func TestCrudAddRow(t *testing.T) {
 	dataGridCrudAddRow("g1", columns, func(s GridSelection, ctx gg.EventCtx) {
 		captured = s
 	}, "", "1", 0, 0, func(_ int, ctx gg.EventCtx) {}, e, w)
-	if captured.activeRowID == "" {
+	if captured.ActiveRowID == "" {
 		t.Fatal("should have an active row")
 	}
 	if len(captured.SelectedRowIDs) != 1 {

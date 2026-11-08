@@ -66,18 +66,18 @@ func inspectorSizingString(s Sizing) string {
 		inspectorSizingTypeString(s.Height)
 }
 
-func inspectorSizingTypeString(s sizingType) string {
+func inspectorSizingTypeString(s SizingType) string {
 	switch s {
-	case sizingFill:
+	case SizingFill:
 		return "fill"
-	case sizingFixed:
+	case SizingFixed:
 		return "fixed"
 	default:
 		return "fit"
 	}
 }
 
-func inspectorAlignString(h HorizontalAlign, v verticalAlign) string {
+func inspectorAlignString(h HorizontalAlign, v VerticalAlign) string {
 	return inspectorHAlignString(h) + ", " + inspectorVAlignString(v)
 }
 
@@ -96,7 +96,7 @@ func inspectorHAlignString(h HorizontalAlign) string {
 	}
 }
 
-func inspectorVAlignString(v verticalAlign) string {
+func inspectorVAlignString(v VerticalAlign) string {
 	switch v {
 	case VAlignMiddle:
 		return "middle"

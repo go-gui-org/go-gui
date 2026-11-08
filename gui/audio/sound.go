@@ -25,7 +25,8 @@ type Sound struct {
 // LoadSoundBytes, which suits embedded assets, while path loading is
 // the backend and test seam. See LoadMusic for the path-based music
 // API.
-func loadSound(path string) (*Sound, error) {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func LoadSound(path string) (*Sound, error) {
 	return backend.LoadSound(path)
 }
 
@@ -83,7 +84,7 @@ func (s *Sound) FadeIn(channel, loops, ms int) (int, error) {
 // they hand to PlaySource or through SetMasterVolume, and read back
 // through Volume. Tests are the only writers, to set and restore a
 // level around an assertion.
-func (s *Sound) setVolume(v float64) {
+func (s *Sound) SetVolume(v float64) {
 	backend.SoundSetVolume(s, v)
 }
 
@@ -119,7 +120,8 @@ func HaltChannel(channel int) {
 
 // FadeOutChannel fades out the given channel over ms milliseconds,
 // then halts it.
-func fadeOutChannel(channel, ms int) {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func FadeOutChannel(channel, ms int) {
 	initMu.Lock()
 	defer initMu.Unlock()
 	if initialized {
@@ -128,7 +130,8 @@ func fadeOutChannel(channel, ms int) {
 }
 
 // PauseChannel pauses the given channel (-1 = all).
-func pauseChannel(channel int) {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func PauseChannel(channel int) {
 	initMu.Lock()
 	defer initMu.Unlock()
 	if initialized {
@@ -137,7 +140,8 @@ func pauseChannel(channel int) {
 }
 
 // ResumeChannel resumes the given channel (-1 = all).
-func resumeChannel(channel int) {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func ResumeChannel(channel int) {
 	initMu.Lock()
 	defer initMu.Unlock()
 	if initialized {

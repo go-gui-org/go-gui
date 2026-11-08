@@ -90,8 +90,8 @@ func TestColorByteOrder(t *testing.T) {
 		want int
 	}{
 		{"RGBA8", c.RGBA8(), 0xAABBCCDD},
-		{"BGRA8", c.bGRA8(), 0xCCBBAADD},
-		{"ABGR8", c.aBGR8(), 0xDDCCBBAA},
+		{"BGRA8", c.BGRA8(), 0xCCBBAADD},
+		{"ABGR8", c.ABGR8(), 0xDDCCBBAA},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestColorFromString(t *testing.T) {
 	t.Run("named", func(t *testing.T) {
 		t.Parallel()
 		c := ColorFromString("red")
-		if !c.eq(Red) {
+		if !c.Eq(Red) {
 			t.Errorf("ColorFromString(red) = %v, want %v", c, Red)
 		}
 	})
@@ -165,7 +165,7 @@ func TestEqIgnoresSet(t *testing.T) {
 	t.Parallel()
 	a := RGBA(255, 0, 0, 255)
 	b := RGBA(255, 0, 0, 255)
-	if !a.eq(b) {
+	if !a.Eq(b) {
 		t.Fatal("Eq should compare only RGBA channels")
 	}
 }
@@ -183,26 +183,26 @@ func TestColorToCSSString(t *testing.T) {
 	t.Parallel()
 	c := RGBA(10, 20, 30, 128)
 	want := "rgba(10,20,30,0.50)"
-	if got := c.toCSSString(); got != want {
+	if got := c.ToCSSString(); got != want {
 		t.Errorf("ToCSSString() = %q, want %q", got, want)
 	}
-	if got := RGB(10, 20, 30).toCSSString(); got != "rgba(10,20,30,1.00)" {
+	if got := RGB(10, 20, 30).ToCSSString(); got != "rgba(10,20,30,1.00)" {
 		t.Errorf("opaque ToCSSString() = %q", got)
 	}
-	if got := ColorTransparent.toCSSString(); got != "rgba(0,0,0,0.00)" {
+	if got := ColorTransparent.ToCSSString(); got != "rgba(0,0,0,0.00)" {
 		t.Errorf("transparent ToCSSString() = %q", got)
 	}
 }
 
 func TestColorLookup(t *testing.T) {
 	t.Parallel()
-	if c, ok := ColorLookup("red"); !ok || !c.eq(Red) {
+	if c, ok := ColorLookup("red"); !ok || !c.Eq(Red) {
 		t.Errorf("ColorLookup(red) = %v,%v, want Red", c, ok)
 	}
-	if c, ok := ColorLookup("Magenta"); !ok || !c.eq(Magenta) {
+	if c, ok := ColorLookup("Magenta"); !ok || !c.Eq(Magenta) {
 		t.Errorf("ColorLookup(Magenta) = %v,%v, want Magenta", c, ok)
 	}
-	if c, ok := ColorLookup("  cornflower_blue  "); !ok || !c.eq(CornflowerBlue) {
+	if c, ok := ColorLookup("  cornflower_blue  "); !ok || !c.Eq(CornflowerBlue) {
 		t.Errorf("ColorLookup(padded) = %v,%v", c, ok)
 	}
 	if c, ok := ColorLookup("#FF0000"); !ok || c.R != 255 || c.G != 0 || c.B != 0 {
@@ -228,7 +228,7 @@ func TestColorFromStringNormalized(t *testing.T) {
 		{" Magenta ", Magenta},
 		{"CORNFLOWER_BLUE", CornflowerBlue},
 	} {
-		if got := ColorFromString(tc.in); !got.eq(tc.want) {
+		if got := ColorFromString(tc.in); !got.Eq(tc.want) {
 			t.Errorf("ColorFromString(%q) = %v, want %v", tc.in, got, tc.want)
 		}
 	}

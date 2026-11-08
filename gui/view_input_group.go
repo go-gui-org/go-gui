@@ -136,7 +136,7 @@ func InputGroupButton(cfg ButtonCfg) InputGroupSegment {
 // dividers run the full height.
 func inputGroupSegmentSizing(s Sizing) Sizing {
 	s = s.Or(FitFit)
-	s.Height = sizingFill
+	s.Height = SizingFill
 	return s
 }
 

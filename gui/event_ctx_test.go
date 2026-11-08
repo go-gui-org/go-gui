@@ -36,7 +36,7 @@ func TestEventCtxNilEventMethods(t *testing.T) {
 	// Both must be callable from AmendLayout/OnScroll, which carry no
 	// originating event.
 	ctx.Consume()
-	if ctx.handled() {
+	if ctx.Handled() {
 		t.Error("Handled() must be false with a nil Event")
 	}
 }

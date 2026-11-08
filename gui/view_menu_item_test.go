@@ -172,7 +172,7 @@ func TestMenuItemSelectedTextColor(t *testing.T) {
 	if plainText == nil {
 		t.Fatal("plain item text missing")
 	}
-	if !plainText.TextStyle.Color.eq(DefaultTextStyle.Color) {
+	if !plainText.TextStyle.Color.Eq(DefaultTextStyle.Color) {
 		t.Errorf("plain item color = %v, want body %v",
 			plainText.TextStyle.Color, DefaultTextStyle.Color)
 	}
@@ -185,7 +185,7 @@ func TestMenuItemSelectedTextColor(t *testing.T) {
 	if selectedText == nil {
 		t.Fatal("selected item text missing")
 	}
-	if !selectedText.TextStyle.Color.eq(White) {
+	if !selectedText.TextStyle.Color.Eq(White) {
 		t.Errorf("selected item color = %v, want %v",
 			selectedText.TextStyle.Color, White)
 	}

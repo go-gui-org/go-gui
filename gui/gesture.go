@@ -200,7 +200,7 @@ func handleTouchBegan(
 		gs.velocityX = 0
 		gs.velocityY = 0
 		gs.recognized = false
-		gs.gestureType = gestureNone
+		gs.gestureType = GestureNone
 
 		// Arm long-press timer.
 		armLongPress(gs, layout, w)
@@ -594,7 +594,7 @@ func reseedRemainingFinger(
 	gs.clearPanScroll()
 	gs.panSampleReset(gs.beganTime, t.x, t.y)
 	gs.recognized = false
-	gs.gestureType = gestureNone
+	gs.gestureType = GestureNone
 	// The earlier press already released its mouse half;
 	// this finger is physically down, so press anew for
 	// click compat and re-arm the long-press timer.
@@ -623,7 +623,7 @@ func handleTouchCancelled(
 				layout, w)
 			cancelled = true
 		}
-		if !cancelled && gs.gestureType != gestureNone {
+		if !cancelled && gs.gestureType != GestureNone {
 			emitGesture(gs, gs.gestureType,
 				gesturePhaseCancelled,
 				cx, cy, layout, w)
@@ -731,7 +731,7 @@ func longPressYield(gs *gestureState, layout *Layout, w *Window, x, y float32) {
 		gs.mouseEmitted = false
 	}
 	gs.recognized = false
-	gs.gestureType = gestureNone
+	gs.gestureType = GestureNone
 }
 
 func cancelLongPress(w *Window) {

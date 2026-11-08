@@ -141,7 +141,7 @@ func gridColumnCfgDefaults(c *GridColumnCfg) {
 type GridAggregateCfg struct {
 	ColID string
 	Label string
-	Op    gridAggregateOp
+	Op    GridAggregateOp
 }
 
 // gridCsvData holds parsed CSV data.
@@ -159,10 +159,10 @@ type gridExportCfg struct {
 // GridCellFormat describes conditional cell formatting.
 // exportaudit:keep — caller-facing config (issue #372)
 type GridCellFormat struct {
-	hasBGColor   bool
-	bGColor      gg.Color
-	hasTextColor bool
-	textColor    gg.Color
+	HasBGColor   bool
+	BGColor      gg.Color
+	HasTextColor bool
+	TextColor    gg.Color
 }
 
 // dataGridDisplayRow is a flat display entry (data, group

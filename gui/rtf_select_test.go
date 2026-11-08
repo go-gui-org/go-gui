@@ -43,11 +43,11 @@ func TestRtfFindRunAtIndex_Guards(t *testing.T) {
 	if got := rtfFindRunAtIndex(l, 0, nil); got != (RichTextRun{}) {
 		t.Error("layout without TC must return an empty run")
 	}
-	l = &Layout{Shape: &Shape{TC: &shapeTextConfig{}}}
+	l = &Layout{Shape: &Shape{TC: &ShapeTextConfig{}}}
 	if got := rtfFindRunAtIndex(l, 0, nil); got != (RichTextRun{}) {
 		t.Error("layout without rich text must return an empty run")
 	}
-	l = &Layout{Shape: &Shape{TC: &shapeTextConfig{rtf: &shapeRichText{}}}}
+	l = &Layout{Shape: &Shape{TC: &ShapeTextConfig{rtf: &shapeRichText{}}}}
 	if got := rtfFindRunAtIndex(l, 0, nil); got != (RichTextRun{}) {
 		t.Error("layout with nil runs must return an empty run")
 	}
@@ -59,7 +59,7 @@ func TestRtfFindRunAtIndex_Hit(t *testing.T) {
 		{Text: "two"},
 		{Text: "three"},
 	}}
-	l := &Layout{Shape: &Shape{TC: &shapeTextConfig{rtf: &shapeRichText{rTFRuns: rt}}}}
+	l := &Layout{Shape: &Shape{TC: &ShapeTextConfig{rtf: &shapeRichText{rTFRuns: rt}}}}
 	if got := rtfFindRunAtIndex(l, 0, nil); got.Text != "one" {
 		t.Errorf("index 0 = %q, want first run", got.Text)
 	}
@@ -75,7 +75,7 @@ func TestRtfFindRunAtIndex_Hit(t *testing.T) {
 
 func TestRtfFindRunAtIndex_PastEnd(t *testing.T) {
 	rt := &RichText{Runs: []RichTextRun{{Text: "one"}}}
-	l := &Layout{Shape: &Shape{TC: &shapeTextConfig{rtf: &shapeRichText{rTFRuns: rt}}}}
+	l := &Layout{Shape: &Shape{TC: &ShapeTextConfig{rtf: &shapeRichText{rTFRuns: rt}}}}
 	if got := rtfFindRunAtIndex(l, 99, nil); got != (RichTextRun{}) {
 		t.Errorf("index past the last run = %q, want empty run", got.Text)
 	}
@@ -96,7 +96,7 @@ func TestRtfFindRunAtIndex_MathReadyCountsPlaceholder(t *testing.T) {
 			Style: TextStyle{Size: 12}},
 		{Text: "after", Link: "https://example.com"},
 	}}
-	l := &Layout{Shape: &Shape{TC: &shapeTextConfig{rtf: &shapeRichText{rTFRuns: rt}}}}
+	l := &Layout{Shape: &Shape{TC: &ShapeTextConfig{rtf: &shapeRichText{rTFRuns: rt}}}}
 	// Placeholder "\uFFFC" is 3 bytes: "after" spans [3,8).
 	if got := rtfFindRunAtIndex(l, 4, cache); got.Link == "" {
 		t.Errorf("index 4 = %q, want the link run after math", got.Text)
@@ -115,7 +115,7 @@ func TestRtfFindRunAtIndex_MathFallbackCountsLatex(t *testing.T) {
 			Style: TextStyle{Size: 12}},
 		{Text: "after"},
 	}}
-	l := &Layout{Shape: &Shape{TC: &shapeTextConfig{rtf: &shapeRichText{rTFRuns: rt}}}}
+	l := &Layout{Shape: &Shape{TC: &ShapeTextConfig{rtf: &shapeRichText{rTFRuns: rt}}}}
 	// Fallback "a+b" is 3 bytes: "after" spans [3,8).
 	if got := rtfFindRunAtIndex(l, 4, nil); got.Text != "after" {
 		t.Errorf("index 4 = %q, want the run after math", got.Text)
@@ -258,7 +258,7 @@ func TestRtfMouseMove_TooltipHoverRepeatedConsumes(t *testing.T) {
 		Shape: &Shape{
 			shapeType: shapeRTF,
 			X:         100, Y: 200,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyphLayout,
 					rTFRuns:   &rt,
@@ -292,7 +292,7 @@ func TestRtfSelectAmendLayout_StampsSelection(t *testing.T) {
 		"rtf", inputState{selectBeg: 2, selectEnd: 7})
 	ly := &Layout{Shape: &Shape{
 		ID: "rtf", Focusable: true,
-		TC: &shapeTextConfig{},
+		TC: &ShapeTextConfig{},
 	}}
 	rtfSelectAmendLayout(EventCtx{Layout: ly, Window: w})
 	if ly.Shape.TC.textSelBeg != 2 || ly.Shape.TC.textSelEnd != 7 {
@@ -307,14 +307,14 @@ func TestRtfSelectAmendLayout_GuardsSkip(t *testing.T) {
 		"rtf", inputState{selectBeg: 2, selectEnd: 7})
 
 	// Empty ID: the shape cannot join focus traversal, so no stamping.
-	ly := &Layout{Shape: &Shape{Focusable: true, TC: &shapeTextConfig{}}}
+	ly := &Layout{Shape: &Shape{Focusable: true, TC: &ShapeTextConfig{}}}
 	rtfSelectAmendLayout(EventCtx{Layout: ly, Window: w})
 	if ly.Shape.TC.textSelBeg != 0 || ly.Shape.TC.textSelEnd != 0 {
 		t.Error("empty-ID shape was stamped")
 	}
 
 	// Not focusable.
-	ly = &Layout{Shape: &Shape{ID: "rtf", TC: &shapeTextConfig{}}}
+	ly = &Layout{Shape: &Shape{ID: "rtf", TC: &ShapeTextConfig{}}}
 	rtfSelectAmendLayout(EventCtx{Layout: ly, Window: w})
 	if ly.Shape.TC.textSelBeg != 0 || ly.Shape.TC.textSelEnd != 0 {
 		t.Error("non-focusable shape was stamped")
@@ -334,16 +334,16 @@ func TestRtfSelectOnClick_GuardInert(t *testing.T) {
 	}{
 		{"nil TC", &Shape{shapeType: shapeRTF, ID: "rtf", Focusable: true}},
 		{"no rtf layout", &Shape{shapeType: shapeRTF, ID: "rtf",
-			Focusable: true, TC: &shapeTextConfig{}}},
+			Focusable: true, TC: &ShapeTextConfig{}}},
 		{"empty ID", &Shape{shapeType: shapeRTF, Focusable: true,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyph.Layout{},
 					rTFRuns:   &RichText{},
 				},
 			}}},
 		{"not focusable", &Shape{shapeType: shapeRTF, ID: "rtf",
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyph.Layout{},
 					rTFRuns:   &RichText{},
@@ -381,23 +381,23 @@ func TestRtfSelectOnKeyDown_GuardInert(t *testing.T) {
 		// TC set but no rich text: before the guard checked for an RTF
 		// layout, this dereferenced a nil layout.
 		{"no rich text", &Shape{shapeType: shapeRTF, ID: "rtf",
-			Focusable: true, TC: &shapeTextConfig{}}, true},
+			Focusable: true, TC: &ShapeTextConfig{}}, true},
 		{"empty ID", &Shape{shapeType: shapeRTF, Focusable: true,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFFlatText: "hello",
 					rTFLayout:   &gl,
 				},
 			}}, true},
 		{"not focusable", &Shape{shapeType: shapeRTF, ID: "rtf",
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFFlatText: "hello",
 					rTFLayout:   &gl,
 				},
 			}}, true},
 		{"not focused", &Shape{shapeType: shapeRTF, ID: "rtf",
-			Focusable: true, TC: &shapeTextConfig{
+			Focusable: true, TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFFlatText: "hello",
 					rTFLayout:   &gl,
@@ -437,7 +437,7 @@ func TestRtfSelectOnKeyDown_SingleLineVerticalKeysUnhandled(t *testing.T) {
 		"rtf", inputState{CursorPos: 2})
 	gl := glyph.Layout{Text: "hello world"}
 	sh := &Shape{shapeType: shapeRTF, ID: "rtf", Focusable: true,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			TextMode: TextModeSingleLine,
 			rtf: &shapeRichText{
 				rTFFlatText: "hello world",

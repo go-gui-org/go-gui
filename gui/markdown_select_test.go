@@ -18,7 +18,7 @@ func TestMarkdownBlockAmendSel_NilTC_NoOp(t *testing.T) {
 // The amend hook must skip it, not dereference the nil part.
 func TestMarkdownBlockAmendSel_PlainTextTC_NoOp(t *testing.T) {
 	w := &Window{}
-	tc := &shapeTextConfig{textSelBeg: 7, textSelEnd: 9}
+	tc := &ShapeTextConfig{textSelBeg: 7, textSelEnd: 9}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
 	if tc.textSelBeg != 7 || tc.textSelEnd != 9 {
 		t.Error("plain text selection must not change")
@@ -27,7 +27,7 @@ func TestMarkdownBlockAmendSel_PlainTextTC_NoOp(t *testing.T) {
 
 func TestMarkdownBlockAmendSel_ZeroMarkdownID_NoOp(t *testing.T) {
 	w := &Window{}
-	tc := &shapeTextConfig{textSelBeg: 99, textSelEnd: 99, rtf: &shapeRichText{markdownID: ""}}
+	tc := &ShapeTextConfig{textSelBeg: 99, textSelEnd: 99, rtf: &shapeRichText{markdownID: ""}}
 	l := &Layout{Shape: &Shape{TC: tc}}
 	markdownBlockAmendSel(l, w)
 	// No state written; values unchanged.
@@ -41,7 +41,7 @@ func TestMarkdownBlockAmendSel_SelectionBeforeBlock_ZeroOut(t *testing.T) {
 	mdID := "md1"
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 5})
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		textSelBeg: 99,
 		textSelEnd: 99,
 		rtf: &shapeRichText{
@@ -61,7 +61,7 @@ func TestMarkdownBlockAmendSel_SelectionAfterBlock_ZeroOut(t *testing.T) {
 	mdID := "md2"
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 20, SelEnd: 30})
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		textSelBeg: 99,
 		textSelEnd: 99,
 		rtf: &shapeRichText{
@@ -82,7 +82,7 @@ func TestMarkdownBlockAmendSel_SelectionAtExactBlockBoundary_ZeroOut(t *testing.
 	// end == blockStart: guard is end <= blockStart, so no overlap.
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 10})
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		textSelBeg: 99,
 		textSelEnd: 99,
 		rtf: &shapeRichText{
@@ -102,7 +102,7 @@ func TestMarkdownBlockAmendSel_SelectionSpansEntireBlock(t *testing.T) {
 	mdID := "md4"
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 0, SelEnd: 20})
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		rtf: &shapeRichText{
 			markdownID:         mdID,
 			markdownBlockStart: 5,
@@ -122,7 +122,7 @@ func TestMarkdownBlockAmendSel_PartialOverlapStart(t *testing.T) {
 	// Selection starts before block, ends inside block.
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 5, SelEnd: 12})
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		rtf: &shapeRichText{
 			markdownID:         mdID,
 			markdownBlockStart: 10, // block covers [10, 20)
@@ -142,7 +142,7 @@ func TestMarkdownBlockAmendSel_PartialOverlapEnd(t *testing.T) {
 	// Selection starts inside block, ends after block.
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 13, SelEnd: 25})
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		rtf: &shapeRichText{
 			markdownID:         mdID,
 			markdownBlockStart: 10, // block covers [10, 20)
@@ -162,7 +162,7 @@ func TestMarkdownBlockAmendSel_InvertedSelection_SortsCorrectly(t *testing.T) {
 	// SelEnd < SelBeg (drag rightward from end to start); u32Sort normalizes.
 	StateMap[string, mdSelState](w, nsMdSel, capMany).Set(mdID,
 		mdSelState{SelBeg: 15, SelEnd: 5})
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		rtf: &shapeRichText{
 			markdownID:         mdID,
 			markdownBlockStart: 0,

@@ -175,7 +175,8 @@ func isSafeImagePath(path string) bool {
 // Lowercase alphanumeric + dashes, no trailing dashes.
 // ASCII-only by design: non-ASCII runes are dropped, so
 // non-Latin headings may slug to "".
-func headingSlug(text string) string {
+// exportaudit:keep — documented API (showcase docs/widget_markdown.md)
+func HeadingSlug(text string) string {
 	var buf []byte
 	prevDash := false
 	for _, r := range text {

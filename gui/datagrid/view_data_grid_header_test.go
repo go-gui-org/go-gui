@@ -18,7 +18,7 @@ func TestHeaderIndicatorNoSort(t *testing.T) {
 
 func TestHeaderIndicatorSingleAsc(t *testing.T) {
 	q := GridQueryState{
-		Sorts: []GridSort{{ColID: "col1", Dir: gridSortAsc}},
+		Sorts: []GridSort{{ColID: "col1", Dir: GridSortAsc}},
 	}
 	got := dataGridHeaderIndicator(q, "col1")
 	if got != "\u25B2" {
@@ -39,7 +39,7 @@ func TestHeaderIndicatorSingleDesc(t *testing.T) {
 func TestHeaderIndicatorMultiSort(t *testing.T) {
 	q := GridQueryState{
 		Sorts: []GridSort{
-			{ColID: "a", Dir: gridSortAsc},
+			{ColID: "a", Dir: GridSortAsc},
 			{ColID: "b", Dir: GridSortDesc},
 		},
 	}
@@ -56,7 +56,7 @@ func TestHeaderIndicatorMultiSort(t *testing.T) {
 
 func TestHeaderIndicatorColumnNotSorted(t *testing.T) {
 	q := GridQueryState{
-		Sorts: []GridSort{{ColID: "a", Dir: gridSortAsc}},
+		Sorts: []GridSort{{ColID: "a", Dir: GridSortAsc}},
 	}
 	got := dataGridHeaderIndicator(q, "x")
 	if got != "" {

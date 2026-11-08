@@ -131,7 +131,7 @@ func TestA11yCollectLabelFromText(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
-			TC:       &shapeTextConfig{Text: "Submit"},
+			TC:       &ShapeTextConfig{Text: "Submit"},
 		},
 	}
 	var nodes []A11yNode
@@ -150,7 +150,7 @@ func TestA11yCollectA11YLabelOverridesText(t *testing.T) {
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
 			a11Y:     &accessInfo{Label: "Close dialog"},
-			TC:       &shapeTextConfig{Text: "X"},
+			TC:       &ShapeTextConfig{Text: "X"},
 		},
 	}
 	var nodes []A11yNode
@@ -290,7 +290,7 @@ func TestA11yCollectValueFieldsNilA11Y(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{
 			A11YRole: AccessRoleButton,
-			TC:       &shapeTextConfig{Text: "OK"},
+			TC:       &ShapeTextConfig{Text: "OK"},
 		},
 	}
 	var nodes []A11yNode
@@ -325,7 +325,7 @@ func TestA11yValueText(t *testing.T) {
 }
 
 func TestShapeA11yLabel(t *testing.T) {
-	s := &Shape{TC: &shapeTextConfig{Text: "Hello"}}
+	s := &Shape{TC: &ShapeTextConfig{Text: "Hello"}}
 	if got := shapeA11yLabel(s); got != "Hello" {
 		t.Errorf("got %q", got)
 	}

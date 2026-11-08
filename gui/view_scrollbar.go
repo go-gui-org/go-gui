@@ -9,7 +9,7 @@ const (
 	ScrollbarHidden
 	// exportaudit:keep — one member of a public enum; the set ships whole.
 	ScrollbarVisible
-	scrollbarOnHover
+	ScrollbarOnHover
 )
 
 // ScrollbarCfg configures the style of a scrollbar.
@@ -132,7 +132,7 @@ type scrollbarView struct {
 func (v *scrollbarView) GenerateLayout(w *Window) Layout {
 	cfg := &v.cfg
 	axis := axisTopToBottom
-	if cfg.Orientation == scrollbarHorizontal {
+	if cfg.Orientation == ScrollbarHorizontal {
 		axis = axisLeftToRight
 	}
 	// The same ContainerCfg the Row or Column factory would get. container()
@@ -226,7 +226,7 @@ func scrollbarHover(cfg *ScrollbarCfg, ctx EventCtx, thumbAt int) {
 		return
 	}
 	if ctx.Layout.Children[thumbAt].Shape.Color != ColorTransparent ||
-		cfg.Overflow == scrollbarOnHover {
+		cfg.Overflow == ScrollbarOnHover {
 		ctx.Layout.Children[thumbAt].Shape.Color = cfg.ColorThumb
 		ctx.Window.setMouseCursor(CursorArrow)
 	}
@@ -256,7 +256,7 @@ func scrollbarAmendLayout(
 	// the horizontal bar starts after that gutter instead of under it.
 	rtl := effectiveTextDir(parent.Shape) == TextDirRTL
 
-	if cfg.Orientation == scrollbarHorizontal {
+	if cfg.Orientation == ScrollbarHorizontal {
 		padStart := parent.Shape.Padding.Left
 		if rtl {
 			padStart = parent.Shape.Padding.Right
@@ -304,7 +304,7 @@ func scrollbarAmendLayout(
 		layout.Children[thumbAt].Shape.Height = cfg.Size
 
 		if (cfg.Overflow != ScrollbarVisible && availWidth < 0.1) ||
-			cfg.Overflow == scrollbarOnHover {
+			cfg.Overflow == ScrollbarOnHover {
 			layout.Children[thumbAt].Shape.Color = ColorTransparent
 		}
 	} else {
@@ -351,7 +351,7 @@ func scrollbarAmendLayout(
 		layout.Children[thumbAt].Shape.Width = cfg.Size
 
 		if (cfg.Overflow != ScrollbarVisible && availHeight < 0.1) ||
-			cfg.Overflow == scrollbarOnHover {
+			cfg.Overflow == ScrollbarOnHover {
 			layout.Children[thumbAt].Shape.Color = ColorTransparent
 		}
 	}
@@ -414,7 +414,7 @@ func scrollbarGutterPress(
 		ctx.Consume()
 		return
 	}
-	if orientation == scrollbarHorizontal {
+	if orientation == ScrollbarHorizontal {
 		offsetFromMouseX(&ctx.Window.layout, ctx.Event.MouseX, scrollID, ctx.Window)
 	} else {
 		offsetFromMouseY(&ctx.Window.layout, ctx.Event.MouseY, scrollID, ctx.Window)
@@ -445,7 +445,7 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layou
 	if !ok {
 		return
 	}
-	if orientation == scrollbarHorizontal {
+	if orientation == ScrollbarHorizontal {
 		if e.MouseX >= ly.Shape.X-scrollExtend &&
 			e.MouseX <= ly.Shape.X+ly.Shape.Width+scrollExtend {
 			sx := w.scrollX()

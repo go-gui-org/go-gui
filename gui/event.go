@@ -42,17 +42,17 @@ const (
 	EventTouchesEnded
 	EventTouchesCancelled
 	EventResized
-	eventIconified
-	eventRestored
+	EventIconified
+	EventRestored
 	EventFocused
 	EventUnfocused
-	eventSuspended
-	eventResumed
-	eventQuitRequested
+	EventSuspended
+	EventResumed
+	EventQuitRequested
 	EventClipboardPasted
 	EventFileDropped
 	EventIMEComposition
-	eventGesture     // gesture recognized from touch input
+	EventGesture     // gesture recognized from touch input
 	EventScrollBegan // trackpad finger touch (zero-delta phase begin)
 	// EventSoftKeyboard reports that the OS soft keyboard covers a
 	// new height of the window: Event.SoftKeyboardInset carries it,
@@ -115,9 +115,9 @@ const (
 	ModCtrlShift    Modifier = ModCtrl | ModShift
 	ModCtrlAlt      Modifier = ModCtrl | ModAlt
 	ModCtrlAltShift Modifier = ModCtrl | ModAlt | ModShift
-	modCtrlSuper    Modifier = ModCtrl | ModSuper
+	ModCtrlSuper    Modifier = ModCtrl | ModSuper
 	ModAltShift     Modifier = ModAlt | ModShift
-	modAltSuper     Modifier = ModAlt | ModSuper
+	ModAltSuper     Modifier = ModAlt | ModSuper
 	ModSuperShift   Modifier = ModSuper | ModShift
 )
 
@@ -293,7 +293,7 @@ type GestureType uint8
 
 // GestureType values.
 const (
-	gestureNone      GestureType = iota
+	GestureNone      GestureType = iota
 	GestureTap                   // single finger tap
 	GestureDoubleTap             // two taps in quick succession
 	GestureLongPress             // finger held without movement
@@ -381,7 +381,7 @@ type Event struct {
 	NumTouches     int
 	WindowWidth    int
 	WindowHeight   int
-	gestureTouches int // touch count for this gesture
+	GestureTouches int // touch count for this gesture
 	WindowID       uint32
 	MouseX         float32
 	MouseY         float32

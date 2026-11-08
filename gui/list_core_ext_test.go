@@ -175,17 +175,17 @@ func TestListCoreItemViewTextOnSelectFill(t *testing.T) {
 	}
 
 	plain := firstTextColor(t, listCoreItemView(item, 0, false, false, cfg, nil))
-	if !plain.eq(DefaultTextStyle.Color) {
+	if !plain.Eq(DefaultTextStyle.Color) {
 		t.Errorf("plain row color = %v, want body %v",
 			plain, DefaultTextStyle.Color)
 	}
 	highlighted := firstTextColor(t, listCoreItemView(item, 0, true, false, cfg, nil))
-	if !highlighted.eq(DefaultTextStyle.Color) {
+	if !highlighted.Eq(DefaultTextStyle.Color) {
 		t.Errorf("highlighted row color = %v, want body %v",
 			highlighted, DefaultTextStyle.Color)
 	}
 	selected := firstTextColor(t, listCoreItemView(item, 0, false, true, cfg, nil))
-	if !selected.eq(DefaultTextStyle.Color) {
+	if !selected.Eq(DefaultTextStyle.Color) {
 		t.Errorf("selected row color = %v, want body %v",
 			selected, DefaultTextStyle.Color)
 	}

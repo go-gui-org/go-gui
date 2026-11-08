@@ -17,7 +17,7 @@ import (
 // the stale capture.
 type dataGridQuickPending struct {
 	Sorts   []GridSort
-	Filters []gridFilter
+	Filters []GridFilter
 }
 
 func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
@@ -41,7 +41,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 		gg.StateMap[string, dataGridQuickPending](w, nsDgQuickPending,
 			capModerate).Set(gridID, dataGridQuickPending{
 			Sorts:   append([]GridSort(nil), query.Sorts...),
-			Filters: append([]gridFilter(nil), query.Filters...),
+			Filters: append([]GridFilter(nil), query.Filters...),
 		})
 	}
 	inputID := gg.ScopeID(cfg.ID, "quick_filter")
@@ -149,7 +149,7 @@ func dataGridQuickFilterOnTextChanged(
 		}
 		pending := dataGridQuickPending{
 			Sorts:   append([]GridSort(nil), query.Sorts...),
-			Filters: append([]gridFilter(nil), query.Filters...),
+			Filters: append([]GridFilter(nil), query.Filters...),
 		}
 		gg.StateMap[string, string](ctx.Window, nsDgQuickDraft,
 			capModerate).Set(gridID, text)

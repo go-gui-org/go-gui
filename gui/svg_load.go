@@ -82,7 +82,7 @@ type cachedSvgTextPathDraw struct {
 }
 
 // CachedFilteredGroup holds tessellated geometry for a filter group.
-type cachedFilteredGroup struct {
+type CachedFilteredGroup struct {
 	Gradients     map[string]SvgGradientDef
 	renderPaths   []cachedSvgPath
 	textDraws     []cachedSvgTextDraw
@@ -115,7 +115,7 @@ type CachedSvg struct {
 	renderPaths    []cachedSvgPath
 	textDraws      []cachedSvgTextDraw
 	textPathDraws  []cachedSvgTextPathDraw
-	FilteredGroups []cachedFilteredGroup
+	FilteredGroups []CachedFilteredGroup
 	Animations     []SvgAnimation
 	animStartNs    int64
 	Width          float32
@@ -573,12 +573,12 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 	textPathDraws := cachedSvgTextPathDraws(parsed.TextPaths, defsPathData, scale)
 
 	// Build filtered groups.
-	var filteredGroups []cachedFilteredGroup
+	var filteredGroups []CachedFilteredGroup
 	for _, fg := range parsed.FilteredGroups {
 		fgPaths := cachedSvgPaths(fg.Paths)
 		fgTextDraws := cachedSvgTextDraws(fg.Texts, scale, parsed.Gradients, w)
 		fgTextPathDraws := cachedSvgTextPathDraws(fg.TextPaths, defsPathData, scale)
-		filteredGroups = append(filteredGroups, cachedFilteredGroup{
+		filteredGroups = append(filteredGroups, CachedFilteredGroup{
 			Filter:        fg.Filter,
 			renderPaths:   fgPaths,
 			textDraws:     fgTextDraws,
@@ -597,7 +597,7 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 	isAnim := func(p cachedSvgPath) bool { return p.Animated }
 	hasAnimatedPaths := slices.ContainsFunc(renderPaths, isAnim) ||
 		slices.ContainsFunc(filteredGroups,
-			func(g cachedFilteredGroup) bool {
+			func(g CachedFilteredGroup) bool {
 				return slices.ContainsFunc(g.renderPaths, isAnim)
 			})
 	baseByPath := buildBaseByPath(renderPaths, filteredGroups,
@@ -653,7 +653,7 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 
 // GetSvgDimensions returns natural SVG dimensions without full
 // parse+tessellate. Uses cached dimensions when available.
-func (w *Window) getSvgDimensions(svgSrc string) (float32, float32, error) {
+func (w *Window) GetSvgDimensions(svgSrc string) (float32, float32, error) {
 	// Fast path, as in loadSvgWithOpts: svgView asks every frame,
 	// so a recently confirmed file makes no file system call.
 	inline := strings.HasPrefix(svgSrc, "<")
@@ -718,7 +718,7 @@ func (w *Window) getSvgDimensions(svgSrc string) (float32, float32, error) {
 }
 
 // RemoveSvgFromCache removes all cached variants of an SVG.
-func (w *Window) removeSvgFromCache(svgSrc string) {
+func (w *Window) RemoveSvgFromCache(svgSrc string) {
 	// Delete is cold: hash directly so a miss does not insert
 	// into the svgSrcHash memo and evict a hot entry.
 	srcHash := hashString(svgSrc)
@@ -746,7 +746,7 @@ func (w *Window) removeSvgFromCache(svgSrc string) {
 }
 
 // ClearSvgCache removes all cached SVGs.
-func (w *Window) clearSvgCache() {
+func (w *Window) ClearSvgCache() {
 	svgCache := StateMapRead[svgCacheKey, *CachedSvg](w, nsSvgCache)
 	if svgCache != nil {
 		svgCache.Clear()

@@ -485,7 +485,7 @@ func TestDockLayoutFullTreeIntegration(t *testing.T) {
 
 	// All panels should be reachable
 	allIDs := []string{"explorer", "search", "editor1", "editor2", "terminal", "output"}
-	nodes := dockTreeCollectPanelNodes(root)
+	nodes := DockTreeCollectPanelNodes(root)
 	var foundIDs []string
 	for _, n := range nodes {
 		foundIDs = append(foundIDs, n.PanelIDs...)

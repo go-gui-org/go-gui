@@ -112,17 +112,17 @@ func dataGridCrudRemapSelection(selection GridSelection, onSelectionChange func(
 			selected[rowID] = true
 		}
 	}
-	active := selection.activeRowID
+	active := selection.ActiveRowID
 	if id, ok := replaceIDs[active]; ok {
 		active = id
 	}
-	anchor := selection.anchorRowID
+	anchor := selection.AnchorRowID
 	if id, ok := replaceIDs[anchor]; ok {
 		anchor = id
 	}
 	onSelectionChange(GridSelection{
-		anchorRowID:    anchor,
-		activeRowID:    active,
+		AnchorRowID:    anchor,
+		ActiveRowID:    active,
 		SelectedRowIDs: selected,
 	}, gg.EventCtx{Layout: nil, Event: e, Window: w})
 }
@@ -192,17 +192,17 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 			return
 		}
 		// Pre-validate capabilities.
-		if len(createRows) > 0 && !ctx.caps.supportsCreate {
+		if len(createRows) > 0 && !ctx.caps.SupportsCreate {
 			dataGridCrudRestoreOnError(gridID, "create", ctx.onCRUDError,
 				e, w, snapshotRows, "grid: create not supported", ctx.errCue)
 			return
 		}
-		if len(updateEdits) > 0 && !ctx.caps.supportsUpdate {
+		if len(updateEdits) > 0 && !ctx.caps.SupportsUpdate {
 			dataGridCrudRestoreOnError(gridID, "update", ctx.onCRUDError,
 				e, w, snapshotRows, "grid: update not supported", ctx.errCue)
 			return
 		}
-		if len(deleteIDs) > 0 && !ctx.caps.supportsDelete {
+		if len(deleteIDs) > 0 && !ctx.caps.SupportsDelete {
 			dataGridCrudRestoreOnError(gridID, "delete", ctx.onCRUDError,
 				e, w, snapshotRows, "grid: delete not supported", ctx.errCue)
 			return
@@ -263,8 +263,8 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	var created []GridRow
 	if len(createRows) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
-			gridID:    gridID,
-			Kind:      gridMutationCreate,
+			GridID:    gridID,
+			Kind:      GridMutationCreate,
 			Query:     query,
 			Rows:      createRows,
 			Signal:    signal,
@@ -273,18 +273,18 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 		if err != nil {
 			return dataGridCrudMutationResult{errPhase: "create", errMsg: err.Error()}
 		}
-		created = append([]GridRow(nil), res.created...)
+		created = append([]GridRow(nil), res.Created...)
 		if res.RowCount >= 0 {
 			rowCount = res.RowCount
 		}
 	}
 	if len(updateEdits) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
-			gridID:    gridID,
-			Kind:      gridMutationUpdate,
+			GridID:    gridID,
+			Kind:      GridMutationUpdate,
 			Query:     query,
 			Rows:      updateRows,
-			edits:     updateEdits,
+			Edits:     updateEdits,
 			Signal:    signal,
 			RequestID: requestID,
 		})
@@ -300,10 +300,10 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	}
 	if len(deleteIDs) > 0 {
 		res, err := source.MutateData(GridMutationRequest{
-			gridID:    gridID,
-			Kind:      gridMutationDelete,
+			GridID:    gridID,
+			Kind:      GridMutationDelete,
 			Query:     query,
-			rowIDs:    deleteIDs,
+			RowIDs:    deleteIDs,
 			Signal:    signal,
 			RequestID: requestID,
 		})

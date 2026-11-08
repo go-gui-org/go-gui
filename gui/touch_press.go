@@ -61,7 +61,7 @@ type touchPressScan struct {
 
 // decided reports whether a path named a rule for the press.
 func (s *touchPressScan) decided() bool {
-	return s.now || s.v || s.h || s.bar != scrollbarNone
+	return s.now || s.v || s.h || s.bar != ScrollbarNone
 }
 
 // touchPressDown presses for the finger that went down at x, y: now,
@@ -77,7 +77,7 @@ func touchPressDown(gs *gestureState, layout *Layout, w *Window, x, y float32, f
 		inputDatePressOutside(w, x, y)
 		touchPressScanAt(layout, x, y, 0, &s)
 	}
-	if !s.now && (s.v || s.h || s.bar != scrollbarNone) {
+	if !s.now && (s.v || s.h || s.bar != ScrollbarNone) {
 		gs.pressHeld = true
 		// The IDs are scratch, reused by the next touch: keep only the
 		// answer.
@@ -126,9 +126,9 @@ func touchPressOnPan(gs *gestureState, layout *Layout, w *Window, dx, dy float32
 		return
 	}
 	ax, ay := f32Abs(dx), f32Abs(dy)
-	if bar := gs.pressScan.bar; bar != scrollbarNone {
+	if bar := gs.pressScan.bar; bar != ScrollbarNone {
 		// A bar is thin: the dominant axis decides, with no bias.
-		if (ay >= ax) == (bar == scrollbarVertical) {
+		if (ay >= ax) == (bar == ScrollbarVertical) {
 			touchPressSend(gs, layout, w)
 		} else {
 			gs.touchPressDrop()
@@ -200,7 +200,7 @@ func touchPressScanAt(layout *Layout, x, y float32, depth int, s *touchPressScan
 // touchPressNote records one shape on the path under the touch.
 func touchPressNote(layout *Layout, s *touchPressScan) {
 	sh := layout.Shape
-	if sh.scrollbarOrientation != scrollbarNone {
+	if sh.scrollbarOrientation != ScrollbarNone {
 		// A thumb or gutter: the bar's axis settles the press.
 		s.bar = sh.scrollbarOrientation
 		return

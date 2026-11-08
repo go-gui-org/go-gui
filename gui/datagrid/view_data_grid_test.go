@@ -432,7 +432,7 @@ func TestDataGridAggregateCount(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := GridAggregateCfg{Op: gridAggregateCount}
+	agg := GridAggregateCfg{Op: GridAggregateCount}
 	val, ok := dataGridAggregateValue(rows, testIdxRange(0, 2), agg)
 	if !ok || val != "3" {
 		t.Errorf("count: got %q ok=%v, want '3'", val, ok)
@@ -446,7 +446,7 @@ func TestDataGridAggregateSum(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateSum}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateSum}
 	val, ok := dataGridAggregateValue(rows, testIdxRange(0, 2), agg)
 	if !ok || val != "60" {
 		t.Errorf("sum: got %q ok=%v, want '60'", val, ok)
@@ -460,7 +460,7 @@ func TestDataGridAggregateAvg(t *testing.T) {
 		{Cells: map[string]string{"v": "20"}},
 		{Cells: map[string]string{"v": "30"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateAvg}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateAvg}
 	val, ok := dataGridAggregateValue(rows, testIdxRange(0, 2), agg)
 	if !ok || val != "20" {
 		t.Errorf("avg: got %q ok=%v, want '20'", val, ok)
@@ -474,7 +474,7 @@ func TestDataGridAggregateMin(t *testing.T) {
 		{Cells: map[string]string{"v": "10"}},
 		{Cells: map[string]string{"v": "20"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateMin}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateMin}
 	val, ok := dataGridAggregateValue(rows, testIdxRange(0, 2), agg)
 	if !ok || val != "10" {
 		t.Errorf("min: got %q ok=%v, want '10'", val, ok)
@@ -488,7 +488,7 @@ func TestDataGridAggregateMax(t *testing.T) {
 		{Cells: map[string]string{"v": "30"}},
 		{Cells: map[string]string{"v": "20"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateMax}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateMax}
 	val, ok := dataGridAggregateValue(rows, testIdxRange(0, 2), agg)
 	if !ok || val != "30" {
 		t.Errorf("max: got %q ok=%v, want '30'", val, ok)
@@ -500,7 +500,7 @@ func TestDataGridAggregateNonNumeric(t *testing.T) {
 	rows := []GridRow{
 		{Cells: map[string]string{"v": "abc"}},
 	}
-	agg := GridAggregateCfg{ColID: "v", Op: gridAggregateSum}
+	agg := GridAggregateCfg{ColID: "v", Op: GridAggregateSum}
 	_, ok := dataGridAggregateValue(rows, testIdxRange(0, 0), agg)
 	if ok {
 		t.Error("non-numeric should return ok=false")
@@ -514,7 +514,7 @@ func TestDataGridActiveRowIndexFound(t *testing.T) {
 	rows := []GridRow{
 		{ID: "a"}, {ID: "b"}, {ID: "c"},
 	}
-	sel := GridSelection{activeRowID: "b"}
+	sel := GridSelection{ActiveRowID: "b"}
 	if got := dataGridActiveRowIndex(rows, sel); got != 1 {
 		t.Errorf("got %d, want 1", got)
 	}
@@ -523,7 +523,7 @@ func TestDataGridActiveRowIndexFound(t *testing.T) {
 func TestDataGridActiveRowIndexMissing(t *testing.T) {
 	t.Parallel()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
-	sel := GridSelection{activeRowID: "z"}
+	sel := GridSelection{ActiveRowID: "z"}
 	// Falls back to 0 when rows exist.
 	if got := dataGridActiveRowIndex(rows, sel); got != 0 {
 		t.Errorf("got %d, want 0 (fallback)", got)
@@ -532,7 +532,7 @@ func TestDataGridActiveRowIndexMissing(t *testing.T) {
 
 func TestDataGridActiveRowIndexEmpty(t *testing.T) {
 	t.Parallel()
-	sel := GridSelection{activeRowID: "x"}
+	sel := GridSelection{ActiveRowID: "x"}
 	if got := dataGridActiveRowIndex(nil, sel); got != -1 {
 		t.Errorf("got %d, want -1", got)
 	}
@@ -541,7 +541,7 @@ func TestDataGridActiveRowIndexEmpty(t *testing.T) {
 func TestDataGridActiveRowIndexStrict(t *testing.T) {
 	t.Parallel()
 	rows := []GridRow{{ID: "a"}, {ID: "b"}}
-	sel := GridSelection{activeRowID: "z"}
+	sel := GridSelection{ActiveRowID: "z"}
 	if got := dataGridActiveRowIndexStrict(rows, sel); got != -1 {
 		t.Errorf("strict missing: got %d, want -1", got)
 	}

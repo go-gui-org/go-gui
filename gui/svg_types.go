@@ -369,11 +369,11 @@ type SvgAnimation struct {
 const SvgAnimIterInfinite uint16 = 0xFFFF
 
 // SvgPrimitiveKind identifies the source primitive of a VectorPath.
-type svgPrimitiveKind uint8
+type SvgPrimitiveKind uint8
 
 // SvgPrimitiveKind constants.
 const (
-	SvgPrimNone svgPrimitiveKind = iota
+	SvgPrimNone SvgPrimitiveKind = iota
 	SvgPrimCircle
 	SvgPrimEllipse
 	SvgPrimRect
@@ -386,7 +386,7 @@ const (
 // composed transform lives on the owning VectorPath / GroupID; only
 // the primitive-local attributes are captured here.
 type SvgPrimitive struct {
-	Kind   svgPrimitiveKind
+	Kind   SvgPrimitiveKind
 	CX, CY float32 // circle / ellipse center
 	R      float32 // circle radius
 	RX, RY float32 // ellipse / rect corner radii

@@ -98,13 +98,13 @@ func TestFocusUsesEffectiveID(t *testing.T) {
 		})
 	})
 
-	if err := w.testFocus("settings:name"); err != nil {
+	if err := w.TestFocus("settings:name"); err != nil {
 		t.Fatalf("TestFocus(settings:name) = %v, want nil", err)
 	}
 	if got := w.FocusID(); got != "settings:name" {
 		t.Fatalf("FocusID() = %q, want %q", got, "settings:name")
 	}
-	next, err := w.testTab(tabForward)
+	next, err := w.TestTab(TabForward)
 	if err != nil {
 		t.Fatalf("TestTab = %v, want nil", err)
 	}

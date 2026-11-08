@@ -234,9 +234,9 @@ func TestFormReset(t *testing.T) {
 	state.resetReq = true
 	formProcessRequests(w, formID, nil, onReset, soundCues{})
 
-	if resetEvent.formID != formID {
+	if resetEvent.FormID != formID {
 		t.Fatalf("expected form ID %q, got %q",
-			formID, resetEvent.formID)
+			formID, resetEvent.FormID)
 	}
 	if resetEvent.Values["email"] != "init@test.com" {
 		t.Fatalf("expected reset to initial value, got %q",
@@ -366,10 +366,10 @@ func TestFormShouldValidate(t *testing.T) {
 		{FormValidateOnChange, FormTriggerBlur, true},
 		{FormValidateOnBlur, FormTriggerChange, false},
 		{FormValidateOnBlur, FormTriggerBlur, true},
-		{FormValidateOnBlur, formTriggerSubmit, true},
+		{FormValidateOnBlur, FormTriggerSubmit, true},
 		{FormValidateOnSubmit, FormTriggerChange, false},
 		{FormValidateOnSubmit, FormTriggerBlur, false},
-		{FormValidateOnSubmit, formTriggerSubmit, true},
+		{FormValidateOnSubmit, FormTriggerSubmit, true},
 		{FormValidateOnBlurSubmit, FormTriggerChange, false},
 		{FormValidateOnBlurSubmit, FormTriggerBlur, true},
 	}
@@ -603,8 +603,8 @@ func TestFormSummaryUnknownFormIsValid(t *testing.T) {
 	if got.Pending || got.InvalidCount != 0 || got.PendingCount != 0 {
 		t.Errorf("unknown form summary = %+v, want zero counts", got)
 	}
-	if got.issues != nil {
-		t.Errorf("Issues = %v, want nil", got.issues)
+	if got.Issues != nil {
+		t.Errorf("Issues = %v, want nil", got.Issues)
 	}
 }
 
@@ -620,8 +620,8 @@ func TestFormSummaryIssuesNilWhenClean(t *testing.T) {
 	if !got.Valid {
 		t.Error("form with no errors should be valid")
 	}
-	if got.issues != nil {
-		t.Errorf("Issues = %v, want nil for a clean form", got.issues)
+	if got.Issues != nil {
+		t.Errorf("Issues = %v, want nil for a clean form", got.Issues)
 	}
 }
 
@@ -651,16 +651,16 @@ func TestFormSummaryCountsInvalidFields(t *testing.T) {
 	if got.InvalidCount != 2 {
 		t.Errorf("InvalidCount = %d, want 2", got.InvalidCount)
 	}
-	if len(got.issues) != 2 {
-		t.Errorf("Issues has %d entries, want 2", len(got.issues))
+	if len(got.Issues) != 2 {
+		t.Errorf("Issues has %d entries, want 2", len(got.Issues))
 	}
 }
 
 func TestFormPendingStateUnknownForm(t *testing.T) {
 	w := newTestWindow()
 	got := w.FormPendingState("nope")
-	if got.formID != "nope" {
-		t.Errorf("FormID = %q, want %q", got.formID, "nope")
+	if got.FormID != "nope" {
+		t.Errorf("FormID = %q, want %q", got.FormID, "nope")
 	}
 	if got.FieldIDs != nil {
 		t.Errorf("FieldIDs = %v, want nil", got.FieldIDs)
@@ -863,7 +863,7 @@ func TestFormChildrenScoped(t *testing.T) {
 	if _, ok := root.FindByID(want); !ok {
 		t.Fatalf("FindByID(%q) = false, want the scoped input", want)
 	}
-	if err := w.testFocus(want); err != nil {
+	if err := w.TestFocus(want); err != nil {
 		t.Fatalf("TestFocus(%s) = %v, want nil", want, err)
 	}
 	if got := w.FocusID(); got != want {
