@@ -105,7 +105,8 @@ without the generation bump fails it.
 
 - **Mutating a registered buffer in place** still never reaches the backends.
   Content keying stays the contract: a changed buffer gets a new key, or the key
-  is registered again.
+  is dropped and then registered again. Registering a live key again at the same
+  size keeps its first buffer and serial.
 - **Images that stay registered** keep their textures, bounded only by count. A
   byte budget for the texture caches, which also covers file and URL images, is
   #1239.

@@ -20,9 +20,11 @@ import (
 // is registered under a new key and the stale variant ages out on its own.
 // There is deliberately no invalidation API — an app that mutates a buffer
 // in place has no way to tell the backends their uploaded texture is stale,
-// because the backend texture caches key on the same string. Registering
-// the key again does reach them (see the serial below); mutating the
-// registered slice never does.
+// because the backend texture caches key on the same string. New pixels
+// reach the backends only as a new registration: under a new key, or under
+// the same key after DropImage or at a new size (see the serial below).
+// Registering a live key again at the same size keeps its first buffer and
+// serial, and mutating the registered slice is never seen.
 //
 // RegisterEncodedImage entries are pinned. They are typically registered
 // once, at startup, with no generator to rebuild them each frame, so the

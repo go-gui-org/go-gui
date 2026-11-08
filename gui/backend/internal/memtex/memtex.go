@@ -36,7 +36,8 @@ func (s *Sweeper) Due() bool {
 // registration with the given serial, may stay. Keys that are not mem:
 // sources (file paths, URLs) always may: their cache's own eviction owns
 // them. A mem: texture stays only while its key is still registered under
-// the same serial — not dropped, evicted or registered again.
+// the same serial — not dropped, evicted, or replaced by a new registration
+// after a drop or at a new size.
 func Current(key string, serial uint64) bool {
 	if !gui.IsMemImage(key) {
 		return true

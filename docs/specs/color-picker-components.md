@@ -60,8 +60,9 @@ generated from, so a buffer that must change is registered under a _new_ key and
 the stale variant ages out on its own. There is deliberately no invalidation
 call. Backends cache uploaded textures under the same string. An app that
 mutates a buffer in place has no way to tell them. Since #1230 a key that leaves
-the registry or is registered again does reach them: see
-[mem-image-texture-release.md](mem-image-texture-release.md).
+the registry does reach them, and so does a key registered again after a drop or
+at a new size; registering a live key again at the same size keeps its first
+buffer. See [mem-image-texture-release.md](mem-image-texture-release.md).
 
 Keys quantize — hue to whole degrees, S/L/A to whole percent. A key tracking a
 float exactly misses on every frame of a drag and rebuilds the buffer each time.
