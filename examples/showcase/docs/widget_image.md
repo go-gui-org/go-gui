@@ -79,7 +79,8 @@ new key when the bytes change. The encoded input is decoded immediately and is
 not retained. The decoded image stays registered until
 `gui.DropImage("myapp/logo-v1")` releases it: the in-memory image budget neither
 counts nor evicts it, so the saved source stays valid however many other images
-are registered.
+are registered. The drop also frees the image on the GPU: each window deletes
+its copy on its next frame.
 
 ## Remote Image
 
