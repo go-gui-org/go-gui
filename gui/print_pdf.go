@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -203,9 +204,9 @@ func pdfRenderRect(ctx *pdfCtx, cmd RenderCmd) {
 	ctx.pdf.SetFillColor(int(r), int(g), int(b))
 	alphaSet := setAlpha(ctx.pdf, cmd.Color)
 	if cmd.Radius > 0 {
-		ctx.pdf.RoundedRect(ctx.px(cmd.X), ctx.py(cmd.Y),
+		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "1234", "F")
+			float64(cmd.Radius*ctx.scale), "F")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "F")
@@ -215,6 +216,34 @@ func pdfRenderRect(ctx *pdfCtx, cmd RenderCmd) {
 	}
 }
 
+// pdfRoundedRect draws a rounded rectangle with fpdf's path calls, in
+// fpdf user units. fpdf's own RoundedRect opens a graphics state ("q")
+// that it never ends: it shares its path with ClipRoundedRect, whose
+// ClipEnd ends it. Each stray q then took a Q that pdfGState meant for a
+// clip, so clips piled up and an alpha set before it came back. The path
+// calls open no graphics state.
+func pdfRoundedRect(pdf *fpdf.Fpdf, x, y, w, h, r float64, style string) {
+	r = min(r, w/2, h/2)
+	if !(r > 0) {
+		pdf.Rect(x, y, w, h, style)
+		return
+	}
+	// A cubic Bézier with its control points at 4/3·(√2−1) of the
+	// radius from the ends is the usual quarter-circle approximation.
+	c := r * (4.0 / 3.0) * (math.Sqrt2 - 1)
+	pdf.MoveTo(x+r, y)
+	pdf.LineTo(x+w-r, y)
+	pdf.CurveBezierCubicTo(x+w-r+c, y, x+w, y+r-c, x+w, y+r)
+	pdf.LineTo(x+w, y+h-r)
+	pdf.CurveBezierCubicTo(x+w, y+h-r+c, x+w-r+c, y+h, x+w-r, y+h)
+	pdf.LineTo(x+r, y+h)
+	pdf.CurveBezierCubicTo(x+r-c, y+h, x, y+h-r+c, x, y+h-r)
+	pdf.LineTo(x, y+r)
+	pdf.CurveBezierCubicTo(x, y+r-c, x+r-c, y, x+r, y)
+	pdf.ClosePath()
+	pdf.DrawPath(style)
+}
+
 func pdfRenderStrokeRect(ctx *pdfCtx, cmd RenderCmd) {
 	r, g, b := cmd.Color.R, cmd.Color.G, cmd.Color.B
 	ctx.pdf.SetDrawColor(int(r), int(g), int(b))
@@ -222,9 +251,9 @@ func pdfRenderStrokeRect(ctx *pdfCtx, cmd RenderCmd) {
 	lw := max(cmd.Thickness, 1)
 	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
 	if cmd.Radius > 0 {
-		ctx.pdf.RoundedRect(ctx.px(cmd.X), ctx.py(cmd.Y),
+		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "1234", "D")
+			float64(cmd.Radius*ctx.scale), "D")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "D")
@@ -381,9 +410,9 @@ func pdfRenderGradientBorder(ctx *pdfCtx, cmd RenderCmd) {
 	lw := max(cmd.Thickness, 1)
 	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
 	if cmd.Radius > 0 {
-		ctx.pdf.RoundedRect(ctx.px(cmd.X), ctx.py(cmd.Y),
+		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "1234", "D")
+			float64(cmd.Radius*ctx.scale), "D")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "D")

@@ -119,6 +119,14 @@ and this project adheres to
   payload fields, enum members and methods on reachable types pass the gate on
   their own and only orphans fail (`docs/specs/exportaudit-surface-policy.md`).
 
+- **PDF export no longer loses parts of the window after a rounded rectangle
+  (#1231).** Each rounded rectangle left a graphics state open in the PDF, so
+  the next clip change ended that state instead of the clip it meant to end.
+  Clips piled up and cut later content out of the page: the showcase's whole
+  detail panel exported blank, its text present but invisible, and an opacity
+  set earlier came back on later text. Rounded rectangles are now drawn without
+  opening a graphics state.
+
 - **Android: the soft keyboard height no longer comes out short on Android 15
   (#1171).** The demo host subtracted the navigation bar from the keyboard, but
   from Android 15 the view reaches under that bar, so the reported height was 24
