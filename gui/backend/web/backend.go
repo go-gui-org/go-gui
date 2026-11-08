@@ -17,7 +17,9 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/homography"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
 )
 
@@ -41,8 +43,13 @@ type Backend struct {
 	textErrLogged bool
 	height        int
 
-	normBuf      []gui.GradientStop
-	imgCache     map[string]js.Value
+	normBuf  []gui.GradientStop
+	imgCache map[string]js.Value
+	// memCanvases holds a canvas per drawn mem: image, apart from the
+	// Image elements in imgCache; memSweep says when to check them
+	// against gui's registry (#1230).
+	memCanvases  texcache.Cache[string, memCanvas]
+	memSweep     memtex.Sweeper
 	surfaces     surfacecache.Cache[surfaceCanvas]
 	failedImages map[string]struct{}
 	clipStack    []clipRegion
@@ -238,6 +245,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 		width:        cssW,
 		height:       cssH,
 		imgCache:     make(map[string]js.Value),
+		memCanvases:  newMemCanvasCache(),
 		failedImages: make(map[string]struct{}),
 		hasRoundRect: hasRR,
 	}

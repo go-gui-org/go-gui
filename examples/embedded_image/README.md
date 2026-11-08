@@ -26,7 +26,8 @@ written.
 - Each image is decoded once, at startup. The app keeps the returned sources in
   its window state for the whole run.
 - A kept source stays valid: the in-memory image budget never evicts a
-  `RegisterEncodedImage` image. `gui.DropImage(key)` releases one.
+  `RegisterEncodedImage` image. `gui.DropImage(key)` releases one, and each
+  window deletes its GPU copy on its next frame.
 - The key names the content. Register changed bytes under a new key.
 - The GIF looks grainy. GIF stores at most 256 colours, so its encoder dithered
   the sky's gradient.

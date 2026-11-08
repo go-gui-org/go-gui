@@ -354,7 +354,8 @@ func pdfRenderFileImage(ctx *pdfCtx, cmd RenderCmd, path string) {
 // draw registers the pixel-repeated form under its own key instead
 // (print_pdf_nearest.go).
 func pdfRenderMemImage(ctx *pdfCtx, cmd RenderCmd) {
-	w, h, pix, ok := LookupImage(cmd.Resource)
+	mi, ok := LookupImage(cmd.Resource)
+	w, h, pix := mi.W, mi.H, mi.Pix
 	if !ok || w <= 0 || h <= 0 || len(pix) == 0 {
 		return
 	}

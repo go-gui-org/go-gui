@@ -28,6 +28,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
@@ -486,6 +487,7 @@ type windowState struct {
 	sampledBuf    []gui.GradientStop
 
 	textures          texcache.Cache[string, metalTexture]
+	memSweep          memtex.Sweeper // when to check mem: textures (#1230)
 	surfaces          metalSurfaces
 	glyphBack         *metalGlyphBackend
 	filterBlur        float32

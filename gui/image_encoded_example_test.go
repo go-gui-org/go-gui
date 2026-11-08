@@ -42,8 +42,8 @@ func TestEncodedImageExample(t *testing.T) {
 	if err := loadImages(); err != nil {
 		t.Fatal(err)
 	}
-	if w, h, _, ok := gui.LookupImage(logoSrc); !ok || w != 128 || h != 128 {
-		t.Fatalf("registered logo = %dx%d ok=%t, want 128x128", w, h, ok)
+	if mi, ok := gui.LookupImage(logoSrc); !ok || mi.W != 128 || mi.H != 128 {
+		t.Fatalf("registered logo = %dx%d ok=%t, want 128x128", mi.W, mi.H, ok)
 	}
 	w := gui.NewWindow(gui.WindowCfg{Width: 300, Height: 200})
 	if got := logoView().GenerateLayout(w).Shape.Resource; got != logoSrc {

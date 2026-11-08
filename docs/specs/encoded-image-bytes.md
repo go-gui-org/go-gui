@@ -36,7 +36,8 @@ each were enough: the first was evicted before any frame was drawn.
 the budget and are never evicted by it, so they cannot push out generated
 imagery either. Only `DropImage` removes them. The cost is that an app which
 registers many distinct keys, for example images from the network, must drop the
-ones it no longer shows.
+ones it no longer shows. Since #1230 the drop also frees the backends' textures
+([mem-image-texture-release.md](mem-image-texture-release.md)).
 
 The same hazard applies to a `UseImage` caller that keeps its source instead of
 registering each frame. `examples/qcpainterbench` did this and now registers

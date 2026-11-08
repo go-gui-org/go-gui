@@ -11,6 +11,10 @@ func resetMemImages(t *testing.T) {
 	memImages.order.Init()
 	memImages.bytes = 0
 	memImages.budget = defaultMemImageBudget
+	// The reset removes entries, so it bumps gen like any removal. The
+	// serial keeps counting: a reused serial would let a stale texture
+	// look current.
+	memImages.gen.Add(1)
 	memImages.mu.Unlock()
 }
 
@@ -29,12 +33,13 @@ func TestUseImageRoundTrip(t *testing.T) {
 	if src != "mem:round/trip" {
 		t.Fatalf("src = %q, want mem:round/trip", src)
 	}
-	w, h, pix, ok := LookupImage(src)
+	mi, ok := LookupImage(src)
+	pix := mi.Pix
 	if !ok {
 		t.Fatal("LookupImage: not found")
 	}
-	if w != 2 || h != 3 {
-		t.Errorf("dims = %dx%d, want 2x3", w, h)
+	if mi.W != 2 || mi.H != 3 {
+		t.Errorf("dims = %dx%d, want 2x3", mi.W, mi.H)
 	}
 	if len(pix) != 2*3*4 || pix[0] != 0x7f {
 		t.Errorf("pix len=%d [0]=%#x", len(pix), pix[0])
@@ -53,7 +58,7 @@ func TestLookupImageRejectsNonMemSources(t *testing.T) {
 		"", "real", "/tmp/real.png", "https://example.com/a.png",
 		"data:image/png;base64,AAAA", "mem:missing",
 	} {
-		if _, _, _, ok := LookupImage(src); ok {
+		if _, ok := LookupImage(src); ok {
 			t.Errorf("LookupImage(%q) = ok, want not ok", src)
 		}
 	}
@@ -94,12 +99,12 @@ func TestUseImageSameKeyKeepsFirstBuffer(t *testing.T) {
 	resetMemImages(t)
 	UseImage("stable", 1, 1, pixels(1, 1, 0x11))
 	UseImage("stable", 1, 1, pixels(1, 1, 0x22))
-	_, _, pix, ok := LookupImage("mem:stable")
+	mi, ok := LookupImage("mem:stable")
 	if !ok {
 		t.Fatal("LookupImage: not found")
 	}
-	if pix[0] != 0x11 {
-		t.Errorf("pix[0] = %#x, want 0x11 (first buffer)", pix[0])
+	if mi.Pix[0] != 0x11 {
+		t.Errorf("pix[0] = %#x, want 0x11 (first buffer)", mi.Pix[0])
 	}
 }
 
@@ -109,13 +114,13 @@ func TestUseImageSizeChangeReplaces(t *testing.T) {
 	resetMemImages(t)
 	UseImage("resize", 1, 1, pixels(1, 1, 0x11))
 	UseImage("resize", 2, 2, pixels(2, 2, 0x22))
-	w, h, pix, ok := LookupImage("mem:resize")
+	mi, ok := LookupImage("mem:resize")
 	if !ok {
 		t.Fatal("LookupImage: not found")
 	}
-	if w != 2 || h != 2 || pix[0] != 0x22 {
+	if mi.W != 2 || mi.H != 2 || mi.Pix[0] != 0x22 {
 		t.Errorf("dims = %dx%d pix[0] = %#x, want 2x2 0x22",
-			w, h, pix[0])
+			mi.W, mi.H, mi.Pix[0])
 	}
 }
 
@@ -126,7 +131,7 @@ func TestDropImage(t *testing.T) {
 	if HasImage("drop/me") {
 		t.Error("HasImage = true after DropImage")
 	}
-	if _, _, _, ok := LookupImage("mem:drop/me"); ok {
+	if _, ok := LookupImage("mem:drop/me"); ok {
 		t.Error("LookupImage found a dropped key")
 	}
 }
@@ -154,7 +159,7 @@ func TestMemImageBudgetEvictsLeastRecentlyUsed(t *testing.T) {
 	if !HasImage("a") || !HasImage("c") {
 		t.Error("a and c should both still be registered")
 	}
-	if _, _, _, ok := LookupImage("mem:b"); ok {
+	if _, ok := LookupImage("mem:b"); ok {
 		t.Error("LookupImage still resolves an evicted key")
 	}
 }

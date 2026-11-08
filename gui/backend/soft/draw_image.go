@@ -205,14 +205,18 @@ func (r *renderer) resolveImage(res string) (*image.NRGBA, bool) {
 }
 
 func (r *renderer) decodeImage(res string) *image.NRGBA {
-	if iw, ih, pix, ok := gui.LookupImage(res); ok {
-		if iw <= 0 || ih <= 0 || len(pix) < iw*ih*4 {
+	if gui.IsMemImage(res) {
+		// A frame's renderer lives for one RenderToImage call, so there
+		// is no cross-frame cache to go stale; a dropped key draws
+		// nothing rather than being opened as a file path.
+		mi, ok := gui.LookupImage(res)
+		if !ok || mi.W <= 0 || mi.H <= 0 || len(mi.Pix) < mi.W*mi.H*4 {
 			return nil
 		}
 		return &image.NRGBA{
-			Pix:    pix,
-			Stride: iw * 4,
-			Rect:   image.Rect(0, 0, iw, ih),
+			Pix:    mi.Pix,
+			Stride: mi.W * 4,
+			Rect:   image.Rect(0, 0, mi.W, mi.H),
 		}
 	}
 	path, err := imgload.ResolveValidatedPath(res, r.allowedImageRoots)

@@ -52,6 +52,7 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 // drawCmds draws one frame's render commands.
 func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
 	b.surfaces.Prune(cmds)
+	b.sweepMemCanvases()
 	if b.shaders != nil {
 		b.shaders.channels.PruneShaders(cmds)
 	}
@@ -579,17 +580,25 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 func (b *Backend) resolveImageSource(res string) (js.Value, bool) {
 	// A mem: source names a buffer in gui's in-memory registry. It has
 	// no URL to load, so it is painted into an offscreen canvas once
-	// and cached alongside the Image elements; a canvas is a valid
-	// drawImage source. Callers content-key, so a changed buffer
-	// arrives as a new key and never reuses this canvas.
-	if iw, ih, pix, ok := gui.LookupImage(res); ok {
-		if c, hit := b.imgCache[res]; hit {
-			return c, true
+	// and cached in memCanvases with the registration's serial; a
+	// canvas is a valid drawImage source. A dropped one draws nothing
+	// and never reaches imgCache, whose entries are Image elements. A
+	// draw that finds another serial — the key was registered again —
+	// paints a new canvas.
+	if gui.IsMemImage(res) {
+		mi, ok := gui.LookupImage(res)
+		if !ok {
+			return js.Value{}, false
 		}
-		b.evictImageCache()
-		c := b.memImageCanvas(iw, ih, pix)
-		b.imgCache[res] = c
-		return c, true
+		c, hit := b.memCanvases.Get(res)
+		if !hit || c.serial != mi.Serial {
+			c = memCanvas{
+				canvas: b.memImageCanvas(mi.W, mi.H, mi.Pix),
+				serial: mi.Serial,
+			}
+			b.memCanvases.Set(res, c)
+		}
+		return c.canvas, true
 	}
 
 	if _, failed := b.failedImages[res]; failed {
@@ -656,26 +665,6 @@ func (b *Backend) evictImageCache() {
 			break
 		}
 	}
-}
-
-// memImageCanvas paints an NRGBA8 buffer into an offscreen canvas.
-// ImageData is non-premultiplied RGBA, the same layout the registry
-// stores, so the bytes transfer with no conversion.
-func (b *Backend) memImageCanvas(
-	w, h int, pix []byte,
-) js.Value {
-	canvas := js.Global().Get("document").
-		Call("createElement", "canvas")
-	canvas.Set("width", w)
-	canvas.Set("height", h)
-	ctx := canvas.Call("getContext", "2d")
-
-	buf := js.Global().Get("Uint8Array").New(len(pix))
-	js.CopyBytesToJS(buf, pix)
-	data := ctx.Call("createImageData", w, h)
-	data.Get("data").Call("set", buf)
-	ctx.Call("putImageData", data, 0, 0)
-	return canvas
 }
 
 // maxSvgTriangleFloats caps a RenderSvg triangle list in floats,

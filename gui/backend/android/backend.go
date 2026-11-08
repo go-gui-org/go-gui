@@ -26,6 +26,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/ctxloss"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/framestate"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/settingsdir"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
@@ -87,6 +88,7 @@ type Backend struct {
 
 	textSys      *glyph.TextSystem
 	textures     texcache.Cache[string, glesTexture]
+	memSweep     memtex.Sweeper // when to check mem: textures (#1230)
 	surfaces     surfacecache.Cache[glesTexture]
 	channels     surfacecache.Cache[glesChannels]
 	glyphBack    *glesGlyphBackend

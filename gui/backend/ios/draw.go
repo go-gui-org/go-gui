@@ -25,6 +25,7 @@ import (
 func (b *Backend) renderersDraw(w *gui.Window) {
 	b.surfaces.Prune(w.Renderers())
 	b.channels.PruneShaders(w.Renderers())
+	b.sweepMemTextures()
 	cmds := w.Renderers()
 	for i := range cmds {
 		r := &cmds[i]
@@ -273,19 +274,34 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 	b.drawImageTex(r, tex)
 }
 
+// sweepMemTextures deletes the textures of mem: images that left gui's
+// registry — dropped, evicted or registered again — since the last sweep.
+// A frame with no removal costs one atomic load (#1230).
+func (b *Backend) sweepMemTextures() {
+	if b.memSweep.Due() {
+		b.textures.Sweep(keepTexture)
+	}
+}
+
 // resolveImageTexture returns the uploaded texture for a render
 // command's Resource, uploading on first use.
 //
 // A mem: source names a buffer in gui's in-memory registry: it has no
 // path, so it skips path resolution and the AllowedImageRoots sandbox
-// (see gui.LookupImage on why that is safe). The texture is cached
-// under the Resource string itself, which callers content-key, so a
-// changed buffer arrives as a new key and never reuses a stale upload.
+// (see gui.LookupImage on why that is safe). A dropped one draws
+// nothing. The texture is cached under the Resource string with the
+// registration's serial; a draw that finds another serial — the key was
+// registered again — uploads anew, and Set deletes the old texture.
 func (b *Backend) resolveImageTexture(res string) (metalTexture, bool) {
-	if iw, ih, pix, ok := gui.LookupImage(res); ok {
+	if gui.IsMemImage(res) {
+		mi, ok := gui.LookupImage(res)
+		if !ok {
+			return metalTexture{}, false
+		}
 		tex, hit := b.textures.Get(res)
-		if !hit {
-			tex = createMetalTexture(int32(iw), int32(ih), pix)
+		if !hit || tex.serial != mi.Serial {
+			tex = createMetalTexture(int32(mi.W), int32(mi.H), mi.Pix)
+			tex.serial = mi.Serial
 			b.textures.Set(res, tex)
 		}
 		return tex, true

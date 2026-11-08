@@ -107,6 +107,26 @@ func (c *Cache[K, V]) DestroyAll() {
 	c.DiscardAll(nil)
 }
 
+// Sweep destroys and removes every entry keep rejects, leaving the rest in
+// their LRU order. A backend calls it to release textures whose source is
+// gone, such as a dropped in-memory image (#1230). Pass a plain function
+// rather than a closure when it runs per frame: a closure would allocate.
+func (c *Cache[K, V]) Sweep(keep func(K, V) bool) {
+	for e := c.order.Front(); e != nil; {
+		// Take next before Remove: Remove clears e's links.
+		next := e.Next()
+		key := e.Value.(K)
+		if me := c.data[key]; !keep(key, me.val) {
+			c.order.Remove(e)
+			delete(c.data, key)
+			if c.destroy != nil {
+				c.destroy(me.val)
+			}
+		}
+		e = next
+	}
+}
+
 // DiscardAll removes entries without calling destroy. Use it when the
 // values are already gone with the context that held them (a lost GL
 // context): destroying them would delete names that may now belong to

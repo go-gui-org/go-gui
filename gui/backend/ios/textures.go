@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
@@ -18,6 +19,15 @@ import (
 type metalTexture struct {
 	id   int32
 	w, h int32
+	// serial is the gui registry serial a mem: texture was uploaded
+	// from; 0 for every other texture.
+	serial uint64
+}
+
+// keepTexture is the texture cache's sweep predicate. A plain function,
+// not a closure, so the sweep allocates nothing.
+func keepTexture(key string, tex metalTexture) bool {
+	return memtex.Current(key, tex.serial)
 }
 
 func newMetalTexCacheLRU(

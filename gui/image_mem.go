@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // In-memory image registry.
@@ -19,11 +20,24 @@ import (
 // is registered under a new key and the stale variant ages out on its own.
 // There is deliberately no invalidation API — an app that mutates a buffer
 // in place has no way to tell the backends their uploaded texture is stale,
-// because the backend texture caches key on the same string.
+// because the backend texture caches key on the same string. New pixels
+// reach the backends only as a new registration: under a new key, or under
+// the same key after DropImage or at a new size (see the serial below).
+// Registering a live key again at the same size keeps its first buffer and
+// serial, and mutating the registered slice is never seen.
 //
 // RegisterEncodedImage entries are pinned. They are typically registered
 // once, at startup, with no generator to rebuild them each frame, so the
 // budget neither counts nor evicts them; only DropImage removes them.
+//
+// Backends learn about removals by polling, not by being called: DropImage
+// runs on any goroutine, while a texture must be deleted on its window's
+// render thread. Each registration carries a serial that is never reused,
+// and every removal bumps a generation counter. A backend that sees the
+// generation change checks its cached textures against ImageSerial and
+// deletes those whose registration is gone, so a drop, an eviction or a
+// re-registration of the same key releases the texture and never draws the
+// old pixels (#1230).
 //
 // SECURITY: a mem: buffer bypasses WindowCfg.AllowedImageRoots,
 // MaxImageBytes and MaxImagePixels. Those bound *untrusted* input — a file
@@ -58,7 +72,8 @@ type memImage struct {
 	elem   *list.Element // position in the LRU order; value is the key
 	w      int
 	h      int
-	pinned bool // outside the budget; only DropImage removes it
+	serial uint64 // names this registration; set once, never reused
+	pinned bool   // outside the budget; only DropImage removes it
 }
 
 // memImageRegistry is a byte-budgeted LRU. It is process-global rather than
@@ -67,12 +82,19 @@ type memImage struct {
 // data is keyed by the bare key, not the prefixed Src string, so a lookup
 // can be spelled data[string(keyBytes)] — which the compiler performs
 // without allocating.
+//
+// lastSerial is read and written only under mu, in the same critical
+// section that inserts the entry carrying the new value, so no two
+// registrations share a serial. gen is atomic because backends read it
+// every frame without taking mu.
 type memImageRegistry struct {
-	data   map[string]*memImage
-	order  list.List // front = least recently used
-	bytes  int       // pixel bytes of unpinned entries
-	budget int
-	mu     sync.Mutex
+	data       map[string]*memImage
+	order      list.List // front = least recently used
+	bytes      int       // pixel bytes of unpinned entries
+	budget     int
+	lastSerial uint64
+	gen        atomic.Uint64 // bumped by every removal
+	mu         sync.Mutex
 }
 
 var memImages = memImageRegistry{budget: defaultMemImageBudget}
@@ -135,8 +157,10 @@ func useImage(key string, w, h int, pix []byte, pin bool) string {
 	}
 	src := memImagePrefix + key
 	elem := memImages.order.PushBack(key)
+	memImages.lastSerial++
 	memImages.data[key] = &memImage{
-		src: src, pix: pix, elem: elem, w: w, h: h, pinned: pin,
+		src: src, pix: pix, elem: elem, w: w, h: h,
+		serial: memImages.lastSerial, pinned: pin,
 	}
 	// A pinned entry adds no budgeted bytes, so it cannot take the
 	// registry over its budget; skipping evictLocked also spares a scan
@@ -202,6 +226,9 @@ func HasImage(key string) bool {
 // never evicts those, so an app that registers images over time (for example
 // from the network) drops each one it no longer shows.
 //
+// Each window's backend deletes its texture of the image on its next frame,
+// and a key registered again after the drop draws its new pixels.
+//
 // exportaudit:keep — app-facing reclaim for the registry.
 func DropImage(key string) {
 	memImages.mu.Lock()
@@ -225,28 +252,85 @@ func SetMemImageBudget(bytes int) {
 	memImages.evictLocked()
 }
 
+// MemImage is a registered buffer as LookupImage returns it.
+//
+// exportaudit:keep — LookupImage's result, consumed by gui/backend/*.
+type MemImage struct {
+	// Pix is W*H*4 bytes of NRGBA8. It aliases registry storage and must
+	// be treated as read-only.
+	Pix []byte
+	W   int
+	H   int
+	// Serial names this registration. A key registered again, after a
+	// drop, an eviction or at a new size, gets a new Serial, so a backend
+	// that stores it with an uploaded texture can tell the texture is
+	// stale. It is never 0.
+	Serial uint64
+}
+
 // LookupImage resolves a Src string to a registered buffer, marking it most
 // recently used. It returns ok=false for any string that is not a mem:
-// source, so backends can call it first and fall through to their path and
-// URL handling unchanged.
+// source, and for a mem: source whose key is not registered; backends
+// check IsMemImage first so a dropped mem: source never reaches their path
+// handling.
 //
-// The returned slice aliases registry storage and must be treated as
-// read-only.
+// The pixels and the serial come from one locked lookup, so a backend
+// never pairs one registration's pixels with another's serial.
 //
 // exportaudit:keep — consumed by gui/backend/* to resolve mem: sources.
-func LookupImage(src string) (w, h int, pix []byte, ok bool) {
+func LookupImage(src string) (MemImage, bool) {
 	if !isMemImage(src) {
-		return 0, 0, nil, false
+		return MemImage{}, false
 	}
 	key := src[len(memImagePrefix):] // substring; no allocation
 	memImages.mu.Lock()
 	defer memImages.mu.Unlock()
 	mi, found := memImages.data[key]
 	if !found {
-		return 0, 0, nil, false
+		return MemImage{}, false
 	}
 	memImages.order.MoveToBack(mi.elem)
-	return mi.w, mi.h, mi.pix, true
+	return MemImage{Pix: mi.pix, W: mi.w, H: mi.h, Serial: mi.serial}, true
+}
+
+// ImageSerial reports the serial of the registration src names now, or
+// ok=false when src is not a mem: source or its key is not registered.
+// Unlike LookupImage it leaves the LRU order alone: a backend checking its
+// cached textures must not keep images alive that nothing draws.
+//
+// exportaudit:keep — consumed by gui/backend/* to release stale textures.
+func ImageSerial(src string) (serial uint64, ok bool) {
+	if !isMemImage(src) {
+		return 0, false
+	}
+	key := src[len(memImagePrefix):]
+	memImages.mu.Lock()
+	defer memImages.mu.Unlock()
+	mi, found := memImages.data[key]
+	if !found {
+		return 0, false
+	}
+	return mi.serial, true
+}
+
+// ImageRegistryGen returns a counter that changes whenever an image leaves
+// the registry: DropImage, budget eviction, or registration of a key at a
+// new size. A backend keeps the value it last checked its textures at and
+// checks again (with ImageSerial) only when the counter has moved, so a
+// frame with no removal costs one atomic load.
+//
+// exportaudit:keep — consumed by gui/backend/* to release stale textures.
+func ImageRegistryGen() uint64 {
+	return memImages.gen.Load()
+}
+
+// IsMemImage reports whether src names an in-memory buffer, registered or
+// not. Backends use it to keep a dropped mem: source out of their file
+// path handling.
+//
+// exportaudit:keep — consumed by gui/backend/* to route mem: sources.
+func IsMemImage(src string) bool {
+	return isMemImage(src)
 }
 
 // isMemImage reports whether src names a registered in-memory buffer. It
@@ -256,7 +340,10 @@ func isMemImage(src string) bool {
 	return strings.HasPrefix(src, memImagePrefix)
 }
 
-// removeLocked deletes one entry and its bytes. Caller holds mu.
+// removeLocked deletes one entry and its bytes. Every removal goes through
+// here — DropImage, budget eviction, re-registration at a new size — so the
+// generation bump below is what tells backends their texture may be stale.
+// Caller holds mu.
 func (r *memImageRegistry) removeLocked(key string) {
 	mi, ok := r.data[key]
 	if !ok {
@@ -267,6 +354,7 @@ func (r *memImageRegistry) removeLocked(key string) {
 	if !mi.pinned {
 		r.bytes -= len(mi.pix)
 	}
+	r.gen.Add(1)
 }
 
 // pinLocked moves mi out of the budget. Caller holds mu.
