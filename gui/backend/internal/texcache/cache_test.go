@@ -192,3 +192,39 @@ func TestNonPositiveMaxSizeClamped(t *testing.T) {
 		}
 	}
 }
+
+// Sweep destroys exactly the rejected entries, once each, and keeps the
+// survivors in LRU order so the next eviction still takes the oldest.
+func TestSweepDestroysRejectedKeepsOrder(t *testing.T) {
+	var destroyed []int
+	c := New[string, int](4, func(v int) { destroyed = append(destroyed, v) })
+	c.Set("a", 1)
+	c.Set("b", 2)
+	c.Set("c", 3)
+	c.Set("d", 4)
+	c.Sweep(func(k string, v int) bool { return k != "b" && v != 4 })
+	if len(destroyed) != 2 || destroyed[0] != 2 || destroyed[1] != 4 {
+		t.Fatalf("destroyed = %v, want [2 4]", destroyed)
+	}
+	if c.Len() != 2 {
+		t.Fatalf("Len = %d after Sweep, want 2", c.Len())
+	}
+	for _, k := range []string{"b", "d"} {
+		if _, ok := c.Get(k); ok {
+			t.Errorf("%s survived the sweep", k)
+		}
+	}
+	destroyed = destroyed[:0]
+	c.Set("e", 5)
+	c.Set("f", 6)
+	c.Set("g", 7) // full at 4: evicts a, the oldest survivor
+	if len(destroyed) != 1 || destroyed[0] != 1 {
+		t.Fatalf("eviction after Sweep destroyed %v, want [1]", destroyed)
+	}
+}
+
+// Sweep on an empty or zero-value cache is a no-op.
+func TestSweepEmpty(t *testing.T) {
+	var c Cache[string, int]
+	c.Sweep(func(string, int) bool { t.Fatal("keep called on an empty cache"); return true })
+}

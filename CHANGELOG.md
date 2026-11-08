@@ -90,6 +90,16 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: `LookupImage` returns a `MemImage` (#1230).** It returned
+  `(w, h int, pix []byte, ok bool)` and now returns `(MemImage, bool)`, where
+  `MemImage` holds `W`, `H`, `Pix` and the registration's `Serial`. The pixels
+  and the serial come from one locked lookup, so a backend can never pair one
+  registration's pixels with another's serial. Migration:
+  `w, h, pix, ok := gui.LookupImage(src)` becomes
+  `mi, ok := gui.LookupImage(src)`, then `mi.W`, `mi.H` and `mi.Pix`. Backends
+  also gain `ImageSerial`, `ImageRegistryGen` and `IsMemImage` to release stale
+  textures; apps do not need them.
+
 - **BREAKING: 34 orphaned types are no longer exported (#1235).** Nothing public
   produced or accepted them, so no program could do anything with a value: the
   25 per-widget style structs `BadgeStyle`, `BreadcrumbStyle`, `ComboboxStyle`,
@@ -121,6 +131,21 @@ and this project adheres to
   or a scale change, still makes the commit, and so does the first frame.
 
 ### Fixed
+
+- **Dropping an in-memory image frees its GPU texture, and a key registered
+  again draws its new pixels (#1230).** `DropImage` removed the image from the
+  registry, but GL, Metal, iOS, Android and web kept the uploaded texture until
+  enough other images pushed it out, so an app that showed and dropped large
+  images could hold up to 128 of them on the GPU per window, about 2 GiB at
+  2048×2048. Registering the same key again, after a drop or at a new size, drew
+  the old pixels. Every registration now carries a serial and every removal
+  (drop, budget eviction, re-registration) moves a counter; each backend checks
+  its cached textures when the counter moves and deletes the stale ones on its
+  own render thread, and a draw that sees a new serial uploads again. A frame
+  with no removal costs one atomic load. A dropped `mem:` source draws nothing:
+  it no longer reaches the file loader, which logged an error and took a second
+  cache slot, and on web it no longer panics. Textures of images that stay
+  registered are still bounded by count; a byte budget is #1239.
 
 - **`FormIssueError` and `FormIssueWarning` are back (#1235).** The #230 sweep
   deleted the two `FormIssueKind` values because only the showcase forms guide

@@ -79,9 +79,10 @@ func TestRegisterEncodedImageFormats(t *testing.T) {
 			if src != "mem:"+key {
 				t.Fatalf("src = %q", src)
 			}
-			width, height, pix, ok := LookupImage(src)
-			if !ok || width != 2 || height != 3 || len(pix) != 2*3*4 {
-				t.Fatalf("registered image = %dx%d len=%d ok=%t", width, height, len(pix), ok)
+			mi, ok := LookupImage(src)
+			pix := mi.Pix
+			if !ok || mi.W != 2 || mi.H != 3 || len(pix) != 2*3*4 {
+				t.Fatalf("registered image = %dx%d len=%d ok=%t", mi.W, mi.H, len(pix), ok)
 			}
 			if want := wantEncodedPixels(t, format, data, 2, 3); !bytes.Equal(pix, want) {
 				t.Fatalf("registered pixels = %v, want %v", pix, want)
@@ -97,14 +98,14 @@ func TestRegisterEncodedImageCopiesEncodedInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, before, ok := LookupImage(src)
+	before, ok := LookupImage(src)
 	if !ok {
 		t.Fatal("registered image missing")
 	}
-	want := append([]byte(nil), before...)
+	want := append([]byte(nil), before.Pix...)
 	clear(data)
-	_, _, after, ok := LookupImage(src)
-	if !ok || !bytes.Equal(after, want) {
+	after, ok := LookupImage(src)
+	if !ok || !bytes.Equal(after.Pix, want) {
 		t.Fatal("registry retained or reused the encoded input")
 	}
 }
@@ -149,7 +150,7 @@ func TestRegisterEncodedImageSurvivesBudgetEviction(t *testing.T) {
 	UseImage("filler/b", 2, 2, pixels(2, 2, 0xbb))
 	UseImage("filler/c", 2, 2, pixels(2, 2, 0xcc))
 
-	if _, _, _, ok := LookupImage(src); !ok {
+	if _, ok := LookupImage(src); !ok {
 		t.Fatal("the budget evicted an encoded image")
 	}
 	if HasImage("filler/a") {
@@ -167,7 +168,7 @@ func TestRegisterEncodedImageDropReleases(t *testing.T) {
 		t.Fatal(err)
 	}
 	DropImage("encoded/drop")
-	if _, _, _, ok := LookupImage(src); ok {
+	if _, ok := LookupImage(src); ok {
 		t.Error("LookupImage found a dropped encoded image")
 	}
 	memImages.mu.Lock()

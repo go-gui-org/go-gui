@@ -9,6 +9,7 @@ import (
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
@@ -16,6 +17,15 @@ import (
 type glTexture struct {
 	id   uint32
 	w, h int32
+	// serial is the gui registry serial a mem: texture was uploaded
+	// from; 0 for every other texture.
+	serial uint64
+}
+
+// keepTexture is the texture cache's sweep predicate. A plain function,
+// not a closure, so the sweep allocates nothing.
+func keepTexture(key string, tex glTexture) bool {
+	return memtex.Current(key, tex.serial)
 }
 
 func newGLTexCacheLRU(

@@ -22,6 +22,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
@@ -36,6 +37,9 @@ type Backend struct {
 	pipelines pipelineSet
 
 	textures texcache.Cache[string, glTexture]
+	// memSweep says when an image has left gui's registry, so textures
+	// uploaded from it are checked and the stale ones deleted (#1230).
+	memSweep memtex.Sweeper
 	surfaces surfacecache.Cache[glTexture]
 	// channels holds the planes custom shaders read (gui.Shader.Surface);
 	// transparentTex stands in for a channel with no plane.

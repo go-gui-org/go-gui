@@ -257,7 +257,8 @@ func TestPlaneSrcRendersQuantizedHue(t *testing.T) {
 	if srcB := planeSrc(b, size); srcB != srcA {
 		t.Fatalf("sub-quantum hues keyed differently: %q vs %q", srcA, srcB)
 	}
-	_, _, got, ok := LookupImage(srcA)
+	mi, ok := LookupImage(srcA)
+	got := mi.Pix
 	if !ok {
 		t.Fatal("plane buffer not registered")
 	}

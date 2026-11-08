@@ -45,6 +45,7 @@ const glPackage = "./gui/backend/gl/"
 // commonTests run on every OS, in order.
 var commonTests = []string{
 	"TestPixelSurfaceTextureReuseAndPixels",
+	"TestMemImageTextureFollowsRegistry",
 	"TestShaderChannelsReadback",
 	"TestShaderChannelTextureReuse",
 	"TestBackendReportsShaders",

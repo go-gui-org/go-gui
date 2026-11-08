@@ -33,9 +33,9 @@ func TestPicturesDecode(t *testing.T) {
 		t.Fatalf("got %d pictures, want 3", len(first))
 	}
 	for _, p := range first {
-		w, h, _, ok := gui.LookupImage(p.src)
-		if !ok || w != sceneW || h != sceneH {
-			t.Errorf("%s: %dx%d ok=%t, want %dx%d", p.caption, w, h, ok, sceneW, sceneH)
+		mi, ok := gui.LookupImage(p.src)
+		if !ok || mi.W != sceneW || mi.H != sceneH {
+			t.Errorf("%s: %dx%d ok=%t, want %dx%d", p.caption, mi.W, mi.H, ok, sceneW, sceneH)
 		}
 	}
 	again, err := loadPictures()
