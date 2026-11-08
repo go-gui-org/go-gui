@@ -18,7 +18,6 @@ import (
 var svgTrace = os.Getenv("GOGUI_SVG_TRACE") == "1"
 
 // Parser implements gui.SvgParser.
-// exportaudit:keep — reachable from an exported signature
 type Parser struct {
 	animatedScratch sync.Pool
 	byHash          map[uint64]parserCacheEntry

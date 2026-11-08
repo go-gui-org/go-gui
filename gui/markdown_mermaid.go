@@ -67,8 +67,7 @@ const (
 )
 
 // DiagramCacheEntry stores cached diagram data.
-// exportaudit:keep — reachable from an exported signature
-type DiagramCacheEntry struct {
+type diagramCacheEntry struct {
 	pNGPath   string // temp file path
 	Error     string
 	RequestID uint64
@@ -81,9 +80,8 @@ type DiagramCacheEntry struct {
 // BoundedDiagramCache is a FIFO cache for diagram entries.
 // Custom cache (not BoundedMap) — needs png_path cleanup
 // on evict/overwrite.
-// exportaudit:keep — reachable from an exported signature
-type BoundedDiagramCache struct {
-	data         map[int64]DiagramCacheEntry
+type boundedDiagramCache struct {
+	data         map[int64]diagramCacheEntry
 	order        []int64
 	maxSize      int
 	loadingCount int
@@ -91,28 +89,28 @@ type BoundedDiagramCache struct {
 
 // NewBoundedDiagramCache creates a diagram cache with the
 // given capacity.
-func newBoundedDiagramCache(maxSize int) *BoundedDiagramCache {
+func newBoundedDiagramCache(maxSize int) *boundedDiagramCache {
 	if maxSize < 1 {
 		maxSize = 50
 	}
-	return &BoundedDiagramCache{
-		data:    make(map[int64]DiagramCacheEntry),
+	return &boundedDiagramCache{
+		data:    make(map[int64]diagramCacheEntry),
 		maxSize: maxSize,
 	}
 }
 
 // Get returns a cached diagram entry.
-func (c *BoundedDiagramCache) Get(
+func (c *boundedDiagramCache) Get(
 	key int64,
-) (DiagramCacheEntry, bool) {
+) (diagramCacheEntry, bool) {
 	e, ok := c.data[key]
 	return e, ok
 }
 
 // Set adds a diagram entry. Evicts oldest if at capacity.
 // Cleans up old temp files on overwrite or eviction.
-func (c *BoundedDiagramCache) Set(
-	key int64, value DiagramCacheEntry,
+func (c *boundedDiagramCache) Set(
+	key int64, value diagramCacheEntry,
 ) {
 	if c.maxSize < 1 {
 		return
@@ -153,17 +151,17 @@ func (c *BoundedDiagramCache) Set(
 
 // LoadingCount returns entries in loading state.
 // exportaudit:keep — collides with the loadingCount cache field
-func (c *BoundedDiagramCache) LoadingCount() int {
+func (c *boundedDiagramCache) LoadingCount() int {
 	return c.loadingCount
 }
 
 // Len returns the number of entries.
-func (c *BoundedDiagramCache) Len() int {
+func (c *boundedDiagramCache) Len() int {
 	return len(c.data)
 }
 
 // Clear removes all entries and deletes temp files.
-func (c *BoundedDiagramCache) Clear() {
+func (c *boundedDiagramCache) Clear() {
 	for _, e := range c.data {
 		if e.pNGPath != "" {
 			removeDiagramPNG(e.pNGPath)
@@ -177,7 +175,7 @@ func (c *BoundedDiagramCache) Clear() {
 // diagramCacheShouldApplyResult checks if a result should
 // be applied (entry still loading with same request ID).
 func diagramCacheShouldApplyResult(
-	cache *BoundedDiagramCache, hash int64, requestID uint64,
+	cache *boundedDiagramCache, hash int64, requestID uint64,
 ) bool {
 	if cache == nil {
 		return false
@@ -222,7 +220,7 @@ func finishDiagramFetch(
 			return
 		}
 		w.viewState.diagramCache.Set(hash,
-			DiagramCacheEntry{
+			diagramCacheEntry{
 				State:     diagramReady,
 				pNGPath:   ref,
 				Width:     imgW,

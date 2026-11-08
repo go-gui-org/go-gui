@@ -88,7 +88,7 @@ func TestRtfFindRunAtIndex_PastEnd(t *testing.T) {
 // run and misattribute its link or tooltip.
 func TestRtfFindRunAtIndex_MathReadyCountsPlaceholder(t *testing.T) {
 	cache := newBoundedDiagramCache(4)
-	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+	cache.Set(diagramCacheHash("m"), diagramCacheEntry{
 		State: diagramReady, Width: 80, Height: 24, dPI: 200,
 	})
 	rt := &RichText{Runs: []RichTextRun{

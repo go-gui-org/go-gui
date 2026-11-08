@@ -307,7 +307,7 @@ func (t Theme) disabledTextColor(base Color) Color {
 // restyled itself per theme would be harder to recognize, not easier.
 // Its help text is not in that category: it is ordinary supporting text
 // and was drifting at its own alpha (issue #335).
-func inspectorStyleFor(secondary TextStyle) InspectorStyle {
+func inspectorStyleFor(secondary TextStyle) inspectorStyle {
 	s := defaultInspectorStyle
 	s.colorTextHelp = secondary.Color
 	return s

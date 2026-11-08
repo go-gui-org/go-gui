@@ -91,7 +91,6 @@ func RegisterAppFontBytes(data []byte) {
 // FontRegistrar is the font-loading subset of glyph.TextSystem that
 // LoadAppFonts needs. Backends pass their *glyph.TextSystem; tests pass
 // a fake.
-// exportaudit:keep — reachable from an exported signature
 type FontRegistrar interface {
 	AddFontFile(path string) error
 	AddFontBytes(data []byte) error

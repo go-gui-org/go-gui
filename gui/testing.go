@@ -78,7 +78,6 @@ var (
 )
 
 // TabDirection selects forward or backward traversal for TestTab.
-// exportaudit:keep — reachable from an exported signature
 type TabDirection int
 
 const (
@@ -92,7 +91,6 @@ const (
 // *testing.T, *testing.B and *testing.F satisfy it. An interface rather
 // than testing.TB keeps package testing out of the library's import
 // graph.
-// exportaudit:keep — reachable from an exported signature
 type Cleanuper interface {
 	Cleanup(func())
 }

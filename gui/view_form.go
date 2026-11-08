@@ -28,9 +28,15 @@ const (
 // FormIssueKind distinguishes error from warning.
 type FormIssueKind uint8
 
+// FormIssueKind values. The library carries the tag; the app sets it in
+// a validator and reads it back when rendering its summary.
+const (
+	FormIssueError FormIssueKind = iota
+	FormIssueWarning
+)
+
 // FormValidationTrigger indicates which user action triggered
 // validation.
-// exportaudit:keep — reachable from an exported signature
 type FormValidationTrigger uint8
 
 // FormValidationTrigger values.
@@ -61,7 +67,6 @@ type FormFieldSnapshot struct {
 }
 
 // FormFieldState is the public view of a field's runtime state.
-// exportaudit:keep — reachable from an exported signature
 type FormFieldState struct {
 	Value string
 	// InitialValue is the pristine value dirty-state is measured
@@ -85,7 +90,6 @@ type FormSnapshot struct {
 
 // FormSummaryState aggregates validation state across all
 // fields.
-// exportaudit:keep — reachable from an exported signature
 type FormSummaryState struct {
 	Issues       map[string][]FormIssue
 	InvalidCount int
@@ -95,7 +99,6 @@ type FormSummaryState struct {
 }
 
 // FormPendingState lists fields with pending async validation.
-// exportaudit:keep — reachable from an exported signature
 type FormPendingState struct {
 	FormID       string
 	FieldIDs     []string

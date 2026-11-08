@@ -4,7 +4,6 @@ import "sync"
 
 // Grant identifies a security-scoped bookmark. Release via
 // Window.ReleaseFileAccess when access is no longer needed.
-// exportaudit:keep — reachable from an exported signature
 type Grant struct {
 	ID uint64 // 0 = no grant (no-op on release)
 }

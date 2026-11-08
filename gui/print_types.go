@@ -17,7 +17,6 @@ const (
 )
 
 // PaperSize selects standard paper dimensions.
-// exportaudit:keep — reachable from an exported signature
 type PaperSize uint8
 
 // PaperSize constants.
@@ -33,7 +32,6 @@ const (
 )
 
 // PrintOrientation selects portrait or landscape.
-// exportaudit:keep — reachable from an exported signature
 type PrintOrientation uint8
 
 // PrintOrientation constants.
@@ -45,7 +43,6 @@ const (
 )
 
 // PrintMargins defines page margins in points (1/72 inch).
-// exportaudit:keep — reachable from an exported signature
 type PrintMargins struct {
 	Top    float32
 	Right  float32
@@ -75,7 +72,6 @@ const (
 )
 
 // PrintScaleMode controls content scaling.
-// exportaudit:keep — reachable from an exported signature
 type PrintScaleMode uint8
 
 // PrintScaleMode constants.
@@ -87,7 +83,6 @@ const (
 )
 
 // PrintDuplexMode controls duplex printing.
-// exportaudit:keep — reachable from an exported signature
 type PrintDuplexMode uint8
 
 // PrintDuplexMode constants.
@@ -99,7 +94,6 @@ const (
 )
 
 // PrintColorMode controls color output.
-// exportaudit:keep — reachable from an exported signature
 type PrintColorMode uint8
 
 // PrintColorMode constants.
@@ -110,7 +104,6 @@ const (
 )
 
 // PrintPageRange defines a contiguous page range (1-based).
-// exportaudit:keep — reachable from an exported signature
 type PrintPageRange struct {
 	From int
 	To   int
@@ -129,7 +122,6 @@ type PrintHeaderFooterCfg struct {
 }
 
 // PrintSource selects what a print job prints.
-// exportaudit:keep — reachable from an exported signature
 type PrintSource uint8
 
 // PrintSource constants.
@@ -142,7 +134,6 @@ const (
 
 // PrintJobSource identifies what to print: the current view, or an
 // existing PDF file at PDFPath.
-// exportaudit:keep — reachable from an exported signature
 type PrintJobSource struct {
 	Kind    PrintSource
 	PDFPath string
@@ -156,7 +147,6 @@ type PrintJobSource struct {
 //
 // Build one with NewPrintJob, which sets the paper, orientation,
 // margins and copies defaults below.
-// exportaudit:keep — reachable from an exported signature
 type PrintJob struct {
 	Header PrintHeaderFooterCfg
 	// Footer is the page footer text config.
@@ -216,7 +206,6 @@ type PrintRunResult struct {
 }
 
 // PrintExportStatus reports the outcome of ExportPrintJob.
-// exportaudit:keep — reachable from an exported signature
 type PrintExportStatus uint8
 
 // PrintExportStatus constants.
@@ -228,7 +217,6 @@ const (
 )
 
 // PrintExportResult contains the outcome of ExportPrintJob.
-// exportaudit:keep — reachable from an exported signature
 type PrintExportResult struct {
 	Path         string
 	ErrorCode    string

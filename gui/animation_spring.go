@@ -28,7 +28,6 @@ var (
 	// exportaudit:keep — preset values (issue #372)
 	SpringGentle = SpringCfg{Stiffness: 50, Damping: 8, Mass: 1.0, Threshold: 0.01}
 	// SpringBouncy is a lively underdamped spring (300/15/1).
-	// exportaudit:keep — reachable from an exported signature
 	SpringBouncy = SpringCfg{Stiffness: 300, Damping: 15, Mass: 1.0, Threshold: 0.01}
 	// SpringStiff is a snappy spring (500/30/1).
 	// exportaudit:keep — preset values (issue #372)
@@ -44,7 +43,6 @@ type springState struct {
 }
 
 // SpringAnimation uses spring physics for natural motion.
-// exportaudit:keep — reachable from an exported signature
 type SpringAnimation struct {
 	start time.Time
 	// sampled is when state was last brought up to date. Update moves the

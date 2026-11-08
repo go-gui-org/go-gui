@@ -23,12 +23,11 @@ const (
 // ID selectors, b counts class+pseudo selectors, and c counts type
 // selectors. Inline style adds an extra "d" tier handled at the
 // cascade layer via Origin.
-// exportaudit:keep — reachable from an exported signature
-type Specificity [3]uint16
+type specificity [3]uint16
 
 // Less reports whether s sorts before other under the cascade
 // comparison: lower specificity loses.
-func (s Specificity) less(o Specificity) bool {
+func (s specificity) less(o specificity) bool {
 	for i := range 3 {
 		if s[i] != o[i] {
 			return s[i] < o[i]
@@ -39,8 +38,8 @@ func (s Specificity) less(o Specificity) bool {
 
 // Add returns the sum of two specificities (combinator chains add
 // per-compound specificities).
-func (s Specificity) Add(o Specificity) Specificity {
-	return Specificity{s[0] + o[0], s[1] + o[1], s[2] + o[2]}
+func (s specificity) Add(o specificity) specificity {
+	return specificity{s[0] + o[0], s[1] + o[1], s[2] + o[2]}
 }
 
 // NthFormula encodes :nth-child(an+b) for evaluation against a
@@ -98,7 +97,7 @@ type compound struct {
 	ID          string
 	Classes     []string
 	Attrs       []attrSel
-	spec        Specificity
+	spec        specificity
 	Root        bool
 	hoverPseudo bool
 	focusPseudo bool
@@ -133,7 +132,7 @@ type selectorPart struct {
 // the combinator chain against ancestors.
 type complexSelector struct {
 	parts []selectorPart
-	spec  Specificity
+	spec  specificity
 }
 
 // Decl is one CSS declaration. Name is lowercased; Value is the raw
@@ -175,7 +174,6 @@ type KeyframesDef struct {
 // Stylesheet is the complete parsed CSS source: top-level rules
 // plus any @keyframes definitions. Lookup helpers index by name
 // (case-insensitive on the @keyframes side).
-// exportaudit:keep — reachable from an exported signature
 type Stylesheet struct {
 	Rules     []Rule
 	Keyframes []KeyframesDef

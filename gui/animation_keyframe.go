@@ -11,7 +11,6 @@ type Keyframe struct {
 
 // KeyframeAnimation interpolates through multiple waypoints
 // with per-segment easing.
-// exportaudit:keep — reachable from an exported signature
 type KeyframeAnimation struct {
 	start   time.Time
 	OnValue func(float32, *Window)

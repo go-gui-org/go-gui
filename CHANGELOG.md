@@ -90,6 +90,27 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: 34 orphaned types are no longer exported (#1235).** Nothing public
+  produced or accepted them, so no program could do anything with a value: the
+  25 per-widget style structs `BadgeStyle`, `BreadcrumbStyle`, `ComboboxStyle`,
+  `CommandPaletteStyle`, `DatePickerStyle`, `ExpandPanelStyle`, `InputStyle`,
+  `InspectorStyle`, `ListBoxStyle`, `MenubarStyle`, `ProgressBarStyle`,
+  `RadioStyle`, `RectangleStyle`, `SelectStyle`, `SeparatorStyle`,
+  `SkeletonStyle`, `SliderStyle`, `SplitterStyle`, `SwitchStyle`,
+  `TabControlStyle`, `TableStyle`, `ToastStyle`, `ToggleStyle`, `TooltipStyle`
+  and `TreeStyle` (#735 made the `Theme` fields private and the `With*Style`
+  methods went with them; only the type names survived), plus `ViewState`,
+  `BoundedStack`, `BlinkCursorAnimation`, `BoundedDiagramCache`,
+  `DiagramCacheEntry`, `CompiledInputMask`, `MaskEditResult` and
+  `markdown.CodeLanguage`. Migration: delete any declaration that spells one of
+  these names; it was dead code. `DialogStyle`, `MarkdownStyle`,
+  `ScrollbarStyle`, `DataGridStyle` and `ColorPickerStyle` stay public because
+  they have entry points. The export gate had not flagged the orphans because
+  each carried a keep marker claiming signature reachability, which stopped
+  being true in #735; all 96 such markers are gone and `tools/exportaudit` now
+  computes reachability itself (the `reach` class from #1221), so a marker can
+  no longer outlive the fact it asserts.
+
 - **Hovering the libdecor titlebar no longer redraws the window on Wayland
   (#1203).** On GNOME and other compositors where go-gui draws the frame through
   libdecor, the frame shows only with a commit of the window's surface. Each
@@ -100,6 +121,12 @@ and this project adheres to
   or a scale change, still makes the commit, and so does the first frame.
 
 ### Fixed
+
+- **`FormIssueError` and `FormIssueWarning` are back (#1235).** The #230 sweep
+  deleted the two `FormIssueKind` values because only the showcase forms guide
+  referenced them, so the validator code that guide shows did not compile. A
+  validator can tag an issue again and an app's summary can tell a warning from
+  an error.
 
 - **The API the 2026-08 unexport sweep took private is public again (#1221).**
   Commit a80087ec (#230) unexported 1,835 identifiers by reference count and

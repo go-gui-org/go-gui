@@ -73,7 +73,7 @@ func TestBoundedStackClear(t *testing.T) {
 }
 
 func TestBoundedStackDefaultSize(t *testing.T) {
-	s := &BoundedStack[int]{maxSize: 50}
+	s := &boundedStack[int]{maxSize: 50}
 	if s.maxSize != 50 {
 		t.Errorf("maxSize: got %d", s.maxSize)
 	}

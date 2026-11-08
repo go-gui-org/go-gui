@@ -516,8 +516,6 @@ func (w *Window) FormSummary(formID string) FormSummaryState {
 
 // FormPendingState returns which fields have pending async
 // validation.
-// exportaudit:keep — reachable from an exported signature
-// exportaudit:keep — reachable from an exported signature
 func (w *Window) FormPendingState(
 	formID string,
 ) FormPendingState {

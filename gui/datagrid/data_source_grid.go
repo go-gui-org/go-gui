@@ -5,7 +5,6 @@ import (
 )
 
 // SourceStats provides runtime stats for a data-source-backed grid.
-// exportaudit:keep — reachable from an exported signature
 type SourceStats struct {
 	RowCount       *int
 	loadError      string

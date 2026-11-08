@@ -12,7 +12,6 @@ import (
 
 // Cfg configures the audio subsystem.  Zero value selects sensible
 // defaults.
-// exportaudit:keep — reachable from an exported signature
 type Cfg struct {
 	// Frequency is the output sample rate in Hz.  Default: 44100.
 	// exportaudit:keep — caller-facing config, documented in widget_audio.md

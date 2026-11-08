@@ -596,10 +596,10 @@ func TestRtfMathStateKey_LoadingVsReady_KeyDiffers(t *testing.T) {
 	}}
 	hash := diagramCacheHash("math_1")
 
-	cache.Set(hash, DiagramCacheEntry{State: diagramLoading})
+	cache.Set(hash, diagramCacheEntry{State: diagramLoading})
 	loadingKey := rtfMathStateKey(&rt, cache)
 
-	cache.Set(hash, DiagramCacheEntry{
+	cache.Set(hash, diagramCacheEntry{
 		State: diagramReady, Width: 80, Height: 24, dPI: 200,
 	})
 	readyKey := rtfMathStateKey(&rt, cache)
@@ -614,26 +614,26 @@ func TestRtfMathStateKey_DifferentDimensions_KeyDiffers(t *testing.T) {
 	rt := RichText{Runs: []RichTextRun{{MathID: "m"}}}
 	hash := diagramCacheHash("m")
 
-	cache.Set(hash, DiagramCacheEntry{
+	cache.Set(hash, diagramCacheEntry{
 		State: diagramReady, Width: 80, Height: 24, dPI: 200,
 	})
 	k1 := rtfMathStateKey(&rt, cache)
 
-	cache.Set(hash, DiagramCacheEntry{
+	cache.Set(hash, diagramCacheEntry{
 		State: diagramReady, Width: 90, Height: 24, dPI: 200,
 	})
 	if k2 := rtfMathStateKey(&rt, cache); k1 == k2 {
 		t.Fatal("Width change must change key")
 	}
 
-	cache.Set(hash, DiagramCacheEntry{
+	cache.Set(hash, diagramCacheEntry{
 		State: diagramReady, Width: 80, Height: 30, dPI: 200,
 	})
 	if k3 := rtfMathStateKey(&rt, cache); k1 == k3 {
 		t.Fatal("Height change must change key")
 	}
 
-	cache.Set(hash, DiagramCacheEntry{
+	cache.Set(hash, diagramCacheEntry{
 		State: diagramReady, Width: 80, Height: 24, dPI: 150,
 	})
 	if k4 := rtfMathStateKey(&rt, cache); k1 == k4 {
@@ -646,7 +646,7 @@ func TestRtfMathStateKey_CacheMissVsHit_KeyDiffers(t *testing.T) {
 	rt := RichText{Runs: []RichTextRun{{MathID: "m"}}}
 	missKey := rtfMathStateKey(&rt, cache)
 
-	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+	cache.Set(diagramCacheHash("m"), diagramCacheEntry{
 		State: diagramReady, Width: 10, Height: 10, dPI: 100,
 	})
 	hitKey := rtfMathStateKey(&rt, cache)
@@ -661,7 +661,7 @@ func TestRtfMathStateKey_NaNDimensions_NoPanic(t *testing.T) {
 	rt := RichText{Runs: []RichTextRun{{MathID: "m"}}}
 	nan := float32(math.NaN())
 	inf := float32(math.Inf(1))
-	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+	cache.Set(diagramCacheHash("m"), diagramCacheEntry{
 		State: diagramReady, Width: nan, Height: inf, dPI: nan,
 	})
 	// Must not panic; key is well-defined.
@@ -687,7 +687,7 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 	w.viewState.diagramCache = cache
 	mathID := "math_1"
 	hash := diagramCacheHash(mathID)
-	cache.Set(hash, DiagramCacheEntry{State: diagramLoading})
+	cache.Set(hash, diagramCacheEntry{State: diagramLoading})
 
 	rt := RichText{Runs: []RichTextRun{{
 		MathID:    mathID,
@@ -715,7 +715,7 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 		t.Fatalf("expected 1 cached layout after Loading, got %d", n)
 	}
 
-	cache.Set(hash, DiagramCacheEntry{
+	cache.Set(hash, diagramCacheEntry{
 		State:  diagramReady,
 		Width:  80,
 		Height: 24,
@@ -983,7 +983,7 @@ func TestRtfGenerateLayoutNonWrapMathReadyReshapes(t *testing.T) {
 		t.Fatalf("loading flat text = %q, want the fallback", got)
 	}
 	w.viewState.diagramCache.Set(diagramCacheHash("m"),
-		DiagramCacheEntry{
+		diagramCacheEntry{
 			State:  diagramReady,
 			Width:  80,
 			Height: 24,
@@ -1110,7 +1110,7 @@ func TestRtfFlatTextFromRuns_MultibyteUTF8(t *testing.T) {
 // placeholder, so selection offsets past it match the glyph layout.
 func TestRtfFlatTextFromRuns_MathReadyPlaceholder(t *testing.T) {
 	cache := newBoundedDiagramCache(4)
-	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+	cache.Set(diagramCacheHash("m"), diagramCacheEntry{
 		State: diagramReady, Width: 80, Height: 24, dPI: 200,
 	})
 	rt := &RichText{Runs: []RichTextRun{
@@ -1148,7 +1148,7 @@ func TestRtfFlatTextFromRuns_MathFallbackLatex(t *testing.T) {
 // the flat text carries the LaTeX fallback in agreement.
 func TestRtfFlatTextFromRuns_ZeroSizeMathFallsBack(t *testing.T) {
 	cache := newBoundedDiagramCache(4)
-	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+	cache.Set(diagramCacheHash("m"), diagramCacheEntry{
 		State: diagramReady, Width: 80, Height: 24, dPI: 200,
 	})
 	rt := &RichText{Runs: []RichTextRun{

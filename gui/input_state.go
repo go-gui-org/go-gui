@@ -11,8 +11,8 @@ const inputMaxInsertRunes = 65_536
 // InputState manages cursor, selection, and undo/redo for
 // an input field. Stored in StateRegistry keyed by ID.
 type inputState struct {
-	Undo           *BoundedStack[inputMemento]
-	Redo           *BoundedStack[inputMemento]
+	Undo           *boundedStack[inputMemento]
+	Redo           *boundedStack[inputMemento]
 	CursorPos      int
 	LastClickTime  int64
 	selectBeg      uint32
@@ -90,7 +90,7 @@ func inputMementoFromState(text string, is inputState) inputMemento {
 // of one per character (issue #328). The pre-run state stays at the
 // top of the stack for the whole run; the caller stores the op it
 // passed as the new lastEditOp.
-func inputPushUndo(is inputState, text string, op uint8) *BoundedStack[inputMemento] {
+func inputPushUndo(is inputState, text string, op uint8) *boundedStack[inputMemento] {
 	stack := is.Undo
 	if stack == nil {
 		stack = newBoundedStack[inputMemento](undoMaxSize)
@@ -101,7 +101,7 @@ func inputPushUndo(is inputState, text string, op uint8) *BoundedStack[inputMeme
 	return stack
 }
 
-func inputStateFromMemento(m inputMemento, undo, redo *BoundedStack[inputMemento]) inputState {
+func inputStateFromMemento(m inputMemento, undo, redo *boundedStack[inputMemento]) inputState {
 	// Only the text-visible fields restore. lastEditOp resets to
 	// inputOpNone so the next edit starts a fresh undo step, and
 	// LastClickTime and cursorTrailing drop as transient.

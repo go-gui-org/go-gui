@@ -210,7 +210,7 @@ func inputKeyVertical(
 // OnPasteRejected.
 func inputKeyPaste(
 	text, clip string, id string,
-	mask *CompiledInputMask,
+	mask *compiledInputMask,
 	hcfg inputHandlerCfg, layout *Layout, w *Window,
 ) (string, bool) {
 	if len(clip) == 0 {
@@ -354,12 +354,12 @@ func inputCommitEnter(
 // unmasked inputs.
 func inputHandleDelete(
 	text string, id string, forward bool,
-	mask *CompiledInputMask,
+	mask *compiledInputMask,
 	layout *Layout, w *Window,
 ) (string, bool) {
 	if mask != nil {
 		is := inputStateOrDefault(id, w)
-		var res MaskEditResult
+		var res maskEditResult
 		if forward {
 			res = inputMaskDelete(text, is.CursorPos,
 				is.selectBeg, is.selectEnd, mask)

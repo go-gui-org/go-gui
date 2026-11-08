@@ -5,7 +5,6 @@ import "math"
 // ColorFilter holds a 4x4 column-major color transform matrix.
 // Applied as a post-processing pass on container content.
 // Operates on premultiplied-alpha pixels from the FBO.
-// exportaudit:keep — reachable from an exported signature
 type ColorFilter struct {
 	Matrix [16]float32
 }

@@ -146,7 +146,7 @@ type windowInspector struct {
 
 // ViewState holds per-window UI state.
 // exportaudit:keep — collides with the window's viewState state field
-type ViewState struct {
+type viewState struct {
 	gesture gestureState
 
 	mouseLock MouseLockCfg
@@ -171,7 +171,7 @@ type ViewState struct {
 	dragPan       dragPanState
 	registry      stateRegistry
 	markdownCache *BoundedMap[markdownCacheKey, markdownCacheEntry]
-	diagramCache  *BoundedDiagramCache
+	diagramCache  *boundedDiagramCache
 
 	// mouseLockOwner is the bit (mouseButtonBit) of the button whose
 	// press took the lock, or 0 when no button was held. Only that

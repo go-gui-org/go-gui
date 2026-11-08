@@ -15,7 +15,6 @@ import (
 const dataGridSourceMaxPageLimit = 10000
 
 // GridDataRequest is the request payload for FetchData.
-// exportaudit:keep — reachable from an exported signature
 type GridDataRequest struct {
 	Page      GridPageRequest
 	Signal    *gg.GridAbortSignal
@@ -25,7 +24,6 @@ type GridDataRequest struct {
 }
 
 // GridDataResult is the response from FetchData.
-// exportaudit:keep — reachable from an exported signature
 type GridDataResult struct {
 	NextCursor    string
 	PrevCursor    string
@@ -36,7 +34,6 @@ type GridDataResult struct {
 }
 
 // GridDataCapabilities describes what a data source supports.
-// exportaudit:keep — reachable from an exported signature
 type GridDataCapabilities struct {
 	SupportsCursorPagination bool
 	SupportsOffsetPagination bool
@@ -49,7 +46,6 @@ type GridDataCapabilities struct {
 }
 
 // GridMutationRequest is the request payload for MutateData.
-// exportaudit:keep — reachable from an exported signature
 type GridMutationRequest struct {
 	Signal    *gg.GridAbortSignal
 	Query     GridQueryState
@@ -62,7 +58,6 @@ type GridMutationRequest struct {
 }
 
 // GridMutationResult is the response from MutateData.
-// exportaudit:keep — reachable from an exported signature
 type GridMutationResult struct {
 	Errors     map[string]string
 	Created    []GridRow

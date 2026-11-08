@@ -463,7 +463,7 @@ func applyInputDefaults(cfg *InputCfg) {
 // inputHandlerCfg captures the fields shared by OnChar and
 // OnKeyDown handler factories.
 type inputHandlerCfg struct {
-	CompiledMask        *CompiledInputMask
+	CompiledMask        *compiledInputMask
 	OnTextChanged       func(string, EventCtx)
 	OnTextCommit        func(string, InputCommitReason, EventCtx)
 	OnEnter             func(EventCtx)
@@ -554,7 +554,7 @@ func (h *inputHandlerCfg) normalizeOnCommit(
 
 // compiledMask returns a non-nil *CompiledInputMask if the
 // handler config specifies a mask pattern.
-func (h *inputHandlerCfg) compiledMask() *CompiledInputMask {
+func (h *inputHandlerCfg) compiledMask() *compiledInputMask {
 	pattern := h.Mask
 	if pattern == "" && h.MaskPreset != MaskNone {
 		pattern = inputMaskFromPreset(h.MaskPreset)

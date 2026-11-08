@@ -125,7 +125,6 @@ func valueAnimRefreshKind(k AnimationRefreshKind) AnimationRefreshKind {
 // Two live animations must not write the same state. The loop walks
 // the animation map, whose iteration order varies frame to frame, so
 // overlapping writers apply in a nondeterministic order.
-// exportaudit:keep — reachable from an exported signature
 type Animation interface {
 	ID() string
 	RefreshKind() AnimationRefreshKind
@@ -135,8 +134,7 @@ type Animation interface {
 }
 
 // BlinkCursorAnimation toggles cursor visibility on a timer.
-// exportaudit:keep — reachable from an exported signature
-type BlinkCursorAnimation struct {
+type blinkCursorAnimation struct {
 	start time.Time
 	// activity is the last caret activity: registration or a
 	// resetBlinkCursorVisible, both through SetStart. Unlike start it
@@ -158,30 +156,30 @@ const blinkCursorAnimationDelay = 600 * time.Millisecond
 const blinkCursorIdleTimeout = 10 * time.Second
 
 // NewBlinkCursorAnimation creates a cursor blink animation.
-func newBlinkCursorAnimation() *BlinkCursorAnimation {
-	return &BlinkCursorAnimation{}
+func newBlinkCursorAnimation() *blinkCursorAnimation {
+	return &blinkCursorAnimation{}
 }
 
 // ID implements Animation.
-func (a *BlinkCursorAnimation) ID() string { return blinkCursorAnimationID }
+func (a *blinkCursorAnimation) ID() string { return blinkCursorAnimationID }
 
 // RefreshKind implements Animation. None: each toggle patches the
 // caret renderer in place via commandToggleCaretBlink, so a blink
 // tick needs no refresh at all (issue #404).
-func (a *BlinkCursorAnimation) RefreshKind() AnimationRefreshKind { return AnimationRefreshNone }
+func (a *blinkCursorAnimation) RefreshKind() AnimationRefreshKind { return AnimationRefreshNone }
 
 // IsStopped implements Animation.
-func (a *BlinkCursorAnimation) IsStopped() bool { return a.stopped }
+func (a *blinkCursorAnimation) IsStopped() bool { return a.stopped }
 
 // SetStart implements Animation.
 // It also restarts the idle period: every caller is caret activity.
-func (a *BlinkCursorAnimation) SetStart(t time.Time) {
+func (a *blinkCursorAnimation) SetStart(t time.Time) {
 	a.start = t
 	a.activity = t
 }
 
 // Update implements Animation.
-func (a *BlinkCursorAnimation) Update(w *Window, _ float32, ac *AnimationCommands) bool {
+func (a *blinkCursorAnimation) Update(w *Window, _ float32, ac *AnimationCommands) bool {
 	return updateBlinkCursor(a, w, ac)
 }
 

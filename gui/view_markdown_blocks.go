@@ -58,7 +58,7 @@ func renderMdMath(
 		maxConcurrentDiagramFetches {
 		reqID := nextDiagramRequestID(w)
 		w.viewState.diagramCache.Set(diagramHash,
-			DiagramCacheEntry{
+			diagramCacheEntry{
 				State:     diagramLoading,
 				RequestID: reqID,
 			})
@@ -129,7 +129,7 @@ func renderMdMermaid(
 		maxConcurrentDiagramFetches {
 		reqID := nextDiagramRequestID(w)
 		cache.Set(diagramHash,
-			DiagramCacheEntry{
+			diagramCacheEntry{
 				State:     diagramLoading,
 				RequestID: reqID,
 			})

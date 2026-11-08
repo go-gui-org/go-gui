@@ -77,7 +77,6 @@ func wakeUp() {
 // multi-window mode. A pointer: windowState owns texcache.Cache
 // values (container/list internals), which must not be copied
 // after first use.
-// exportaudit:keep — reachable from an exported signature
 type Backend struct {
 	*windowState
 }

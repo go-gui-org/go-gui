@@ -162,7 +162,7 @@ func TestNumericInputReadOnlyForwardsToInput(t *testing.T) {
 // theme's input style, and an explicit cfg value must still win.
 func TestNumericInputBorderFollowsTheme(t *testing.T) {
 	restoreTheme(t)
-	th := ThemeDark.withInputStyle(InputStyle{SizeBorder: 7, Radius: 9})
+	th := ThemeDark.withInputStyle(inputStyle{SizeBorder: 7, Radius: 9})
 	SetTheme(th)
 
 	w := &Window{}

@@ -24,8 +24,6 @@ import "math"
 // allocation, and Lerp between two transforms is always defined.
 //
 // A non-finite argument leaves its component unchanged.
-//
-// exportaudit:keep — reachable from an exported signature
 type Transform struct {
 	// Every field is stored so that 0 means "no effect". That makes the
 	// zero value the identity with no Opt wrappers: scale is kept as

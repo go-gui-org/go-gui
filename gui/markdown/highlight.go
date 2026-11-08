@@ -49,7 +49,7 @@ func normalizeLanguageHint(language string) string {
 }
 
 // langFromHint maps a language hint string to a CodeLanguage.
-func langFromHint(language string) CodeLanguage {
+func langFromHint(language string) codeLanguage {
 	switch normalizeLanguageHint(language) {
 	case "v":
 		return langV
@@ -81,7 +81,7 @@ func langFromHint(language string) CodeLanguage {
 //
 //nolint:gocyclo // language token-type switch
 func tokenizeCode(
-	code string, lang CodeLanguage, maxBytes int,
+	code string, lang codeLanguage, maxBytes int,
 ) []codeToken {
 	if len(code) == 0 || len(code) > maxBytes {
 		return nil
@@ -264,7 +264,7 @@ func appendToken(
 	})
 }
 
-func isIdentifierStart(ch byte, lang CodeLanguage) bool {
+func isIdentifierStart(ch byte, lang codeLanguage) bool {
 	if (ch >= 'a' && ch <= 'z') ||
 		(ch >= 'A' && ch <= 'Z') || ch == '_' {
 		return true
@@ -277,7 +277,7 @@ func isIdentifierStart(ch byte, lang CodeLanguage) bool {
 	return lang == langHTML && ch == '-'
 }
 
-func isIdentifierContinue(ch byte, lang CodeLanguage) bool {
+func isIdentifierContinue(ch byte, lang codeLanguage) bool {
 	if isIdentifierStart(ch, lang) {
 		return true
 	}
@@ -288,7 +288,7 @@ func isIdentifierContinue(ch byte, lang CodeLanguage) bool {
 }
 
 func scanIdentifier(
-	code string, pos int, lang CodeLanguage,
+	code string, pos int, lang codeLanguage,
 ) (int, bool) {
 	end := pos + 1
 	for end < len(code) && isIdentifierContinue(code[end], lang) {
@@ -348,7 +348,7 @@ func scanNumber(code string, pos int) (int, bool) {
 	return end, true
 }
 
-func isStringDelim(ch byte, lang CodeLanguage) bool {
+func isStringDelim(ch byte, lang codeLanguage) bool {
 	switch lang {
 	case langJSON:
 		return ch == '"'
@@ -370,7 +370,7 @@ func isStringDelim(ch byte, lang CodeLanguage) bool {
 }
 
 func scanString(
-	code string, pos int, lang CodeLanguage,
+	code string, pos int, lang codeLanguage,
 ) (int, bool) {
 	quote := code[pos]
 	// Python triple-quote.
@@ -416,7 +416,7 @@ func scanString(
 }
 
 func hasLineCommentStart(
-	code string, pos int, lang CodeLanguage,
+	code string, pos int, lang codeLanguage,
 ) bool {
 	if pos+1 < len(code) && code[pos] == '/' &&
 		code[pos+1] == '/' {
@@ -436,7 +436,7 @@ func hasLineCommentStart(
 }
 
 func lineCommentPrefixLen(
-	code string, pos int, lang CodeLanguage,
+	code string, pos int, lang codeLanguage,
 ) int {
 	if pos+1 < len(code) && code[pos] == '/' &&
 		code[pos+1] == '/' {
@@ -450,7 +450,7 @@ func lineCommentPrefixLen(
 }
 
 func hasBlockCommentStart(
-	code string, pos int, lang CodeLanguage,
+	code string, pos int, lang codeLanguage,
 ) bool {
 	if pos+1 < len(code) && code[pos] == '/' &&
 		code[pos+1] == '*' {
@@ -468,7 +468,7 @@ func hasBlockCommentStart(
 	return false
 }
 
-func blockCommentsNested(lang CodeLanguage) bool {
+func blockCommentsNested(lang codeLanguage) bool {
 	return lang == langV || lang == langRust ||
 		lang == langGeneric
 }
@@ -612,7 +612,7 @@ func toSet(words []string) map[string]bool {
 	return m
 }
 
-func isKeyword(ident string, lang CodeLanguage) bool {
+func isKeyword(ident string, lang codeLanguage) bool {
 	switch lang {
 	case langV:
 		return kwV[ident]

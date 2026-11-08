@@ -509,7 +509,7 @@ func resyncAfterStall(start, now time.Time, delay time.Duration) time.Time {
 	return start
 }
 
-func updateBlinkCursor(b *BlinkCursorAnimation, w *Window, ac *AnimationCommands) bool {
+func updateBlinkCursor(b *blinkCursorAnimation, w *Window, ac *AnimationCommands) bool {
 	if b.stopped {
 		return false
 	}

@@ -251,14 +251,14 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Spacing:     cfg.SpacingMedium,
 			SizeBorder:  cfg.SizeBorder,
 		},
-		rectangleStyle: RectangleStyle{
+		rectangleStyle: rectangleStyle{
 			Color:       ColorTransparent,
 			ColorBorder: cfg.ColorBorder,
 			Radius:      cfg.Radius,
 			SizeBorder:  cfg.SizeBorder,
 		},
 		TextStyleDef: ts,
-		inputStyle: InputStyle{
+		inputStyle: inputStyle{
 			Colors: ColorSet{
 				Base:        cfg.ColorInterior,
 				Hover:       cfg.ColorHover,
@@ -284,7 +284,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			GapEdge:         cfg.SizeScrollbarGap.Get(scrollbarGapEdge),
 			GapEnd:          cfg.SizeScrollbarGapEnd.Get(scrollbarGapEnd),
 		},
-		radioStyle: RadioStyle{
+		radioStyle: radioStyle{
 			Size: cfg.SizeRadio,
 			Colors: ColorSet{
 				Base:        cfg.ColorPanel,
@@ -309,7 +309,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleNormal: ts,
 			textStyleLabel:  ts,
 		},
-		switchStyle: SwitchStyle{
+		switchStyle: switchStyle{
 			sizeWidth:  cfg.SizeSwitchWidth,
 			sizeHeight: cfg.SizeSwitchHeight,
 			Colors: ColorSet{
@@ -328,7 +328,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleNormal: ts,
 			textStyleLabel:  ts,
 		},
-		toggleStyle: ToggleStyle{
+		toggleStyle: toggleStyle{
 			Colors: ColorSet{
 				Base:        cfg.ColorPanel,
 				Hover:       cfg.ColorHover,
@@ -348,7 +348,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleNormal: ts,
 			textStyleLabel:  ts,
 		},
-		selectStyle: SelectStyle{
+		selectStyle: selectStyle{
 			Shadow: cfg.ShadowPopover,
 			// One theme-stated floor, shared with Input and
 			// Combobox; the old 75/200 pair was why a Select and
@@ -375,7 +375,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			subheadingStyle:   textSecondary, // hierarchy by color, body weight (style guide)
 			PlaceholderStyle:  textPlaceholder,
 		},
-		listBoxStyle: ListBoxStyle{
+		listBoxStyle: listBoxStyle{
 			Colors: ColorSet{
 				Base:        cfg.ColorInterior,
 				Hover:       cfg.ColorHover,
@@ -390,7 +390,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleNormal: ts,
 			subheadingStyle: textSecondary, // hierarchy by color, body weight (style guide)
 		},
-		treeStyle: TreeStyle{
+		treeStyle: treeStyle{
 			Colors: ColorSet{
 				Base:   ColorTransparent,
 				Hover:  cfg.ColorHover,
@@ -430,7 +430,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			// gives an unset cfg a complete scale.
 			TextStyle: ts,
 		},
-		toastStyle: ToastStyle{
+		toastStyle: toastStyle{
 			Shadow:       cfg.ShadowPopover,
 			maxVisible:   5,
 			Anchor:       resolveToastAnchor(cfg.ToastAnchor),
@@ -450,7 +450,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			// TitleStyle takes the B3 rung below, for the same reason
 			// dialogStyle.titleTextStyle does.
 		},
-		tooltipStyle: TooltipStyle{
+		tooltipStyle: tooltipStyle{
 			Shadow:     cfg.ShadowPopover,
 			Delay:      500 * time.Millisecond,
 			Colors:     ColorSet{Base: cfg.ColorInterior, Border: cfg.ColorBorder},
@@ -459,7 +459,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Radius:     cfg.RadiusSmall,
 			TextStyle:  ts,
 		},
-		badgeStyle: BadgeStyle{
+		badgeStyle: badgeStyle{
 			Colors:       ColorSet{Base: cfg.ColorActive},
 			colorInfo:    colorSelect,
 			ColorSuccess: colorSuccess,
@@ -468,7 +468,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Padding:      NewPadding(2, 6, 2, 6),
 			dotSize:      8,
 		},
-		expandPanelStyle: ExpandPanelStyle{
+		expandPanelStyle: expandPanelStyle{
 			Colors: ColorSet{
 				Base:        cfg.ColorPanel,
 				Hover:       cfg.ColorHover,
@@ -481,7 +481,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Radius:       cfg.RadiusMedium,
 			radiusBorder: cfg.RadiusMedium,
 		},
-		progressBarStyle: ProgressBarStyle{
+		progressBarStyle: progressBarStyle{
 			Size:     cfg.SizeProgressBar,
 			Colors:   ColorSet{Base: cfg.ColorInterior, Border: cfg.ColorBorder},
 			colorBar: colorSelect,
@@ -495,16 +495,16 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextShow:       true,
 			TextStyle:      textSecondary,
 		},
-		skeletonStyle: SkeletonStyle{
+		skeletonStyle: skeletonStyle{
 			Colors:         ColorSet{Base: cfg.ColorInterior},
 			ColorHighlight: skeletonHighlight(cfg.ColorInterior),
 			Radius:         cfg.RadiusSmall,
 		},
-		separatorStyle: SeparatorStyle{
+		separatorStyle: separatorStyle{
 			Colors: ColorSet{Base: colorSeparator},
 			Size:   sizeSeparator,
 		},
-		sliderStyle: SliderStyle{
+		sliderStyle: sliderStyle{
 			Size:      cfg.SizeSlider,
 			ThumbSize: cfg.SizeSliderThumb,
 			Colors: ColorSet{
@@ -523,7 +523,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		},
 		segmentedStyle: segmentedControlStyleFor(
 			cfg, ts, textDisabled, fieldPad, colorSelect, borderFocus),
-		tabControlStyle: TabControlStyle{
+		tabControlStyle: tabControlStyle{
 			Colors:             ColorSet{Base: cfg.ColorPanel, Border: cfg.ColorBorder},
 			ColorHeader:        ColorTransparent,
 			colorHeaderBorder:  ColorTransparent,
@@ -558,7 +558,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleSelected: ts,
 			textStyleDisabled: textDisabled,
 		},
-		breadcrumbStyle: BreadcrumbStyle{
+		breadcrumbStyle: breadcrumbStyle{
 			Separator:  "/",
 			Colors:     ColorSet{Base: ColorTransparent, Border: ColorTransparent},
 			colorTrail: ColorTransparent,
@@ -586,7 +586,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			textStyleDisabled:  textDisabled,
 			textStyleSeparator: textSecondary,
 		},
-		splitterStyle: SplitterStyle{
+		splitterStyle: splitterStyle{
 			HandleSize:    9,
 			dragStep:      0.02,
 			dragStepLarge: 0.10,
@@ -608,7 +608,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Radius:          cfg.RadiusSmall,
 			radiusBorder:    cfg.RadiusSmall,
 		},
-		tableStyle: TableStyle{
+		tableStyle: tableStyle{
 			Colors: ColorSet{
 				Hover:       cfg.ColorHover,
 				Focus:       cfg.ColorHover,
@@ -624,7 +624,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			columnWidthDefault: 50,
 			columnWidthMin:     20,
 		},
-		comboboxStyle: ComboboxStyle{
+		comboboxStyle: comboboxStyle{
 			Shadow: cfg.ShadowPopover,
 			Colors: ColorSet{
 				Base:        cfg.ColorInterior,
@@ -647,7 +647,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			TextStyle:         ts,
 			PlaceholderStyle:  textPlaceholder,
 		},
-		commandPaletteStyle: CommandPaletteStyle{
+		commandPaletteStyle: commandPaletteStyle{
 			Shadow:               cfg.ShadowDialog,
 			Colors:               ColorSet{Base: cfg.ColorPanel, Border: cfg.ColorBorder},
 			ColorHighlight:       colorSelect,
@@ -660,7 +660,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			detailStyle:          textSecondary,
 			backdropColor:        RGBA(0, 0, 0, 120),
 		},
-		menubarStyle: MenubarStyle{
+		menubarStyle: menubarStyle{
 			Shadow:          cfg.ShadowPopover,
 			widthSubmenuMin: 50,
 			widthSubmenuMax: 200,
@@ -690,7 +690,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 				Size:  ladder.small,
 			},
 		},
-		datePickerStyle: DatePickerStyle{
+		datePickerStyle: datePickerStyle{
 			Shadow:      cfg.ShadowPopover,
 			cellSpacing: cfg.SpacingTight,
 			Colors: ColorSet{

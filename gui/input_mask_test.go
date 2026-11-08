@@ -215,7 +215,7 @@ func TestCompiledMaskCacheCapped(t *testing.T) {
 	// other tests (an alloc gate among them) rely on.
 	compiledMaskCache.Lock()
 	saved := compiledMaskCache.m
-	compiledMaskCache.m = make(map[string]*CompiledInputMask)
+	compiledMaskCache.m = make(map[string]*compiledInputMask)
 	compiledMaskCache.Unlock()
 	t.Cleanup(func() {
 		compiledMaskCache.Lock()
