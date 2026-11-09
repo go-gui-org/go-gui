@@ -51,10 +51,8 @@ func TestGroupBoxTitleDoesNotAllocate(t *testing.T) {
 		t.Errorf("titled container: %v allocs per frame, want 0", allocs)
 	}
 	var title *Shape
-	for i := range layout.Children {
-		if tc := layout.Children[i].Shape.TC; tc != nil {
-			title = layout.Children[i].Shape
-		}
+	if fx := layout.Shape.fx; fx != nil {
+		title = fx.groupTitle
 	}
 	if title == nil || title.TC.Text != "Group" || title.TC.TextStyle == nil {
 		t.Fatal("title text shape missing or empty")

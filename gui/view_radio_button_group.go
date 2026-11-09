@@ -23,7 +23,9 @@ type RadioButtonGroupCfg struct {
 
 	OnSelect func(string, EventCtx)
 	Value    string
-	Title    string
+	// Title draws the group as a group box with this label in its top
+	// border, as ContainerCfg.Title does.
+	Title string
 
 	A11YCfg
 	// Items is a convenience field for simple string lists. Each
@@ -40,9 +42,12 @@ type RadioButtonGroupCfg struct {
 	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	ColorBorder   Color
-	TitleBG       Color
-	Sizing        Sizing
-	Disabled      bool
+	// TitleBG is the patch behind the Title that hides the border
+	// line, as ContainerCfg.TitleBG: unset, it takes the color drawn
+	// under the border.
+	TitleBG  Color
+	Sizing   Sizing
+	Disabled bool
 
 	// Sound overrides the theme's selection cue for this instance.
 	// SoundNone (the zero value) takes the theme's cue for that role,

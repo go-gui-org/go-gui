@@ -8,8 +8,14 @@ package gui
 // # Title and group-box style
 //
 // When Title is set, the container renders a group-box label in the
-// top border — like an HTML fieldset/legend. TitleBG must match the
-// parent background color to erase the border behind the title text.
+// top border — like an HTML fieldset/legend, on the right in a
+// right-to-left box, and past a rounded corner wider than its inset.
+// The box reserves room for the label: its border, or a Circle's
+// circle, is drawn half the label's first line below its top edge, and
+// its content starts below the label's last line, so a small top
+// padding grows. The label stays inside the box and its parent's clip;
+// a label wider than the box overhangs its trailing edge. A patch
+// behind the label hides the border line; see TitleBG.
 type ContainerCfg struct {
 	ColorFilter    *ColorFilter
 	Shadow         *BoxShadow
@@ -149,7 +155,7 @@ type ContainerCfg struct {
 	ID string
 
 	// Title renders a group-box label in the top border. See the
-	// type doc for TitleBG requirements.
+	// type doc for the room it takes, and TitleBG.
 	Title string
 	A11YCfg
 
@@ -222,9 +228,20 @@ type ContainerCfg struct {
 
 	A11YState AccessState
 
-	// TitleBG is the background color behind the group-box title
-	// text. Must match the parent container's background to erase
-	// the border line behind the title.
+	// TitleBG is the color of the patch behind the group-box title
+	// that hides the border line. It is painted as given, behind the
+	// whole title, even when the box is disabled; ColorTransparent
+	// turns the patch off.
+	//
+	// Unset, the patch covers the title from the border down, not the
+	// band above it, and takes the color drawn there: the box's own fill
+	// over its filled ancestors, translucent ones composited, or over
+	// the window background. Where no one color is drawn there it is
+	// left out and the border shows through the title: over a gradient
+	// or shader fill, the box's own blurred fill, a ColorFilter, a
+	// floating panel that is not opaque, or a see-through window. A
+	// sibling drawn underneath, as in a Stack, is not seen: the patch
+	// takes the container's color over it. Set TitleBG in these cases.
 	TitleBG Color
 
 	Color       Color
@@ -381,16 +398,7 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 		// so only a button without one skips moves inside it (#973).
 		layout.Shape.events.hoverStatic = cv.userOnHover == nil
 	}
-	if cfg.Title != "" && w != nil {
-		// Reserve the eraser, the label and the content in one arena
-		// slice. Growing Children from nil for the two title shapes
-		// allocated twice per frame.
-		layout.Children = w.scratch.takeLayoutChildren(2 + len(cv.content))
-	}
-	addGroupBoxTitle(cfg.Title, cfg.TitleBG, cfg.ColorBorder,
-		cfg.Disabled, w, &layout)
-	// Content children append after the group-box eraser + label, which
-	// addGroupBoxTitle injected above; see appendChildViews ordering.
+	addGroupBoxTitle(cfg.Title, cfg.TitleBG, cfg.ColorBorder, w, layout.Shape)
 	appendChildViews(w, &layout, cv.content)
 	return layout
 }
@@ -413,85 +421,6 @@ func groupBoxInk() Color {
 		ts = DefaultTextStyle
 	}
 	return ts.Color.WithOpacity(groupBoxInkAlpha)
-}
-
-// addGroupBoxTitle injects floating eraser + text children to render
-// a title label in the container's top border (HTML fieldset style).
-func addGroupBoxTitle(title string, titleBG, colorBorder Color,
-	disabled bool, w *Window, layout *Layout) {
-	if len(title) == 0 {
-		return
-	}
-	// A group-box title is a heading role and takes a title role
-	// (visual-refresh §2.2); the border color below is the only
-	// restyle.
-	ts := guiTheme.TextStyleTitleSmall
-
-	var textWidth, fontHeight float32
-	const pad float32 = 5
-	if w.textMeasurer != nil {
-		textWidth = w.textMeasurer.TextWidth(title, ts)
-		fontHeight = w.textMeasurer.FontHeight(ts)
-	} else {
-		// Fallback for tests without a text measurer.
-		textWidth = float32(len(title)) * 8
-		fontHeight = 16
-	}
-	// Center the title vertically on the top border line.
-	offset := fontHeight / 2
-
-	eraserColor := titleBG
-	if !eraserColor.IsSet() {
-		eraserColor = ColorTransparent
-	}
-	if disabled {
-		eraserColor = dimAlpha(eraserColor)
-	}
-
-	// Eraser hides the border behind the title text.
-	eraserShape := Shape{
-		shapeType: shapeRectangle,
-		Width:     textWidth + pad + pad - 1,
-		Height:    fontHeight,
-		X:         20,
-		Y:         -offset,
-		Color:     eraserColor,
-		Opacity:   1.0,
-		Float:     true,
-	}
-	layout.Children = append(layout.Children, Layout{
-		Shape: w.allocShape(eraserShape),
-	})
-
-	textColor := colorBorder
-	if disabled {
-		// The title shapes are Float and leave the main tree in
-		// layoutRemoveFloatingLayouts, so layoutDisables never
-		// stamps them: the disabled amount has to be applied here,
-		// not at render (issue #341).
-		textColor = guiTheme.disabledTextColor(textColor)
-	}
-	ts.Color = textColor
-	textShape := Shape{
-		shapeType: shapeText,
-		Width:     textWidth,
-		Height:    fontHeight,
-		X:         20 + pad,
-		Y:         -offset,
-		Color:     textColor,
-		Opacity:   1.0,
-		Float:     true,
-		// Both from the view-phase arena: a literal here and &ts each
-		// moved to the heap, two allocations per titled container per
-		// frame.
-		TC: w.allocTextConfig(ShapeTextConfig{
-			Text:      title,
-			TextStyle: w.allocTextStyle(ts),
-		}),
-	}
-	layout.Children = append(layout.Children, Layout{
-		Shape: w.allocShape(textShape),
-	})
 }
 
 func makeContainerEffects(c *ContainerCfg) (shapeEffects, bool) {

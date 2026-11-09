@@ -252,9 +252,18 @@ both `EventCtx` methods are nil-safe.
 - `(*Layout).spacing()` counts only visible children (`ShapeType != ShapeNone`,
   `!Float`, `!OverDraw`) — fence-post gap calc.
 - Shape text fields live in `Shape.TC` (`*shapeTextConfig`), not on `Shape`.
-- `ContainerCfg.Title`/`TitleBG` render a group-box label in the top border
-  (floating eraser + text, like an HTML fieldset). `TitleBG` must match the
-  parent bg color to erase the border behind the title.
+- `ContainerCfg.Title`/`TitleBG` render a group-box label in the top border,
+  like an HTML fieldset legend (`gui/group_box_title.go`). The label is not a
+  child and not a float: it hangs off `Shape.fx.groupTitle`, and
+  `renderLayoutDepth` draws it after `renderLayoutChildren` has closed the box's
+  own clip brackets, in its parent's clip. Keep that a plain call: a further
+  `defer` there pushes the function past Go's open-coded defer limit (check with
+  `go build -gcflags=-d=defer ./gui/`). The box reserves half the label's first
+  line above its border (`containerBody`, `fx.titleBand`; a Circle's circle too)
+  and starts its content below the label (top padding), so the label stays
+  inside the box. An unset `TitleBG` erases the label from the border down with
+  the color drawn there (`backdropColor`). As two Float children the title was
+  drawn over every earlier popup and escaped every clip (#1238).
 - `Children []Layout` = values, parents = pointers. Avoids cycles.
 - `StateMap` (keyed by namespace consts like `nsOverflow`, `nsSvgCache`) is the
   per-window typed kv store for widget internal state.

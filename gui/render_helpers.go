@@ -126,7 +126,8 @@ func resolveClipRadius(parentRadius float32, shape *Shape) float32 {
 	}
 	var baseRadius float32
 	if shape.shapeType == shapeCircle {
-		baseRadius = f32Min(shape.Width, shape.Height) / 2
+		// The circle renderCircle draws, below a title's band.
+		_, _, _, baseRadius = circleRing(shape)
 	} else {
 		baseRadius = shape.Radius
 	}
@@ -135,7 +136,9 @@ func resolveClipRadius(parentRadius float32, shape *Shape) float32 {
 	}
 	leftInset := shape.Padding.Left + shape.SizeBorder
 	rightInset := shape.Padding.Right + shape.SizeBorder
-	topInset := shape.Padding.Top + shape.SizeBorder
+	// The rounded corner is the body's, below a group-box title's band
+	// (containerBody), and the top padding counts that band too.
+	topInset := shape.Padding.Top + shape.SizeBorder - groupTitleBand(shape)
 	bottomInset := shape.Padding.Bottom + shape.SizeBorder
 	inset := max(leftInset, rightInset, topInset, bottomInset)
 	localRadius := f32Max(0, baseRadius-inset)

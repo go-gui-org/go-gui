@@ -80,14 +80,15 @@ func (w *Window) shaderFrame() *shaderFrameState {
 }
 
 // packShaderShape writes the built-in block for the shader shape into
-// shape.fx.shaderBuiltins.
-func (w *Window) packShaderShape(shape *Shape) {
+// shape.fx.shaderBuiltins. width and height are the size the shader is
+// drawn at: the container's body (containerBody), not its bounds.
+func (w *Window) packShaderShape(shape *Shape, width, height float32) {
 	if shape.fx.Shader.Animate {
 		w.shaderAnimateDrawn = true
 	}
 	f := w.shaderFrame()
 	packShaderBuiltins(&shape.fx.shaderBuiltins, f,
-		shape.Width, shape.Height, w.shaderClockHeld())
+		width, height, w.shaderClockHeld())
 }
 
 // shaderClockHeld reports whether shaders read a still clock: in a
