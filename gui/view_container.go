@@ -9,12 +9,13 @@ package gui
 //
 // When Title is set, the container renders a group-box label in the
 // top border — like an HTML fieldset/legend, on the right in a
-// right-to-left box. The box reserves room for the label: its border is
-// drawn half the label's height below its top edge, and its content
-// starts below the label, so a small top padding grows. The label stays
-// inside the box and its parent's clip; a label wider than the box
-// overhangs its trailing edge. A patch behind the label hides the
-// border line; see TitleBG.
+// right-to-left box, and past a rounded corner wider than its inset.
+// The box reserves room for the label: its border, or a Circle's
+// circle, is drawn half the label's first line below its top edge, and
+// its content starts below the label's last line, so a small top
+// padding grows. The label stays inside the box and its parent's clip;
+// a label wider than the box overhangs its trailing edge. A patch
+// behind the label hides the border line; see TitleBG.
 type ContainerCfg struct {
 	ColorFilter    *ColorFilter
 	Shadow         *BoxShadow
@@ -232,8 +233,8 @@ type ContainerCfg struct {
 	// whole title, even when the box is disabled; ColorTransparent
 	// turns the patch off.
 	//
-	// Unset, the patch covers only the title's lower half, where the
-	// border is, and takes the color drawn there: the box's own fill
+	// Unset, the patch covers the title from the border down, not the
+	// band above it, and takes the color drawn there: the box's own fill
 	// over its filled ancestors, translucent ones composited, or over
 	// the window background. Where no one color is drawn there it is
 	// left out and the border shows through the title: over a gradient

@@ -126,9 +126,10 @@ and this project adheres to
   its bounds (see the next entry). A box whose `Height` is fixed, or that fills
   its parent, keeps its size, so its content area shrinks by the title's band:
   about 9 px at the default title size, two thirds of the title's font size in
-  general, and more when the top padding is under half the title's height.
-  Content sized to fit such a box can now be clipped or scroll. Migration: add
-  the band to `Height`, or let the content shrink.
+  general, and more when the top padding is under half the title's height or the
+  title has more than one line. A titled `Circle` of fixed size draws its circle
+  that much smaller. Content sized to fit such a box can now be clipped or
+  scroll. Migration: add the band to `Height`, or let the content shrink.
 
 - **A group box makes room for its title, and an unset `TitleBG` hides the
   border behind it (#1238).** The title used to stick out above the box by half
@@ -140,15 +141,20 @@ and this project adheres to
   BREAKING entry before this one for fixed heights. The title is then inside the
   box, where a scroll view, a clipping parent or a `RotatedBox` no longer cuts
   it, and in a right-to-left box it sits at the right edge with the same inset.
-  `TitleBG` no longer has to be set to the parent's color: unset, the patch
-  under the title takes the color drawn under the border, the box's own fill or
-  what is behind it, so the border line no longer runs through the title by
-  default. Over a gradient or shader fill, a `ColorFilter`, a blurred fill or a
-  see-through floating panel no one color matches; there an unset `TitleBG`
-  draws no patch, as before. Over a sibling drawn underneath, as in a `Stack`,
-  the patch takes the container's color; set `TitleBG` there. `ColorTransparent`
-  turns the patch off. A disabled box no longer dims the patch, which let the
-  border show through the title.
+  A rounded corner wider than that inset moves the title past its curve, onto
+  the straight part of the border. A title with a newline gets room for every
+  line, its first line on the border. A titled `Circle` draws its circle below
+  the band, so the title sits on the line the circle's top touches. The border
+  of any `Circle` now rings the circle drawn; one wider than tall stroked a
+  rounded box around it. `TitleBG` no longer has to be set to the parent's
+  color: unset, the patch under the title takes the color drawn under the
+  border, the box's own fill or what is behind it, so the border line no longer
+  runs through the title by default. Over a gradient or shader fill, a
+  `ColorFilter`, a blurred fill or a see-through floating panel no one color
+  matches; there an unset `TitleBG` draws no patch, as before. Over a sibling
+  drawn underneath, as in a `Stack`, the patch takes the container's color; set
+  `TitleBG` there. `ColorTransparent` turns the patch off. A disabled box no
+  longer dims the patch, which let the border show through the title.
 
 - **Hovering the libdecor titlebar no longer redraws the window on Wayland
   (#1203).** On GNOME and other compositors where go-gui draws the frame through

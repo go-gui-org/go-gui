@@ -160,21 +160,35 @@ func TestGroupBoxTitleInsideTransformAndFilter(t *testing.T) {
 }
 
 // A render-only frame reuses the arranged tree and draws the same title
-// shape again: its position is assigned from the box, not added to.
+// shape again: its position and opacity are taken from the box on every
+// frame, assigned, not added to. Two unchanged frames draw it in place,
+// and a box moved and faded between frames takes its title along.
 func TestGroupBoxTitleRenderOnlyFrame(t *testing.T) {
-	w, box := titledOn(t, ContainerCfg{}, ContainerCfg{})
+	ink := RGB(100, 100, 100)
+	w, box := titledOn(t, ContainerCfg{}, ContainerCfg{ColorBorder: ink})
+	check := func(when string, wantColor Color) {
+		t.Helper()
+		ti := cmdIndex(w.renderers, isText(titleTestText))
+		if ti < 0 {
+			t.Fatalf("%s: title not drawn", when)
+		}
+		c := w.renderers[ti]
+		wantX := box.Shape.X + groupTitleInset + groupTitlePad
+		if c.X != wantX || c.Y != box.Shape.Y {
+			t.Errorf("%s: title at %v,%v, want %v,%v", when, c.X, c.Y, wantX, box.Shape.Y)
+		}
+		if c.Color != wantColor {
+			t.Errorf("%s: title color = %v, want %v", when, c.Color, wantColor)
+		}
+	}
 	w.renderOnlyLocked()
 	w.renderOnlyLocked()
-	ti := cmdIndex(w.renderers, isText(titleTestText))
-	if ti < 0 {
-		t.Fatal("title not drawn")
-	}
-	c := w.renderers[ti]
-	wantX := box.Shape.X + groupTitleInset + groupTitlePad
-	if c.X != wantX || c.Y != box.Shape.Y {
-		t.Errorf("title at %v,%v after two render-only frames, want %v,%v",
-			c.X, c.Y, wantX, box.Shape.Y)
-	}
+	check("two unchanged frames", ink)
+	box.Shape.X += 7
+	box.Shape.Y += 5
+	box.Shape.Opacity = 0.5
+	w.renderOnlyLocked()
+	check("moved and faded", ink.WithOpacity(0.5))
 }
 
 // A faded box fades its title with it, and its own faded fill is what
@@ -403,5 +417,160 @@ func TestGroupBoxTitleKeepsClipRadius(t *testing.T) {
 	}
 	if plain, titled := radius(""), radius(titleTestText); titled != plain {
 		t.Errorf("clip radius = %v with a title, %v without", titled, plain)
+	}
+}
+
+// A title with a newline is drawn on two lines and given room for both:
+// its first line sits on the border, the band above is half that line,
+// and the content starts below the last line. An explicit TitleBG is a
+// patch behind both lines.
+func TestGroupBoxTitleMultiLine(t *testing.T) {
+	const title = "Account\nSettings"
+	// The tests' fallback measurer: 16 px a line.
+	const line, lines = float32(16), float32(2)
+	for _, pad := range []Padding{PaddingNone, PadAll(30)} {
+		w := renderTitled(t, WindowCfg{}, func(_ *Window) View {
+			return Column(ContainerCfg{Sizing: FillFill, Padding: PadAll(20), Content: []View{
+				Column(ContainerCfg{
+					ID: "box", Title: title, Padding: pad, TitleBG: RGB(250, 220, 60),
+					Content: []View{Text(TextCfg{Text: "body"})},
+				}),
+			}})
+		})
+		box, ok := w.layout.FindByID("box")
+		if !ok {
+			t.Fatal("box not found")
+		}
+		s := box.Shape
+		if got := s.fx.groupTitle.Height; got != line*lines {
+			t.Errorf("padding %v: title height = %v, want %v", pad.Top, got, line*lines)
+		}
+		if i := cmdIndex(w.renderers, isKind(RenderStrokeRect)); i < 0 ||
+			w.renderers[i].Y != s.Y+line/2 {
+			t.Errorf("padding %v: border not at the first line's middle %v", pad.Top, s.Y+line/2)
+		}
+		if child := box.Children[0].Shape; child.Y < s.Y+line*lines {
+			t.Errorf("padding %v: first child at y=%v, inside the title (bottom %v)",
+				pad.Top, child.Y, s.Y+line*lines)
+		}
+		ti := cmdIndex(w.renderers, isText(title))
+		if e, drawn := titleEraser(w.renderers, ti); !drawn || e.Y != s.Y || e.H != line*lines {
+			t.Errorf("padding %v: TitleBG patch y=%v h=%v (drawn %v), want y=%v h=%v",
+				pad.Top, e.Y, e.H, drawn, s.Y, line*lines)
+		}
+	}
+}
+
+// A rounded corner wider than the title's inset pushes the title past
+// its curve, onto the straight part of the top border, from the left or
+// in RTL from the right; an eraser over the curve would square off the
+// corner. A radius past half the body counts as the renderers clamp it,
+// and a corner inside the inset leaves the title where it was.
+func TestGroupBoxTitleClearsRoundedCorner(t *testing.T) {
+	// A 300 x 80 box: its body is 72 high below the 8 px band.
+	for _, tc := range []struct {
+		radius, lead float32
+	}{
+		{8, groupTitleInset},
+		{30, 30},
+		{1000, 36},
+	} {
+		for _, dir := range []TextDirection{TextDirLTR, TextDirRTL} {
+			w, box := titledOn(t, ContainerCfg{}, ContainerCfg{
+				Radius: RadiusPx(tc.radius), Color: RGB(230, 210, 90), TextDir: dir,
+				Width: 300, Height: 80, Sizing: FixedFixed,
+			})
+			s := box.Shape
+			ti := cmdIndex(w.renderers, isText(titleTestText))
+			if ti < 0 {
+				t.Fatalf("radius %v: title not drawn", tc.radius)
+			}
+			eraserW := s.fx.groupTitle.Width + 2*groupTitlePad - 1
+			wantX := s.X + tc.lead
+			if dir == TextDirRTL {
+				wantX = s.X + s.Width - tc.lead - eraserW
+			}
+			if got := w.renderers[ti].X; got != wantX+groupTitlePad {
+				t.Errorf("radius %v dir %v: title x = %v, want %v",
+					tc.radius, dir, got, wantX+groupTitlePad)
+			}
+			if e, ok := titleEraser(w.renderers, ti); !ok || e.X != wantX {
+				t.Errorf("radius %v dir %v: eraser x = %v (drawn %v), want %v",
+					tc.radius, dir, e.X, ok, wantX)
+			}
+		}
+	}
+}
+
+// A border thicker than the title would lift the eraser's top, half a
+// border width above the line, over the box's top edge and whatever
+// lies above it. It stops at the box's top.
+func TestGroupBoxTitleThickBorderEraser(t *testing.T) {
+	w, box := titledOn(t, ContainerCfg{}, ContainerCfg{SizeBorder: BorderPx(30)})
+	ti := cmdIndex(w.renderers, isText(titleTestText))
+	e, ok := titleEraser(w.renderers, ti)
+	if !ok {
+		t.Fatal("no eraser")
+	}
+	s := box.Shape
+	if e.Y != s.Y {
+		t.Errorf("eraser starts at %v, want the box's top %v", e.Y, s.Y)
+	}
+	if bottom := s.Y + s.fx.groupTitle.Height; e.Y+e.H != bottom {
+		t.Errorf("eraser ends at %v, want the title's bottom %v", e.Y+e.H, bottom)
+	}
+}
+
+// A titled Circle draws its circle below the title's band, like the
+// body of any container, so the title sits on the line its top touches,
+// and the border rings that circle. A clipping circle's corner is the
+// circle drawn. An untitled circle keeps its whole box.
+func TestGroupBoxTitleCircleBody(t *testing.T) {
+	const size = 160
+	w := renderTitled(t, WindowCfg{}, func(_ *Window) View {
+		circle := func(id, title string) View {
+			return Circle(ContainerCfg{
+				ID: id, Title: title, Width: size, Height: size, Sizing: FixedFixed,
+				Color: RGB(230, 210, 90), SizeBorder: BorderPx(2), ColorBorder: RGB(20, 20, 20),
+				Clip: true, Padding: PadAll(20),
+			})
+		}
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			circle("titled", titleTestText), circle("plain", ""),
+		}})
+	})
+	for _, tc := range []struct {
+		id   string
+		band float32
+	}{{"titled", 8}, {"plain", 0}} {
+		ly, ok := w.layout.FindByID(tc.id)
+		if !ok {
+			t.Fatalf("%s not found", tc.id)
+		}
+		s := ly.Shape
+		r := (size - tc.band) / 2
+		cx, cy := s.X+size/2, s.Y+tc.band+r
+		var fill, ring *RenderCmd
+		for i := range w.renderers {
+			c := &w.renderers[i]
+			if c.Kind == RenderCircle && c.Fill && c.X == cx && c.Y == cy {
+				fill = c
+			}
+			if c.Kind == RenderStrokeRect && c.Y >= s.Y && c.Y < s.Y+size {
+				ring = c
+			}
+		}
+		if fill == nil || fill.Radius != r {
+			t.Errorf("%s: no circle of radius %v at %v,%v", tc.id, r, cx, cy)
+		}
+		if ring == nil || ring.X != cx-r || ring.Y != cy-r || ring.W != 2*r ||
+			ring.H != 2*r || ring.Radius != r {
+			t.Errorf("%s: border %+v, want a ring of radius %v around %v,%v", tc.id, ring, r, cx, cy)
+		}
+		// The padding is 20 on every side below the band; the corner is
+		// the circle's radius less that and the border.
+		if got, want := resolveClipRadius(0, s), r-20-s.SizeBorder; got != want {
+			t.Errorf("%s: clip radius = %v, want %v", tc.id, got, want)
+		}
 	}
 }

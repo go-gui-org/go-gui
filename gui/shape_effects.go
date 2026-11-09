@@ -21,7 +21,10 @@ type shapeEffects struct {
 	// groupTitle is a titled container's group-box label, a text shape
 	// the container draws itself (renderGroupBoxTitle), and titleBG is
 	// ContainerCfg.TitleBG behind it. Here rather than on Shape for the
-	// same reason as imageSurface (#1238).
+	// same reason as imageSurface (#1238). titleBand is half the
+	// label's first line, the band above the border (groupTitleBand);
+	// a label with more lines is taller than twice it.
 	groupTitle *Shape
 	titleBG    Color
+	titleBand  float32
 }

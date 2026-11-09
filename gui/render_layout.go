@@ -454,19 +454,20 @@ func renderShapeBorder(shape *Shape, dr drawClip, radius float32, w *Window) {
 	}
 }
 
-// renderCircle draws a shape as a circle in the middle of the
-// shape's rectangular region.
+// renderCircle draws a shape as a circle in the middle of its body: the
+// shape's rectangular region, less the band a group-box title reserves
+// above it (containerBody), as for every container.
 func renderCircle(shape *Shape, clip drawClip, w *Window) {
-	dr := shapeBounds(shape)
+	dr := containerBody(shape)
 	c := shape.Color
 	if fillDims(shape) {
 		c = dimAlpha(c)
 	}
 
 	if rectsOverlap(dr, clip) {
-		radius := f32Min(shape.Width, shape.Height) / 2
-		cx := shape.X + shape.Width/2
-		cy := shape.Y + shape.Height/2
+		radius := f32Min(dr.Width, dr.Height) / 2
+		cx := dr.X + dr.Width/2
+		cy := dr.Y + dr.Height/2
 
 		if c.A > 0 {
 			emitRenderer(RenderCmd{
@@ -479,8 +480,16 @@ func renderCircle(shape *Shape, clip drawClip, w *Window) {
 			}, w)
 		}
 
-		// Border
-		renderShapeBorder(shape, dr, radius, w)
+		// The border rings the circle drawn, centred in a body that need
+		// not be square (a title's band leaves a square box's body wider
+		// than tall). A stroke over the whole body would be a rounded box
+		// around the circle.
+		ring := dr
+		if dr.Width != dr.Height {
+			ring = drawClip{X: cx - radius, Y: cy - radius,
+				Width: 2 * radius, Height: 2 * radius}
+		}
+		renderShapeBorder(shape, ring, radius, w)
 	}
 }
 

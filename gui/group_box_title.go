@@ -1,5 +1,7 @@
 package gui
 
+import "strings"
+
 // Group-box titles (#1238): ContainerCfg.Title draws a label on the
 // container's top border, like an HTML fieldset legend. The label is
 // not a child. It hangs off Shape.fx.groupTitle and the container draws
@@ -17,14 +19,15 @@ const (
 )
 
 // addGroupBoxTitle gives a titled container its label and reserves the
-// room it takes. The label is centred on the top border. The half above
-// the border is a band at the top of the box: the border, fill and
-// shadow are drawn that much lower (containerBody). The half below lies
-// where the top padding is, and a top padding smaller than that grows to
-// it, so neither the label nor its eraser covers the first child. Both
-// amounts follow the label's measured height, so a larger title font
-// reserves more. The label is then wholly inside the box, where a scroll
-// viewport, a clipping parent or a RotatedBox keeps it whole.
+// room it takes. The label's first line is centred on the top border.
+// The half above the border is a band at the top of the box: the border,
+// fill and shadow are drawn that much lower (containerBody). The rest of
+// the label lies where the top padding is, and a top padding smaller
+// than that grows to it, so neither the label nor its eraser covers the
+// first child. Both amounts follow the label's measured height, so a
+// larger title font, or a title with more lines, reserves more. The
+// label is then wholly inside the box, where a scroll viewport, a
+// clipping parent or a RotatedBox keeps it whole.
 func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 	w *Window, shape *Shape) {
 	if len(title) == 0 {
@@ -35,14 +38,21 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 	// restyle.
 	ts := guiTheme.TextStyleTitleSmall
 
-	var textWidth, fontHeight float32
+	// Every renderer breaks a line at a newline, so a title with one is
+	// measured whole; the second measurement is paid only then.
+	var textWidth, lineHeight, textHeight float32
 	if w != nil && w.textMeasurer != nil {
 		textWidth = w.textMeasurer.TextWidth(title, ts)
-		fontHeight = w.textMeasurer.FontHeight(ts)
+		lineHeight = w.textMeasurer.FontHeight(ts)
+		textHeight = lineHeight
+		if strings.IndexByte(title, '\n') >= 0 {
+			textHeight = max(lineHeight, w.textMeasurer.TextHeight(title, ts))
+		}
 	} else {
 		// Fallback for tests without a text measurer.
 		textWidth = float32(len(title)) * 8
-		fontHeight = 16
+		lineHeight = 16
+		textHeight = lineHeight * float32(strings.Count(title, "\n")+1)
 	}
 	// Undimmed: renderGroupBoxTitle stamps the container's Disabled,
 	// inherited or its own, and renderText dims once (issue #341).
@@ -52,7 +62,7 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 	text := w.allocShape(Shape{
 		shapeType: shapeText,
 		Width:     textWidth,
-		Height:    fontHeight,
+		Height:    textHeight,
 		Color:     colorBorder,
 		Opacity:   1.0,
 		// Both from the view-phase arena: a literal here and &ts each
@@ -68,12 +78,13 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 	}
 	shape.fx.groupTitle = text
 	shape.fx.titleBG = titleBG
-	half := fontHeight / 2
+	half := lineHeight / 2
+	shape.fx.titleBand = half
 	sb := shape.SizeBorder
 	if !f32IsFinite(sb) || sb < 0 {
 		sb = 0
 	}
-	shape.Padding.Top = half + max(shape.Padding.Top, half-sb)
+	shape.Padding.Top = half + max(shape.Padding.Top, textHeight-half-sb)
 }
 
 // groupTitleOf returns the title a container draws, or nil. A container
@@ -93,14 +104,28 @@ func groupTitleOf(shape *Shape) *Shape {
 }
 
 // groupTitleBand returns the height of the band a group-box title
-// reserves above the border: half the title's height, capped at the
-// box's. Zero for a container with no title.
+// reserves above the border: half the title's first line, capped at the
+// box's height. Zero for a container with no title.
 func groupTitleBand(shape *Shape) float32 {
 	fx := shape.fx
 	if fx == nil || fx.groupTitle == nil {
 		return 0
 	}
-	return max(0, min(fx.groupTitle.Height/2, shape.Height))
+	return max(0, min(fx.titleBand, shape.Height))
+}
+
+// groupTitleLead returns how far a title's eraser starts from the box's
+// leading edge: groupTitleInset, or a larger rounded corner's radius, so
+// the title and its eraser sit on the straight part of the top border.
+// Over the curve an eraser in the box's fill would square off the
+// corner, and the border would run through the title.
+func groupTitleLead(s *Shape) float32 {
+	if s.shapeType != shapeRectangle || !(s.Radius > groupTitleInset) {
+		return groupTitleInset
+	}
+	body := containerBody(s)
+	// The renderers clamp a radius to half the shorter side.
+	return max(groupTitleInset, min(s.Radius, body.Width/2, body.Height/2))
 }
 
 // containerBody returns the rectangle a container paints its fill,
@@ -123,9 +148,10 @@ func renderGroupBoxTitle(layout *Layout, clip drawClip, w *Window) {
 	s := layout.Shape
 	text := s.fx.groupTitle
 	eraserW := text.Width + 2*groupTitlePad - 1
-	eraserX := s.X + groupTitleInset
+	lead := groupTitleLead(s)
+	eraserX := s.X + lead
 	if effectiveTextDir(s) == TextDirRTL {
-		eraserX = s.X + s.Width - groupTitleInset - eraserW
+		eraserX = s.X + s.Width - lead - eraserW
 	}
 	// Assigned, not accumulated: a render-only frame draws the same
 	// shape again.
@@ -158,13 +184,14 @@ func renderGroupBoxTitle(layout *Layout, clip drawClip, w *Window) {
 // disabled box does not dim. ColorTransparent turns it off.
 //
 // Unset, the patch is drawn only where there is a border to hide, over
-// the label's lower half: the border lies at the top of the box's body
-// (containerBody), and the band above shows what is behind the box
+// the label below the border: the border lies at the top of the box's
+// body (containerBody), and the band above shows what is behind the box
 // anyway. It starts half a border width higher, because the web and
-// PDF backends centre a stroke on its path, and it ends at the body's
-// bottom in a box shorter than the label. Its color is what is drawn
-// there (backdropColor), when that is one opaque color; where none is,
-// the border shows through as it did before #1238.
+// PDF backends centre a stroke on its path, but never above the box,
+// which a border thicker than the label would reach; and it ends at the
+// body's bottom in a box shorter than the label. Its color is what is
+// drawn there (backdropColor), when that is one opaque color; where
+// none is, the border shows through as it did before #1238.
 func groupTitleEraser(layout *Layout, x, width float32, w *Window) (drawClip, Color, bool) {
 	s := layout.Shape
 	text := s.fx.groupTitle
@@ -177,7 +204,7 @@ func groupTitleEraser(layout *Layout, x, width float32, w *Window) (drawClip, Co
 		return r, Color{}, false
 	}
 	body := containerBody(s)
-	top := body.Y - s.SizeBorder/2
+	top := max(body.Y-s.SizeBorder/2, s.Y)
 	bottom := min(text.Y+text.Height, body.Y+body.Height)
 	r.Y, r.Height = top, bottom-top
 	c, ok := backdropColor(layout, w)
