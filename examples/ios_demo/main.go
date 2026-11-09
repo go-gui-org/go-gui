@@ -17,6 +17,10 @@ type App struct {
 	Name     string
 	Password string
 	Amount   string
+	// Fullscreen is what the app asked for. IsFullscreen can differ:
+	// a windowed iPad grants it only once the window fills the
+	// screen.
+	Fullscreen bool
 }
 
 // iosWindow holds the window Init created; a repeat Init call reuses
@@ -79,8 +83,10 @@ func view(w *gui.Window) gui.View {
 				},
 				OnClick: func(ctx gui.EventCtx) {
 					gui.State[App](ctx.Window).Clicks++
+					ctx.Consume()
 				},
 			}),
+			fullscreenButton(w),
 			// Each field asks for its own soft keyboard (issue #806).
 			gui.Input(gui.InputCfg{
 				ID:          gui.ScopeID("ios-demo", "name"),
@@ -117,6 +123,28 @@ func view(w *gui.Window) gui.View {
 					gui.State[App](ctx.Window).Amount = s
 				},
 			}),
+		},
+	})
+}
+
+// fullscreenButton hides the status bar and lets the home indicator
+// fade (issue #1171). It toggles the app's own request, not
+// IsFullscreen: on a windowed iPad IsFullscreen stays false, and a
+// toggle of it would ask again on every tap and never take the request
+// back.
+func fullscreenButton(w *gui.Window) gui.View {
+	label := "Fullscreen"
+	if gui.State[App](w).Fullscreen {
+		label = "Leave fullscreen"
+	}
+	return gui.Button(gui.ButtonCfg{
+		ID:      gui.ScopeID("ios-demo", "fullscreen"),
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
+		OnClick: func(ctx gui.EventCtx) {
+			app := gui.State[App](ctx.Window)
+			app.Fullscreen = !app.Fullscreen
+			ctx.Window.SetFullscreen(app.Fullscreen)
+			ctx.Consume()
 		},
 	})
 }

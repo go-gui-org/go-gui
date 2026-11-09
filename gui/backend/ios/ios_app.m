@@ -274,9 +274,14 @@ void iosKeyboardQueueApply(void) {
 
 // ─── GoGuiViewController ─────────────────────────────────────
 
+// gWantFullscreen is the app's last fullscreen request. Main thread
+// only: iosSetFullscreen sets it from a main-queue block.
+static BOOL gWantFullscreen = NO;
+
 @interface GoGuiViewController : UIViewController
 @property (nonatomic, strong) CADisplayLink *displayLink;
 @property (nonatomic, assign) BOOL started;
+- (void)reportFullscreen;
 @end
 
 @implementation GoGuiViewController
@@ -356,6 +361,7 @@ void iosKeyboardQueueApply(void) {
                     (float)scale);
     }
     [self reportSafeArea];
+    [self reportFullscreen];
 }
 
 // ─── Safe area (issue #1171) ─────────────────────────────────
@@ -375,6 +381,35 @@ void iosKeyboardQueueApply(void) {
     UIEdgeInsets i = self.view.safeAreaInsets;
     goIOSSafeArea((float)i.top, (float)i.right,
                   (float)i.bottom, (float)i.left);
+}
+
+// ─── Fullscreen (issue #1171) ────────────────────────────────
+// Fullscreen hides the status bar and lets the home indicator fade.
+// Neither resizes the view, and a notched iPhone announces neither, so
+// the state is worked out here: asked for, and the window fills the
+// screen. A windowed iPad does not fill it; the layout pass after the
+// window changes size reports again.
+//
+// The super calls keep what UIKit does by default: an iPhone in
+// landscape hides the status bar whatever the app asks.
+
+- (BOOL)prefersStatusBarHidden {
+    return gWantFullscreen || [super prefersStatusBarHidden];
+}
+
+- (BOOL)prefersHomeIndicatorAutoHidden {
+    return gWantFullscreen || [super prefersHomeIndicatorAutoHidden];
+}
+
+- (void)reportFullscreen {
+    if (!self.started) {
+        return;
+    }
+    UIWindow *win = self.view.window;
+    UIScreen *screen = win.windowScene.screen;
+    BOOL fills = win != nil && screen != nil &&
+        CGSizeEqualToSize(win.bounds.size, screen.bounds.size);
+    goIOSFullscreen(gWantFullscreen && fills);
 }
 
 - (void)render:(CADisplayLink *)link {
@@ -547,6 +582,17 @@ int iosAppearanceDark(void) {
 // one would start the backend a second time.
 
 static GoGuiViewController *gRootController;
+
+void iosSetFullscreen(int on) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        gWantFullscreen = on != 0;
+        GoGuiViewController *c = gRootController;
+        if (!c) return; // a Swift host owns its controller
+        [c setNeedsStatusBarAppearanceUpdate];
+        [c setNeedsUpdateOfHomeIndicatorAutoHidden];
+        [c reportFullscreen];
+    });
+}
 
 @interface GoGuiSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (nonatomic, strong) UIWindow *window;

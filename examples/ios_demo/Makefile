@@ -2,6 +2,8 @@ SDK_PATH := $(shell xcrun --sdk iphonesimulator --show-sdk-path)
 CC_PATH  := $(shell xcrun --sdk iphonesimulator --find clang)
 
 APP_PATH = $(shell find ~/Library/Developer/Xcode/DerivedData/IOSDemo-*/Build/Products/Debug-iphonesimulator -name IOSDemo.app -maxdepth 1 2>/dev/null | head -1)
+# The simulator to build for and run on. Override it with one your Xcode
+# has: make run SIM="iPhone 18 Pro"
 SIM      = iPhone 17 Pro
 
 .PHONY: build run clean
@@ -15,7 +17,7 @@ build:
 	xcodebuild -project ios/IOSDemo.xcodeproj \
 	  -scheme IOSDemo \
 	  -sdk iphonesimulator \
-	  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+	  -destination 'platform=iOS Simulator,name=$(SIM)' \
 	  build
 
 run: build

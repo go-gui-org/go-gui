@@ -1,8 +1,8 @@
 # Spec: window state and placement
 
-Issue #1220. Status: **implemented** on desktop and web (unreleased). This also
-covers the desktop and web parts of #1171, where iOS and Android fullscreen stay
-open; see Phasing.
+Issue #1220. Status: **implemented** on desktop, web and iOS (unreleased). This
+also covers those parts of #1171, where Android fullscreen stays open; see
+Phasing.
 
 ## Problem
 
@@ -82,7 +82,7 @@ State comes back through one call,
 | Wayland | xdg or libdecor         | xdg or libdecor            | No: no-op |
 | Web     | No-op                   | Fullscreen API on the page | No-op     |
 | Android | No-op                   | Follow-up                  | No-op     |
-| iOS     | No-op                   | Follow-up                  | No-op     |
+| iOS     | No-op                   | Status bar, home indicator | No-op     |
 
 Wayland has no client request to un-minimize a window, so `Restore` does nothing
 for a minimized window there.
@@ -145,6 +145,20 @@ These cost a wrong first attempt each. Keep them when changing the code.
   the accessibility tree sit beside the canvas and must stay on screen.
   `IsFullscreen` follows `fullscreenchange`, where Esc and Back arrive. The
   browser's own fullscreen (F11) is not page fullscreen, so it does not count.
+- **iOS: `IsFullscreen` is worked out, not reported.** Hiding the status bar
+  never resizes the view, and a notched iPhone sends no callback, so after each
+  layout pass the controller reports "asked for, and the window fills the
+  screen". A windowed iPad does not fill it: `IsFullscreen` stays false there
+  and turns true once the user makes the window full size again, with no new
+  call.
+- **iOS: `prefersStatusBarHidden` keeps UIKit's answer.** It ORs in `super`,
+  which hides the status bar on an iPhone in landscape. Returning only the
+  request would show the bar there.
+- **iOS: an app toggles its own request, not `IsFullscreen`.** On a windowed
+  iPad `IsFullscreen` stays false, so a button that toggles it asks again on
+  every tap and can never take the request back; the app then goes fullscreen
+  unasked once the window fills the screen. `examples/ios_demo` keeps the
+  request in its state.
 
 ## Testing
 
@@ -159,6 +173,7 @@ leave, minimize, restore.
 | Wayland | `scripts/wayland/test.sh`, three compositors; GNOME 48 by hand   |
 | macOS   | Probe on a Mac, logs read line by line; Fill and tiling by hand  |
 | Web     | Headless Chrome over CDP; Chrome on Windows and Pixel 7 by hand  |
+| iOS     | `examples/ios_demo` and Safari on iPhone and iPad simulators     |
 
 Each desktop backend ran decorated, frameless, with `MaxWidth` and with
 `FixedSize`.
@@ -169,6 +184,14 @@ a bare request at `touchstart` was refused. By hand, Chrome on Windows entered
 by click and Enter and left by Esc, and F11 left `IsFullscreen` false. On the
 Pixel 7 (Chrome, API 37) a tap entered more than 5 seconds after any other
 input, so through the held request, and Back left.
+
+iOS ran on the iOS 27 simulators. On the iPhone 18 Pro the button hid the status
+bar and showed it again, and `IsFullscreen` stayed true through rotation. On the
+iPad Pro, full screen gave `IsFullscreen` true with a top safe area of 0;
+windowed gave false with 10 at the top and bottom, and the full-size window gave
+true again without a new call. Safari on the iPad grew the page from 820×1094 to
+820×1120 and left by the button; on the iPhone the button did nothing, as
+expected.
 
 GNOME does not cap a maximized window at `MaxWidth`, on X11 or on Wayland, which
 is why `WindowCfg` promises that cap on Windows and macOS only.
@@ -182,14 +205,14 @@ is why `WindowCfg` promises that cap on Windows and macOS only.
 | 3   | macOS                                               | done   |
 | 4   | Docs and `examples/window_state`, frameless buttons | done   |
 | 5   | Web fullscreen                                      | done   |
-| 6   | iOS fullscreen                                      | open   |
+| 6   | iOS fullscreen                                      | done   |
 | 7   | Android fullscreen                                  | open   |
 
 Position lands with each desktop backend instead of in its own phase: the
 interface needs all seven methods at once, so each backend is done in one pass.
 
-iOS and Android are open in #1171, which this work does not close. The plan
-there comes from device tests.
+Android is open in #1171, which this work does not close. The plan there comes
+from device tests.
 
 ## Rejected Approaches
 

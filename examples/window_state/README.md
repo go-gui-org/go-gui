@@ -31,14 +31,15 @@ the desktop's keyboard shortcuts.
 
 ## Platforms
 
-| Platform     | Minimize, maximize, restore | Fullscreen     | Size | Position |
-| ------------ | --------------------------- | -------------- | ---- | -------- |
-| Windows      | Yes                         | Yes            | Yes  | Yes      |
-| macOS        | Yes                         | Yes            | Yes  | Yes      |
-| X11          | Yes                         | Yes            | Yes  | Yes      |
-| Wayland      | Yes, see below              | Yes            | Yes  | No       |
-| Web          | No                          | Yes, see below | No   | No       |
-| iOS, Android | No                          | Not yet        | No   | No       |
+| Platform | Minimize, maximize, restore | Fullscreen     | Size | Position |
+| -------- | --------------------------- | -------------- | ---- | -------- |
+| Windows  | Yes                         | Yes            | Yes  | Yes      |
+| macOS    | Yes                         | Yes            | Yes  | Yes      |
+| X11      | Yes                         | Yes            | Yes  | Yes      |
+| Wayland  | Yes, see below              | Yes            | Yes  | No       |
+| Web      | No                          | Yes, see below | No   | No       |
+| iOS      | No                          | Yes, see below | No   | No       |
+| Android  | No                          | Not yet        | No   | No       |
 
 Wayland has no request to bring back a minimized window, and a client cannot
 read or set its position. A tiling compositor such as sway ignores maximize and
@@ -47,5 +48,10 @@ a client's own size.
 On the web the whole page goes fullscreen, and only from a click, tap or key
 press: a browser refuses it anywhere else. Esc or Back leaves it, and the
 readout follows. iPhone Safari has no fullscreen for a page.
+
+On iOS fullscreen hides the status bar and lets the home indicator fade out; the
+view keeps its size. A windowed iPad cannot fill the screen, so `IsFullscreen`
+stays false there until the window does. This example runs on desktop and web;
+`examples/ios_demo` has the iOS button.
 
 See `main.go` for the implementation.
