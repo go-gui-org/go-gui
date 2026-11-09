@@ -39,7 +39,7 @@ the desktop's keyboard shortcuts.
 | Wayland  | Yes, see below              | Yes            | Yes  | No       |
 | Web      | No                          | Yes, see below | No   | No       |
 | iOS      | No                          | Yes, see below | No   | No       |
-| Android  | No                          | Not yet        | No   | No       |
+| Android  | No                          | Yes, see below | No   | No       |
 
 Wayland has no request to bring back a minimized window, and a client cannot
 read or set its position. A tiling compositor such as sway ignores maximize and
@@ -51,7 +51,13 @@ readout follows. iPhone Safari has no fullscreen for a page.
 
 On iOS fullscreen hides the status bar and lets the home indicator fade out; the
 view keeps its size. A windowed iPad cannot fill the screen, so `IsFullscreen`
-stays false there until the window does. This example runs on desktop and web;
-`examples/ios_demo` has the iOS button.
+stays false there until the window does.
+
+On Android fullscreen hides the status and navigation bars. The app's host does
+the work, through the bridge calls in `examples/android_demo`. `IsFullscreen` is
+false in multi-window mode.
+
+This example runs on desktop and web. `examples/ios_demo` and
+`examples/android_demo` have a Fullscreen button for their platforms.
 
 See `main.go` for the implementation.

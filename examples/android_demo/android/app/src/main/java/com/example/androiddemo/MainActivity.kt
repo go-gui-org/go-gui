@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger
 class MainActivity : Activity() {
 
     private lateinit var glSurfaceView: GoGuiGLSurfaceView
+    // Window.SetFullscreen (go-gui #1171).
+    private lateinit var fullscreen: GoGuiFullscreen
 
     companion object {
         private const val CHANNEL_ID = "go_gui_default"
@@ -29,7 +31,24 @@ class MainActivity : Activity() {
         Androidapp.setSecretStore(AndroidSecretStore(applicationContext))
         glSurfaceView = GoGuiGLSurfaceView(this)
         setContentView(glSurfaceView)
+        fullscreen = GoGuiFullscreen(this, glSurfaceView)
         pushAppearance(resources.configuration)
+    }
+
+    // setFullscreen applies a request GoGuiRenderer polled. UI thread.
+    fun setFullscreen(on: Boolean) = fullscreen.set(on)
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        fullscreen.onWindowFocusChanged(hasFocus)
+    }
+
+    // The one-argument form reaches Android 7; Android 8 and later call
+    // it from the two-argument one.
+    @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
+    override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode)
+        fullscreen.onMultiWindowModeChanged()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

@@ -154,11 +154,10 @@ func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 func (n *nativePlatform) ShowWindow() {}
 func (n *nativePlatform) HideWindow() {}
 
-// No window to place on Android. Fullscreen is a follow-up to #1171.
+// No window to place on Android, only fullscreen (fullscreen.go).
 func (n *nativePlatform) MinimizeWindow()                  {}
 func (n *nativePlatform) MaximizeWindow()                  {}
 func (n *nativePlatform) RestoreWindow()                   {}
-func (n *nativePlatform) SetWindowFullscreen(_ bool)       {}
 func (n *nativePlatform) ResizeWindow(_, _ int)            {}
 func (n *nativePlatform) MoveWindow(_, _ int)              {}
 func (n *nativePlatform) WindowPosition() (int, int, bool) { return 0, 0, false }

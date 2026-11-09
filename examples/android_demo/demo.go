@@ -26,6 +26,9 @@ type App struct {
 	SecretDraft  string
 	SecretStatus string
 	SecretBusy   bool
+	// Fullscreen is what the app asked for. IsFullscreen can differ:
+	// in multi-window mode the activity cannot be fullscreen.
+	Fullscreen bool
 }
 
 const tokenKey = "api-token"
@@ -80,8 +83,22 @@ func Start(width, height int, scale float32) {
 
 // SurfaceCreated reports a new EGL context, so the backend rebuilds the
 // GL resources lost with the old one. Call it from onSurfaceCreated.
+//
+// A new activity brings a new context too, and it starts out of
+// fullscreen (issue #1171): the demo asks again if it still wants it.
 func SurfaceCreated() {
 	android.SurfaceCreated()
+	if demoWindow != nil {
+		demoWindow.QueueCommand(refullscreen)
+	}
+}
+
+// refullscreen asks again for the fullscreen the demo wants. Asking an
+// activity that already is fullscreen changes nothing.
+func refullscreen(w *gui.Window) {
+	if gui.State[App](w).Fullscreen {
+		w.SetFullscreen(true)
+	}
 }
 
 // Render runs one frame.
@@ -109,6 +126,16 @@ func CleanUp() {
 
 // PendingURI returns and clears the pending URI to open.
 func PendingURI() string { return android.PendingURI() }
+
+// --- Fullscreen bridge (issue #1171) ---
+
+// PendingFullscreen returns and clears the last fullscreen request.
+// 0=none, 1=enter, 2=leave.
+func PendingFullscreen() int32 { return android.PendingFullscreen() }
+
+// FullscreenChanged is called from Kotlin with whether the activity is
+// now fullscreen.
+func FullscreenChanged(on bool) { android.FullscreenChanged(on) }
 
 // --- IME bridge ---
 
@@ -371,8 +398,31 @@ func view(w *gui.Window) gui.View {
 				},
 				OnClick: func(ctx gui.EventCtx) {
 					gui.State[App](ctx.Window).Clicks++
+					ctx.Consume()
 				},
 			}),
+			fullscreenButton(w),
+		},
+	})
+}
+
+// fullscreenButton hides the system bars (issue #1171). It toggles the
+// app's own request, not IsFullscreen: in multi-window mode
+// IsFullscreen stays false, and a toggle of it would ask again on every
+// tap and never take the request back.
+func fullscreenButton(w *gui.Window) gui.View {
+	label := "Fullscreen"
+	if gui.State[App](w).Fullscreen {
+		label = "Leave fullscreen"
+	}
+	return gui.Button(gui.ButtonCfg{
+		ID:      "android_fullscreen",
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
+		OnClick: func(ctx gui.EventCtx) {
+			app := gui.State[App](ctx.Window)
+			app.Fullscreen = !app.Fullscreen
+			ctx.Window.SetFullscreen(app.Fullscreen)
+			ctx.Consume()
 		},
 	})
 }
