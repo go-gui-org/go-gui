@@ -79,7 +79,9 @@ right-to-left box the label mirrors to the right edge with the same inset.
 A `Circle` draws its circle in the body too, so its title sits on the line the
 circle's top touches, as it did as a float. Its border rings that circle instead
 of stroking the body, which a band leaves wider than tall, and its clip radius
-is that circle's.
+and its `ClipContents` mask are that circle too. One helper, `circleRing`,
+places it for all four. The mask used the container's corner radius before, a
+rounded square around every `Circle`, titled or not.
 
 **An unset `TitleBG` takes the color drawn under the border.** The border lies
 at the top of the box's body, so the default eraser covers the label from the
