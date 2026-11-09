@@ -158,7 +158,7 @@ const maxChildViews = 10000
 // Ordering matters: the parent's own shape must be built before this is
 // called, because the parent's ID resolves in the *enclosing* scope while
 // its children resolve under it. Children the parent injected directly
-// (addGroupBoxTitle's eraser + label) keep their position ahead of these.
+// keep their position ahead of these.
 func appendChildViews(w *Window, parent *Layout, children []View) {
 	// Callers build parent.Shape before calling: childScopeID stamps it
 	// and reads its ID to derive the child scope, and a shape built late

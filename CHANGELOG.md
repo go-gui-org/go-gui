@@ -121,6 +121,35 @@ and this project adheres to
   computes reachability itself (the `reach` class from #1221), so a marker can
   no longer outlive the fact it asserts.
 
+- **BREAKING: a titled container with a fixed or filling height has less room
+  for its content (#1238).** A group box now reserves room for its title inside
+  its bounds (see the next entry). A box whose `Height` is fixed, or that fills
+  its parent, keeps its size, so its content area shrinks by the title's band:
+  about 9 px at the default title size, two thirds of the title's font size in
+  general, and more when the top padding is under half the title's height.
+  Content sized to fit such a box can now be clipped or scroll. Migration: add
+  the band to `Height`, or let the content shrink.
+
+- **A group box makes room for its title, and an unset `TitleBG` hides the
+  border behind it (#1238).** The title used to stick out above the box by half
+  its height, over whatever sat there, and covered the first child when the top
+  padding was small. The box now reserves the title's room: its border is drawn
+  half the title's line height below its top edge (about 9 px at the default
+  title size; the band follows the title's font size), and its content starts
+  below the title. A box sized by its content is that much taller; see the
+  BREAKING entry before this one for fixed heights. The title is then inside the
+  box, where a scroll view, a clipping parent or a `RotatedBox` no longer cuts
+  it, and in a right-to-left box it sits at the right edge with the same inset.
+  `TitleBG` no longer has to be set to the parent's color: unset, the patch
+  under the title takes the color drawn under the border, the box's own fill or
+  what is behind it, so the border line no longer runs through the title by
+  default. Over a gradient or shader fill, a `ColorFilter`, a blurred fill or a
+  see-through floating panel no one color matches; there an unset `TitleBG`
+  draws no patch, as before. Over a sibling drawn underneath, as in a `Stack`,
+  the patch takes the container's color; set `TitleBG` there. `ColorTransparent`
+  turns the patch off. A disabled box no longer dims the patch, which let the
+  border show through the title.
+
 - **Hovering the libdecor titlebar no longer redraws the window on Wayland
   (#1203).** On GNOME and other compositors where go-gui draws the frame through
   libdecor, the frame shows only with a commit of the window's surface. Each
@@ -131,6 +160,17 @@ and this project adheres to
   or a scale change, still makes the commit, and so does the first frame.
 
 ### Fixed
+
+- **Tooltips, dropdowns and menus are drawn over group-box titles, and a title
+  scrolls out of view with its box (#1238).** A group-box title was two floating
+  children, so it was drawn in the popup layers: a tooltip, a `Select` or
+  `Combobox` list, a menu or a context menu that opened earlier in the tree was
+  painted under it, and the title escaped every clip, showing over a header or
+  below a footer once its box scrolled out of a viewport. The container now
+  draws its title itself, after its content and in its parent's clip. A title
+  under a view transform turns and scales with its box instead of staying
+  behind, a disabled ancestor dims it like the rest of the box, and a box an
+  overflowing row hides no longer draws its title.
 
 - **Dropping an in-memory image frees its GPU texture, and a key registered
   again draws its new pixels (#1230).** `DropImage` removed the image from the

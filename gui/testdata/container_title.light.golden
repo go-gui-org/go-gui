@@ -1,3 +1,4 @@
 # go-gui-golden v1
-StrokeRect xy=15.00,15.00 wh=30.00,30.00 color=#1a1d2199 radius=6.00 thickness=1.00
-Text xy=40.00,7.00 wh=0.00,0.00 color=#1a1d2199 text="Group" size=14.00
+StrokeRect xy=15.00,23.00 wh=30.00,30.00 color=#1a1d2199 radius=6.00 thickness=1.00
+Rect xy=35.00,22.50 wh=49.00,8.50 color=#f2f4f7ff fill
+Text xy=40.00,15.00 wh=0.00,0.00 color=#1a1d2199 text="Group" size=14.00

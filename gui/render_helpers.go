@@ -135,7 +135,9 @@ func resolveClipRadius(parentRadius float32, shape *Shape) float32 {
 	}
 	leftInset := shape.Padding.Left + shape.SizeBorder
 	rightInset := shape.Padding.Right + shape.SizeBorder
-	topInset := shape.Padding.Top + shape.SizeBorder
+	// The rounded corner is the body's, below a group-box title's band
+	// (containerBody), and the top padding counts that band too.
+	topInset := shape.Padding.Top + shape.SizeBorder - groupTitleBand(shape)
 	bottomInset := shape.Padding.Bottom + shape.SizeBorder
 	inset := max(leftInset, rightInset, topInset, bottomInset)
 	localRadius := f32Max(0, baseRadius-inset)

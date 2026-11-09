@@ -1,10 +1,6 @@
 package gui
 
-import (
-	"testing"
-
-	"github.com/go-gui-org/go-glyph"
-)
+import "testing"
 
 // --- Event traversal tests ---
 
@@ -1184,42 +1180,5 @@ func TestGenerateViewLayout_ExcessiveChildren(t *testing.T) {
 	if len(layout.Children) != maxChildViews {
 		t.Errorf("children: got %d, want capped to %d",
 			len(layout.Children), maxChildViews)
-	}
-}
-
-// TestGroupBoxTitleChildrenOrder pins the group-box injection order:
-// addGroupBoxTitle's floating eraser + title label must stay ahead of
-// the Content children, which append after them. A container with both
-// Title and Content is the one layout where this ordering is visible.
-func TestGroupBoxTitleChildrenOrder(t *testing.T) {
-	v := Column(ContainerCfg{
-		ID:          "gb",
-		Title:       "Group",
-		TitleBG:     RGB(30, 30, 30),
-		ColorBorder: RGB(100, 100, 100),
-		Content: []View{
-			Text(TextCfg{Text: "child"}),
-		},
-	})
-	layout := generateViewLayout(v, &Window{})
-	if len(layout.Children) != 3 {
-		t.Fatalf("children = %d, want 3 (eraser, label, content)",
-			len(layout.Children))
-	}
-	eraser := layout.Children[0].Shape
-	if eraser.shapeType != shapeRectangle || !eraser.Float {
-		t.Errorf("children[0] = %+v, want floating eraser rectangle", eraser)
-	}
-	label := layout.Children[1].Shape
-	if label.shapeType != shapeText || !label.Float {
-		t.Errorf("children[1] = %+v, want floating title label", label)
-	}
-	if got := label.TC.TextStyle.Typeface; got != glyph.TypefaceBold {
-		t.Errorf("title label typeface = %d, want bold (B3, visual-refresh §2.2)",
-			got)
-	}
-	content := layout.Children[2].Shape
-	if content.shapeType != shapeText || content.Float {
-		t.Errorf("children[2] = %+v, want non-floating content text", content)
 	}
 }

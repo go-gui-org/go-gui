@@ -236,6 +236,16 @@ func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
 	}
 }
 
+// hasLayoutContent reports whether a container has anything to fit its
+// padding around: a child, in flow or not, or a group-box title.
+func hasLayoutContent(layout *Layout) bool {
+	if len(layout.Children) > 0 {
+		return true
+	}
+	fx := layout.Shape.fx
+	return fx != nil && fx.groupTitle != nil
+}
+
 // layoutWidths arranges children horizontally (bottom-up).
 func layoutWidths(layout *Layout) {
 	layoutWidthsDepth(layout, 0)
@@ -308,15 +318,15 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 		// Padding is seeded rather than reaching the container only as
 		// part of some child's contribution below, so that skipping an
 		// out-of-flow child cannot also discard the container's own
-		// padding. An empty group box has exactly one child — a shapeNone
-		// placeholder (layoutPlaceholder) — and used to get its padding
-		// width from measuring it.
+		// padding.
 		//
-		// Gated on having children at all, in flow or not: a container
+		// Gated on having content at all, in flow or not: a container
 		// with none collapses to 0 rather than to its padding, which is
 		// what a closed Sidebar (zero children, 1px border each side)
-		// relies on to stay shut.
-		if fitWidth && len(layout.Children) > 0 {
+		// relies on to stay shut. A group-box title counts: an empty
+		// group box keeps its padding, as it did while its title was
+		// two Float children (#1238).
+		if fitWidth && hasLayoutContent(layout) {
 			layout.Shape.Width = f32Max(layout.Shape.Width, padding)
 		}
 		for i := range layout.Children {
@@ -430,9 +440,9 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 		// (see issue #94). Captured before the loop mutates Height.
 		fitHeight := layout.Shape.Sizing.Height != SizingFixed || layout.Shape.Height == 0
 		// See layoutWidths: seeded so skipping an out-of-flow child cannot
-		// discard the container's padding, and gated on having children so
+		// discard the container's padding, and gated on having content so
 		// a childless container still collapses to 0.
-		if fitHeight && len(layout.Children) > 0 {
+		if fitHeight && hasLayoutContent(layout) {
 			layout.Shape.Height = f32Max(layout.Shape.Height, padding)
 		}
 		for i := range layout.Children {

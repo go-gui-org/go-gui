@@ -12,20 +12,25 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 	renderLayoutDepth(layout, bgColor, clip, w, 0)
 }
 
+// renderOnlyAmend re-runs an animated widget's AmendLayout on a
+// render-only frame, which reuses the last layout, before the widget
+// and its children are drawn. Gated on the pass: in a full frame
+// layoutAmend has just run it.
+func renderOnlyAmend(layout *Layout, w *Window) {
+	if !w.renderOnlyPass {
+		return
+	}
+	if ev := layout.Shape.events; ev != nil && ev.amendOnRender &&
+		ev.AmendLayout != nil {
+		ev.AmendLayout(EventCtx{layout, nil, w})
+	}
+}
+
 func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, depth int) {
 	if overMaxDepth(depth) {
 		return
 	}
-	// A render-only frame reuses the last layout, so an animated widget
-	// that paints from AmendLayout re-runs its hook here, before it and
-	// its children are drawn. Gated on the pass: in a full frame
-	// layoutAmend has just run it.
-	if w.renderOnlyPass {
-		if ev := layout.Shape.events; ev != nil && ev.amendOnRender &&
-			ev.AmendLayout != nil {
-			ev.AmendLayout(EventCtx{layout, nil, w})
-		}
-	}
+	renderOnlyAmend(layout, w)
 	// The transform bracket opens first, so the view's own fill, its
 	// filter and all its children are drawn through it. Inside, the clip
 	// the parent passed is in the wrong frame, so drawing culls against
@@ -69,7 +74,28 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 	}
 
 	renderShape(layout.Shape, bgColor, clip, w)
+	renderLayoutChildren(layout, bgColor, clip, w, depth)
+	// A group-box title sits on the top border, in the band it reserves
+	// above it, outside the box's content box. So the box draws it after
+	// its children, which the title covers like a legend, and after the
+	// brackets renderLayoutChildren opened around them, so in the
+	// parent's clip, not its own. The transform and filter brackets
+	// above are still open: the title turns and filters with its box
+	// (#1238).
+	if groupTitleOf(layout.Shape) != nil {
+		renderGroupBoxTitle(layout, clip, w)
+	}
+}
 
+// renderLayoutChildren draws layout's children inside the brackets the
+// shape opens around them: an OverDraw or Clip scissor, the rounded
+// stencil, the clip radius handed to images, the quarter-turn. They
+// close as it returns, so the caller can draw over the children
+// outside them. Split from renderLayoutDepth so that neither function
+// has more defers than the compiler open-codes (at most 8, and defers
+// times returns at most 15); past that every defer on this per-shape,
+// per-frame path is a runtime record.
+func renderLayoutChildren(layout *Layout, bgColor Color, clip drawClip, w *Window, depth int) {
 	shapeClip := clip
 	if layout.Shape.OverDraw {
 		shapeClip = renderShapeClip(layout.Shape, clip, w)
@@ -123,11 +149,14 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 			sb = 0
 		}
 		sb = max(0, sb)
+		// The body, not the bounds: a group-box title's band sits
+		// above the border (containerBody).
+		body := containerBody(layout.Shape)
 		stencil := RenderCmd{
-			X:      layout.Shape.X + sb,
-			Y:      layout.Shape.Y + sb,
-			W:      max(0, layout.Shape.Width-2*sb),
-			H:      max(0, layout.Shape.Height-2*sb),
+			X:      body.X + sb,
+			Y:      body.Y + sb,
+			W:      max(0, body.Width-2*sb),
+			H:      max(0, body.Height-2*sb),
 			Radius: max(0, layout.Shape.Radius-sb),
 		}
 		if stencilled {
@@ -251,10 +280,12 @@ func renderShapeInner(shape *Shape, parentColor Color, clip drawClip, w *Window)
 }
 
 // renderContainer draws a rectangle (possibly with shadow, gradient,
-// blur, or border).
+// blur, or border) over its body: the shape's bounds, less the band a
+// group-box title reserves above its border (containerBody).
 func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 	fx := shape.fx
 	hasFX := fx != nil
+	body := containerBody(shape)
 
 	// Shadow
 	if hasFX && fx.Shadow != nil &&
@@ -263,10 +294,10 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			fx.Shadow.OffsetY != 0 || fx.Shadow.Spread > 0) {
 		emitRenderer(RenderCmd{
 			Kind:       RenderShadow,
-			X:          shape.X,
-			Y:          shape.Y,
-			W:          shape.Width,
-			H:          shape.Height,
+			X:          body.X,
+			Y:          body.Y,
+			W:          body.Width,
+			H:          body.Height,
 			Radius:     shape.Radius,
 			BlurRadius: fx.Shadow.BlurRadius,
 			Spread:     fx.Shadow.Spread,
@@ -287,10 +318,10 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 		// must neither start its clock nor keep the frame loop running.
 		if emitRendererIfValid(RenderCmd{
 			Kind:   RenderCustomShader,
-			X:      shape.X,
-			Y:      shape.Y,
-			W:      shape.Width,
-			H:      shape.Height,
+			X:      body.X,
+			Y:      body.Y,
+			W:      body.Width,
+			H:      body.Height,
 			Radius: shape.Radius,
 			// Opacity 1: renderShape already scaled shape.Color
 			// by shape.Opacity, so only the disabled dim is left.
@@ -301,7 +332,7 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			Shader:         fx.Shader,
 			shaderBuiltins: &fx.shaderBuiltins,
 		}, w) {
-			w.packShaderShape(shape)
+			w.packShaderShape(shape, body.Width, body.Height)
 			if fx.Shader.Surface != nil {
 				w.pixelSurfaces.drew = true
 			}
@@ -309,10 +340,10 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 	case hasFX && fx.Gradient != nil:
 		emitRenderer(RenderCmd{
 			Kind:   RenderGradient,
-			X:      shape.X,
-			Y:      shape.Y,
-			W:      shape.Width,
-			H:      shape.Height,
+			X:      body.X,
+			Y:      body.Y,
+			W:      body.Width,
+			H:      body.Height,
 			Radius: shape.Radius,
 			Gradient: dimmedGradient(fx.Gradient,
 				shape.Opacity, shape.Disabled),
@@ -327,10 +358,10 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 		}
 		emitRenderer(RenderCmd{
 			Kind:       RenderBlur,
-			X:          shape.X,
-			Y:          shape.Y,
-			W:          shape.Width,
-			H:          shape.Height,
+			X:          body.X,
+			Y:          body.Y,
+			W:          body.Width,
+			H:          body.Height,
 			Radius:     shape.Radius,
 			BlurRadius: fx.BlurRadius,
 			Color:      c,
@@ -342,8 +373,8 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 	}
 
 	// Border, on top of the fill.
-	if dr := shapeBounds(shape); rectsOverlap(dr, clip) {
-		renderShapeBorder(shape, dr, shape.Radius, w)
+	if rectsOverlap(body, clip) {
+		renderShapeBorder(shape, body, shape.Radius, w)
 	}
 }
 
@@ -359,7 +390,7 @@ func fillDims(shape *Shape) bool {
 // renderRectangleFill draws a shape's solid body, if it has a visible
 // Color and overlaps the clip.
 func renderRectangleFill(shape *Shape, clip drawClip, w *Window) {
-	dr := shapeBounds(shape)
+	dr := containerBody(shape)
 	c := shape.Color
 	if fillDims(shape) {
 		c = dimAlpha(c)
