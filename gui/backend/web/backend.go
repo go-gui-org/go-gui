@@ -115,6 +115,9 @@ type Backend struct {
 	colorCacheLen int
 	colorCacheIdx int
 	callbacks     []js.Func // prevent GC of registered callbacks
+	// fullscreen enters and leaves fullscreen; the touch listeners
+	// hold a request made at touch-down for the touchend (#1171).
+	fullscreen *pageFullscreen
 
 	hasRoundRect bool // Canvas2D roundRect support (missing on Safari <15.4)
 }
@@ -283,9 +286,12 @@ func newBackend(w *gui.Window) (*Backend, error) {
 	w.SetClipboardGetFn(func() string {
 		return b.lastPasteText
 	})
+	b.fullscreen = newPageFullscreen(doc,
+		js.Global().Get("navigator"), &b.callbacks)
 	w.SetNativePlatform(&nativePlatform{
-		doc:    doc,
-		canvas: canvas,
+		doc:        doc,
+		canvas:     canvas,
+		fullscreen: b.fullscreen,
 	})
 
 	return b, nil

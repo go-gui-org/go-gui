@@ -36,8 +36,10 @@ and this project adheres to
   maximized. Called before `backend.Run`, these apply as the window opens.
   `Position` is in OS desktop units. Wayland cannot place a window or bring back
   a minimized one, so `SetPosition` is a no-op there, `Position` reports no
-  position, and `Restore` only undoes a maximize. Web, iOS and Android no-op for
-  now; their fullscreen is a follow-up.
+  position, and `Restore` only undoes a maximize. On the web `SetFullscreen`
+  puts the whole page in fullscreen; browsers allow it only from a click, tap or
+  key press handler, and iPhone Safari has no page fullscreen. iOS and Android
+  no-op for now; their fullscreen is a follow-up.
 
 - **Safe area: `Window.SafeAreaPadding` (#1171).** On a phone the notch, the
   status bar and the home bar cover the edges of the window, and an app had no

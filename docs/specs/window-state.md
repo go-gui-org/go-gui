@@ -1,8 +1,8 @@
 # Spec: window state and placement
 
-Issue #1220. Status: **implemented** on desktop (unreleased). This also covers
-the desktop half of #1171, where web and mobile fullscreen stay open; see
-Phasing.
+Issue #1220. Status: **implemented** on desktop and web (unreleased). This also
+covers the desktop and web parts of #1171, where iOS and Android fullscreen stay
+open; see Phasing.
 
 ## Problem
 
@@ -80,7 +80,7 @@ State comes back through one call,
 | macOS   | `miniaturize:`, `zoom:` | `toggleFullScreen:`        | Yes       |
 | X11     | EWMH, `WM_CHANGE_STATE` | `_NET_WM_STATE_FULLSCREEN` | Yes       |
 | Wayland | xdg or libdecor         | xdg or libdecor            | No: no-op |
-| Web     | No-op                   | Follow-up                  | No-op     |
+| Web     | No-op                   | Fullscreen API on the page | No-op     |
 | Android | No-op                   | Follow-up                  | No-op     |
 | iOS     | No-op                   | Follow-up                  | No-op     |
 
@@ -134,6 +134,17 @@ These cost a wrong first attempt each. Keep them when changing the code.
   changing.
 - **macOS: properties on `GUIWindow` carry an `fs` prefix.** A plain name on an
   `NSWindow` subclass can collide with a private AppKit one.
+- **Web: a request made at touch-down waits for the `touchend`.** Outside a
+  scrollable, gui fires `OnClick` at touch-down, and a `touchstart` grants no
+  user activation, so Chrome refuses the request there ("Permissions check
+  failed"). The backend holds a request made during a `touchstart` without
+  activation and makes it at the next `touchend`. A `touchcancel` or a new call
+  drops it. Only a `touchstart` holds a request: one held from a timer would
+  fire at some later, unrelated tap.
+- **Web: the page goes fullscreen, not the canvas.** The hidden IME input and
+  the accessibility tree sit beside the canvas and must stay on screen.
+  `IsFullscreen` follows `fullscreenchange`, where Esc and Back arrive. The
+  browser's own fullscreen (F11) is not page fullscreen, so it does not count.
 
 ## Testing
 
@@ -147,8 +158,17 @@ leave, minimize, restore.
 | X11     | Probe under openbox and `mutter --x11` in Xvfb; GNOME 48 by hand |
 | Wayland | `scripts/wayland/test.sh`, three compositors; GNOME 48 by hand   |
 | macOS   | Probe on a Mac, logs read line by line; Fill and tiling by hand  |
+| Web     | Headless Chrome over CDP; Chrome on Windows and Pixel 7 by hand  |
 
-Each ran decorated, frameless, with `MaxWidth` and with `FixedSize`.
+Each desktop backend ran decorated, frameless, with `MaxWidth` and with
+`FixedSize`.
+
+The web ran `examples/window_state`. Headless Chrome took trusted touch, mouse
+and key input over the DevTools protocol: a tap entered at its `touchend`, while
+a bare request at `touchstart` was refused. By hand, Chrome on Windows entered
+by click and Enter and left by Esc, and F11 left `IsFullscreen` false. On the
+Pixel 7 (Chrome, API 37) a tap entered more than 5 seconds after any other
+input, so through the held request, and Back left.
 
 GNOME does not cap a maximized window at `MaxWidth`, on X11 or on Wayland, which
 is why `WindowCfg` promises that cap on Windows and macOS only.
@@ -161,14 +181,15 @@ is why `WindowCfg` promises that cap on Windows and macOS only.
 | 2   | X11 and Wayland                                     | done   |
 | 3   | macOS                                               | done   |
 | 4   | Docs and `examples/window_state`, frameless buttons | done   |
-| 5   | Web, Android, iOS fullscreen, after research        | open   |
+| 5   | Web fullscreen                                      | done   |
+| 6   | iOS fullscreen                                      | open   |
+| 7   | Android fullscreen                                  | open   |
 
 Position lands with each desktop backend instead of in its own phase: the
 interface needs all seven methods at once, so each backend is done in one pass.
 
-Web, Android and iOS are open in #1171, which this work does not close. The web
-constraints are decided there. Android and iOS need research first: hiding the
-status bar may not be enough on iOS.
+iOS and Android are open in #1171, which this work does not close. The plan
+there comes from device tests.
 
 ## Rejected Approaches
 

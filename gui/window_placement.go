@@ -98,7 +98,12 @@ func (w *Window) IsMaximized() bool {
 
 // SetFullscreen enters or leaves fullscreen. MaxWidth and MaxHeight do
 // not apply to a fullscreen window. No-op on a hidden or destroyed
-// window, and on web, iOS and Android today. Nil-safe.
+// window, and on iOS and Android today. Nil-safe.
+//
+// On the web the whole page goes fullscreen. A browser allows that
+// only right after the user's click, tap or key press, so call it from
+// that handler: elsewhere the browser refuses, and IsFullscreen stays
+// false. iPhone Safari has no fullscreen for a page.
 func (w *Window) SetFullscreen(fullscreen bool) {
 	if !w.placeable() {
 		return

@@ -196,6 +196,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	// The safe area moves on rotation (a resize) and on fullscreen.
 	safeArea := newSafeAreaWatcher(b, w, doc)
 	reg(doc, "fullscreenchange", func(_ js.Value, _ []js.Value) any {
+		gui.DispatchWindowState(w, false, b.fullscreen.active())
 		safeArea.read()
 		return nil
 	})
@@ -269,7 +270,9 @@ func (b *Backend) registerEvents(w *gui.Window) {
 			e := args[0]
 			e.Call("preventDefault")
 			mapTouchEvent(b.canvasLeft, b.canvasTop, e, typ, evt)
+			b.fullscreen.beforeTouch(typ)
 			w.EventFn(evt)
+			b.fullscreen.afterTouch(typ)
 			return nil
 		}
 	}
