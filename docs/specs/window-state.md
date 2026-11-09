@@ -142,8 +142,17 @@ These cost a wrong first attempt each. Keep them when changing the code.
   fire at some later, unrelated tap.
 - **Web: the page goes fullscreen, not the canvas.** The hidden IME input and
   the accessibility tree sit beside the canvas and must stay on screen.
-  `IsFullscreen` follows `fullscreenchange`, where Esc and Back arrive. The
-  browser's own fullscreen (F11) is not page fullscreen, so it does not count.
+  `IsFullscreen` follows `fullscreenchange`, where Esc and Back arrive, and the
+  backend reports the state once at start, for a page that is fullscreen before
+  the app runs. The browser's own fullscreen (F11) is not page fullscreen, so it
+  does not count.
+- **Web: a call during a transition waits for it.** The browser enters and
+  leaves asynchronously, and `fullscreenElement` changes only at the end. A
+  leave asked for while the entry was pending saw "not fullscreen" and did
+  nothing, so the page stayed fullscreen. The backend keeps the app's last
+  request and goes on toward it once the transition settles. An entry asked for
+  during an exit is requested then, and the browser may refuse it for lack of a
+  recent user action.
 - **iOS: `IsFullscreen` is worked out, not reported.** Hiding the status bar
   never resizes the view, and a notched iPhone sends no callback, so after each
   layout pass the controller reports "asked for, and the window fills the
@@ -210,7 +219,10 @@ and key input over the DevTools protocol: a tap entered at its `touchend`, while
 a bare request at `touchstart` was refused. By hand, Chrome on Windows entered
 by click and Enter and left by Esc, and F11 left `IsFullscreen` false. On the
 Pixel 7 (Chrome, API 37) a tap entered more than 5 seconds after any other
-input, so through the held request, and Back left.
+input, so through the held request, and Back left. A page made fullscreen before
+the app started read `IsFullscreen` true; the build without the start-up report
+read false. Unit tests settle the browser's promises by hand to cover a call
+made while entering or leaving.
 
 iOS ran on the iOS 27 simulators. On the iPhone 18 Pro the button hid the status
 bar and showed it again, and `IsFullscreen` stayed true through rotation. On the

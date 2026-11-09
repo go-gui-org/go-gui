@@ -22,6 +22,13 @@ import (
 // request: one held from a timer would fire at some later, unrelated
 // tap.
 //
+// The browser enters and leaves asynchronously, and fullscreenElement
+// changes only when it is done. A call that arrives meanwhile records
+// what the app wants, and the transition, once settled, goes on toward
+// it: a leave asked for while the entry is pending exits right after.
+// An entry asked for while an exit is pending is requested then, which
+// the browser may refuse for lack of a recent user action.
+//
 // iPhone Safari has no element fullscreen. SetFullscreen does nothing
 // there, and IsFullscreen stays false.
 
@@ -35,31 +42,56 @@ type pageFullscreen struct {
 	// held is a request made during a touchstart, waiting for the
 	// touchend.
 	held bool
-	// ignore swallows the rejection of a refused request, which the
-	// console would otherwise show as an uncaught error.
-	ignore js.Func
+	// want is the app's last request.
+	want bool
+	// entering and exiting are true while the browser's promise for a
+	// request or an exit is pending.
+	entering, exiting bool
+	// The promise handlers. A refused request lands in enterFailed
+	// instead of showing in the console as an uncaught error.
+	entered, enterFailed, exitSettled js.Func
 }
 
-// newPageFullscreen returns the page's fullscreen control. Its callback
-// joins callbacks, which live as long as the page.
+// newPageFullscreen returns the page's fullscreen control. Its callbacks
+// join callbacks, which live as long as the page.
 func newPageFullscreen(doc, nav js.Value, callbacks *[]js.Func) *pageFullscreen {
 	f := &pageFullscreen{doc: doc, nav: nav}
-	f.ignore = js.FuncOf(func(_ js.Value, _ []js.Value) any { return nil })
-	*callbacks = append(*callbacks, f.ignore)
+	f.entered = js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		f.entering = false
+		if !f.want && f.active() {
+			f.exit()
+		}
+		return nil
+	})
+	f.enterFailed = js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		f.entering = false
+		return nil
+	})
+	f.exitSettled = js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		f.exiting = false
+		if f.want && !f.active() {
+			f.request()
+		}
+		return nil
+	})
+	*callbacks = append(*callbacks, f.entered, f.enterFailed, f.exitSettled)
 	return f
 }
 
-// set enters or leaves fullscreen. A new call replaces a held request.
+// set enters or leaves fullscreen. A new call replaces a held request,
+// and one made while the browser is still entering or leaving waits
+// for that to settle.
 func (f *pageFullscreen) set(on bool) {
+	f.want = on
 	f.held = false
-	if on == f.active() {
+	if f.entering || f.exiting || on == f.active() {
 		return
 	}
 	if !on {
-		ignoreRejection(f.doc.Call("exitFullscreen"), f.ignore)
+		f.exit()
 		return
 	}
-	if !f.doc.Get("documentElement").Get("requestFullscreen").Truthy() {
+	if !f.supported() {
 		return // iPhone Safari
 	}
 	if f.inTouchStart && !f.userActive() {
@@ -67,6 +99,10 @@ func (f *pageFullscreen) set(on bool) {
 		return
 	}
 	f.request()
+}
+
+func (f *pageFullscreen) supported() bool {
+	return f.doc.Get("documentElement").Get("requestFullscreen").Truthy()
 }
 
 // active reports whether the page, or an element in it, is fullscreen.
@@ -93,8 +129,22 @@ func (f *pageFullscreen) afterTouch(typ gui.EventType) {
 }
 
 func (f *pageFullscreen) request() {
-	ignoreRejection(
-		f.doc.Get("documentElement").Call("requestFullscreen"), f.ignore)
+	if !f.supported() {
+		return
+	}
+	p := f.doc.Get("documentElement").Call("requestFullscreen")
+	if isPromise(p) {
+		f.entering = true
+		p.Call("then", f.entered, f.enterFailed)
+	}
+}
+
+func (f *pageFullscreen) exit() {
+	p := f.doc.Call("exitFullscreen")
+	if isPromise(p) {
+		f.exiting = true
+		p.Call("then", f.exitSettled, f.exitSettled)
+	}
 }
 
 // userActive reports whether the page may ask for fullscreen now. A
@@ -108,11 +158,8 @@ func (f *pageFullscreen) userActive() bool {
 	return ua.Type() == js.TypeObject && jsBool(ua.Get("isActive"))
 }
 
-// ignoreRejection attaches ignore to p's rejection, when p is a
-// promise. The browser refuses a request it sees no user action for;
-// IsFullscreen staying false already says so.
-func ignoreRejection(p js.Value, ignore js.Func) {
-	if p.Type() == js.TypeObject && p.Get("catch").Type() == js.TypeFunction {
-		p.Call("catch", ignore)
-	}
+// isPromise reports whether p can be waited on. An old prefixed API
+// returns undefined.
+func isPromise(p js.Value) bool {
+	return p.Type() == js.TypeObject && p.Get("then").Type() == js.TypeFunction
 }
