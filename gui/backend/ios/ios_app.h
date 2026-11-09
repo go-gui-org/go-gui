@@ -64,4 +64,15 @@ extern void goIOSSoftKeyboardInset(float h);
 // The view's safe area insets, in points (issue #1171).
 extern void goIOSSafeArea(float top, float right, float bottom, float left);
 
+// ─── Fullscreen (issue #1171) ───────────────────────────────
+// Implemented in fullscreen_ios.go.
+
+// Ask for fullscreen (1) or not (0). The change is applied on the main
+// queue, so this is safe to call from any thread.
+void iosSetFullscreen(int on);
+
+// Fullscreen as the controller worked it out: 1 when asked for and the
+// window fills the screen.
+extern void goIOSFullscreen(int on);
+
 #endif

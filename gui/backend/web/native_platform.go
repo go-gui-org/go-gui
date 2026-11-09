@@ -27,6 +27,9 @@ type nativePlatform struct {
 	appearanceMQ       js.Value
 	appearanceListener js.Func
 	appearanceActive   bool
+	// fullscreen is the page's fullscreen control, shared with the
+	// touch listeners.
+	fullscreen *pageFullscreen
 }
 
 // --- URI ---

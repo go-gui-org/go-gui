@@ -36,8 +36,16 @@ and this project adheres to
   maximized. Called before `backend.Run`, these apply as the window opens.
   `Position` is in OS desktop units. Wayland cannot place a window or bring back
   a minimized one, so `SetPosition` is a no-op there, `Position` reports no
-  position, and `Restore` only undoes a maximize. Web, iOS and Android no-op for
-  now; their fullscreen is a follow-up.
+  position, and `Restore` only undoes a maximize. On the web `SetFullscreen`
+  puts the whole page in fullscreen; browsers allow it only from a click, tap or
+  key press handler, and iPhone Safari has no page fullscreen. On iOS it hides
+  the status bar and lets the home indicator fade out; the view keeps its size,
+  and `IsFullscreen` turns true once the window fills the screen, which a
+  windowed iPad does not. On Android it hides the status and navigation bars:
+  the app's host polls the new `PendingFullscreen` bridge call and answers
+  through `FullscreenChanged`, as `GoGuiFullscreen.kt` in
+  `examples/android_demo` does; a host without them leaves `SetFullscreen`
+  without effect, and `IsFullscreen` is false in multi-window mode.
 
 - **Safe area: `Window.SafeAreaPadding` (#1171).** On a phone the notch, the
   status bar and the home bar cover the edges of the window, and an app had no

@@ -38,6 +38,7 @@ class GoGuiRenderer(
     override fun onDrawFrame(gl: GL10?) {
         Androidapp.render()
         pollPendingURI()
+        pollPendingFullscreen()
         pollPendingIMEAction()
         pollPendingNotification()
         glView.pollA11yAnnouncement()
@@ -53,6 +54,18 @@ class GoGuiRenderer(
                 } catch (e: ActivityNotFoundException) {
                     Log.w("GoGui", "no activity for URI: $uri")
                 }
+            }
+        }
+    }
+
+    // Window.SetFullscreen (go-gui #1171): 1 enters, 2 leaves.
+    private fun pollPendingFullscreen() {
+        when (Androidapp.pendingFullscreen().toInt()) {
+            1 -> mainHandler.post {
+                (activity as? MainActivity)?.setFullscreen(true)
+            }
+            2 -> mainHandler.post {
+                (activity as? MainActivity)?.setFullscreen(false)
             }
         }
     }

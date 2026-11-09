@@ -98,7 +98,23 @@ func (w *Window) IsMaximized() bool {
 
 // SetFullscreen enters or leaves fullscreen. MaxWidth and MaxHeight do
 // not apply to a fullscreen window. No-op on a hidden or destroyed
-// window, and on web, iOS and Android today. Nil-safe.
+// window. Nil-safe.
+//
+// On the web the whole page goes fullscreen. A browser allows that
+// only right after the user's click, tap or key press, so call it from
+// that handler: elsewhere the browser refuses, and IsFullscreen stays
+// false. iPhone Safari has no fullscreen for a page.
+//
+// On iOS it hides the status bar and lets the home indicator fade out;
+// the view keeps its size, so no EventResized follows. IsFullscreen is
+// true once the window fills the screen, which a windowed iPad does
+// not. It does nothing for an app whose Swift host owns the view
+// controller.
+//
+// On Android it hides the status and navigation bars. The app's host
+// does the work, as examples/android_demo shows; a host without the
+// fullscreen bridge does nothing. IsFullscreen is false in
+// multi-window mode.
 func (w *Window) SetFullscreen(fullscreen bool) {
 	if !w.placeable() {
 		return

@@ -124,6 +124,34 @@ screen edge. From Android 15 the view reaches under the system bars; below it
 the view can sit between them. An app's host needs `SafeAreaInsets` in its Go
 bridge and this listener. Without them the safe area stays zero.
 
+## Fullscreen
+
+The Fullscreen button calls `Window.SetFullscreen`. The backend cannot call
+Java, so the host does the work: `GoGuiRenderer` polls `PendingFullscreen()`
+each frame (1 enters, 2 leaves) and hands the request to `GoGuiFullscreen.kt` on
+the UI thread, which answers through `FullscreenChanged(on)` for
+`Window.IsFullscreen`.
+
+- Fullscreen hides the status and navigation bars. A swipe from an edge shows
+  them for a moment.
+- While fullscreen the view also reaches into the display cutout (Android 9
+  to 14) and under the bars (Android 11 to 14). Leaving undoes it and brings
+  back the bars that showed before, so outside fullscreen the layout is the
+  theme's own.
+- Below Android 11 the system clears the hiding flags when the app comes back to
+  the front or the keyboard opens. `GoGuiFullscreen` applies them again.
+- `IsFullscreen` is false in multi-window mode. A new activity starts out of
+  fullscreen and says so; an app that still wants it asks again. The demo does
+  so in `SurfaceCreated`.
+- With a theme that keeps the status bar, Android 9 leaves a strip over the
+  cutout in fullscreen (Android 10 is untested). The demo's
+  `Theme.NoTitleBar.Fullscreen` does not.
+
+An app's host needs `PendingFullscreen` and `FullscreenChanged` in its Go
+bridge, `GoGuiFullscreen.kt`, the poll in its renderer, and the
+`onWindowFocusChanged` and `onMultiWindowModeChanged` calls in its activity.
+Without them `SetFullscreen` does nothing.
+
 ## Troubleshooting
 
 - **gomobile not found**: Make sure that `$GOPATH/bin` is in `$PATH`

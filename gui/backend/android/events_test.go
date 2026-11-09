@@ -91,3 +91,40 @@ func TestIMEDeleteEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestPendingFullscreen(t *testing.T) {
+	n := &nativePlatform{}
+	if got := PendingFullscreen(); got != fullscreenNone {
+		t.Fatalf("PendingFullscreen() before a request = %d, want 0", got)
+	}
+	n.SetWindowFullscreen(true)
+	if got := PendingFullscreen(); got != fullscreenEnter {
+		t.Fatalf("PendingFullscreen() after enter = %d, want 1", got)
+	}
+	if got := PendingFullscreen(); got != fullscreenNone {
+		t.Fatalf("PendingFullscreen() did not clear: %d", got)
+	}
+	// The last call before a poll wins.
+	n.SetWindowFullscreen(true)
+	n.SetWindowFullscreen(false)
+	if got := PendingFullscreen(); got != fullscreenLeave {
+		t.Fatalf("PendingFullscreen() after enter, leave = %d, want 2", got)
+	}
+}
+
+func TestFullscreenChangedFeedsIsFullscreen(t *testing.T) {
+	saved := androidWindow
+	defer func() { androidWindow = saved }()
+	androidWindow = nil
+	FullscreenChanged(true) // no window yet: no panic
+
+	androidWindow = gui.NewWindow(gui.WindowCfg{})
+	FullscreenChanged(true)
+	if !androidWindow.IsFullscreen() {
+		t.Fatal("IsFullscreen() = false after FullscreenChanged(true)")
+	}
+	FullscreenChanged(false)
+	if androidWindow.IsFullscreen() {
+		t.Fatal("IsFullscreen() = true after FullscreenChanged(false)")
+	}
+}
