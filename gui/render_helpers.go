@@ -127,8 +127,7 @@ func resolveClipRadius(parentRadius float32, shape *Shape) float32 {
 	var baseRadius float32
 	if shape.shapeType == shapeCircle {
 		// The circle renderCircle draws, below a title's band.
-		body := containerBody(shape)
-		baseRadius = f32Min(body.Width, body.Height) / 2
+		_, _, _, baseRadius = circleRing(shape)
 	} else {
 		baseRadius = shape.Radius
 	}

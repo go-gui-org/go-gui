@@ -178,6 +178,12 @@ and this project adheres to
   behind, a disabled ancestor dims it like the rest of the box, and a box an
   overflowing row hides no longer draws its title.
 
+- **`ClipContents` on a `Circle` clips to the circle (#1238).** The mask took
+  the container's corner radius (6 px by default), so it was a rounded square
+  around the circle, and a filled child or an image painted past the circle at
+  its corners. It is now the circle drawn, inside its border: the same circle
+  the fill, the border and the clip radius use.
+
 - **Dropping an in-memory image frees its GPU texture, and a key registered
   again draws its new pixels (#1230).** `DropImage` removed the image from the
   registry, but GL, Metal, iOS, Android and web kept the uploaded texture until

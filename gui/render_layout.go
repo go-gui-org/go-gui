@@ -150,14 +150,14 @@ func renderLayoutChildren(layout *Layout, bgColor Color, clip drawClip, w *Windo
 		}
 		sb = max(0, sb)
 		// The body, not the bounds: a group-box title's band sits
-		// above the border (containerBody).
-		body := containerBody(layout.Shape)
+		// above the border (containerBody). A Circle masks to its circle.
+		body, radius := contentMask(layout.Shape)
 		stencil := RenderCmd{
 			X:      body.X + sb,
 			Y:      body.Y + sb,
 			W:      max(0, body.Width-2*sb),
 			H:      max(0, body.Height-2*sb),
-			Radius: max(0, layout.Shape.Radius-sb),
+			Radius: max(0, radius-sb),
 		}
 		if stencilled {
 			w.stencilDepth++
@@ -454,21 +454,48 @@ func renderShapeBorder(shape *Shape, dr drawClip, radius float32, w *Window) {
 	}
 }
 
-// renderCircle draws a shape as a circle in the middle of its body: the
-// shape's rectangular region, less the band a group-box title reserves
-// above it (containerBody), as for every container.
+// circleRing returns the circle a Circle draws: the largest that fits
+// its body (the shape's rectangular region, less the band a group-box
+// title reserves above it, containerBody), centred in it. It gives the
+// square around the circle, its centre and its radius. The fill, the
+// border, the ClipContents mask and the clip radius all take it, so
+// they cannot drift apart. The body need not be square (a title's band
+// leaves a square box's body wider than tall); a stroke or a mask over
+// the whole of it would be a rounded box around the circle.
+func circleRing(shape *Shape) (square drawClip, cx, cy, radius float32) {
+	body := containerBody(shape)
+	radius = f32Min(body.Width, body.Height) / 2
+	cx = body.X + body.Width/2
+	cy = body.Y + body.Height/2
+	// A square body is its own square, kept exact.
+	square = body
+	if body.Width != body.Height {
+		square = drawClip{X: cx - radius, Y: cy - radius,
+			Width: 2 * radius, Height: 2 * radius}
+	}
+	return square, cx, cy, radius
+}
+
+// contentMask returns the rectangle and corner radius a ClipContents
+// container masks its children to, before the border inset: its body
+// with its corner radius, or a Circle's circle.
+func contentMask(shape *Shape) (drawClip, float32) {
+	if shape.shapeType == shapeCircle {
+		square, _, _, radius := circleRing(shape)
+		return square, radius
+	}
+	return containerBody(shape), shape.Radius
+}
+
+// renderCircle draws a shape as a circle, the one circleRing places.
 func renderCircle(shape *Shape, clip drawClip, w *Window) {
-	dr := containerBody(shape)
+	ring, cx, cy, radius := circleRing(shape)
 	c := shape.Color
 	if fillDims(shape) {
 		c = dimAlpha(c)
 	}
 
-	if rectsOverlap(dr, clip) {
-		radius := f32Min(dr.Width, dr.Height) / 2
-		cx := dr.X + dr.Width/2
-		cy := dr.Y + dr.Height/2
-
+	if rectsOverlap(ring, clip) {
 		if c.A > 0 {
 			emitRenderer(RenderCmd{
 				Kind:   RenderCircle,
@@ -480,15 +507,6 @@ func renderCircle(shape *Shape, clip drawClip, w *Window) {
 			}, w)
 		}
 
-		// The border rings the circle drawn, centred in a body that need
-		// not be square (a title's band leaves a square box's body wider
-		// than tall). A stroke over the whole body would be a rounded box
-		// around the circle.
-		ring := dr
-		if dr.Width != dr.Height {
-			ring = drawClip{X: cx - radius, Y: cy - radius,
-				Width: 2 * radius, Height: 2 * radius}
-		}
 		renderShapeBorder(shape, ring, radius, w)
 	}
 }

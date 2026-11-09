@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -420,44 +421,90 @@ func TestGroupBoxTitleKeepsClipRadius(t *testing.T) {
 	}
 }
 
+// titleMeasurer measures text with a newline at a block height that is
+// not a whole number of lines, so a title measured as its line count
+// times the line height shows, and it records what TextHeight was asked.
+type titleMeasurer struct {
+	stubTextMeasurer
+	block float32
+	asked map[string]TextStyle
+}
+
+func (m *titleMeasurer) TextHeight(text string, s TextStyle) float32 {
+	m.asked[text] = s
+	if strings.Contains(text, "\n") {
+		return m.block
+	}
+	return m.fontHeight
+}
+
 // A title with a newline is drawn on two lines and given room for both:
 // its first line sits on the border, the band above is half that line,
 // and the content starts below the last line. An explicit TitleBG is a
-// patch behind both lines.
+// patch behind both lines. With a text measurer the block is as high as
+// it measures the whole title in the title style, a measurement taken
+// only for a title with a newline; without one, the tests' fallback
+// counts 16 px a line.
 func TestGroupBoxTitleMultiLine(t *testing.T) {
 	const title = "Account\nSettings"
-	// The tests' fallback measurer: 16 px a line.
-	const line, lines = float32(16), float32(2)
-	for _, pad := range []Padding{PaddingNone, PadAll(30)} {
-		w := renderTitled(t, WindowCfg{}, func(_ *Window) View {
-			return Column(ContainerCfg{Sizing: FillFill, Padding: PadAll(20), Content: []View{
-				Column(ContainerCfg{
-					ID: "box", Title: title, Padding: pad, TitleBG: RGB(250, 220, 60),
-					Content: []View{Text(TextCfg{Text: "body"})},
-				}),
-			}})
-		})
-		box, ok := w.layout.FindByID("box")
-		if !ok {
-			t.Fatal("box not found")
+	measured := &titleMeasurer{
+		stubTextMeasurer: stubTextMeasurer{charWidth: 8, fontHeight: 20},
+		block:            47,
+		asked:            map[string]TextStyle{},
+	}
+	for _, tc := range []struct {
+		name        string
+		m           *titleMeasurer
+		line, block float32
+	}{
+		{"fallback", nil, 16, 32},
+		{"measured", measured, 20, 47},
+	} {
+		for _, pad := range []Padding{PaddingNone, PadAll(30)} {
+			w := NewTestWindow(t, WindowCfg{Width: 400, Height: 400})
+			if tc.m != nil {
+				w.textMeasurer = tc.m
+			}
+			w.TestRender(func(_ *Window) View {
+				return Column(ContainerCfg{Sizing: FillFill, Padding: PadAll(20), Content: []View{
+					Column(ContainerCfg{
+						ID: "box", Title: title, Padding: pad, TitleBG: RGB(250, 220, 60),
+						Content: []View{Text(TextCfg{Text: "body"})},
+					}),
+					Column(ContainerCfg{Title: titleTestText}),
+				}})
+			})
+			box, ok := w.layout.FindByID("box")
+			if !ok {
+				t.Fatal("box not found")
+			}
+			s := box.Shape
+			if got := s.fx.groupTitle.Height; got != tc.block {
+				t.Errorf("%s, padding %v: title height = %v, want %v", tc.name, pad.Top, got, tc.block)
+			}
+			if i := cmdIndex(w.renderers, isKind(RenderStrokeRect)); i < 0 ||
+				w.renderers[i].Y != s.Y+tc.line/2 {
+				t.Errorf("%s, padding %v: border not at the first line's middle %v",
+					tc.name, pad.Top, s.Y+tc.line/2)
+			}
+			if child := box.Children[0].Shape; child.Y < s.Y+tc.block {
+				t.Errorf("%s, padding %v: first child at y=%v, inside the title (bottom %v)",
+					tc.name, pad.Top, child.Y, s.Y+tc.block)
+			}
+			ti := cmdIndex(w.renderers, isText(title))
+			if e, drawn := titleEraser(w.renderers, ti); !drawn || e.Y != s.Y || e.H != tc.block {
+				t.Errorf("%s, padding %v: TitleBG patch y=%v h=%v (drawn %v), want y=%v h=%v",
+					tc.name, pad.Top, e.Y, e.H, drawn, s.Y, tc.block)
+			}
 		}
-		s := box.Shape
-		if got := s.fx.groupTitle.Height; got != line*lines {
-			t.Errorf("padding %v: title height = %v, want %v", pad.Top, got, line*lines)
-		}
-		if i := cmdIndex(w.renderers, isKind(RenderStrokeRect)); i < 0 ||
-			w.renderers[i].Y != s.Y+line/2 {
-			t.Errorf("padding %v: border not at the first line's middle %v", pad.Top, s.Y+line/2)
-		}
-		if child := box.Children[0].Shape; child.Y < s.Y+line*lines {
-			t.Errorf("padding %v: first child at y=%v, inside the title (bottom %v)",
-				pad.Top, child.Y, s.Y+line*lines)
-		}
-		ti := cmdIndex(w.renderers, isText(title))
-		if e, drawn := titleEraser(w.renderers, ti); !drawn || e.Y != s.Y || e.H != line*lines {
-			t.Errorf("padding %v: TitleBG patch y=%v h=%v (drawn %v), want y=%v h=%v",
-				pad.Top, e.Y, e.H, drawn, s.Y, line*lines)
-		}
+	}
+	ts := guiTheme.TextStyleTitleSmall
+	if got, ok := measured.asked[title]; !ok || got.Size != ts.Size || got.Family != ts.Family {
+		t.Errorf("TextHeight of the title asked %v (%v), want the title style %v %v",
+			got.Size, ok, ts.Family, ts.Size)
+	}
+	if _, ok := measured.asked[titleTestText]; ok {
+		t.Error("TextHeight asked of a one-line title")
 	}
 }
 
@@ -571,6 +618,49 @@ func TestGroupBoxTitleCircleBody(t *testing.T) {
 		// the circle's radius less that and the border.
 		if got, want := resolveClipRadius(0, s), r-20-s.SizeBorder; got != want {
 			t.Errorf("%s: clip radius = %v, want %v", tc.id, got, want)
+		}
+	}
+}
+
+// ClipContents on a Circle masks its children to the circle drawn,
+// inside its border. The mask used the container's corner radius, a
+// rounded square around the circle, so a filled child painted past it
+// at the corners. A titled circle's mask is the circle below the band,
+// the one its fill and border ring.
+func TestCircleClipContentsMask(t *testing.T) {
+	const size, sb = float32(160), float32(2)
+	for _, tc := range []struct {
+		title string
+		band  float32
+	}{{"", 0}, {titleTestText, 8}} {
+		w := renderTitled(t, WindowCfg{}, func(_ *Window) View {
+			return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+				Circle(ContainerCfg{
+					ID: "c", Title: tc.title, Width: size, Height: size, Sizing: FixedFixed,
+					SizeBorder: BorderPx(sb), ClipContents: true,
+					Content: []View{Rectangle(RectangleCfg{
+						Width: size, Height: size, Sizing: FixedFixed, Color: RGB(200, 60, 60),
+					})},
+				}),
+			}})
+		})
+		ly, ok := w.layout.FindByID("c")
+		if !ok {
+			t.Fatal("circle not found")
+		}
+		s := ly.Shape
+		r := (size - tc.band) / 2
+		inner := r - sb
+		cx, cy := s.X+size/2, s.Y+tc.band+r
+		i := cmdIndex(w.renderers, isKind(RenderStencilBegin))
+		if i < 0 {
+			t.Fatalf("title %q: no mask", tc.title)
+		}
+		m := w.renderers[i]
+		if m.X != cx-inner || m.Y != cy-inner || m.W != 2*inner || m.H != 2*inner ||
+			m.Radius != inner {
+			t.Errorf("title %q: mask x=%v y=%v w=%v h=%v radius %v, want a circle of radius %v around %v,%v",
+				tc.title, m.X, m.Y, m.W, m.H, m.Radius, inner, cx, cy)
 		}
 	}
 }
