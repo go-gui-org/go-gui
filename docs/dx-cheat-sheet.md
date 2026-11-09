@@ -262,14 +262,22 @@ unaffected and still carries a live `ctx.Layout`.
 
 ## Group-box titles
 
-`ContainerCfg.Title` draws a label in the top border, like an HTML fieldset. Set
-`TitleBG` to the parent's background color, so the border line disappears behind
-the label.
+`ContainerCfg.Title` draws a label in the top border, like an HTML fieldset. The
+box reserves room for it inside its bounds, so a scroll view or another clipping
+parent does not cut the label's top, and the content starts below it. A label
+wider than its box still overhangs the trailing edge. A patch behind the label
+hides the border line. Unset, `TitleBG` takes the color drawn under the border,
+the box's own fill or what is behind it, which is right on any solid ground. Set
+it where that ground is not one flat color, or where a sibling is drawn
+underneath it, as in a `Stack`:
 
 ```go
-// The label sits on a patch of the mismatched color.
-Column{Title: "Account", TitleBG: RGB(255, 255, 255), ...}
+// A group box on a gradient panel: no single color matches, so name the one
+// behind the label. Unset, the border line runs through the label.
+Column{Title: "Account", TitleBG: RGB(40, 90, 160), ...}
 ```
+
+`TitleBG: ColorTransparent` turns the patch off.
 
 ## Layout transitions: snap a channel or a subtree
 
