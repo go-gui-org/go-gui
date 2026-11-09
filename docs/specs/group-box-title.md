@@ -58,29 +58,45 @@ view lost the top half of its title at rest; a `RotatedBox`, which clips at its
 child's edges, did the same. Now `containerBody` draws the fill, shadow, border
 and rounded stencil half the label's height below the box's top, and
 `addGroupBoxTitle` sets the top padding so the content starts below the label:
-half the label above the border, plus the caller's padding or the other half of
-the label, whichever is larger. Both follow the label's measured height, so a
-larger title font reserves more. A box sized by its content grows; a box with a
-fixed or filling height keeps its size and its content area shrinks, the
+half the label's first line above the border, plus the caller's padding or the
+rest of the label, whichever is larger. Both follow the label's measured height,
+so a larger title font reserves more. A box sized by its content grows; a box
+with a fixed or filling height keeps its size and its content area shrinks, the
 breaking part of the change. HTML fieldsets, Win32 group boxes and GTK frames
-all use this model. In a right-to-left box the label mirrors to the right edge
-with the same inset.
+all use this model.
+
+A title with a newline is measured whole, since every renderer breaks a line
+there; `TextHeight` is called only then. Its first line sits on the border, and
+`shapeEffects.titleBand` keeps half that line, because the label's height is no
+longer twice the band.
+
+The label starts `groupTitleInset` from the leading edge, or at the corner's
+radius when that is larger (`groupTitleLead`, clamped to half the body's shorter
+side as the renderers clamp it), so neither the label nor its eraser sits on the
+curve: an eraser in the box's fill there squared off the corner. In a
+right-to-left box the label mirrors to the right edge with the same inset.
+
+A `Circle` draws its circle in the body too, so its title sits on the line the
+circle's top touches, as it did as a float. Its border rings that circle instead
+of stroking the body, which a band leaves wider than tall, and its clip radius
+is that circle's.
 
 **An unset `TitleBG` takes the color drawn under the border.** The border lies
-at the top of the box's body, so the default eraser covers only the label's
-lower half, from the border line down, and starts half a border width higher
-because the web and PDF backends centre a stroke on its path. It ends at the
-body's bottom in a box shorter than the label. `backdropColor` composites the
-fills drawn there, the box's own first and then its ancestors', as
-`renderContainer` paints them (opacity, the disabled dim, a hover fill), down to
-the first opaque one or the window's clear color. It gives up, and no eraser is
-drawn, at a gradient or shader fill, at the box's own blurred fill (its soft top
-edge lies under the eraser), at a non-container ancestor, past a `ColorFilter`
-(the eraser is drawn inside the filter, the fills further out are not), at a
-float that is not opaque (a lifted float's `Parent` still points into the tree
-it hangs from), and on a see-through window. It also draws none when the box has
-no border to hide. An explicit `TitleBG` is a patch behind the whole label,
-painted as given, never dimmed; `ColorTransparent` turns the eraser off.
+at the top of the box's body, so the default eraser covers the label from the
+border line down, and starts half a border width higher because the web and PDF
+backends centre a stroke on its path, but not above the box, which a border
+thicker than the label would reach. It ends at the body's bottom in a box
+shorter than the label. `backdropColor` composites the fills drawn there, the
+box's own first and then its ancestors', as `renderContainer` paints them
+(opacity, the disabled dim, a hover fill), down to the first opaque one or the
+window's clear color. It gives up, and no eraser is drawn, at a gradient or
+shader fill, at the box's own blurred fill (its soft top edge lies under the
+eraser), at a non-container ancestor, past a `ColorFilter` (the eraser is drawn
+inside the filter, the fills further out are not), at a float that is not opaque
+(a lifted float's `Parent` still points into the tree it hangs from), and on a
+see-through window. It also draws none when the box has no border to hide. An
+explicit `TitleBG` is a patch behind the whole label, painted as given, never
+dimmed; `ColorTransparent` turns the eraser off.
 
 A box an overflowing row hid (`shapeNone`) draws no title, and a title whose ink
 is invisible (`ColorBorder` transparent beside a `BorderGradient`) draws
@@ -96,6 +112,11 @@ rule. The clip radius a rounded clipping box hands its images
 
 - A title wider than its box still overhangs the trailing edge, and a clipping
   parent cuts what overhangs it; the box's width does not count the title.
+- A box whose fixed height is under its title's does not shrink the title: the
+  label and an explicit `TitleBG` patch hang below the box, like any content too
+  big for a box that does not clip. Trimming only the patch would leave the
+  overhanging text without its ground, and clipping the label would hide the
+  title the reservation exists to show.
 - Siblings drawn underneath, as in a `Stack`, are not part of the backdrop: the
   eraser takes the container's color over them. Set `TitleBG` there.
 - There is no per-box title style; every title uses the theme's
@@ -119,6 +140,12 @@ rule. The clip radius a rounded clipping box hands its images
   as scrollbars do.** Still cut by a parent with no padding (`RotatedBox`), a
   title scrolled past the edge lingers in the padding after its border is gone,
   and the title still overlaps whatever sits above the box.
+- **Clip the default eraser to the box's rounded corner.** The part outside the
+  curve would show the parent again, but the curved border still runs through
+  the label: the stroke's outer half lies outside that clip.
+- **Draw a multi-line title as one line**, a newline as a space, as an HTML
+  legend does. Every go-gui renderer breaks a line at a newline; the title would
+  be the one text that did not.
 - **Cut a gap in the border instead of drawing an eraser.** Exact on any
   background, but it takes three scissored border strokes per box, and a scissor
   is axis-aligned in the window, so it breaks under a rotation or a quarter
