@@ -184,11 +184,15 @@ These cost a wrong first attempt each. Keep them when changing the code.
   flags when the app comes back to the front (0x1706 to 0x1700 on Android 8.1)
   and while the soft keyboard is up. The host applies them again in
   `onWindowFocusChanged` and `onSystemUiVisibilityChange`.
-- **Android: a new activity starts out of fullscreen.** It reports so at once,
-  so `IsFullscreen` turns false, and the app asks again if it wants to; the demo
-  does so in `SurfaceCreated`. The Go window outlives the activity
-  (`docs/specs/android-activity-lifecycle.md`, #1246), so the backend could
-  carry the request over itself; it does not yet.
+- **Android: fullscreen does not survive a new screen.** Android can close the
+  app's screen (its activity) and open a new one while the app keeps running,
+  for example after Back on Android 11 and earlier. The new screen starts with
+  the system bars showing, and `IsFullscreen` turns false at once. An app that
+  still wants fullscreen calls `SetFullscreen(true)` again. The demo does this
+  when its new screen is set up (`SurfaceCreated`). Since #1246 go-gui keeps the
+  app's window when the screen changes
+  (`docs/specs/android-activity-lifecycle.md`), so it could restore fullscreen
+  by itself. It does not do that yet.
 - **Android 9: a strip stays over the cutout** with a theme that keeps the
   status bar, because the content is still inset by the cutout (API 28 emulator;
   Android 10 is untested). The demo's `Theme.NoTitleBar.Fullscreen` fills it.

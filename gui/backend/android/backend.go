@@ -137,7 +137,7 @@ func SetCacheDir(dir string) { setTempDir(dir) }
 // laying out at the size it started with.
 func Start(w, h int, scale float32) {
 	if androidWindow == nil {
-		// A window with no view draws only the background: say why.
+		// A window without a view draws only the background, so say why.
 		log.Print("android: Start before SetWindow; the window has no view")
 		androidWindow = gui.NewWindow(gui.WindowCfg{})
 	}
@@ -289,18 +289,22 @@ func Resize(w, h int, scale float32) {
 	androidBackend.ResizeWindow(androidWindow, w, h, scale)
 }
 
-// CleanUp does nothing. The window and the backend live as long as the
-// process (issue #1246). Android can end an activity and start another
-// in the same process: after Back on Android 11 and earlier, finish(),
-// a configuration change the manifest does not handle, or "Don't keep
-// activities". The new activity reuses the window, with its view and
-// state, and SurfaceCreated rebuilds the GL resources for its context.
-// The GL objects of the ended activity go with its EGL context.
+// CleanUp does nothing (issue #1246). The Go window and the backend live
+// as long as the app's process.
 //
-// Deprecated: a host calls nothing when an activity ends. CleanUp used
-// to destroy the window from onDestroy while the process lived on, so
-// the next activity drew only the background, and a late call from the
-// old GL thread could destroy the new activity's backend.
+// Android can close the app's activity and open a new one while the
+// process keeps running: after Back on Android 11 and earlier, after
+// finish(), after a configuration change the manifest does not handle,
+// or with "Don't keep activities". The new activity reuses the window,
+// with its view and state, and SurfaceCreated rebuilds the GL resources
+// for its EGL context. The old activity's GL objects are freed with its
+// context, so nothing has to delete them.
+//
+// Deprecated: a host does not need to call anything when an activity
+// ends. CleanUp used to destroy the window from onDestroy while the
+// process kept running. The next activity then drew only the
+// background, and a call that came late from the old GL thread could
+// even destroy the new activity's backend.
 func CleanUp() {}
 
 // --- Shared initialization ---
