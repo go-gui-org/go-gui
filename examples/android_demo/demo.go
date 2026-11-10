@@ -117,11 +117,6 @@ func Resize(width, height int, scale float32) {
 	android.Resize(width, height, scale)
 }
 
-// CleanUp releases all backend resources.
-func CleanUp() {
-	android.CleanUp()
-}
-
 // --- OpenURI bridge ---
 
 // PendingURI returns and clears the pending URI to open.

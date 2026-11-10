@@ -175,6 +175,19 @@ and this project adheres to
 
 ### Fixed
 
+- **Android: reopening an app after Back no longer shows a blank screen
+  (#1246).** Android can end an activity and start a new one in the same
+  process: after Back on Android 11 and earlier, `finish()`, or a configuration
+  change the manifest does not handle. The demo host called `android.CleanUp`
+  from `onDestroy`, which destroyed the Go window, and the next activity drew
+  only the background; a late call from the old GL thread could also destroy the
+  new activity's backend. The window and backend now live as long as the
+  process: a new activity reuses them, with the app's view and state, and
+  rebuilds its GL resources as after a lost EGL context. `android.CleanUp` is
+  deprecated and does nothing, so a host copied from the demo is fixed by
+  updating go-gui; it can drop the call from `onDestroy`. `w.Context()` is no
+  longer cancelled when an activity ends.
+
 - **Tooltips, dropdowns and menus are drawn over group-box titles, and a title
   scrolls out of view with its box (#1238).** A group-box title was two floating
   children, so it was drawn in the popup layers: a tooltip, a `Select` or

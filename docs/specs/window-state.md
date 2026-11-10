@@ -185,10 +185,10 @@ These cost a wrong first attempt each. Keep them when changing the code.
   and while the soft keyboard is up. The host applies them again in
   `onWindowFocusChanged` and `onSystemUiVisibilityChange`.
 - **Android: a new activity starts out of fullscreen.** It reports so at once,
-  so `IsFullscreen` turns false, and the app asks again if it wants to. The demo
-  host's `onDestroy` queues `CleanUp` on a GL thread that is shutting down, so
-  whether the Go window survives into the next activity is a race; carrying the
-  request over waits for that to be settled.
+  so `IsFullscreen` turns false, and the app asks again if it wants to; the demo
+  does so in `SurfaceCreated`. The Go window outlives the activity
+  (`docs/specs/android-activity-lifecycle.md`, #1246), so the backend could
+  carry the request over itself; it does not yet.
 - **Android 9: a strip stays over the cutout** with a theme that keeps the
   status bar, because the content is still inset by the cutout (API 28 emulator;
   Android 10 is untested). The demo's `Theme.NoTitleBar.Fullscreen` fills it.

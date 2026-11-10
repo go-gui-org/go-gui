@@ -73,6 +73,20 @@ view and the app state stay as they were. A host that does not call
 `GoGuiGLSurfaceView` also sets `preserveEGLContextOnPause = true`. Android then
 usually keeps the context, and a resume rebuilds nothing.
 
+## Activity lifecycle
+
+Android can end the activity and start a new one in the same process: after Back
+on Android 11 and earlier, `finish()`, a configuration change the manifest does
+not handle, or "Don't keep activities". The Go window and backend live as long
+as the process, so the new activity reuses them: `onSurfaceCreated` rebuilds the
+GL resources, and the window keeps its view and the app's state. The GL objects
+of the ended activity go with its EGL context.
+
+So the host tears nothing down in `onDestroy`. `android.CleanUp` is deprecated
+and does nothing. A host copied from an earlier demo called it from `onDestroy`,
+which destroyed the window while the process lived on, and the next activity
+showed only the background (#1246); such a host can delete that call.
+
 ## Secret storage bridge
 
 The Android backend cannot put application-owned Kotlin into an AAR generated
