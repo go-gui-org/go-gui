@@ -58,8 +58,12 @@ What this changes for an app:
 ## Testing
 
 The tests used `examples/android_demo` on a Pixel 7 (API 37) and an Aquaris X
-Pro (API 27). Back closes the activity when it was not started from the
-launcher. So `am start -n` after Back opens a new activity in the same process.
+Pro (API 27). They opened the demo with adb (`adb shell am start -n`, Android's
+command for starting an app from the computer). On Android 12 and later, Back
+only moves an app to the background when it was opened from its icon. When it
+was opened another way, as here, Back closes the activity, and the next start
+opens a new one in the same process. That is the case that failed. On Android 11
+and earlier, Back closes the activity either way.
 
 | Check                        | Before (`main`)               | After                               |
 | ---------------------------- | ----------------------------- | ----------------------------------- |
