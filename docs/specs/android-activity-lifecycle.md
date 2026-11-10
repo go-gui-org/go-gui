@@ -48,9 +48,9 @@ The Go window and backend live as long as the app's process.
 
 What this changes for an app:
 
-- `w.Context()` is no longer cancelled when an activity closes. It lives as long
-  as the process, as on iOS. Work that should pause in the background will use
-  the visibility event (#1170).
+- `w.Ctx()` is no longer cancelled when an activity closes. It lives as long as
+  the process, as on iOS. Work that should pause in the background will use the
+  visibility event (#1170).
 - On Android 11 and earlier, Back and opening the app again show the previous
   state. Android 12 and later already keep the activity on Back.
 - While Android keeps the process cached, the process keeps the window's memory.

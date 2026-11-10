@@ -187,7 +187,7 @@ and this project adheres to
   rebuilds the graphics resources for it. `android.CleanUp` is deprecated and
   does nothing. So an app whose Kotlin code was copied from the demo is fixed by
   updating go-gui; it can also delete the call from `onDestroy`. One change for
-  apps: `w.Context()` is no longer cancelled when a screen closes.
+  apps: `w.Ctx()` is no longer cancelled when a screen closes.
 
 - **Tooltips, dropdowns and menus are drawn over group-box titles, and a title
   scrolls out of view with its box (#1238).** A group-box title was two floating
