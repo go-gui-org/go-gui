@@ -137,6 +137,8 @@ func SetCacheDir(dir string) { setTempDir(dir) }
 // laying out at the size it started with.
 func Start(w, h int, scale float32) {
 	if androidWindow == nil {
+		// A window without a view draws only the background, so say why.
+		log.Print("android: Start before SetWindow; the window has no view")
 		androidWindow = gui.NewWindow(gui.WindowCfg{})
 	}
 	replaySafeArea()
@@ -287,17 +289,23 @@ func Resize(w, h int, scale float32) {
 	androidBackend.ResizeWindow(androidWindow, w, h, scale)
 }
 
-// CleanUp releases all backend resources.
-func CleanUp() {
-	if androidBackend != nil {
-		androidBackend.Destroy()
-		androidBackend = nil
-	}
-	if androidWindow != nil {
-		androidWindow.WindowCleanup()
-		androidWindow = nil
-	}
-}
+// CleanUp does nothing (issue #1246). The Go window and the backend live
+// as long as the app's process.
+//
+// Android can close the app's activity and open a new one while the
+// process keeps running: after Back on Android 11 and earlier, after
+// finish(), after a configuration change the manifest does not handle,
+// or with "Don't keep activities". The new activity reuses the window,
+// with its view and state, and SurfaceCreated rebuilds the GL resources
+// for its EGL context. The old activity's GL objects are freed with its
+// context, so nothing has to delete them.
+//
+// Deprecated: a host does not need to call anything when an activity
+// ends. CleanUp used to destroy the window from onDestroy while the
+// process kept running. The next activity then drew only the
+// background, and a call that came late from the old GL thread could
+// even destroy the new activity's backend.
+func CleanUp() {}
 
 // --- Shared initialization ---
 

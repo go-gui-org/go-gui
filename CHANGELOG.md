@@ -175,6 +175,20 @@ and this project adheres to
 
 ### Fixed
 
+- **Android: reopening an app after Back no longer shows a blank screen
+  (#1246).** Android can close an app's screen (its activity) and open a new one
+  while the app keeps running. This happens after Back on Android 11 and
+  earlier, after `finish()`, and after a configuration change that the manifest
+  does not handle. The demo's Kotlin code called `android.CleanUp` when the old
+  screen closed. That destroyed the Go window, so the new screen showed only the
+  background. The call also ran at an unpredictable moment, and could even
+  destroy the new screen's backend. Now the Go window lives as long as the app's
+  process. A new screen reuses it, with the app's view and state, and go-gui
+  rebuilds the graphics resources for it. `android.CleanUp` is deprecated and
+  does nothing. So an app whose Kotlin code was copied from the demo is fixed by
+  updating go-gui; it can also delete the call from `onDestroy`. One change for
+  apps: `w.Ctx()` is no longer cancelled when a screen closes.
+
 - **Tooltips, dropdowns and menus are drawn over group-box titles, and a title
   scrolls out of view with its box (#1238).** A group-box title was two floating
   children, so it was drawn in the popup layers: a tooltip, a `Select` or

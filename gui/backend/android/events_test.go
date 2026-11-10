@@ -128,3 +128,15 @@ func TestFullscreenChangedFeedsIsFullscreen(t *testing.T) {
 		t.Fatal("IsFullscreen() = true after FullscreenChanged(false)")
 	}
 }
+
+func TestCleanUpKeepsWindow(t *testing.T) {
+	// A new activity in the same process reuses the window (#1246).
+	saved := androidWindow
+	defer func() { androidWindow = saved }()
+	w := gui.NewWindow(gui.WindowCfg{})
+	androidWindow = w
+	CleanUp() //nolint:staticcheck // the deprecated call is what this tests
+	if androidWindow != w {
+		t.Fatal("CleanUp replaced the window")
+	}
+}

@@ -76,12 +76,10 @@ class MainActivity : Activity() {
         super.onPause()
     }
 
-    override fun onDestroy() {
-        glSurfaceView.queueEvent {
-            Androidapp.cleanUp()
-        }
-        super.onDestroy()
-    }
+    // The host does nothing when the activity is destroyed. The Go window
+    // and backend live as long as the app's process. A new activity reuses
+    // them, with the app's state, and onSurfaceCreated rebuilds the GL
+    // resources (go-gui #1246).
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
