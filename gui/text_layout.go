@@ -148,7 +148,7 @@ func plainTextBlock(
 	if b == nil {
 		key = shape.focusKey()
 		if key == "" && len(text) > textChunkBytes {
-			key = textBlockAnonKey(text)
+			key = textBlockAnonKey(text, widthArg, tc.TextMode)
 		}
 		if key != "" {
 			blocks = StateMap[string, *textBlock](w, nsTextBlock, capTextBlocks)

@@ -75,14 +75,15 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   after them stays estimated, so a 100 KB paste costs a few milliseconds.
 - **Persistence.** The block lives in `nsTextBlock` under the shape's identity
   (an input's owner, a `Text`'s ID, or for a large anonymous `Text` the string's
-  own memory, content-checked on every hit). The frame resolves it through
-  `plainTextBlock`, which brings it up to date: an edit is located as the bytes
-  outside the common prefix and suffix of the old and new text, the paragraphs
-  it touched are re-chunked, the chunks after it shift, and nothing else is
-  shaped. A width, mode or shaping-style change rebuilds the block. A block that
-  no layout resolved in the last two view passes is dropped (`sweepTextBlocks`):
-  the cache is bounded by count, and a large text that left the tree would
-  otherwise stay until 256 other identities pushed it out.
+  own memory with its width and mode, content-checked on every hit, so two
+  `Text`s showing one string at two widths keep a block each). The frame
+  resolves it through `plainTextBlock`, which brings it up to date: an edit is
+  located as the bytes outside the common prefix and suffix of the old and new
+  text, the paragraphs it touched are re-chunked, the chunks after it shift, and
+  nothing else is shaped. A width, mode or shaping-style change rebuilds the
+  block. A block that no layout resolved in the last two view passes is dropped
+  (`sweepTextBlocks`): the cache is bounded by count, and a large text that left
+  the tree would otherwise stay until 256 other identities pushed it out.
 - **Single-line source/display cache.** A single-line input retains its exact
   source value, but shapes CR and LF as one-byte spaces so a pasted separator
   cannot move the caret onto a clipped second row. The block caches both forms

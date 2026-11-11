@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"slices"
 	"sort"
 	"strconv"
@@ -745,8 +746,13 @@ func (b *textBlock) single() (glyph.Layout, bool) {
 // textBlockAnonKey keys a block for a text shape with no identity by
 // the text's backing memory, so a large label an app keeps across
 // frames keeps its layout too. The hit is content-checked by update, so
-// a different text behind the same pointer only costs a re-chunk.
-func textBlockAnonKey(text string) string {
+// a different text behind the same pointer only costs a re-chunk. The
+// width and mode are part of the key: two shapes showing one string at
+// two widths would otherwise share a block and reset it to each other's
+// width every frame, and the first would draw at the second's.
+func textBlockAnonKey(text string, widthArg float32, mode TextMode) string {
 	return "~text:" + strconv.Itoa(len(text)) + ":" +
-		strconv.FormatUint(uint64(uintptr(unsafe.Pointer(unsafe.StringData(text)))), 16)
+		strconv.FormatUint(uint64(uintptr(unsafe.Pointer(unsafe.StringData(text)))), 16) +
+		":" + strconv.Itoa(int(mode)) +
+		":" + strconv.FormatUint(uint64(math.Float32bits(widthArg)), 16)
 }
