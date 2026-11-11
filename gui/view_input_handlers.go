@@ -186,26 +186,30 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 			tk.key = KeyInvalid
 		}
 
+		moveText, moveIs, masked := inputMoveSpace(
+			hcfg, imap, id, is, text, gl, glOK, tk.key)
+		movePos := max(0, min(moveIs.CursorPos, len(moveText)))
+
 		switch tk.key {
 		case KeyInvalid:
 			// Handled by a key-binding case above.
 		case KeyLeft:
-			inputKeyLeft(imap, id, is, text, pos,
+			inputKeyLeft(imap, id, moveIs, moveText, movePos,
 				isShift, isWordMod, gl, glOK)
 		case KeyRight:
-			inputKeyRight(imap, id, is, text, pos,
+			inputKeyRight(imap, id, moveIs, moveText, movePos,
 				isShift, isWordMod, gl, glOK)
 		case KeyHome:
-			inputKeyHome(imap, id, is, text, pos,
+			inputKeyHome(imap, id, moveIs, moveText, movePos,
 				isShift, savedTrailing, !tk.lineEdge, gl, glOK)
 		case KeyEnd:
-			inputKeyEnd(imap, id, is, text, pos,
+			inputKeyEnd(imap, id, moveIs, moveText, movePos,
 				isShift, savedTrailing, !tk.lineEdge, gl, glOK)
 		case KeyUp:
-			handled = inputKeyVertical(imap, id, is, text, pos,
+			handled = inputKeyVertical(imap, id, moveIs, moveText, movePos,
 				isShift, savedOffset, true, hcfg.Mode, gl, glOK)
 		case KeyDown:
-			handled = inputKeyVertical(imap, id, is, text, pos,
+			handled = inputKeyVertical(imap, id, moveIs, moveText, movePos,
 				isShift, savedOffset, false, hcfg.Mode, gl, glOK)
 		case KeyEnter:
 			text, textChanged = inputKeyEnter(
@@ -244,6 +248,9 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 				ctx.Layout, ctx.Window, hcfg.cues.reject)
 		default:
 			handled = false
+		}
+		if masked {
+			imap.Set(id, imap.GetOr(id, moveIs).mapped(text, gl.text, textOffset))
 		}
 
 		if handled {

@@ -408,6 +408,13 @@ and this project adheres to
   moves with the content. An ease to an offset, such as `ScrollAnchorReveal`,
   keeps its target.
 
+- **Arrow keys in a password field move one character (#1187).** A password
+  field draws bullets, and its arrow, Home, End and vertical moves were taken on
+  the bullets with the caret of the hidden text, whose characters are other byte
+  lengths: End then Left put the caret about a third of the way into an ASCII
+  password, not before its last character. The moves now map the caret onto the
+  bullets and back.
+
 - **`Text` and `Input` draw text longer than 10,240 bytes (#1190).** go-glyph
   shapes one layout at a time and refuses text past its 10,240-byte budget, and
   a text shape shaped its whole text as one layout, so a longer `Text` or

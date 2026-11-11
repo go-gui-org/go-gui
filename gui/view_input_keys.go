@@ -2,6 +2,29 @@ package gui
 
 import "strings"
 
+// inputMoveSpace returns the text and state a caret move of key works
+// in. A password's block holds its bullets, which are other bytes than
+// the runes they hide, so there a move runs in the bullets' offsets:
+// masked is then true, the mapped state is already stored, and the
+// caller maps the stored result back with textOffset.
+func inputMoveSpace(
+	hcfg *inputHandlerCfg, imap *BoundedMap[string, inputState],
+	id string, is inputState, text string, gl *textBlock, glOK bool,
+	key KeyCode,
+) (moveText string, moveIs inputState, masked bool) {
+	if !hcfg.IsPassword || !glOK || gl.text == text {
+		return text, is, false
+	}
+	switch key {
+	case KeyLeft, KeyRight, KeyHome, KeyEnd, KeyUp, KeyDown:
+	default:
+		return text, is, false
+	}
+	moveIs = is.mapped(text, gl.text, displayOffset)
+	imap.Set(id, moveIs)
+	return gl.text, moveIs, true
+}
+
 func inputKeyLeft(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, isWordMod bool,

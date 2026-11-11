@@ -202,6 +202,18 @@ func (is inputState) in(text string) inputState {
 	return is
 }
 
+// mapped returns is with f applied to its caret and selection. f is
+// displayOffset or textOffset, which carry offsets between a field's
+// text and its text as drawn.
+func (is inputState) mapped(
+	text, display string, f func(text, display string, off int) int,
+) inputState {
+	is.CursorPos = f(text, display, is.CursorPos)
+	is.selectBeg = uint32(f(text, display, int(is.selectBeg)))
+	is.selectEnd = uint32(f(text, display, int(is.selectEnd)))
+	return is
+}
+
 // runeStartAtOrBefore returns off, or the start of the rune it falls
 // inside when that is inside text. The walk is at most utf8.UTFMax-1
 // bytes, so it costs the same in a field of any size.

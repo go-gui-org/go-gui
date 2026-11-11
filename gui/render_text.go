@@ -470,7 +470,14 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 		return
 	}
 	beg, end := u32Sort(tc.textSelBeg, tc.textSelEnd)
-	if int(beg) > len(text) || int(end) > len(text) {
+	// The offsets are of the field's text. A password draws bullets,
+	// which can be fewer bytes than the runes they hide; drawnOffset
+	// maps the offsets onto them.
+	limit := len(text)
+	if tc.textIsPassword && !tc.textIsPlaceholder {
+		limit = len(tc.Text)
+	}
+	if int(beg) > limit || int(end) > limit {
 		return
 	}
 
