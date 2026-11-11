@@ -33,12 +33,14 @@ type ColorChannelSliderCfg struct {
 	// only in-repo user.
 	Vertical bool
 
-	// Width is the control's length in points, or its thickness when
-	// Vertical. Zero takes defaultColorSliderWidth.
+	// Width is the control's length in points. Zero takes
+	// defaultColorSliderWidth, and a length shorter than ThumbSize is
+	// raised to it. Ignored when Vertical, where the thickness follows
+	// the thumb and track.
 	Width float32
-	// Height is the control's length in points when Vertical. Zero takes
-	// defaultColorSliderWidth. Ignored when horizontal, where the
-	// thickness follows the thumb and track.
+	// Height is the control's length in points when Vertical, with zero
+	// and short lengths treated as for Width. Ignored when horizontal,
+	// where the thickness follows the thumb and track.
 	Height float32
 	// TrackHeight is the colored track's thickness. Zero takes the
 	// theme default.
@@ -97,6 +99,11 @@ func (sv *colorChannelSliderView) GenerateLayout(w *Window) Layout {
 	if length <= 0 {
 		length = defaultColorSliderWidth
 	}
+	// Never shorter than the thumb, as the control is never thinner
+	// than it: the thumb travels length minus a thumb, and on a shorter
+	// control that is negative, so the thumb stuck out past the control,
+	// where a clip around it cut it, and moved backward as the value grew.
+	length = f32Max(length, cfg.ThumbSize)
 	thick := f32Max(cfg.ThumbSize, cfg.TrackHeight)
 	inset := cfg.ThumbSize / 2
 
@@ -133,13 +140,6 @@ func (sv *colorChannelSliderView) GenerateLayout(w *Window) Layout {
 		thumbX, thumbY = thick/2, along
 	}
 
-	// The track is thinner than the control when the thumb is the wider
-	// of the two, so it is centred on the cross axis.
-	trackOffX, trackOffY := float32(0), (thick-cfg.TrackHeight)/2
-	if vert {
-		trackOffX, trackOffY = (thick-cfg.TrackHeight)/2, 0
-	}
-
 	cv := &containerView{
 		cfg: ContainerCfg{
 			ID:        id,
@@ -155,21 +155,24 @@ func (sv *colorChannelSliderView) GenerateLayout(w *Window) Layout {
 			Sizing:     FixedFixed,
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
-			axis:       axisTopToBottom,
-			OnClick:    colorDragTrack(id, apply),
-			OnKeyDown:  colorChannelKeys(ch, v, onChange),
+			// A centred Stack: the track is thinner than the control
+			// when the thumb is the wider of the two, so it is centred
+			// on the cross axis. On the swept axis it is as long as the
+			// control.
+			axis:      axisStack,
+			HAlign:    HAlignCenter,
+			VAlign:    VAlignMiddle,
+			OnClick:   colorDragTrack(id, apply),
+			OnKeyDown: colorChannelKeys(ch, v, onChange),
 		},
 		content: []View{
 			container(ContainerCfg{
-				Float:        true,
-				FloatOffsetX: trackOffX,
-				FloatOffsetY: trackOffY,
-				Width:        trackW,
-				Height:       trackH,
-				Padding:      NoPadding,
-				SizeBorder:   NoBorder,
-				Radius:       RadiusPx(cfg.TrackHeight / 2),
-				Clip:         true,
+				Width:      trackW,
+				Height:     trackH,
+				Padding:    NoPadding,
+				SizeBorder: NoBorder,
+				Radius:     RadiusPx(cfg.TrackHeight / 2),
+				Clip:       true,
 				Content: []View{
 					Image(ImageCfg{
 						Src: channelStripSrc(ch, v,
@@ -188,7 +191,9 @@ func (sv *colorChannelSliderView) GenerateLayout(w *Window) Layout {
 		},
 	}
 	colorControlFocusRing(&cv.cfg, w.EffID(cv.cfg.ID))
-	return generateViewLayout(cv, w)
+	layout := generateViewLayout(cv, w)
+	colorMarkerLeaveFlow(&layout)
+	return layout
 }
 
 // defaultColorSliderWidth is the track length used when Width is

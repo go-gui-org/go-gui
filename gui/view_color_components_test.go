@@ -29,7 +29,7 @@ func hasID(ids []string, want string) bool {
 
 func TestColorPlaneLayout(t *testing.T) {
 	w := &Window{}
-	l := generateViewLayout(ColorPlane(ColorPlaneCfg{
+	l := colorControlOf(t, ColorPlane(ColorPlaneCfg{
 		ID:    "plane",
 		Value: HSLA{H: 210, S: 0.7, L: 0.55, A: 1},
 		Size:  100,
@@ -67,7 +67,7 @@ func TestColorPlaneLayout(t *testing.T) {
 
 func TestColorPlaneFocusDisabled(t *testing.T) {
 	w := &Window{}
-	l := generateViewLayout(ColorPlane(ColorPlaneCfg{
+	l := colorControlOf(t, ColorPlane(ColorPlaneCfg{
 		ID: "plane-nf", Size: 50, FocusDisabled: true,
 	}), w)
 	if l.Shape.Focusable {
@@ -77,7 +77,7 @@ func TestColorPlaneFocusDisabled(t *testing.T) {
 
 func TestColorWheelLayout(t *testing.T) {
 	w := &Window{}
-	l := generateViewLayout(ColorWheel(ColorWheelCfg{
+	l := colorControlOf(t, ColorWheel(ColorWheelCfg{
 		ID:    "wheel",
 		Value: HSLA{H: 90, S: 0.5, L: 0.5, A: 1},
 		Size:  120,
@@ -413,7 +413,7 @@ func TestColorPlaneMarkerTracksValue(t *testing.T) {
 	var marker *Shape
 	var walk func(*Layout)
 	walk = func(n *Layout) {
-		if s := n.Shape; s != nil && s.Float {
+		if s := n.Shape; s != nil && s.outOfFlow {
 			marker = s
 		}
 		for i := range n.Children {
@@ -424,9 +424,9 @@ func TestColorPlaneMarkerTracksValue(t *testing.T) {
 	if marker == nil {
 		t.Fatal("no marker shape")
 	}
-	r := marker.Width / 2
-	wantX := v.S*size - r
-	wantY := (1-v.L)*size - r
+	r := marker.Width / 2 // also the knob room the plane sits in
+	wantX := r + v.S*size - r
+	wantY := r + (1-v.L)*size - r
 	if f32Abs(marker.X-wantX) > 0.1 || f32Abs(marker.Y-wantY) > 0.1 {
 		t.Errorf("marker at %v,%v, want %v,%v",
 			marker.X, marker.Y, wantX, wantY)
@@ -629,7 +629,7 @@ func TestColorFieldsMinWidths(t *testing.T) {
 }
 
 // A white swatch on a light theme is an invisible rectangle without an
-// outline, and the outline has to sit on the color overlay: that float
+// outline, and the outline has to sit on the color overlay: that layer
 // covers the whole widget, so a border on the box beneath would be
 // drawn under it.
 func TestColorSwatchColorLayerHasOutline(t *testing.T) {
@@ -644,7 +644,7 @@ func TestColorSwatchColorLayerHasOutline(t *testing.T) {
 	var found bool
 	var walk func(*Layout)
 	walk = func(n *Layout) {
-		if s := n.Shape; s != nil && s.Float && s.Color.Eq(White) {
+		if s := n.Shape; s != nil && s.Color.Eq(White) {
 			found = true
 			if s.SizeBorder <= 0 {
 				t.Errorf("color layer border = %v, want > 0",
@@ -660,7 +660,7 @@ func TestColorSwatchColorLayerHasOutline(t *testing.T) {
 	}
 	walk(&l)
 	if !found {
-		t.Fatal("no floating color layer in the swatch")
+		t.Fatal("no color layer in the swatch")
 	}
 }
 

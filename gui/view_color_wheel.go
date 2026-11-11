@@ -20,7 +20,9 @@ type ColorWheelCfg struct {
 
 	Value HSLA
 	// Size is the wheel's diameter in points. Zero takes the theme
-	// default.
+	// default. The widget is one MarkerSize wider and taller: it keeps
+	// half a marker of room on every side, because the marker can sit
+	// on the rim.
 	Size float32 // ergonomics-audit:opt-plain — a zero-diameter wheel is meaningless; 0 falls back to the theme
 	// MarkerSize is the diameter of the position marker. Zero takes
 	// the theme default.
@@ -57,6 +59,14 @@ func applyColorWheelDefaults(cfg *ColorWheelCfg) {
 }
 
 func (wv *colorWheelView) GenerateLayout(w *Window) Layout {
+	return colorKnobRoom((*colorWheelControl)(wv), wv.cfg.MarkerSize, w)
+}
+
+// colorWheelControl is the wheel itself, without the room around it for
+// its marker.
+type colorWheelControl colorWheelView
+
+func (wv *colorWheelControl) GenerateLayout(w *Window) Layout {
 	cfg := &wv.cfg
 	id := w.EffID(cfg.ID)
 	size := cfg.Size
@@ -122,7 +132,9 @@ func (wv *colorWheelView) GenerateLayout(w *Window) Layout {
 		},
 	}
 	colorControlFocusRing(&cv.cfg, w.EffID(cv.cfg.ID))
-	return generateViewLayout(cv, w)
+	layout := generateViewLayout(cv, w)
+	colorMarkerLeaveFlow(&layout)
+	return layout
 }
 
 // colorWheelKeys steps hue with the horizontal arrows and saturation

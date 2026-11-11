@@ -98,9 +98,27 @@ the one sweeping it.
   sequence in one place. `OnClick` arrives shape-relative while `MouseLock`
   delivers window-absolute, and the dragged shape must be re-found by ID each
   move because the tree is rebuilt every frame.
-- `colorMarker` (`gui/view_color_marker.go`) — the ring. It floats above the
-  imagery: a channel slider floats its track to centre it in a control the thumb
-  makes taller, and a marker under that track is invisible.
+- `colorMarker` (`gui/view_color_marker.go`) — the ring. It is the control's
+  last child and leaves the layout flow (`colorMarkerLeaveFlow`), so it is drawn
+  after the imagery, in the control's own layer. A channel slider is a centred
+  `Stack`, which centres its track in a control the thumb makes taller, and a
+  swatch is a `Stack` whose color lies over the checker. None of these parts is
+  a float: as floats they were drawn over popups and tooltips and escaped scroll
+  clips and transforms (#1244).
+- `colorKnobRoom` (`gui/view_color_marker.go`) — half a marker of padding around
+  a plane or a wheel, whose marker can sit on its edge. Without it, a clipping
+  container the widget sits flush in (a scroll view clips inside its padding)
+  cuts the marker in half. The room has no ID, so identity, focus and the drag
+  stay on the control. `ColorPicker` leaves it out for its plane: its own
+  padding holds the marker, raised to half a marker under a theme that sets less
+  (`colorPickerPadding`). The channel slider needs none: it is as thick as its
+  thumb, and its gradient is inset by half a thumb at each end.
+- A known overlap, kept on purpose: in `ColorPicker` the gap from the plane down
+  to the fields row (`SpacingSmall`, 6 px in both stock themes) is less than
+  half a marker (8 px). At lightness 0 the marker reaches 2 px into the fields
+  row, which is drawn after it, so the hex field's top edge lies over the
+  marker's lowest edge. As a float the marker was drawn over the field instead.
+  A wider gap would move every picker's fields down for 2 px of a ring (#1244).
 - Arrow keys move every control (`colorKeyDelta`). Shift takes the 10× step. A
   key a control does not handle is not consumed, so Tab still escapes.
 
@@ -167,6 +185,14 @@ resampled to five stops. No API break.
   less reusable than an image source.
 - **PNG-encoded `data:` URLs** to avoid backend work. Re-encoding a 400×400 PNG
   on every hue change is a visible hitch on drag.
+- **Drawing the knobs from the control's render pass** (#1244), the way a
+  group-box title is drawn (#1238). It needs a new render hook on the shape for
+  something plain layout already does: a child that leaves the flow, as the
+  slider's thumb does (#664).
+- **Keeping the parts as floats, under a negative Z and with a flag that makes a
+  float honor its ancestors' clips** (#1244). A negative Z puts them under a
+  popup only while the popup keeps Z 0, and the clip flag would be a second clip
+  rule inside the float system, for three widgets.
 
 ## Follow-up
 

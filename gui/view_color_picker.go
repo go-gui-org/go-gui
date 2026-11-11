@@ -131,6 +131,17 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 					Size:          planeSize,
 					FocusDisabled: cfg.FocusDisabled,
 					OnChange:      onChange,
+					// The picker's padding holds the marker
+					// (colorPickerPadding). Below the plane, the
+					// row gap (SpacingSmall, 6 px in both stock
+					// themes) is less than half a marker (8 px):
+					// at lightness 0 the marker reaches 2 px into
+					// the fields row, drawn after it, so the hex
+					// field's top edge lies over the marker's
+					// lowest edge. Kept on purpose: a wider gap
+					// would move every picker's fields down
+					// (#1244).
+					noKnobRoom: true,
 				}),
 				ColorChannelSlider(ColorChannelSliderCfg{
 					ID:            ScopeID(cfg.ID, "hue"),
@@ -183,10 +194,30 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		Height:      cfg.Height,
 		axis:        axisTopToBottom,
 	}
+	if p, raised := colorPickerPadding(style.SizeBorder); raised {
+		ccfg.Padding = p
+	}
 	return generateViewLayout(&containerView{
 		cfg:     ccfg,
 		content: content,
 	}, w)
+}
+
+// colorPickerPadding returns the picker's padding: the theme's container
+// padding, raised where needed so that, with the border, it holds half a
+// marker. The plane in the picker has no knob room (noKnobRoom), so this
+// padding is what keeps a marker on the plane's edge inside the picker;
+// with less (Theme.WithPadding(false)) a clip around the picker would
+// cut the marker in half. raised reports whether the theme's padding
+// was too small; a theme with enough keeps its own.
+func colorPickerPadding(border float32) (p Padding, raised bool) {
+	p = defaultContainerStyle.Padding
+	least := defaultColorPickerStyle.indicatorSize/2 - border
+	if p.Top >= least && p.Right >= least && p.Bottom >= least && p.Left >= least {
+		return p, false
+	}
+	return NewPadding(max(p.Top, least), max(p.Right, least),
+		max(p.Bottom, least), max(p.Left, least)), true
 }
 
 // colorPickerSwatchSize is the preview swatch's edge length.
