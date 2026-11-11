@@ -11,7 +11,7 @@ A `Text` or `Input` whose text was longer than 10,240 bytes drew nothing
 longer text; go-gui shaped a text shape's whole text as one layout, so the draw
 failed as a whole. Below the cap the whole text was re-shaped on every rebuild
 and on every keystroke, because the layout cache lived on the per-frame
-`shapeTextConfig` arena, and the 65,536-rune paste budget (#1187) stood in for a
+`ShapeTextConfig` arena, and the 65,536-rune paste budget (#1187) stood in for a
 performance ceiling nothing could raise.
 
 Measured on a desktop with the pure-Go shaper (Segoe UI, 16 px):
@@ -268,7 +268,7 @@ is not handed to the platform spell checker.
   pass, where nothing compensates: the lines on screen moved by the estimate's
   error, a whole view height in `TestTextAnchorCaretWalkScrollsByRows`. Measure
   in the anchor pass, which corrects the offset in the same frame.
-- **Keeping the layout cache on `shapeTextConfig`.** The arena is per frame, so
+- **Keeping the layout cache on `ShapeTextConfig`.** The arena is per frame, so
   every rebuild re-shaped the whole text: today's cost class.
 - **Rune offsets with a rune-to-byte table.** It keeps the old unit at the cost
   of a second index the size of the text, rebuilt or patched on every edit; byte
