@@ -296,47 +296,6 @@ func (b *textBlock) probeMetrics(w *Window) {
 	}
 }
 
-// appendTextChunks appends the chunks covering text[from:to] to dst. to
-// is len(text) or the index of a '\n' separator, so the region holds
-// whole paragraphs. Consecutive non-empty paragraphs pack into one chunk
-// while it stays within the budget; an empty paragraph is its own chunk;
-// a paragraph over the budget is one open chunk, cut when shaped. piece
-// marks the first chunk as the continuation of an earlier paragraph.
-func appendTextChunks(
-	dst []textChunk, text string, from, to int, piece bool,
-) []textChunk {
-	ps := from
-	cur := -1 // index in dst of the chunk being packed
-	for {
-		pe := to
-		if k := strings.IndexByte(text[ps:to], '\n'); k >= 0 {
-			pe = ps + k
-		}
-		switch {
-		case pe == ps:
-			dst = append(dst, textChunk{start: ps, end: pe})
-			cur = -1
-		case pe-ps > textChunkBytes:
-			dst = append(dst, textChunk{start: ps, end: pe, open: true})
-			cur = -1
-		case cur >= 0 && pe-dst[cur].start <= textChunkBytes:
-			dst[cur].end = pe
-		default:
-			dst = append(dst, textChunk{start: ps, end: pe})
-			cur = len(dst) - 1
-		}
-		if piece {
-			dst[len(dst)-1].piece = true
-			piece = false
-		}
-		if pe >= to {
-			break
-		}
-		ps = pe + 1
-	}
-	return dst
-}
-
 // estimate sizes an unshaped chunk from the average advance: one line
 // per paragraph, or as many as its width needs at the wrap width. An
 // empty paragraph's one line box is final, so it counts as measured.

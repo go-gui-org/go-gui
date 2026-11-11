@@ -33,15 +33,17 @@ A text shape's text is laid out as a `textBlock` (`gui/text_block.go`): a list
 of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
 
 - **Chunking.** Whole paragraphs (`\n`-delimited) pack into one chunk while it
-  stays within the budget. An empty paragraph is its own chunk with no layout
-  and one synthetic line box, so a text ending in `\n` keeps its caret line
-  (go-glyph gives it an empty last line too). A paragraph over the budget is one
-  _open_ chunk that is cut when first reached. A wrapped seam is found by
-  shaping; a no-wrap seam is a metadata-only cut. The budget, 2,048 bytes, keeps
-  a chunk under the 4,096 clusters go-glyph retains its layout scratch for
-  (`maxLayoutScratch`): every chunk reuses the shaper's buffers, where a 4 KB
-  ASCII chunk would reallocate them on every shape. Measured on the pure-Go
-  shaper, a 2 KB layout allocates 0.4 MB and a 4 KB one 1.6 MB.
+  stays within the budget, blank lines between them included, so double-spaced
+  text packs as densely as single-spaced. An empty paragraph that would end a
+  chunk or open the text is its own chunk with no layout and one synthetic line
+  box, so a text ending in `\n` keeps its caret line (go-glyph gives it an empty
+  last line too). A paragraph over the budget is one _open_ chunk that is cut
+  when first reached. A wrapped seam is found by shaping; a no-wrap seam is a
+  metadata-only cut. The budget, 2,048 bytes, keeps a chunk under the 4,096
+  clusters go-glyph retains its layout scratch for (`maxLayoutScratch`): every
+  chunk reuses the shaper's buffers, where a 4 KB ASCII chunk would reallocate
+  them on every shape. Measured on the pure-Go shaper, a 2 KB layout allocates
+  0.4 MB and a 4 KB one 1.6 MB.
 - **Seams.** In wrap mode a budget-sized prefix is shaped and every complete
   line except its possibly input-forced final line becomes the measured piece;
   greedy wrapping is prefix-stable, so those lines are the whole paragraph's

@@ -2,6 +2,7 @@ package gui
 
 import (
 	"slices"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/go-gui-org/go-glyph"
@@ -136,4 +137,83 @@ func textSplitPoint(text string, start, end, limit int) int {
 		}
 	}
 	return end
+}
+
+// appendTextChunks appends the chunks covering text[from:to] to dst. to
+// is len(text) or the index of a '\n' separator, so the region holds
+// whole paragraphs. Consecutive paragraphs pack into one chunk while it
+// stays within the budget, empty ones between them included; an empty
+// paragraph that would end a chunk is its own chunk instead, so a chunk
+// never ends on an empty line; a paragraph over the budget is one open
+// chunk, cut when shaped. piece marks the first chunk as the
+// continuation of an earlier paragraph.
+func appendTextChunks(
+	dst []textChunk, text string, from, to int, piece bool,
+) []textChunk {
+	ps := from
+	cur := -1 // index in dst of the chunk being packed
+	for {
+		pe := to
+		if k := strings.IndexByte(text[ps:to], '\n'); k >= 0 {
+			pe = ps + k
+		}
+		switch {
+		case pe == ps && cur >= 0 && blankRunFits(text, ps, to, dst[cur].start):
+			// Blank lines between paragraphs of one chunk: take them
+			// and the paragraph after them. Double-spaced text would
+			// otherwise be a chunk per line, too many to stay shaped.
+			pe = nextParagraphEnd(text, ps, to)
+			dst[cur].end = pe
+		case pe == ps:
+			dst = append(dst, textChunk{start: ps, end: pe})
+			cur = -1
+		case pe-ps > textChunkBytes:
+			dst = append(dst, textChunk{start: ps, end: pe, open: true})
+			cur = -1
+		case cur >= 0 && pe-dst[cur].start <= textChunkBytes:
+			dst[cur].end = pe
+		default:
+			dst = append(dst, textChunk{start: ps, end: pe})
+			cur = len(dst) - 1
+		}
+		if piece {
+			dst[len(dst)-1].piece = true
+			piece = false
+		}
+		if pe >= to {
+			break
+		}
+		ps = pe + 1
+	}
+	return dst
+}
+
+// blankRunFits reports whether the blank lines starting at ps, an empty
+// paragraph, end in a non-empty paragraph within [ps, to] that the chunk
+// starting at start can take within the budget.
+func blankRunFits(text string, ps, to, start int) bool {
+	if ps >= to {
+		return false // the region ends on the empty paragraph
+	}
+	j := ps
+	for j < to && text[j] == '\n' {
+		j++
+	}
+	if j >= to {
+		return false // only empty paragraphs before the region's end
+	}
+	return nextParagraphEnd(text, ps, to)-start <= textChunkBytes
+}
+
+// nextParagraphEnd returns the end of the first non-empty paragraph at
+// or after ps, the start of a run of empty ones, within [ps, to].
+func nextParagraphEnd(text string, ps, to int) int {
+	j := ps
+	for j < to && text[j] == '\n' {
+		j++
+	}
+	if k := strings.IndexByte(text[j:to], '\n'); k >= 0 {
+		return j + k
+	}
+	return to
 }

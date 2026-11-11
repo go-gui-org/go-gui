@@ -275,7 +275,12 @@ func TestTextBlockEmptyAndNewlines(t *testing.T) {
 		{"\n", 2, []string{"[0,0)", "[1,1)"}},
 		{"\n\n", 3, []string{"[0,0)", "[1,1)", "[2,2)"}},
 		{"a\n", 2, []string{"[0,1)", "[2,2)"}},
-		{"a\n\nb", 3, []string{"[0,1)", "[2,2)", "[3,4)"}},
+		// Blank lines between two paragraphs pack with them; an empty line
+		// that would end a chunk, or open the text, is its own chunk.
+		{"a\n\nb", 3, []string{"[0,4)"}},
+		{"a\n\n\nb", 4, []string{"[0,5)"}},
+		{"a\n\nb\n", 4, []string{"[0,4)", "[5,5)"}},
+		{"\n\nb", 3, []string{"[0,0)", "[1,1)", "[2,3)"}},
 	}
 	for _, tc := range cases {
 		b := newTextBlock(tc.text, 100, blockTestStyle, TextModeWrap, w)
