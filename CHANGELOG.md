@@ -175,6 +175,19 @@ and this project adheres to
 
 ### Fixed
 
+- **A tooltip no longer opens for a widget that a dialog or a popup covers
+  (#1243).** `WithTooltip` opened its tooltip whenever the pointer was inside
+  the widget's box, even when a modal dialog, an open `Select` list or a menu
+  lay over the widget at that point, so the tooltip showed on top of the dialog
+  or the list. Now it opens only when the topmost thing drawn under the pointer
+  belongs to the widget. A popup covers the widget everywhere, also on its
+  padding and between its items. A tooltip that is showing when a dialog or a
+  popup opens over its widget closes in that frame, and the part of a widget
+  that a scroll view hides no longer opens it. When tooltips are nested, the
+  tooltip of the topmost widget under the pointer shows: on a button inside a
+  card, the button's, also when the pointer comes to it from the card. A wrapper
+  that leaves the view while hovered no longer comes back with its tooltip open.
+
 - **Android: reopening an app after Back no longer shows a blank screen
   (#1246).** Android can close an app's screen (its activity) and open a new one
   while the app keeps running. This happens after Back on Android 11 and

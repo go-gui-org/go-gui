@@ -177,27 +177,42 @@ func TestWithTooltipNoBorderInflation(t *testing.T) {
 	}
 }
 
-func TestWithTooltipAmendStartsHover(t *testing.T) {
-	w := &Window{}
-	w.viewState.mousePosX = 50
-	w.viewState.mousePosY = 50
-
-	v := WithTooltip(w, WithTooltipCfg{
-		ID:      "tip1",
-		Text:    "hello",
-		Content: []View{Text(TextCfg{Text: "trigger"})},
-	})
-	layout := generateViewLayout(v, w)
-	layout.Shape.X = 0
-	layout.Shape.Y = 0
-	layout.Shape.Width = 100
-	layout.Shape.Height = 100
-
-	if layout.Shape.events == nil ||
-		layout.Shape.events.AmendLayout == nil {
-		t.Fatal("expected AmendLayout handler")
+// tooltipBoxWindow renders one WithTooltip wrapper, "tip1", around a
+// fixed 100×100 box at the window origin, with the pointer at (mx, my).
+// setup, when not nil, seeds the tooltip state before the frame. The
+// hover is decided at the end of the arrange pass (resolveTooltipHover),
+// so these tests run the whole frame rather than the amend hook alone.
+func tooltipBoxWindow(
+	t *testing.T, mx, my float32, setup func(*tooltipState),
+) *Window {
+	t.Helper()
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	t.Cleanup(w.WindowCleanup)
+	if setup != nil {
+		setup(&w.viewState.tooltip)
 	}
-	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
+	w.viewState.mousePosX, w.viewState.mousePosY = mx, my
+	w.TestRender(func(vw *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill, Padding: PaddingNone, SizeBorder: NoBorder,
+			Content: []View{
+				WithTooltip(vw, WithTooltipCfg{
+					ID:    "tip1",
+					Text:  "hello",
+					Delay: 500 * time.Millisecond,
+					Content: []View{Column(ContainerCfg{
+						Sizing: FixedFixed, Width: 100, Height: 100,
+						SizeBorder: NoBorder,
+					})},
+				}),
+			},
+		})
+	})
+	return w
+}
+
+func TestWithTooltipAmendStartsHover(t *testing.T) {
+	w := tooltipBoxWindow(t, 50, 50, nil)
 
 	if w.viewState.tooltip.hoverID != "tip1" {
 		t.Errorf("expected hoverID=tip1, got %q",
@@ -209,26 +224,12 @@ func TestWithTooltipAmendStartsHover(t *testing.T) {
 }
 
 func TestWithTooltipAmendClearsOnLeave(t *testing.T) {
-	w := &Window{}
-	w.viewState.tooltip.hoverID = "tip1"
-	w.viewState.tooltip.hoverStart = time.Now()
-	w.viewState.tooltip.id = "tip1"
-	w.viewState.tooltip.popupID = ScopeID("tip1", "popup")
-	w.viewState.mousePosX = 200
-	w.viewState.mousePosY = 200
-
-	v := WithTooltip(w, WithTooltipCfg{
-		ID:      "tip1",
-		Text:    "hello",
-		Content: []View{Text(TextCfg{Text: "trigger"})},
+	w := tooltipBoxWindow(t, 200, 200, func(ts *tooltipState) {
+		ts.hoverID = "tip1"
+		ts.hoverStart = time.Now()
+		ts.id = "tip1"
+		ts.popupID = ScopeID("tip1", "popup")
 	})
-	layout := generateViewLayout(v, w)
-	layout.Shape.X = 0
-	layout.Shape.Y = 0
-	layout.Shape.Width = 100
-	layout.Shape.Height = 100
-
-	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 
 	if w.viewState.tooltip.hoverID != "" {
 		t.Errorf("expected empty hoverID, got %q",
@@ -244,51 +245,27 @@ func TestWithTooltipAmendClearsOnLeave(t *testing.T) {
 	}
 }
 
+// A RichText run's tooltip shares the state; a wrapper leaves it to the
+// run, whether the pointer is in the wrapper's box or not.
 func TestWithTooltipAmendIgnoresOther(t *testing.T) {
-	w := &Window{}
-	w.viewState.tooltip.hoverID = "other"
-	w.viewState.mousePosX = 200
-	w.viewState.mousePosY = 200
+	for _, at := range []float32{50, 200} {
+		w := tooltipBoxWindow(t, at, at, func(ts *tooltipState) {
+			ts.hoverID = "other"
+			ts.text = "other"
+		})
 
-	v := WithTooltip(w, WithTooltipCfg{
-		ID:      "tip1",
-		Text:    "hello",
-		Content: []View{Text(TextCfg{Text: "trigger"})},
-	})
-	layout := generateViewLayout(v, w)
-	layout.Shape.X = 0
-	layout.Shape.Y = 0
-	layout.Shape.Width = 100
-	layout.Shape.Height = 100
-
-	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
-
-	if w.viewState.tooltip.hoverID != "other" {
-		t.Errorf("expected hoverID=other, got %q",
-			w.viewState.tooltip.hoverID)
+		if w.viewState.tooltip.hoverID != "other" {
+			t.Errorf("pointer at %v: expected hoverID=other, got %q",
+				at, w.viewState.tooltip.hoverID)
+		}
 	}
 }
 
 func TestWithTooltipAmendSetsIDAfterDelay(t *testing.T) {
-	w := &Window{}
-	w.viewState.tooltip.hoverID = "tip1"
-	w.viewState.tooltip.hoverStart = time.Now().Add(-time.Second)
-	w.viewState.mousePosX = 50
-	w.viewState.mousePosY = 50
-
-	v := WithTooltip(w, WithTooltipCfg{
-		ID:      "tip1",
-		Text:    "hello",
-		Delay:   500 * time.Millisecond,
-		Content: []View{Text(TextCfg{Text: "trigger"})},
+	w := tooltipBoxWindow(t, 50, 50, func(ts *tooltipState) {
+		ts.hoverID = "tip1"
+		ts.hoverStart = time.Now().Add(-time.Second)
 	})
-	layout := generateViewLayout(v, w)
-	layout.Shape.X = 0
-	layout.Shape.Y = 0
-	layout.Shape.Width = 100
-	layout.Shape.Height = 100
-
-	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
 
 	if w.viewState.tooltip.id != "tip1" {
 		t.Errorf("expected tooltip id=tip1, got %q",

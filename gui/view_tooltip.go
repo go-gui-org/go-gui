@@ -15,6 +15,19 @@ type tooltipState struct {
 	// hangs from: its offset from the block and its size.
 	floatOffsetX, floatOffsetY float32
 	floatWidth, floatHeight    float32
+	// anchors lists the WithTooltip wrappers whose box held the pointer
+	// in this arrange pass. resolveTooltipHover reads and empties it at
+	// the end of the pass.
+	anchors []tooltipAnchor
+}
+
+// tooltipAnchor is a WithTooltip wrapper that had the pointer in its
+// box during an arrange pass. The shape is valid for that pass only.
+type tooltipAnchor struct {
+	shape   *Shape
+	tipID   string
+	popupID string
+	delay   time.Duration
 }
 
 // setRun records the hovered run r, in the frame of the RTF block ly:
@@ -235,17 +248,21 @@ func withTooltipBuild(w *Window, cfg WithTooltipCfg) View {
 }
 
 // withTooltipAmend returns the AmendLayout callback for a
-// WithTooltip wrapper.
+// WithTooltip wrapper. It only records that the pointer is in the
+// wrapper's box. Whether the wrapper is what the pointer is on is
+// decided after the whole pass, in resolveTooltipHover: this hook runs
+// inside its own layer's pipeline, before the layers above it are laid
+// out, so it cannot see a dialog or a popup drawn over the wrapper
+// (#1243).
 func withTooltipAmend(
 	tipID string, delay time.Duration,
 ) func(EventCtx) {
 	popupID := ScopeID(tipID, "popup")
 	return func(ctx EventCtx) {
-		ts := &ctx.Window.viewState.tooltip
 		// The pointer is a window position; the shape's box is in its own
-		// frame, which a view transform moves. No clip test: layout sets
-		// the clips after the AmendLayout hooks, and the box test here
-		// never took the ancestors' clips.
+		// frame, which a view transform moves. No clip test here: layout
+		// sets the clips after the AmendLayout hooks. The hit test in
+		// resolveTooltipHover runs with them.
 		mx, my, onView := xfWindowToLocal(ctx.Layout,
 			ctx.Window.viewState.mousePosX, ctx.Window.viewState.mousePosY, false)
 		// With no clip test the mapping does not refuse an inert view
@@ -255,32 +272,151 @@ func withTooltipAmend(
 			mx >= ctx.Layout.Shape.X && my >= ctx.Layout.Shape.Y &&
 			mx < ctx.Layout.Shape.X+ctx.Layout.Shape.Width &&
 			my < ctx.Layout.Shape.Y+ctx.Layout.Shape.Height
+		if !inside {
+			return
+		}
+		ts := &ctx.Window.viewState.tooltip
+		ts.anchors = append(ts.anchors, tooltipAnchor{
+			shape:   ctx.Layout.Shape,
+			tipID:   tipID,
+			popupID: popupID,
+			delay:   delay,
+		})
+	}
+}
 
-		switch {
-		case inside && ts.hoverID == "":
-			ts.hoverID = tipID
-			ts.hoverStart = time.Now()
-			ctx.Window.AnimationAdd(&Animate{
-				AnimID: "___tooltip___",
-				Delay:  delay,
-				Callback: func(_ *Animate, w *Window) {
-					if w.viewState.tooltip.hoverID == tipID {
-						w.viewState.tooltip.id = tipID
-						w.viewState.tooltip.popupID = popupID
-					}
-				},
-			})
+// resolveTooltipHover starts, keeps or ends the WithTooltip hover once
+// every layer of the pass is placed and clipped. Of the wrappers that
+// recorded the pointer in their box, the one that counts is the
+// topmost widget under the pointer that has a tooltip (pointedAnchor).
+// A dialog, an open dropdown or any other layer drawn over a wrapper,
+// or a clip that hides that part of it, keeps its tooltip shut (#1243).
+//
+// Runs under w.mu from layoutArrange. A change to the shown tooltip
+// asks for another layout pass, which FrameFn runs in the same frame,
+// so a tooltip under a dialog that just opened goes in that frame.
+func (w *Window) resolveTooltipHover(layers []Layout) {
+	ts := &w.viewState.tooltip
+	if len(ts.anchors) == 0 && ts.hoverID == "" {
+		return
+	}
+	a, ok := ts.pointedAnchor(layers, w)
+	clear(ts.anchors) // drop the pass's shape pointers
+	ts.anchors = ts.anchors[:0]
+	if ts.text != "" {
+		// A RichText run holds the tooltip (view_rtf.go); it ends its
+		// own hover.
+		return
+	}
+	shown := ts.id != ""
+	switch {
+	case !ok:
+		ts.hoverID = ""
+		ts.hoverStart = time.Time{}
+		ts.id = ""
+		ts.popupID = ""
 
-		case inside && ts.hoverID == tipID &&
-			time.Since(ts.hoverStart) >= delay:
-			ts.id = tipID
-			ts.popupID = popupID
-
-		case !inside && ts.hoverID == tipID:
-			ts.hoverID = ""
-			ts.hoverStart = time.Time{}
+	case ts.hoverID != a.tipID:
+		// A new hover, or the pointer went straight from one wrapper
+		// to another: the old one's tooltip ends here.
+		ts.hoverID = a.tipID
+		ts.hoverStart = time.Now()
+		if ts.id != a.tipID {
 			ts.id = ""
 			ts.popupID = ""
 		}
+		tipID, popupID := a.tipID, a.popupID
+		w.AnimationAdd(&Animate{
+			AnimID: "___tooltip___",
+			Delay:  a.delay,
+			Callback: func(_ *Animate, w *Window) {
+				if w.viewState.tooltip.hoverID == tipID {
+					w.viewState.tooltip.id = tipID
+					w.viewState.tooltip.popupID = popupID
+				}
+			},
+		})
+
+	case ts.id == "" && time.Since(ts.hoverStart) >= a.delay:
+		ts.id = a.tipID
+		ts.popupID = a.popupID
 	}
+	if shown != (ts.id != "") {
+		w.InvalidateLayout()
+	}
+}
+
+// pointedAnchor returns the recorded wrapper the pointer is on: the
+// first one met climbing from the topmost shape under the pointer
+// through its ancestors, so the topmost widget there that has a
+// tooltip wins. A nested wrapper's content is drawn over the wrapper
+// around it, so on a button with a tooltip inside a card with one,
+// the button's opens.
+//
+// At a float the climb leaves that float's layer for the tree it was
+// lifted from only when nothing in the layer has an ID. Such a float
+// is part of the widget it hangs from, like a ColorSwatch's color or a
+// slider's track. A layer with an ID anywhere, such as a dropdown, a
+// menu panel or a dialog, is drawn over the wrapper and ends the
+// climb, also where the pointer is on its padding or a gap between
+// its items. The wrapper's own tooltip popup has an ID but counts as
+// the wrapper: it overlaps the wrapper's edge (TooltipCfg.OffsetY).
+func (ts *tooltipState) pointedAnchor(layers []Layout, w *Window) (tooltipAnchor, bool) {
+	if len(ts.anchors) == 0 {
+		return tooltipAnchor{}, false
+	}
+	hit := layoutAtPoint(layers,
+		w.viewState.mousePosX, w.viewState.mousePosY, w)
+	// The depth cap also ends the climb on a malformed Parent cycle.
+	for p, depth := hit, 0; p != nil && !overMaxDepth(depth); p, depth = p.Parent, depth+1 {
+		if p.Shape == nil {
+			continue
+		}
+		if i := ts.anchorIndex(p.Shape); i >= 0 {
+			return ts.anchors[i], true
+		}
+		if p.Shape.Float && layerHasID(p, 0) && !ts.isAnchorPopup(p) {
+			return tooltipAnchor{}, false
+		}
+	}
+	return tooltipAnchor{}, false
+}
+
+// layerHasID reports whether l or a shape inside it has an ID, enabled
+// or not. A float lifted out of l left an ID-less placeholder behind,
+// so the walk stays in l's layer.
+func layerHasID(l *Layout, depth int) bool {
+	if overMaxDepth(depth) || l.Shape == nil {
+		return false
+	}
+	if l.Shape.idKey() != "" {
+		return true
+	}
+	for i := range l.Children {
+		if layerHasID(&l.Children[i], depth+1) {
+			return true
+		}
+	}
+	return false
+}
+
+// anchorIndex returns the index of the recorded wrapper with shape s,
+// or -1.
+func (ts *tooltipState) anchorIndex(s *Shape) int {
+	for i := range ts.anchors {
+		if ts.anchors[i].shape == s {
+			return i
+		}
+	}
+	return -1
+}
+
+// isAnchorPopup reports whether the float layer root p is the tooltip
+// popup of the recorded wrapper it was lifted from.
+func (ts *tooltipState) isAnchorPopup(p *Layout) bool {
+	if p.Parent == nil || p.Parent.Shape == nil {
+		return false
+	}
+	i := ts.anchorIndex(p.Parent.Shape)
+	return i >= 0 && p.Shape.idKey() == ts.anchors[i].popupID
 }
