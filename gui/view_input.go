@@ -568,7 +568,7 @@ func (h *inputHandlerCfg) normalizeOnCommit(
 	if h.ReadOnly || h.postCommitNormalize == nil {
 		return text
 	}
-	return capCallbackText(h.postCommitNormalize(text, reason), h.budget())
+	return capCallbackText(text, h.postCommitNormalize(text, reason), h.budget())
 }
 
 // inputWarnOverBudget reports, once per field, app-set text past the

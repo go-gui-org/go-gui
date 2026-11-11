@@ -127,20 +127,46 @@ func TestNormalizeOnCommitOversizedCapped(t *testing.T) {
 
 func TestCapCallbackTextBoundaries(t *testing.T) {
 	const budget = 1000
-	if got := capCallbackText("", budget); got != "" {
+	if got := capCallbackText("", "", budget); got != "" {
 		t.Fatalf("capCallbackText(\"\") = %q, want empty", got)
 	}
 	// Exactly at budget: passes through untouched, not truncated
 	// and re-sliced.
 	exact := strings.Repeat("x", budget)
-	if got := capCallbackText(exact, budget); got != exact {
+	if got := capCallbackText("", exact, budget); got != exact {
 		t.Fatalf("at-budget text = %d runes, want %d",
 			utf8RuneCount(got), budget)
 	}
 	over := strings.Repeat("y", budget+1)
-	if got := capCallbackText(over, budget); utf8RuneCount(got) != budget {
+	if got := capCallbackText("", over, budget); utf8RuneCount(got) != budget {
 		t.Fatalf("over-budget text = %d runes, want %d",
 			utf8RuneCount(got), budget)
+	}
+	// Text the app set past the budget: handed back as long, it stays
+	// whole; grown further, it is cut to its own length, not the budget.
+	appSet := strings.Repeat("z", budget+50)
+	if got := capCallbackText(appSet, appSet, budget); got != appSet {
+		t.Fatalf("unchanged app-set text = %d runes, want %d",
+			utf8RuneCount(got), budget+50)
+	}
+	if got := capCallbackText(appSet, appSet+"zz", budget); utf8RuneCount(got) != budget+50 {
+		t.Fatalf("grown app-set text = %d runes, want %d",
+			utf8RuneCount(got), budget+50)
+	}
+}
+
+// PostCommitNormalize that keeps the text, or trims it, must not cut a
+// field the app filled past its MaxLength on blur or Enter.
+func TestNormalizeOnCommitKeepsAppTextPastBudget(t *testing.T) {
+	hcfg := inputHandlerCfg{
+		maxRunes: 100,
+		postCommitNormalize: func(text string, _ InputCommitReason) string {
+			return strings.TrimSpace(text)
+		},
+	}
+	text := strings.Repeat("a", 150) + " "
+	if got := hcfg.normalizeOnCommit(text, InputCommitBlur); got != text[:150] {
+		t.Fatalf("normalized runes = %d, want 150", utf8RuneCount(got))
 	}
 }
 

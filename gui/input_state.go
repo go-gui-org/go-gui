@@ -382,12 +382,19 @@ func inputResultFits(text, result string, maxRunes int) bool {
 	return n <= maxRunes || n <= utf8RuneCount(text)
 }
 
-// capCallbackText bounds text an app callback returns (PreTextChange
-// adjusted, PostCommitNormalize output) at the field's budget. The
-// callback is trusted code but not size-checked code: without a bound
-// one runaway return pins unbounded memory in per-window state.
-func capCallbackText(s string, maxRunes int) string {
-	return truncateRunes(s, maxRunes)
+// capCallbackText bounds out, the text an app callback returned for in
+// (PreTextChange adjusted, PostCommitNormalize output), at the field's
+// budget. The callback is trusted code but not size-checked code:
+// without a bound one runaway return pins unbounded memory in
+// per-window state. Output that grows past neither the budget nor in is
+// kept whole, as inputResultFits keeps an edit: a field holding app-set
+// text past its budget does not lose it to a callback that handed it
+// back unchanged.
+func capCallbackText(in, out string, maxRunes int) string {
+	if inputResultFits(in, out, maxRunes) {
+		return out
+	}
+	return truncateRunes(out, max(maxRunes, utf8RuneCount(in)))
 }
 
 // inputSetTextAndCursorAtEnd pushes undo and places cursor at end
