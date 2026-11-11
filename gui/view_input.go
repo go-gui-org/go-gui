@@ -204,7 +204,7 @@ type InputCfg struct {
 	// child's glow would spill onto the segments beside it (#820).
 	noFocusRing bool
 
-	// SpellCheck enables platform spell checking (macOS, Linux).
+	// SpellCheck enables platform spell checking. Mac only.
 	SpellCheck bool
 
 	Disabled  bool
