@@ -461,9 +461,12 @@ func TestWithTooltipShutOnMenuPanelPadding(t *testing.T) {
 	if panel == nil {
 		t.Fatal("setup: no float panel above the item")
 	}
-	// The middle of the panel's top padding.
+	// The middle of the panel's top padding, and a point beside the
+	// panel. Both are read now: a move runs a frame, which reuses the
+	// pooled shapes.
 	ps := panel.Shape
 	x, y := ps.X+ps.Width/2, ps.Y+ps.Padding.Top/2
+	bx, by := ps.X+ps.Width+50, ps.Y+ps.Height+50
 	if hit := layoutAtPoint(w.layout.Children, x, y, w); hit == nil || hit.Shape != ps {
 		t.Fatalf("setup: the panel's padding is not under the pointer at %v,%v", x, y)
 	}
@@ -471,7 +474,7 @@ func TestWithTooltipShutOnMenuPanelPadding(t *testing.T) {
 	if got := w.viewState.tooltip.hoverID; got != "" {
 		t.Fatalf("pointer on the submenu's padding: hoverID = %q, want none", got)
 	}
-	tipMove(w, ps.X+ps.Width+50, ps.Y+ps.Height+50)
+	tipMove(w, bx, by)
 	if got := w.viewState.tooltip.hoverID; got != "tip" {
 		t.Fatalf("control: pointer beside the submenu: hoverID = %q, want tip", got)
 	}
