@@ -215,3 +215,30 @@ func fadeLargeText(t *testing.T, from, to string) {
 		t.Errorf("past halfway, old alpha %d should be below new %d", oldA, newA)
 	}
 }
+
+// A rich text with no selection draws without wrapping its layout in a
+// block, which only the selection highlight queries: a document of many
+// blocks draws them all every frame.
+func TestRenderRtfWithoutSelectionAllocatesNothing(t *testing.T) {
+	w := makeWindow()
+	const text = "hello world"
+	gl := makeCharLayout(text)
+	style := DefaultTextStyle
+	shape := &Shape{
+		shapeType: shapeRTF,
+		Width:     float32(len(text)) * 10, Height: 20,
+		Opacity: 1.0,
+		TC: &ShapeTextConfig{
+			TextStyle: &style,
+			rtf:       &shapeRichText{rTFLayout: &gl, rTFFlatText: text},
+		},
+	}
+	clip := makeClip(0, 0, 200, 200)
+	renderRtf(shape, clip, w)
+	if n := testing.AllocsPerRun(100, func() {
+		w.renderers = w.renderers[:0]
+		renderRtf(shape, clip, w)
+	}); n != 0 {
+		t.Errorf("a rich text without a selection allocated %v times per draw", n)
+	}
+}

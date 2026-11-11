@@ -681,9 +681,11 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		LayoutPtr: shape.TC.rtf.rTFLayout,
 	}, w)
 
-	if flat := shape.TC.rtf.rTFFlatText; flat != "" {
+	if flat := shape.TC.rtf.rTFFlatText; flat != "" &&
+		shape.TC.textSelBeg != shape.TC.textSelEnd {
 		// The selection path queries a block; this one wraps the shaped
-		// rich-text layout and is never asked to shape.
+		// rich-text layout and is never asked to shape. Built only for a
+		// selection: a document of many blocks draws every frame.
 		blk := newTextBlockFromLayout(flat, shape.TC.rtf.rTFLayout, 0,
 			textStyleOrDefault(shape), shape.TC.TextMode, w)
 		renderInputSelection(shape, flat, baseX, baseY, blk, true, clip, w)
