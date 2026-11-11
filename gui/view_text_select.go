@@ -199,9 +199,7 @@ func textOnClick(ctx EventCtx) {
 				scrollDelta = sNow - dragScrollY0
 			}
 			ry := my - (dragShapeY + scrollDelta)
-			rx := textDragEdgeX(mx-dragShapeX, ry,
-				dragTop, dragBot)
-			return dragGL.closestOffset(rx, ry)
+			return dragGL.dragOffset(mx-dragShapeX, ry, dragTop, dragBot)
 		}
 		cw := style.Size * 0.6
 		if cw <= 0 {

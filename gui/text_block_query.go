@@ -194,6 +194,23 @@ func (b *textBlock) closestOffset(x, y float32) int {
 	return c.start + c.layout.GetClosestOffset(x-c.x, y-c.y)
 }
 
+// dragOffset is closestOffset for a drag over the text band [top,
+// bottom]: above the band it is the text's start and below it the end,
+// the edge every platform's text view selects to once the pointer
+// leaves the text (see textDragEdgeX, which a single layout uses). The
+// block answers that without a lookup: a no-wrap line of a million runes
+// spans millions of pixels, past any reach a fake x could give, and
+// finding its far end by point would shape every piece on the way.
+func (b *textBlock) dragOffset(x, y, top, bottom float32) int {
+	switch {
+	case y < top:
+		return 0
+	case y > bottom:
+		return len(b.text)
+	}
+	return b.closestOffset(x, y)
+}
+
 // selectionRects returns the rectangles covering [beg, end) that lie
 // within the vertical band [yMin, yMax], in block coordinates. The band
 // keeps a selection over a long text from shaping its unseen chunks.

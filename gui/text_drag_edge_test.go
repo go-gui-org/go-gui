@@ -6,6 +6,7 @@ package gui
 // through the end, instead of stopping at the pointer's column.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -330,4 +331,29 @@ func TestTextDragBelowTakesLastLineWhole(t *testing.T) {
 		ly.Shape.X+35, ly.Shape.Y+140)
 
 	expectTextDragSel(t, w, 3, 22)
+}
+
+// A block answers a drag past its band with the text's start or end and
+// shapes nothing to do it. A no-wrap line longer than any fake reach used
+// to stop part-way, and shaped every piece up to that x on each move.
+func TestTextBlockDragOffsetPastBand(t *testing.T) {
+	w := newBlockTestWindow(t)
+	m := &probeCountingBlockMeasurer{}
+	w.textMeasurer = m
+	text := strings.Repeat("0123456789 ", 30_000) // 330 KB, one line
+	b := newTextBlock(text, 0, blockTestStyle, TextModeMultiline, w)
+	top, bot := b.band()
+	before := m.full + m.probes
+	if got := b.dragOffset(50, bot+10, top, bot); got != len(text) {
+		t.Errorf("drag below = %d, want %d", got, len(text))
+	}
+	if got := b.dragOffset(50, top-10, top, bot); got != 0 {
+		t.Errorf("drag above = %d, want 0", got)
+	}
+	if n := m.full + m.probes - before; n != 0 {
+		t.Errorf("a drag past the band shaped %d layouts", n)
+	}
+	if got, want := b.dragOffset(25, top+1, top, bot), b.closestOffset(25, top+1); got != want {
+		t.Errorf("drag inside = %d, want closestOffset %d", got, want)
+	}
 }

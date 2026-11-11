@@ -209,12 +209,11 @@ func (d *inputDragState) computePos(
 	if d.gl == nil {
 		return 0
 	}
-	// A drag carried above or below the text selects to the line's
-	// edge rather than stopping at the pointer's column; see
-	// textDragEdgeX.
+	// A drag carried above or below the text selects to its start or
+	// end rather than stopping at the pointer's column; see dragOffset.
 	top, bot := d.gl.band()
-	relX := textDragEdgeX(mx-(d.txtOffX+scrollDeltaX), relY, top, bot)
-	return textOffset(d.text, d.displayText, d.gl.closestOffset(relX, relY))
+	return textOffset(d.text, d.displayText,
+		d.gl.dragOffset(mx-(d.txtOffX+scrollDeltaX), relY, top, bot))
 }
 
 func (d *inputDragState) updateSelection(rp int, w *Window) {
