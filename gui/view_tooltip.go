@@ -354,22 +354,19 @@ func (w *Window) resolveTooltipHover(layers []Layout) {
 // the button's opens.
 //
 // At a float the climb leaves that float's layer for the tree it was
-// lifted from, the way a click and IsHovered do (liftedFromTarget):
-// only when the path inside the layer holds no enabled ID. Such a
-// float is part of the widget it hangs from, like a ColorSwatch's
-// color or a slider's track. A layer with an identity of its own, such
-// as a dropdown, a menu item or a dialog, is drawn over the wrapper and
-// ends the climb. The wrapper's own tooltip popup has an ID but counts
-// as the wrapper: it overlaps the wrapper's edge (TooltipCfg.OffsetY).
+// lifted from only when nothing in the layer has an ID. Such a float
+// is part of the widget it hangs from, like a ColorSwatch's color or a
+// slider's track. A layer with an ID anywhere, such as a dropdown, a
+// menu panel or a dialog, is drawn over the wrapper and ends the
+// climb, also where the pointer is on its padding or a gap between
+// its items. The wrapper's own tooltip popup has an ID but counts as
+// the wrapper: it overlaps the wrapper's edge (TooltipCfg.OffsetY).
 func (ts *tooltipState) pointedAnchor(layers []Layout, w *Window) (tooltipAnchor, bool) {
 	if len(ts.anchors) == 0 {
 		return tooltipAnchor{}, false
 	}
 	hit := layoutAtPoint(layers,
 		w.viewState.mousePosX, w.viewState.mousePosY, w)
-	// sawID: an enabled ID-bearing shape on the path inside the
-	// current layer.
-	sawID := false
 	// The depth cap also ends the climb on a malformed Parent cycle.
 	for p, depth := hit, 0; p != nil && !overMaxDepth(depth); p, depth = p.Parent, depth+1 {
 		if p.Shape == nil {
@@ -378,17 +375,29 @@ func (ts *tooltipState) pointedAnchor(layers []Layout, w *Window) (tooltipAnchor
 		if i := ts.anchorIndex(p.Shape); i >= 0 {
 			return ts.anchors[i], true
 		}
-		if enabledIDKey(p.Shape) != "" {
-			sawID = true
-		}
-		if p.Shape.Float {
-			if sawID && !ts.isAnchorPopup(p) {
-				return tooltipAnchor{}, false
-			}
-			sawID = false
+		if p.Shape.Float && layerHasID(p, 0) && !ts.isAnchorPopup(p) {
+			return tooltipAnchor{}, false
 		}
 	}
 	return tooltipAnchor{}, false
+}
+
+// layerHasID reports whether l or a shape inside it has an ID, enabled
+// or not. A float lifted out of l left an ID-less placeholder behind,
+// so the walk stays in l's layer.
+func layerHasID(l *Layout, depth int) bool {
+	if overMaxDepth(depth) || l.Shape == nil {
+		return false
+	}
+	if l.Shape.idKey() != "" {
+		return true
+	}
+	for i := range l.Children {
+		if layerHasID(&l.Children[i], depth+1) {
+			return true
+		}
+	}
+	return false
 }
 
 // anchorIndex returns the index of the recorded wrapper with shape s,

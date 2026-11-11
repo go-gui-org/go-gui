@@ -364,39 +364,116 @@ func TestWithTooltipOpensOverOwnDecorationFloat(t *testing.T) {
 }
 
 // A float whose root has no ID but whose content does, like a menu
-// panel and its items, is a layer of its own where the pointer is on
-// that content.
-func TestWithTooltipShutUnderIDLessPanelItem(t *testing.T) {
+// panel and its items, is a layer of its own: on an item, on the
+// panel's empty part below it, and on an item that is disabled.
+func TestWithTooltipShutUnderIDLessPanel(t *testing.T) {
+	cases := []struct {
+		name     string
+		disabled bool
+		below    bool // the panel's empty part, not the item
+	}{
+		{"item", false, false},
+		{"below item", false, true},
+		{"disabled item", true, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := newTipWindow(t, func(w *Window) View {
+				return Column(ContainerCfg{
+					Sizing: FillFill, Padding: PaddingNone, SizeBorder: NoBorder,
+					Content: []View{
+						WithTooltip(w, WithTooltipCfg{ID: "tip", Text: "tooltip",
+							Content: []View{Column(ContainerCfg{
+								Sizing: FixedFixed, Width: 200, Height: 80,
+								SizeBorder: NoBorder,
+								Content: []View{Column(ContainerCfg{
+									Float:       true,
+									FloatAnchor: FloatTopLeft,
+									FloatTieOff: FloatTopLeft,
+									Sizing:      FixedFixed, Width: 200, Height: 80,
+									Padding:    PaddingNone,
+									SizeBorder: NoBorder,
+									Content: []View{Column(ContainerCfg{ID: "item",
+										Disabled: tc.disabled,
+										Sizing:   FixedFixed, Width: 200, Height: 40,
+										SizeBorder: NoBorder})},
+								})},
+							})}}),
+					},
+				})
+			})
+			item := mustShape(t, w, "item")
+			x, y := item.X+50, item.Y+item.Height/2
+			if tc.below {
+				y = item.Y + item.Height + 20
+				hit := layoutAtPoint(w.layout.Children, x, y, w)
+				if hit == nil || !hit.Shape.Float {
+					t.Fatalf("setup: the panel itself is not under the pointer at %v,%v", x, y)
+				}
+			}
+			if !tipFloatOnPath(w, x, y) {
+				t.Fatalf("setup: no float under the pointer at %v,%v", x, y)
+			}
+			tipMove(w, x, y)
+			if got := w.viewState.tooltip.hoverID; got != "" {
+				t.Fatalf("pointer on the panel: hoverID = %q, want none", got)
+			}
+		})
+	}
+}
+
+// The built-in case of a panel without an ID: a Menubar submenu. Its
+// padding around the items is part of the menu, not of the widget with
+// the tooltip that holds the Menubar.
+func TestWithTooltipShutOnMenuPanelPadding(t *testing.T) {
 	w := newTipWindow(t, func(w *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill, Padding: PaddingNone, SizeBorder: NoBorder,
 			Content: []View{
 				WithTooltip(w, WithTooltipCfg{ID: "tip", Text: "tooltip",
 					Content: []View{Column(ContainerCfg{
-						Sizing: FixedFixed, Width: 200, Height: 80,
-						SizeBorder: NoBorder,
-						Content: []View{Column(ContainerCfg{
-							Float:       true,
-							FloatAnchor: FloatTopLeft,
-							FloatTieOff: FloatTopLeft,
-							Sizing:      FixedFixed, Width: 200, Height: 80,
-							Padding:    PaddingNone,
-							SizeBorder: NoBorder,
-							Content: []View{Column(ContainerCfg{ID: "item",
-								Sizing: FixedFixed, Width: 200, Height: 40,
-								SizeBorder: NoBorder})},
+						Sizing: FixedFixed, Width: 380, Height: 280,
+						Padding: PaddingNone, SizeBorder: NoBorder,
+						Content: []View{Menubar(w, MenubarCfg{
+							ID: "mb",
+							Items: []MenuItemCfg{
+								MenuSubmenu("file", "File", []MenuItemCfg{
+									MenuItemText("new", "New"),
+									MenuItemText("open", "Open"),
+								}),
+							},
 						})},
 					})}}),
 			},
 		})
 	})
-	x, y := hitPoint(t, w, "item")
-	if !tipFloatOnPath(w, x, y) {
-		t.Fatalf("setup: no float under the pointer at %v,%v", x, y)
+	w.SetFocus("mb")
+	StateMap[string, string](w, nsMenu, capModerate).Set("mb", "file")
+	w.TestRender(nil)
+	item, ok := w.layout.FindByID(ScopeID("mb", "file", "new"))
+	if !ok {
+		t.Fatal("setup: submenu not open")
+	}
+	panel := item
+	for panel != nil && (panel.Shape == nil || !panel.Shape.Float) {
+		panel = panel.Parent
+	}
+	if panel == nil {
+		t.Fatal("setup: no float panel above the item")
+	}
+	// The middle of the panel's top padding.
+	ps := panel.Shape
+	x, y := ps.X+ps.Width/2, ps.Y+ps.Padding.Top/2
+	if hit := layoutAtPoint(w.layout.Children, x, y, w); hit == nil || hit.Shape != ps {
+		t.Fatalf("setup: the panel's padding is not under the pointer at %v,%v", x, y)
 	}
 	tipMove(w, x, y)
 	if got := w.viewState.tooltip.hoverID; got != "" {
-		t.Fatalf("pointer on the panel's item: hoverID = %q, want none", got)
+		t.Fatalf("pointer on the submenu's padding: hoverID = %q, want none", got)
+	}
+	tipMove(w, ps.X+ps.Width+50, ps.Y+ps.Height+50)
+	if got := w.viewState.tooltip.hoverID; got != "tip" {
+		t.Fatalf("control: pointer beside the submenu: hoverID = %q, want tip", got)
 	}
 }
 
