@@ -49,7 +49,8 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   probe's hit-test data, which a seam does not read. If the normal probe finds
   no complete line, an unusually long visual line gets one retry at the old
   two-budget ceiling before the grapheme-safe hard-cut fallback. The space the
-  wrapper consumed at a break belongs to no chunk, as a `\n` does. In no-wrap
+  wrapper consumed at a break belongs to no chunk, as a `\n` does, and as before
+  a `\n` the position before it is a caret stop, as go-glyph has it. In no-wrap
   mode the pieces of a paragraph sit side by side on one row.
 - **Shaping on demand, bounded.** A chunk is shaped when a query or the renderer
   reaches it. A new block up to 64 KB (`textBlockEagerBytes`) shapes every chunk

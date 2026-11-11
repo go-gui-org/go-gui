@@ -347,8 +347,9 @@ func (b *textBlock) moveLeft(idx int) int {
 	if p.start == p.end {
 		return p.start
 	}
-	if at == p.end+1 && b.text[p.end] == '\n' {
-		// The position before a newline is a stop.
+	if at > p.end {
+		// Bytes between the chunks, a newline or the space a wrap
+		// consumed: the position before them is a stop.
 		return p.end
 	}
 	if p.layout == nil {
@@ -376,14 +377,15 @@ func (b *textBlock) moveRight(idx int) int {
 		}
 		// glyph answers the last stop both for a stop there and for no
 		// stop above local; the chunk's end is a stop of the text only
-		// before a newline or at the text end.
+		// before bytes between chunks (a newline or the space a wrap
+		// consumed) or at the text end.
 		if r := c.layout.MoveCursorRight(local); r > local && r < n {
 			return c.start + r
 		}
 		if i+1 >= len(b.chunks) {
 			return c.end
 		}
-		if next := &b.chunks[i+1]; next.start == c.end+1 && b.text[c.end] == '\n' {
+		if b.chunks[i+1].start > c.end {
 			return c.end
 		}
 	}

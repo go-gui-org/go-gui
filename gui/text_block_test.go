@@ -78,7 +78,6 @@ type stubLine struct{ start, end int }
 func stubLayout(text string, wrapW float32) glyph.Layout {
 	n := len(text)
 	var lines []stubLine
-	consumed := map[int]bool{}
 	ls, cur := 0, 0
 	var w float32
 	flush := func(end, next int) {
@@ -93,7 +92,6 @@ func stubLayout(text string, wrapW float32) glyph.Layout {
 		}
 		if c == ' ' {
 			if wrapW > 0 && w > 0 && w+stubCW > wrapW {
-				consumed[cur] = true
 				flush(cur, cur+1)
 				continue
 			}
@@ -108,7 +106,6 @@ func stubLayout(text string, wrapW float32) glyph.Layout {
 		ww := float32(j-cur) * stubCW
 		if wrapW > 0 && w > 0 && w+ww > wrapW {
 			if cur > ls && text[cur-1] == ' ' {
-				consumed[cur-1] = true
 				flush(cur-1, cur)
 			} else {
 				flush(cur, cur)
@@ -148,12 +145,9 @@ func stubLayout(text string, wrapW float32) glyph.Layout {
 	}
 	l.Height = float32(len(lines)) * stubLH
 	l.Text = text // glyph keeps the text it shaped, and so pins it
+	// The space a wrap consumed stays a caret stop, as go-glyph keeps
+	// it: the line end before it and the next line start are both stops.
 	l.LogAttrByIndex, l.LogAttrs = stubLogAttrs(text)
-	// The consumed space keeps its word attribute but is not a caret
-	// stop, so the caret skips from the line end to the next line start.
-	for i := range consumed {
-		l.LogAttrs[l.LogAttrByIndex[i]].IsCursorPosition = false
-	}
 	return l
 }
 

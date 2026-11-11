@@ -386,6 +386,40 @@ func TestSingleLineMixedDirectionArrowCaretStaysVisible(t *testing.T) {
 	}
 }
 
+// A wrapped paragraph longer than a chunk is cut at line breaks, and the
+// space each break consumed lies between two chunks. go-glyph keeps the
+// position before that space as a caret stop, so Right must stop there
+// at every seam as it does in one layout: n presses from the start put
+// the caret n bytes in, in ASCII text.
+func TestWrappedSeamKeepsEveryCaretStop(t *testing.T) {
+	text := strings.Repeat("lorem ipsum dolor sit amet ", 160) // 4,320 bytes
+	cur := text
+	win := newWin(t, 500, 800, func(*gui.Window) gui.View {
+		return gui.Input(gui.InputCfg{ID: "f", Sizing: gui.FixedFixed,
+			Width: 400, Height: 700, Text: cur, Mode: gui.InputMultiline,
+			TextStyle:     gui.TextStyle{Size: 16, Color: gui.RGB(255, 255, 255)},
+			OnTextChanged: func(s string, _ gui.EventCtx) { cur = s }})
+	})
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("first render: %v", err)
+	}
+	if err := win.TestKey("f", gui.KeyHome, gui.ModCtrl); err != nil {
+		t.Fatal(err)
+	}
+	presses := len(text) - 30
+	for range presses {
+		if err := win.TestKey("f", gui.KeyRight, gui.ModNone); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := win.TestType("f", "X"); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Index(cur, "X"); got != presses {
+		t.Fatalf("%d Right presses put the caret at byte %d", presses, got)
+	}
+}
+
 // A gradient text is one layout up to the shaper's budget and plain past
 // it, in the real shaper as in the stub: both draw, and one layout takes
 // the room the chunks of the same text take.
