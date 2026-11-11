@@ -156,6 +156,9 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	// Build-time hover state: record what the pointer is over so the
 	// next generation can read it through IsHovered.
 	w.recordHoverTarget(layouts)
+	// Tooltip wrappers only noted the pointer in their box; with every
+	// layer placed and clipped, decide which one it is on.
+	w.resolveTooltipHover(layouts)
 
 	return layouts
 }

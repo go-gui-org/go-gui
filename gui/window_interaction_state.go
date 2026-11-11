@@ -261,16 +261,7 @@ func (w *Window) pointerLeftWindow() {
 // the inspector panel) are tried, the same rule event dispatch
 // applies.
 func interactionTargetAt(layers []Layout, x, y float32, w *Window) string {
-	if len(layers) == 0 {
-		return ""
-	}
-	if w.dialogCfg.visible {
-		if d := dialogLayerIndex(layers); d >= 0 {
-			layers = layers[d:]
-		} else {
-			layers = layers[len(layers)-1:]
-		}
-	}
+	layers = pointerLayers(layers, w)
 	for i := range slices.Backward(layers) {
 		if id, hit := interactionTargetDepth(&layers[i], x, y, 0); hit {
 			if id == "" {
@@ -280,6 +271,56 @@ func interactionTargetAt(layers []Layout, x, y float32, w *Window) string {
 		}
 	}
 	return ""
+}
+
+// pointerLayers returns the layers the pointer can reach, bottom to
+// top: all of them, or while a dialog is visible the dialog layer and
+// the layers above it, the same rule event dispatch applies. A dialog
+// that is visible but not yet a layer leaves the top layer alone.
+func pointerLayers(layers []Layout, w *Window) []Layout {
+	if len(layers) == 0 || !w.dialogCfg.visible {
+		return layers
+	}
+	if d := dialogLayerIndex(layers); d >= 0 {
+		return layers[d:]
+	}
+	return layers[len(layers)-1:]
+}
+
+// layoutAtPoint returns the deepest shape under the window point
+// (x, y) in the topmost layer that holds any shape there, or nil. The
+// layers are tried as interactionTargetAt tries them.
+func layoutAtPoint(layers []Layout, x, y float32, w *Window) *Layout {
+	layers = pointerLayers(layers, w)
+	for i := range slices.Backward(layers) {
+		if hit := layoutAtPointDepth(&layers[i], x, y, 0); hit != nil {
+			return hit
+		}
+	}
+	return nil
+}
+
+// layoutAtPointDepth is the walk interactionTargetDepth makes, but it
+// returns the deepest shape hit rather than an ID on its path.
+func layoutAtPointDepth(layout *Layout, x, y float32, depth int) *Layout {
+	if overMaxDepth(depth) || layout.Shape == nil {
+		return nil
+	}
+	shape := layout.Shape
+	x, y = xfCoordsInverse(shape, x, y)
+	cx, cy := x, y
+	if shape.QuarterTurns > 0 {
+		cx, cy = rotateCoordsInverse(shape, x, y)
+	}
+	for i := range slices.Backward(layout.Children) {
+		if hit := layoutAtPointDepth(&layout.Children[i], cx, cy, depth+1); hit != nil {
+			return hit
+		}
+	}
+	if !shape.PointInShape(x, y) {
+		return nil
+	}
+	return layout
 }
 
 // interactionTargetDepth finds the deepest shape under (x, y) in
