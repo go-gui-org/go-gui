@@ -54,7 +54,9 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   mode the pieces of a paragraph sit side by side on one row.
 - **Shaping on demand, bounded.** A chunk is shaped when a query or the renderer
   reaches it. A new block up to 64 KB (`textBlockEagerBytes`) shapes every chunk
-  once for exact geometry; above that the unseen chunks are estimated from an
+  once for exact geometry, and a `Text`'s block that size stays exact after an
+  update; an `Input`'s edit leaves what it re-chunked to the renderer, so typing
+  shapes only what shows. Above 64 KB the unseen chunks are estimated from an
   average advance and measured as they come into view. At most 48 shaped chunks
   (`textBlockLiveLayouts`) stay live; the rest keep their geometry and are
   shaped again when needed. A chunk is shaped from a copy of its bytes:

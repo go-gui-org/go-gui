@@ -126,8 +126,12 @@ type textBlock struct {
 	// widthArg has plainTextLayoutWidthArg's meaning: > 0 wraps at that
 	// width, < 0 aligns within -widthArg without wrapping, 0 is natural.
 	widthArg float32
-	width    float32
-	height   float32
+	// narrowArg is a second width a lookup may ask for, the one a wrapped
+	// box was narrowed to (adoptWidth), or 0. The block still shapes at
+	// widthArg.
+	narrowArg float32
+	width     float32
+	height    float32
 	// lineH is one line box of the style's face, for empty chunks and
 	// estimates; fontH is the face height the box trim compares against.
 	lineH   float32
@@ -198,7 +202,8 @@ func newTextBlockFromLayout(
 func (b *textBlock) sameShaping(
 	widthArg float32, style TextStyle, mode TextMode,
 ) bool {
-	return f32AreClose(b.widthArg, widthArg) &&
+	return (f32AreClose(b.widthArg, widthArg) ||
+		(b.narrowArg > 0 && f32AreClose(b.narrowArg, widthArg))) &&
 		textLayoutStyleEqual(b.style, style) && b.mode == mode
 }
 
@@ -226,6 +231,8 @@ func (b *textBlock) updateKnownDelta(
 	if text == b.text {
 		return
 	}
+	// An edit can lengthen the longest line past the narrowed width.
+	b.narrowArg = 0
 	if b.whole || textBlockOneLayout(text, style) {
 		b.reset(text, widthArg, style, mode, w)
 		return
@@ -241,6 +248,7 @@ func (b *textBlock) reset(
 	text string, widthArg float32, style TextStyle, mode TextMode, w *Window,
 ) {
 	b.text, b.widthArg, b.style, b.mode = text, widthArg, style, mode
+	b.narrowArg = 0
 	b.w = w
 	b.live = 0
 	b.probed = false
@@ -723,10 +731,14 @@ func (b *textBlock) boxHeight() float32 {
 // adoptWidth records that the shape's width became w without changing a
 // line: shrinkWrapToInk pulls a wrapped box back to its longest line,
 // and re-wrapping at that width yields the same breaks, so the shaped
-// chunks stay valid for the next frame's lookup at the new width.
+// chunks are valid at w too, where the render pass looks them up. The
+// block keeps shaping at widthArg, which the next frame's layout pass
+// asks for again: a chunk that was still estimated, whose width was a
+// guess, is then wrapped as the box's own width would wrap it, not at a
+// narrower guess.
 func (b *textBlock) adoptWidth(w float32) {
 	if b.wraps() && w > 0 {
-		b.widthArg = w
+		b.narrowArg = w
 	}
 }
 

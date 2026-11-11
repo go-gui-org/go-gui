@@ -187,6 +187,16 @@ func plainTextBlock(
 	}
 	if b != nil {
 		b.updateKnownDelta(text, widthArg, style, tc.TextMode, w, p, s)
+		if shape.focusOwner == "" && len(b.text) <= textBlockEagerBytes &&
+			b.hasEstimates() {
+			// A Text within the eager budget stays exact, as it was
+			// when new: an update leaves what it re-chunked estimated,
+			// and an estimated wrapped paragraph guesses the full width,
+			// which keeps a shrink-wrapped box from its ink. An Input
+			// is left to the renderer, so typing shapes only what shows.
+			b.measureAll(w)
+			b.settle()
+		}
 	} else {
 		b = newTextBlock(text, widthArg, style, tc.TextMode, w)
 		if blocks != nil {
