@@ -44,7 +44,7 @@ func inputScrollCursorIntoView(
 	}
 
 	is := StateReadOr(w, nsInput,
-		layout.Shape.idKey(), inputState{})
+		layout.Shape.idKey(), inputState{}).in(text)
 	pos := max(0, min(is.CursorPos, len(text)))
 	// The block above was built from the masked text for a password
 	// field (inputGlyphLayoutResolved masks internally), so the offset
@@ -162,7 +162,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	}
 
 	is := StateReadOr(
-		w, nsInput, shape.idKey(), inputState{})
+		w, nsInput, shape.idKey(), inputState{}).in(text)
 	byteIdx := max(0, min(is.CursorPos, len(text)))
 
 	cp, ok := gl.cursorPosTrailing(byteIdx, is.cursorTrailing)

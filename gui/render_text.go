@@ -81,7 +81,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	if imeComposing {
 		compText = w.IMECompText()
 		is := StateReadOr(w, nsInput, shape.focusKey(),
-			inputState{})
+			inputState{}).in(tc.Text)
 		base := text
 		if tc.textIsPlaceholder {
 			// The placeholder is a hint, not content: a composition
@@ -458,7 +458,7 @@ func drawnOffset(tc *ShapeTextConfig, drawn string, off int) int {
 	if tc != nil && tc.textIsPassword && !tc.textIsPlaceholder {
 		return displayOffset(tc.Text, drawn, off)
 	}
-	return max(0, min(off, len(drawn)))
+	return runeStartAtOrBefore(drawn, max(0, min(off, len(drawn))))
 }
 
 // renderInputSelection emits highlight rectangles for the selected

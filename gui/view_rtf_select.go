@@ -307,7 +307,7 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 
 	imap := StateMap[string, inputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial keyboard-nav state.
-	is := imap.GetOr(id, inputState{})
+	is := imap.GetOr(id, inputState{}).in(flatText)
 	savedOffset := is.cursorOffset
 	savedTrailing := is.cursorTrailing
 	is.cursorOffset = -1

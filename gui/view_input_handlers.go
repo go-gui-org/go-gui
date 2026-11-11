@@ -166,6 +166,7 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 		is.cursorOffset = -1
 		is.cursorTrailing = false
 		text := inputTextFromLayout(ctx.Layout)
+		is = is.in(text)
 		pos := max(0, min(is.CursorPos, len(text)))
 		// The key binding mode decides what the modifiers mean: Cmd or
 		// Ctrl for shortcuts, Option or Ctrl for word moves, and on

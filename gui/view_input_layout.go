@@ -107,7 +107,7 @@ func inputDeleteGrapheme(
 	if gl.text != text {
 		return fallback()
 	}
-	is := inputStateOrDefault(focusID, w)
+	is := inputStateOrDefault(focusID, w).in(text)
 	if is.selectBeg != is.selectEnd {
 		return fallback()
 	}

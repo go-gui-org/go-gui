@@ -72,6 +72,7 @@ func editCaretOnly(is inputState, pos int) inputState {
 // selection, replaces. A negative caret appends. ok is false for a
 // selection outside the text.
 func editSpan(text string, is inputState) (beg, end int, ok bool) {
+	is = is.in(text)
 	if is.selectBeg != is.selectEnd {
 		b, e := u32Sort(is.selectBeg, is.selectEnd)
 		if int(b) >= len(text) || int(e) > len(text) {
@@ -176,6 +177,7 @@ func editSetTextCursorAtEnd(oldText, newText string, is inputState) inputState {
 // selection outside the text changes nothing and returns false. Consuming
 // that keystroke is the caller's decision, not this bool's.
 func editDelete(text string, is inputState, forward bool) (string, inputState, bool) {
+	is = is.in(text)
 	var delBeg, delEnd int
 	if is.selectBeg != is.selectEnd {
 		beg, end, ok := editSpan(text, is)
@@ -226,6 +228,7 @@ func editDeleteSurrounding(
 	if count <= 0 {
 		return text, is, false
 	}
+	is = is.in(text)
 	c := is.CursorPos
 	if c < 0 {
 		c = len(text)
@@ -293,6 +296,7 @@ func editDeleteSurrounding(
 // no selection, a selection outside the text, or a password field. The
 // clipboard write stays with the caller: the core has no platform.
 func editSelectedText(text string, is inputState, isPassword bool) (string, bool) {
+	is = is.in(text)
 	if isPassword || is.selectBeg == is.selectEnd {
 		return "", false
 	}

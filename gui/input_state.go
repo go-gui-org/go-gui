@@ -190,6 +190,28 @@ func inputStateOrDefault(focusID string, w *Window) inputState {
 	return StateReadOr(w, nsInput, focusID, inputState{})
 }
 
+// in returns is with its caret and selection moved back onto rune starts
+// of text. The offsets are bytes of the text they were taken in; an app
+// that set another text since can leave one inside a character, where an
+// edit or a copy would split it. An offset past the end stays as it is:
+// each caller clamps or refuses that already.
+func (is inputState) in(text string) inputState {
+	is.CursorPos = runeStartAtOrBefore(text, is.CursorPos)
+	is.selectBeg = uint32(runeStartAtOrBefore(text, int(is.selectBeg)))
+	is.selectEnd = uint32(runeStartAtOrBefore(text, int(is.selectEnd)))
+	return is
+}
+
+// runeStartAtOrBefore returns off, or the start of the rune it falls
+// inside when that is inside text. The walk is at most utf8.UTFMax-1
+// bytes, so it costs the same in a field of any size.
+func runeStartAtOrBefore(text string, off int) int {
+	for off > 0 && off < len(text) && !utf8.RuneStart(text[off]) {
+		off--
+	}
+	return off
+}
+
 // inputPushUndo records the edit that took oldText to newText — removed
 // replaced by inserted at off — for undo, coalescing it into the previous
 // step when both are the same kind (insert or delete) and no selection
