@@ -225,9 +225,11 @@ func (is inputState) mapped(
 
 // runeStartAtOrBefore returns off, or the start of the rune it falls
 // inside when that is inside text. The walk is at most utf8.UTFMax-1
-// bytes, so it costs the same in a field of any size.
+// bytes, so it costs the same in a field of any size; in a run of stray
+// continuation bytes, which no rune starts, it stops there.
 func runeStartAtOrBefore(text string, off int) int {
-	for off > 0 && off < len(text) && !utf8.RuneStart(text[off]) {
+	for n := 0; n < utf8.UTFMax-1 && off > 0 && off < len(text) &&
+		!utf8.RuneStart(text[off]); n++ {
 		off--
 	}
 	return off

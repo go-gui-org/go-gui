@@ -72,3 +72,26 @@ func TestInputTypingAfterAppSetTextStaysValid(t *testing.T) {
 		t.Fatalf("typing after the app set %q gave %q", "日本語", text)
 	}
 }
+
+// The walk back to a rune start is bounded, in text that is not UTF-8 as
+// in text that is.
+func TestRuneStartAtOrBefore(t *testing.T) {
+	cases := []struct {
+		text string
+		off  int
+		want int
+	}{
+		{"日本", 4, 3},
+		{"日本", 3, 3},
+		{"日本", 6, 6},                     // the end
+		{"日本", 9, 9},                     // past it: left to the caller
+		{"a\x80\x80\x80\x80\x80b", 5, 2}, // three bytes back, then stop
+		{"a\x80\x80\x80\x80\x80b", 6, 6},
+	}
+	for _, c := range cases {
+		if got := runeStartAtOrBefore(c.text, c.off); got != c.want {
+			t.Errorf("runeStartAtOrBefore(%q, %d) = %d, want %d",
+				c.text, c.off, got, c.want)
+		}
+	}
+}
