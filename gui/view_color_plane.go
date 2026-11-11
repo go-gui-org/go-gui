@@ -20,12 +20,19 @@ type ColorPlaneCfg struct {
 
 	Value HSLA
 	// Size is the plane's width and height in points. Zero takes the
-	// theme default.
+	// theme default. The widget is one MarkerSize wider and taller: it
+	// keeps half a marker of room on every side, because the marker can
+	// sit on the plane's edge.
 	Size   float32 // ergonomics-audit:opt-plain — a zero-sized plane is meaningless; 0 falls back to the theme
 	Radius Radius
 	// MarkerSize is the diameter of the position marker. Zero takes
 	// the theme default.
 	MarkerSize float32
+
+	// noKnobRoom leaves out the room around the plane that holds its
+	// marker (colorKnobRoom). ColorPicker sets it: its own padding
+	// holds the marker (colorPickerPadding).
+	noKnobRoom bool
 }
 
 type colorPlaneView struct {
@@ -61,6 +68,17 @@ func applyColorPlaneDefaults(cfg *ColorPlaneCfg) {
 }
 
 func (pv *colorPlaneView) GenerateLayout(w *Window) Layout {
+	if pv.cfg.noKnobRoom {
+		return (*colorPlaneControl)(pv).GenerateLayout(w)
+	}
+	return colorKnobRoom((*colorPlaneControl)(pv), pv.cfg.MarkerSize, w)
+}
+
+// colorPlaneControl is the plane itself, without the room around it
+// for its marker.
+type colorPlaneControl colorPlaneView
+
+func (pv *colorPlaneControl) GenerateLayout(w *Window) Layout {
 	cfg := &pv.cfg
 	// One resolved identity for the drag lookup and the shape alike.
 	id := w.EffID(cfg.ID)
@@ -117,7 +135,9 @@ func (pv *colorPlaneView) GenerateLayout(w *Window) Layout {
 		},
 	}
 	colorControlFocusRing(&cv.cfg, w.EffID(cv.cfg.ID))
-	return generateViewLayout(cv, w)
+	layout := generateViewLayout(cv, w)
+	colorMarkerLeaveFlow(&layout)
+	return layout
 }
 
 // colorPlaneKeys moves saturation with the horizontal arrows and

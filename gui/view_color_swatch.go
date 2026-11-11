@@ -89,7 +89,7 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 	cfg := &sv.cfg
 
 	// The focus ring lives on the color layer, not on the box around
-	// it: the float color container covers the whole swatch, so a
+	// it: the color container covers the whole swatch, so a
 	// border on the outer shape would be painted under it and never
 	// seen. The ring therefore replaces the resting hairline outline
 	// for the focused control — the same "the fill is the value, the
@@ -108,7 +108,6 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 			guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 	}
 	colorCfg := ContainerCfg{
-		Float:  true,
 		Width:  cfg.Width,
 		Height: cfg.Height,
 		Color:  cfg.Color,
@@ -157,7 +156,11 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 			SizeBorder: NoBorder,
 			Radius:     cfg.Radius,
 			Clip:       true,
-			axis:       axisTopToBottom,
+			// A Stack, so the color lies over the checker and covers
+			// it exactly rather than being laid out after it. As a
+			// Float it did the same but was drawn over popups and
+			// escaped scroll clips (#1244).
+			axis: axisStack,
 		},
 		content: []View{
 			Image(ImageCfg{
@@ -167,8 +170,6 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 				Width:  cfg.Width,
 				Height: cfg.Height,
 			}),
-			// The color rides over the checker as a float so it
-			// covers it exactly rather than being laid out after it.
 			container(colorCfg),
 		},
 	}, w)

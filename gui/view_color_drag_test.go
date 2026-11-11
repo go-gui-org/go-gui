@@ -118,7 +118,7 @@ func TestColorPlaneClickSetsValue(t *testing.T) {
 	w := &Window{}
 	var got HSLA
 	fired := false
-	l := generateViewLayout(ColorPlane(ColorPlaneCfg{
+	l := colorControlOf(t, ColorPlane(ColorPlaneCfg{
 		ID:    "plane",
 		Value: HSLA{H: 210, S: 0.5, L: 0.5, A: 1},
 		Size:  100,

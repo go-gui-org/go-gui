@@ -313,19 +313,22 @@ func tipFloatOnPath(w *Window, x, y float32) bool {
 	return false
 }
 
-// A widget may draw part of itself as an ID-less float over itself: the
-// color of a ColorSwatch, the track of a channel slider. That float is
-// the widget, as it is for a click (liftedFromTarget), so the tooltip
-// of a wrapper around the widget opens over it.
+// A widget may draw part of itself as an ID-less float over itself.
+// That float is the widget, as it is for a click (liftedFromTarget), so
+// the tooltip of a wrapper around the widget opens over it. The color
+// of a ColorSwatch and the track of a channel slider were such floats
+// until #1244 put them in the widget's own layer; they stay here as
+// widgets the tooltip must still open over.
 func TestWithTooltipOpensOverOwnDecorationFloat(t *testing.T) {
 	cases := []struct {
 		name    string
 		content View
+		float   bool // a float lies under the test point
 	}{
 		{"swatch", ColorSwatch(ColorSwatchCfg{ID: "w",
-			Color: RGB(200, 80, 40), Width: 80, Height: 40})},
+			Color: RGB(200, 80, 40), Width: 80, Height: 40}), false},
 		{"slider", ColorChannelSlider(ColorChannelSliderCfg{ID: "w",
-			Channel: ChannelHue, Value: HSLA{H: 300, S: 1, L: 0.5, A: 1}})},
+			Channel: ChannelHue, Value: HSLA{H: 300, S: 1, L: 0.5, A: 1}}), false},
 		{"plain", Column(ContainerCfg{ID: "w",
 			Sizing: FixedFixed, Width: 200, Height: 60, SizeBorder: NoBorder,
 			Content: []View{Column(ContainerCfg{
@@ -336,7 +339,7 @@ func TestWithTooltipOpensOverOwnDecorationFloat(t *testing.T) {
 				Color:      RGB(40, 40, 40),
 				SizeBorder: NoBorder,
 			})},
-		})},
+		}), true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -352,12 +355,13 @@ func TestWithTooltipOpensOverOwnDecorationFloat(t *testing.T) {
 			s := mustShape(t, w, "w")
 			// A quarter in: clear of the slider's thumb in the middle.
 			x, y := s.X+s.Width/4, s.Y+s.Height/2
-			if !tipFloatOnPath(w, x, y) {
-				t.Fatalf("setup: no float under the pointer at %v,%v", x, y)
+			if got := tipFloatOnPath(w, x, y); got != tc.float {
+				t.Fatalf("setup: float under the pointer at %v,%v = %v, want %v",
+					x, y, got, tc.float)
 			}
 			tipMove(w, x, y)
 			if got := w.viewState.tooltip.hoverID; got != "tip" {
-				t.Fatalf("pointer on the widget's own float: hoverID = %q, want tip", got)
+				t.Fatalf("pointer on the widget: hoverID = %q, want tip", got)
 			}
 		})
 	}

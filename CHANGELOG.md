@@ -175,6 +175,28 @@ and this project adheres to
 
 ### Fixed
 
+- **Popups and tooltips are drawn over the knobs, tracks and swatches of the
+  color widgets, and those parts stay inside a scroll view (#1244).** The knobs
+  of `ColorPicker`, `ColorPlane`, `ColorWheel` and `ColorChannelSlider`, the
+  slider tracks and the color of a `ColorSwatch` were floating children, so they
+  were drawn in the popup layers. The knobs were painted over every `Select` or
+  `Combobox` list, menu, context menu and tooltip, and the tracks and the swatch
+  color over those that came earlier in the tree, also inside a dialog or a
+  floating panel. In a scroll view they showed outside it once the widget was
+  scrolled partly out of view, over a header or below the view. In a turned or
+  scaled container (`Transform`) or a `RotatedBox` they did not turn with their
+  widget and were drawn beside it. These parts are now drawn with the rest of
+  their widget, in its layer, inside its clips and under its transform. A
+  `ColorPicker` looks the same as before, except under a theme with less padding
+  than half a marker (`Theme.WithPadding(false)`): there it now keeps that much
+  padding, so its markers stay inside it. A `ColorPlane` or `ColorWheel` used on
+  its own is now one `MarkerSize` (16 by default) wider and taller than its
+  `Size`: it keeps half a marker of room on every side, because its marker can
+  sit on its edge, and a scroll view it sits flush in would otherwise cut that
+  marker in half. A `ColorChannelSlider` given a length shorter than its thumb
+  now takes the thumb's length: before, its thumb stuck out past it and moved
+  backward as the value grew.
+
 - **A tooltip no longer opens for a widget that a dialog or a popup covers
   (#1243).** `WithTooltip` opened its tooltip whenever the pointer was inside
   the widget's box, even when a modal dialog, an open `Select` list or a menu
