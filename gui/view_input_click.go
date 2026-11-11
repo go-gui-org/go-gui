@@ -82,6 +82,7 @@ func inputOnClick(
 			is.selectBeg = 0
 			is.selectEnd = 0
 			is.cursorOffset = -1
+			is.lastEditOp = inputOpNone
 			imap.Set(focusID, is)
 			resetBlinkCursorVisible(ctx.Window)
 			ctx.Consume()
@@ -133,6 +134,9 @@ func inputOnClick(
 			is.selectEnd = uint32(pos)
 		}
 		is.cursorOffset = -1
+		// A click is caret motion: it ends the undo run, so the next
+		// edit is a step of its own (#328).
+		is.lastEditOp = inputOpNone
 		imap.Set(focusID, is)
 		resetBlinkCursorVisible(ctx.Window)
 		if scrollID != "" {

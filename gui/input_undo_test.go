@@ -311,3 +311,52 @@ func TestInputUndoKeepsTextTheAppSet(t *testing.T) {
 		t.Fatalf("undo over the app's value gave %q", text)
 	}
 }
+
+// A typing run merges only edits that meet. A caret that jumped without
+// ending the run (a path that forgot to) must not merge two distant
+// edits into one step spanning, and copying, everything between them.
+func TestEditUndoRunMergesOnlyTouchingEdits(t *testing.T) {
+	text := strings.Repeat("0123456789", 1000)
+	is := inputState{CursorPos: len(text)}
+	text, is, _ = editInsert(text, "a", is)
+	is.CursorPos = 0 // moved with lastEditOp still inputOpInsert
+	text, is, _ = editInsert(text, "b", is)
+	if n := is.Undo.Len(); n != 2 {
+		t.Fatalf("two distant inserts = %d undo steps, want 2", n)
+	}
+	top, _ := is.Undo.peek()
+	if len(top.removed)+len(top.inserted) > 1 {
+		t.Fatalf("the second step keeps %d bytes, want 1",
+			len(top.removed)+len(top.inserted))
+	}
+	if text, _, _ = editUndo(text, is); text != strings.Repeat("0123456789", 1000)+"a" {
+		t.Fatal("undo did not take back only the second insert")
+	}
+}
+
+// A click ends the typing run: one Ctrl+Z then takes back only what was
+// typed after it.
+func TestInputClickEndsUndoRun(t *testing.T) {
+	w := newBlockTestWindow(t)
+	text := "hello world"
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			Input(InputCfg{ID: "f", Text: text, Sizing: FillFit,
+				OnTextChanged: func(s string, _ EventCtx) { text = s }}),
+		}})
+	})
+	_ = w.TestKey("f", KeyEnd, ModNone)
+	_ = w.TestType("f", "ab")
+	w.TestRender(nil)
+	if err := w.TestClick("f"); err != nil {
+		t.Fatal(err)
+	}
+	w.TestRender(nil)
+	_ = w.TestType("f", "x")
+	typed := text
+	w.TestRender(nil)
+	_ = w.TestKey("f", KeyZ, ModCtrl)
+	if text != "hello worldab" {
+		t.Fatalf("one undo after %q gave %q, want %q", typed, text, "hello worldab")
+	}
+}

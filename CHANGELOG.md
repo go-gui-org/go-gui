@@ -415,6 +415,11 @@ and this project adheres to
   password, not before its last character. The moves now map the caret onto the
   bullets and back.
 
+- **A click in an `Input` ends the undo run (#1187).** Typing, clicking
+  elsewhere and typing again made one undo step, so one Ctrl+Z took back the
+  typing on both sides of the click. A click now ends the run, as arrow keys and
+  drags already did.
+
 - **`Text` and `Input` draw text longer than 10,240 bytes (#1190).** go-glyph
   shapes one layout at a time and refuses text past its 10,240-byte budget, and
   a text shape shaped its whole text as one layout, so a longer `Text` or

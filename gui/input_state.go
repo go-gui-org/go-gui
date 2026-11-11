@@ -81,6 +81,15 @@ func (m inputMemento) applies(text string) bool {
 	return m.off >= 0 && end <= len(text) && text[m.off:end] == m.inserted
 }
 
+// touches reports whether an edit at off that removes removedLen bytes
+// meets the bytes m inserted: typing on at their end, Backspace at their
+// start, Delete in place. A typing run is a chain of such edits; one
+// anywhere else starts its own step, so a merged step never spans the
+// text between two distant edits.
+func (m inputMemento) touches(off, removedLen int) bool {
+	return off <= m.off+len(m.inserted) && off+removedLen >= m.off
+}
+
 // apply undoes the memento's edit on text.
 func (m inputMemento) apply(text string) string {
 	return text[:m.off] + m.removed + text[m.off+len(m.inserted):]
@@ -246,7 +255,8 @@ func inputPushUndo(
 		stack = newBoundedStack[inputMemento](undoMaxSize)
 	}
 	if op != inputOpNone && op == is.lastEditOp && is.selectBeg == is.selectEnd {
-		if top, ok := stack.peek(); ok && top.applies(oldText) {
+		if top, ok := stack.peek(); ok && top.applies(oldText) &&
+			top.touches(off, len(removed)) {
 			stack.replaceTop(top.merged(oldText, newText, off, removed, inserted))
 			return stack
 		}
