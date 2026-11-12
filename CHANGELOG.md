@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.95.0] - 2026-11-12
+
 ### Added
 
 - **PNG, JPEG and GIF bytes can be registered directly as images (#1228).**
