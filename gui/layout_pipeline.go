@@ -14,6 +14,10 @@ func layoutPipeline(layout *Layout, w *Window) {
 	// it is generated. Resolving here instead would see a float as its
 	// own root and strip the scope its ancestors gave it.
 
+	// Every layoutSizes below queues texts for the anchor pass, one run
+	// per layoutSizer pane, so the queue is emptied once, here.
+	resetTextAnchors(w)
+
 	// A float runs this pipeline after the main tree (layoutArrange), so
 	// its anchor's width is final here. Raising MinWidth before the
 	// width pass, not widening in AmendLayout, lets the fill pass below
@@ -34,6 +38,7 @@ func layoutPipeline(layout *Layout, w *Window) {
 	fx, fy := floatAttachLayout(layout, w.windowRect())
 	layoutPositions(layout, fx, fy, w)
 	layoutApplyScrollAnchors(layout, w)
+	layoutAnchorTextBlocks(w)
 	layoutApplyVirtualScrolls(layout, w)
 	// A float's Parent still points at the container it was lifted
 	// from, so a float inside a disabled container starts disabled.
@@ -76,58 +81,6 @@ func layoutSizes(layout *Layout, w *Window) {
 	layoutHeights(layout)
 	layoutFillHeights(layout, &w.scratch)
 	layoutRotationSwap(layout)
-}
-
-// layoutSizer is a container that sizes its children itself instead of
-// leaving them to the fill passes: a Splitter's panes take their sizes
-// from its ratio. The sizing passes stop at such a container (a Canvas
-// measures no children), so its subtree has no sizes until sizeChildren
-// gives them.
-//
-// sizeChildren pins each child's size and its X/Y relative to the
-// container, then runs layoutSizes on it. It runs after the sizing
-// passes and before every pass that positions the tree or reads its
-// sizes into window state — the scroll clamp, scroll anchors and index
-// scrolls. Run any later and those passes act on the unsized subtree,
-// and what they store outlives the sizes given afterwards (#1214).
-type layoutSizer interface {
-	sizeChildren(layout *Layout, w *Window)
-}
-
-// setLayoutSizer makes s the sizer of a generated container. The
-// container must have event handlers to hold it (both sizers have an
-// AmendLayout); an invisible one has none, and nothing to size. It is
-// set on the generated shape rather than through a ContainerCfg field,
-// which would grow every container's view into the next size class.
-func setLayoutSizer(layout *Layout, s layoutSizer, w *Window) {
-	if layout.Shape == nil || layout.Shape.events == nil {
-		return
-	}
-	layout.Shape.events.sizer = s
-	w.scratch.viewSizers++
-}
-
-// layoutSizeChildren gives each layoutSizer in the tree its turn,
-// parents first, so a sizer nested inside another's child has its own
-// size before it sizes its children. A frame that generated no sizer
-// skips the walk.
-func layoutSizeChildren(layout *Layout, w *Window) {
-	if w.scratch.viewSizers == 0 {
-		return
-	}
-	layoutSizeChildrenDepth(layout, w, 0)
-}
-
-func layoutSizeChildrenDepth(layout *Layout, w *Window, depth int) {
-	if overMaxDepth(depth) {
-		return
-	}
-	if ev := layout.Shape.events; ev != nil && ev.sizer != nil {
-		ev.sizer.sizeChildren(layout, w)
-	}
-	for i := range layout.Children {
-		layoutSizeChildrenDepth(&layout.Children[i], w, depth+1)
-	}
 }
 
 // layoutResolveTransforms resolves each view transform against its
@@ -349,8 +302,13 @@ func layoutWrapTextWalkDepth(layout *Layout, w *Window, depth int) {
 	if overMaxDepth(depth) {
 		return
 	}
-	for i := range layout.Children {
-		layoutWrapTextWalkDepth(&layout.Children[i], w, depth+1)
+	// A layoutSizer's subtree has no widths until sizeChildren gives them,
+	// and that pass wraps it. Wrapping it here as well would rebuild each
+	// text's block at two widths every frame, so nothing stayed measured.
+	if axisNoneMeasuresChildren(layout.Shape) {
+		for i := range layout.Children {
+			layoutWrapTextWalkDepth(&layout.Children[i], w, depth+1)
+		}
 	}
 	shape := layout.Shape
 	tc := shape.TC
@@ -396,6 +354,12 @@ func layoutWrapTextWalkDepth(layout *Layout, w *Window, depth int) {
 		}
 		if shape.inkOverflowW > 0 {
 			propagateInkOverflow(layout)
+		}
+		// A single-line text keeps a one-line box whatever its chunks
+		// measure (layoutPlainText), so it has nothing to anchor.
+		if tc.block != nil && plainTextStyleNeedsGlyphLayout(tc, style) &&
+			tc.block.hasEstimates() {
+			queueTextAnchor(layout, w)
 		}
 	}
 }
@@ -697,22 +661,51 @@ func layoutPlainText(
 	if tc.TextStyle == nil {
 		return false
 	}
-	l, ok := plainTextLayoutResolved(tc.Text, shape, style, w)
+	// Sized on what is painted: a password shows bullets, whose advance
+	// differs from the raw text's (see textView.GenerateLayout).
+	text := tc.Text
+	if tc.textIsPassword {
+		text = maskPassword(text)
+	}
+	blk, ok := plainTextBlock(text, shape, style, w)
 	if !ok {
 		return false
 	}
-	shape.Height = plainTextBoxHeight(l, style, w)
-	if tc.TextMode == TextModeMultiline &&
-		shape.Sizing.Width != SizingFixed && l.Width > 0 {
-		shape.Width = l.Width
+	text = blk.text
+	// A single-line text that takes the chunked path only for its length
+	// keeps its one-line box, as it did when it was drawn as one
+	// RenderText. An Input's display block has already replaced CR/LF
+	// with spaces, so pasted separators neither grow it nor hide rows.
+	if plainTextStyleNeedsGlyphLayout(tc, style) {
+		shape.Height = blk.boxHeight()
 	}
-	shrank := shrinkWrapToInk(shape, tc, style, l, parentHAlign)
+	if tc.TextMode == TextModeMultiline &&
+		shape.Sizing.Width != SizingFixed && blk.width > 0 {
+		shape.Width = blk.width
+	}
+	if tc.TextMode == TextModeSingleLine && len(text) > textChunkBytes &&
+		blk.width > 0 {
+		// GenerateLayout may have only estimated this width (past the
+		// shaper's limit, or an Input past one chunk); the chunks' width
+		// replaces it, exact once they are measured. The estimate can be
+		// the wider of the two, for narrow letters, so a fit box takes
+		// the chunks' width outright; a fixed box only grows to it.
+		shape.MinWidth = blk.width
+		switch shape.Sizing.Width {
+		case SizingFill:
+		case SizingFixed:
+			shape.Width = f32Max(shape.Width, blk.width)
+		default:
+			shape.Width = blk.width
+		}
+	}
+	shrank := shrinkWrapToInk(shape, tc, style, blk, parentHAlign)
 	// A wrapped run with no break opportunity is wider than the width it
 	// was wrapped to. Record the excess rather than growing the shape:
 	// the shape's width IS the wrap width, so growing it would re-wrap
 	// the text and undo the overflow that is being measured.
-	if tc.overflowScrollX && f32IsFinite(l.Width) &&
-		l.Width > shape.Width+f32Tolerance &&
+	if tc.overflowScrollX && f32IsFinite(blk.width) &&
+		blk.width > shape.Width+f32Tolerance &&
 		(tc.TextMode == TextModeWrap ||
 			tc.TextMode == TextModeWrapKeepSpaces) {
 		// Plus the caret: it is painted ink too, and the extent recorded
@@ -721,7 +714,7 @@ func layoutPlainText(
 		// caret's own width back off and the caret at the end of the run
 		// is never quite reachable. Only Input's text sets
 		// overflowScrollX, so no other shape pays for the caret.
-		shape.inkOverflowW = l.Width + inputCaretW
+		shape.inkOverflowW = blk.width + inputCaretW
 	}
 	return shrank
 }
@@ -744,7 +737,7 @@ func shrinkWrapToInk(
 	shape *Shape,
 	tc *ShapeTextConfig,
 	style TextStyle,
-	l glyph.Layout,
+	blk *textBlock,
 	parentHAlign HorizontalAlign,
 ) bool {
 	switch {
@@ -775,17 +768,17 @@ func shrinkWrapToInk(
 		// glyph centred the lines against the wrap width already.
 		// Moving the box now would double the offset.
 		return false
-	case !f32IsFinite(l.Width) || l.Width <= 0 ||
-		l.Width >= shape.Width-f32Tolerance:
+	case !f32IsFinite(blk.width) || blk.width <= 0 ||
+		blk.width >= shape.Width-f32Tolerance:
 		return false
 	}
-	shape.Width = l.Width
-	// Keep the shaped layout current for the new width. The cache key is
-	// the width handed to the shaper, and re-wrapping at the longest line
-	// yields the same breaks — every line already fits it, and a word
-	// that did not fit the wider box does not fit this one — so the
-	// render pass can reuse what this pass shaped instead of shaping the
-	// same text a second time.
-	tc.textLayoutWidth = shape.Width
+	shape.Width = blk.width
+	// Keep the shaped chunks current for the new width. The block is
+	// keyed on the width handed to the shaper, and re-wrapping at the
+	// longest line yields the same breaks — every line already fits it,
+	// and a word that did not fit the wider box does not fit this one —
+	// so the render pass can reuse what this pass shaped instead of
+	// shaping the same text a second time.
+	blk.adoptWidth(shape.Width)
 	return true
 }

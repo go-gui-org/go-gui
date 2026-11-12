@@ -241,6 +241,86 @@ func TestInputSingleLineScrollZeroWhenTextFits(t *testing.T) {
 	}
 }
 
+// A single-line field keeps pasted line separators in its value (copy and
+// cut must round-trip them), but presents them as spaces. Otherwise glyph
+// gives each paragraph another row and the caret disappears into a row the
+// field deliberately clips. Mixed-direction text keeps the same runes and
+// byte offsets around those separators.
+func TestInputSingleLineLineBreaksAreDisplayOnlySpaces(t *testing.T) {
+	w := caretTestWindow(200, 60)
+	text := strings.Repeat("latin \u05d0\u05d1\u05d2\r\n", 400)
+	_, field := arrangeInput(t, w, InputCfg{ID: "in", Text: text})
+	if got := inputTextFromLayout(field); got != text {
+		t.Fatal("the stored input value was changed while flattening its display")
+	}
+
+	gl, ok := inputGlyphLayoutFor(field, w)
+	if !ok {
+		t.Fatal("single-line input has no glyph block")
+	}
+	if strings.ContainsAny(gl.text, "\r\n") {
+		t.Fatal("single-line display still contains a line separator")
+	}
+	if len(gl.text) != len(text) {
+		t.Fatalf("display has %d bytes, want %d so offsets stay stable",
+			len(gl.text), len(text))
+	}
+	if !gl.sourceTextSet || gl.sourceText != text {
+		t.Fatal("block did not retain the source identity for display reuse")
+	}
+
+	setInputState(w, "in", inputState{CursorPos: len(text)})
+	inputScrollCursorIntoView("in", text, field, w)
+	if got := w.scrollX().GetOr("in", 0); got >= 0 {
+		t.Errorf("scrollX = %v, want negative at the logical end", got)
+	}
+}
+
+// Successive source changes use one cached block and update only the edited
+// span of its display string. Include a CR/LF-to-space replacement: the
+// source changes in that step, but the display does not, so the source cache
+// must still advance even though the block patch itself is a no-op.
+func TestInputSingleLineDisplayLineBreakUpdates(t *testing.T) {
+	w := caretTestWindow(200, 60)
+	steps := []struct {
+		source  string
+		display string
+		breaks  int
+	}{
+		{"a\r\nb", "a  b", 2},
+		{"a\r\nbx", "a  bx", 2},
+		{"a  bx", "a  bx", 0},
+		{"a \nbx", "a  bx", 1},
+		{"a bx", "a bx", 0},
+	}
+	var cached *textBlock
+	for i, step := range steps {
+		_, field := arrangeInput(t, w, InputCfg{ID: "in", Text: step.source})
+		if got := inputTextFromLayout(field); got != step.source {
+			t.Fatalf("step %d: stored value = %q, want %q", i, got, step.source)
+		}
+		block, ok := inputGlyphLayoutFor(field, w)
+		if !ok {
+			t.Fatalf("step %d: single-line input has no glyph block", i)
+		}
+		if cached != nil && block != cached {
+			t.Fatalf("step %d: cached block was replaced", i)
+		}
+		cached = block
+		if block.text != step.display {
+			t.Errorf("step %d: display = %q, want %q", i, block.text, step.display)
+		}
+		if !block.sourceTextSet || block.sourceText != step.source {
+			t.Errorf("step %d: source cache = (%t, %q), want (true, %q)",
+				i, block.sourceTextSet, block.sourceText, step.source)
+		}
+		if block.sourceLineBreaks != step.breaks {
+			t.Errorf("step %d: cached line breaks = %d, want %d",
+				i, block.sourceLineBreaks, step.breaks)
+		}
+	}
+}
+
 // TestInputScrollXShiftsTextShapeOnly pins the mechanism: the offset
 // moves the text leaf and nothing else, so the click target still
 // covers the whole field.
@@ -381,19 +461,22 @@ func TestInputMultilineWrapWidthUnchangedByInkOverflow(t *testing.T) {
 	_, field := arrangeInput(t, w, multilineCfg("in", text))
 
 	txt := inputTextShape(t, field)
-	widthArg := txt.TC.textLayoutWidth
+	if txt.TC.block == nil {
+		t.Fatal("input text has no block")
+	}
+	widthArg := txt.TC.block.widthArg
 	if !floatNear(widthArg, txt.Width, 0.01) {
 		t.Errorf("cached wrap width %v != shape width %v",
 			widthArg, txt.Width)
 	}
 	style := textStyleOrDefault(txt)
-	if _, ok := plainTextLayoutResolved(text, txt, style, w); !ok {
+	if _, ok := plainTextBlock(text, txt, style, w); !ok {
 		t.Fatal("second layout resolve failed")
 	}
-	if !floatNear(txt.TC.textLayoutWidth, widthArg, 0.01) {
+	if !floatNear(txt.TC.block.widthArg, widthArg, 0.01) {
 		t.Errorf("wrap width moved to %v after a re-resolve, want %v: "+
 			"the text would re-wrap every frame",
-			txt.TC.textLayoutWidth, widthArg)
+			txt.TC.block.widthArg, widthArg)
 	}
 }
 
@@ -453,8 +536,9 @@ func TestInputDragAutoScrollHorizontal(t *testing.T) {
 		},
 	}
 	d := &inputDragState{
+		text:        text,
 		displayText: text,
-		gl:          gl,
+		gl:          newTextBlockFromLayout(text, &gl, 0, DefaultTextStyle, TextModeSingleLine, w),
 		focusID:     "f",
 		scrollID:    "inp",
 		lastMouseX:  150, // past viewRight
@@ -526,6 +610,30 @@ func TestRenderTextInkOverflowNotCulled(t *testing.T) {
 	if len(w.renderers) == 0 {
 		t.Error("no render commands: the ink reaches into the clip " +
 			"at x 0..300, only the box does not")
+	}
+}
+
+// A chunked single-line Input is Fill-width, so its box is only the
+// viewport even though MinWidth holds the full run. Once caret following has
+// shifted the box left, the intrinsic tail can still reach the clip and must
+// get as far as chunk-level culling.
+func TestRenderTextSingleLineIntrinsicTailNotCulled(t *testing.T) {
+	w := makeWindowWithScratch()
+	style := TextStyle{Color: RGB(255, 255, 255), Size: 16}
+	shape := &Shape{
+		shapeType: shapeText,
+		X:         -300, Y: 0,
+		Width: 100, Height: 20, MinWidth: 600,
+		Opacity:    1,
+		focusOwner: "in",
+		TC: &ShapeTextConfig{
+			Text: "wide", TextStyle: &style,
+			TextMode: TextModeSingleLine,
+		},
+	}
+	renderText(shape, makeClip(0, 0, 200, 100), w)
+	if len(w.renderers) == 0 {
+		t.Fatal("single-line intrinsic tail was culled with its viewport box")
 	}
 }
 

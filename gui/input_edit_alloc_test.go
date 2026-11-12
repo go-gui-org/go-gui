@@ -2,9 +2,11 @@ package gui
 
 import "testing"
 
-// Allocation ceilings for one keystroke edit (issue #657). The counts were
-// measured on the window-bound input* functions before the pure edit core
-// was extracted, so the refactor must not raise them. Each run resets the
+// Allocation ceilings for one keystroke edit (issue #657). Since #1187 an
+// edit is a byte splice of the text plus a delta undo step: the one
+// allocation is the new text, and a delete adds the removed bytes it
+// keeps for undo. A []rune round trip or a full-text undo copy would
+// show here first. Each run resets the
 // field to the same text and caret, so the undo stack stays warm and the
 // measure is one steady-state keystroke, not stack growth.
 func TestInputEditAllocBudget(t *testing.T) {
@@ -16,15 +18,15 @@ func TestInputEditAllocBudget(t *testing.T) {
 		edit func(w *Window)
 		max  float64
 	}{
-		{"insert", inputState{CursorPos: 5, Undo: undo},
-			func(w *Window) { _ = inputInsert(text, "x", "f", w) }, 2},
-		{"insert over selection",
-			inputState{CursorPos: 5, selectBeg: 0, selectEnd: 5, Undo: undo},
+		{"insert", inputState{CursorPos: 5, Undo: undo, undoText: text},
 			func(w *Window) { _ = inputInsert(text, "x", "f", w) }, 1},
-		{"backspace", inputState{CursorPos: 5, Undo: undo},
-			func(w *Window) { _, _ = inputDelete(text, "f", false, w) }, 3},
-		{"forward delete", inputState{CursorPos: 5, Undo: undo},
-			func(w *Window) { _, _ = inputDelete(text, "f", true, w) }, 3},
+		{"insert over selection",
+			inputState{CursorPos: 5, selectBeg: 0, selectEnd: 5, Undo: undo, undoText: text},
+			func(w *Window) { _ = inputInsert(text, "x", "f", w) }, 1},
+		{"backspace", inputState{CursorPos: 5, Undo: undo, undoText: text},
+			func(w *Window) { _, _ = inputDelete(text, "f", false, w) }, 2},
+		{"forward delete", inputState{CursorPos: 5, Undo: undo, undoText: text},
+			func(w *Window) { _, _ = inputDelete(text, "f", true, w) }, 2},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

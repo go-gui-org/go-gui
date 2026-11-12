@@ -2,100 +2,162 @@ package gui
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
-func TestGraphemeStops(t *testing.T) {
-	cases := []struct {
-		name string
-		text string
-		want []int
-	}{
-		{"ascii", "ab", []int{0, 1, 2}},
-		{"empty", "", []int{0}},
-		// Skin-tone modifier joins its base emoji.
-		{"skin tone", "\U0001F44D\U0001F3FD", []int{0, 2}},
-		// Four emoji joined by three ZWJ form one cluster.
-		{"zwj family",
-			"\U0001F468\u200D\U0001F469\u200D\U0001F467\u200D\U0001F466",
-			[]int{0, 7}},
-		// Combining mark stays with its base.
-		{"combining", "a\u0301b", []int{0, 2, 3}},
-		// CR LF is one cluster (UAX #29 GB3) — the multiline case.
-		{"crlf", "a\r\nb", []int{0, 1, 3, 4}},
-		// Regional indicators pair into one flag cluster.
-		{"flag", "\U0001F1FA\U0001F1F8", []int{0, 2}},
-		// An invalid byte counts as one rune, matching []rune
-		// conversion at the delete call site.
-		{"invalid byte", "a\xffb", []int{0, 1, 2, 3}},
+// graphemeBoundaries walks text with nextGraphemeBoundary from 0 and
+// returns every boundary, 0 and the end included.
+func graphemeBoundaries(text string) []int {
+	out := []int{0}
+	for i := 0; i < len(text); {
+		i = nextGraphemeBoundary(text, i)
+		out = append(out, i)
 	}
-	for _, c := range cases {
+	return out
+}
+
+// graphemeCases are byte offsets of the cluster boundaries of each text.
+var graphemeCases = []struct {
+	name string
+	text string
+	want []int
+}{
+	{"ascii", "ab", []int{0, 1, 2}},
+	{"empty", "", []int{0}},
+	// Skin-tone modifier joins its base emoji.
+	{"skin tone", "\U0001F44D\U0001F3FD", []int{0, 8}},
+	// Four emoji joined by three ZWJ form one cluster.
+	{"zwj family",
+		"\U0001F468\u200D\U0001F469\u200D\U0001F467\u200D\U0001F466",
+		[]int{0, 25}},
+	// Combining mark stays with its base.
+	{"combining", "áb", []int{0, 3, 4}},
+	// CR LF is one cluster (UAX #29 GB3) — the multiline case.
+	{"crlf", "a\r\nb", []int{0, 1, 3, 4}},
+	// Regional indicators pair into one flag cluster.
+	{"flag", "\U0001F1FA\U0001F1F8", []int{0, 8}},
+	// An invalid byte is a cluster of its own.
+	{"invalid byte", "a\xffb", []int{0, 1, 2, 3}},
+	{"mixed", "ab́c\U0001F1E9\U0001F1EAd", []int{0, 1, 4, 5, 13, 14}},
+}
+
+func TestNextGraphemeBoundary(t *testing.T) {
+	for _, c := range graphemeCases {
 		t.Run(c.name, func(t *testing.T) {
-			got := graphemeStops(c.text)
-			if !slices.Equal(got, c.want) {
-				t.Fatalf("graphemeStops(%q) = %v, want %v", c.text, got, c.want)
+			if got := graphemeBoundaries(c.text); !slices.Equal(got, c.want) {
+				t.Fatalf("boundaries(%q) = %v, want %v", c.text, got, c.want)
 			}
 		})
 	}
 }
 
-func TestPrevNextGraphemeStop(t *testing.T) {
-	stops := []int{0, 1, 8}
-	cases := []struct {
-		pos  int
-		prev int
-		next int
-	}{
-		{0, 0, 1}, // at start: prev clamps to 0
-		{1, 0, 8}, // on a boundary
-		{5, 1, 8}, // mid-cluster: cluster start and end
-		{8, 1, 8}, // at end: next stays
-	}
-	for _, c := range cases {
-		if got := prevGraphemeStop(stops, c.pos); got != c.prev {
-			t.Errorf("prevGraphemeStop(stops, %d) = %d, want %d", c.pos, got, c.prev)
-		}
-		if got := nextGraphemeStop(stops, c.pos); got != c.next {
-			t.Errorf("nextGraphemeStop(stops, %d) = %d, want %d", c.pos, got, c.next)
-		}
+// prevGraphemeBoundary answers for every offset, a caret stop or not:
+// the last boundary at or before it.
+func TestPrevGraphemeBoundary(t *testing.T) {
+	for _, c := range graphemeCases {
+		t.Run(c.name, func(t *testing.T) {
+			for i := -1; i <= len(c.text)+1; i++ {
+				want := 0
+				for _, s := range c.want {
+					if s <= i {
+						want = s
+					}
+				}
+				if got := prevGraphemeBoundary(c.text, i); got != want {
+					t.Errorf("prevGraphemeBoundary(%q, %d) = %d, want %d",
+						c.text, i, got, want)
+				}
+			}
+		})
 	}
 }
 
-func TestClosestGraphemeStop(t *testing.T) {
-	stops := []int{0, 1, 8}
+func TestNearestGraphemeBoundary(t *testing.T) {
 	cases := []struct {
+		text string
 		pos  int
 		want int
 	}{
-		{4, 1},  // nearer to 1 than 8
-		{5, 8},  // nearer to 8 than 1
-		{10, 8}, // past the end: clamp to last stop
-		{1, 1},  // on a boundary: itself
+		// "a" + U+0301 is one cluster of 3 bytes, then "b".
+		{"áb", 1, 0}, // nearer the cluster start
+		{"áb", 2, 3}, // nearer its end
+		{"áb", 3, 3}, // on a boundary: itself
+		{"áb", 9, 4}, // past the end: clamp to the end
+		{"áb", -2, 0},
+		// An 8-byte flag, queried at its middle: prefer the left.
+		{"\U0001F1FA\U0001F1F8", 4, 0},
 	}
 	for _, c := range cases {
-		if got := closestGraphemeStop(stops, c.pos); got != c.want {
-			t.Errorf("closestGraphemeStop(stops, %d) = %d, want %d", c.pos, got, c.want)
+		if got := nearestGraphemeBoundary(c.text, c.pos); got != c.want {
+			t.Errorf("nearestGraphemeBoundary(%q, %d) = %d, want %d",
+				c.text, c.pos, got, c.want)
 		}
-	}
-
-	// Equidistant: prefer the left stop.
-	tie := []int{0, 2, 6}
-	if got := closestGraphemeStop(tie, 4); got != 2 {
-		t.Errorf("closestGraphemeStop(tie, 4) = %d, want 2", got)
 	}
 }
 
-func TestEmptyGraphemeStops(t *testing.T) {
-	// No boundary held: every lookup leaves pos unchanged
-	// instead of panicking on stops[len(stops)-1].
-	var stops []int
-	if got := prevGraphemeStop(stops, 5); got != 5 {
-		t.Errorf("prevGraphemeStop(nil, 5) = %d, want 5", got)
+// A flag is a pair of regional indicators, and the pair a letter belongs
+// to depends on every letter before it, however far back the run starts.
+// The answer must match a walk from the start of the text at any length.
+func TestPrevGraphemeBoundaryFlagRun(t *testing.T) {
+	const letter = "\U0001F1E9"
+	for _, prefix := range []string{"", "x", letter} {
+		for n := 1; n <= 40; n++ {
+			text := prefix + strings.Repeat(letter+"\U0001F1EA", n) + "y"
+			stops := graphemeBoundaries(text)
+			for i := 0; i <= len(text); i++ {
+				want := 0
+				for _, s := range stops {
+					if s <= i {
+						want = s
+					}
+				}
+				if got := prevGraphemeBoundary(text, i); got != want {
+					t.Fatalf("%q + %d flags, offset %d: got %d, want %d",
+						prefix, n, i, got, want)
+				}
+			}
+		}
 	}
-	if got := nextGraphemeStop(stops, 5); got != 5 {
-		t.Errorf("nextGraphemeStop(nil, 5) = %d, want 5", got)
+}
+
+// Backspace on the string path, which a password field and a chunk seam
+// take, removes a whole flag at the end of a run longer than the window.
+func TestEditDeleteRemovesWholeFlagInLongRun(t *testing.T) {
+	text := strings.Repeat("\U0001F1E9\U0001F1EA", 20)
+	got, _, ok := editDelete(text, inputState{CursorPos: len(text)}, false)
+	if !ok || got != text[:len(text)-8] {
+		t.Fatalf("backspace left %d of %d bytes, want %d",
+			len(got), len(text), len(text)-8)
 	}
-	if got := closestGraphemeStop(stops, 5); got != 5 {
-		t.Errorf("closestGraphemeStop(nil, 5) = %d, want 5", got)
+}
+
+// A run of combining marks longer than the search window is cut at the
+// window: the caret may then rest inside the run, but the search never
+// scans text before the window, so a step costs the same in any field.
+func TestPrevGraphemeBoundaryWindow(t *testing.T) {
+	text := "xa"
+	var textSb103 strings.Builder
+	for range graphemeWindow {
+		textSb103.WriteString("́")
+	}
+	text += textSb103.String()
+	got := prevGraphemeBoundary(text, len(text)-1)
+	if got <= 1 || got > len(text) {
+		t.Fatalf("prevGraphemeBoundary in a long mark run = %d, want a cut "+
+			"inside the run", got)
+	}
+}
+
+// A caret the app's new text left inside a cluster, at a rune start, steps
+// to the end of the whole cluster. Segmenting from the caret alone split
+// the cluster at the joiner and left the caret inside the emoji.
+func TestNextGraphemeBoundaryFromInsideCluster(t *testing.T) {
+	text := "👩‍👩x" // one cluster of 11 bytes, then "x"
+	if got := nextGraphemeBoundary(text, 4); got != 11 {
+		t.Errorf("nextGraphemeBoundary(%q, 4) = %d, want 11", text, got)
+	}
+	if got := nextGraphemeBoundary(text, 11); got != 12 {
+		t.Errorf("nextGraphemeBoundary(%q, 11) = %d, want 12", text, got)
 	}
 }

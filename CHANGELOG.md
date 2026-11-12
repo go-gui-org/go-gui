@@ -61,6 +61,14 @@ and this project adheres to
   safe area stays zero. `examples/ios_demo` and `examples/android_demo` use it.
   Backends report through `gui.DispatchSafeArea`.
 
+- **`InputCfg.MaxLength` sets an `Input`'s rune budget (#1187).** An edit that
+  would take the text past it is refused whole: a typed character or an IME
+  commit sounds the reject cue, and a paste also reaches `OnPasteRejected`. 0
+  takes the default, now 1,048,576 runes. A field built for a short note can set
+  a small budget and say so when a paste is refused; a field for an API response
+  or a log can leave it unset. Text the app sets past the budget is shown in
+  full, and the field takes only edits that do not grow it.
+
 - **Slovak (`sk-SK`) locale (#1209).** Adds Slovak number, date, time, currency
   and user-facing UI string formatting to the built-in locale registry.
 
@@ -164,6 +172,16 @@ and this project adheres to
   `TitleBG` there. `ColorTransparent` turns the patch off. A disabled box no
   longer dims the patch, which let the border show through the title.
 
+- **An `Input` holds 1,048,576 runes by default, and app-set text is no longer
+  cut (#1187).** The budget was 65,536 runes, below a typical API response, and
+  text an app set past it was cut silently when the view was built, so the next
+  keystroke committed the cut text. Large text now costs little (chunked layout,
+  byte-indexed edits, delta undo), so the default is sixteen times larger, and
+  app-set text past any budget shows whole. `PreTextChange` and
+  `PostCommitNormalize` output is capped at the field's `MaxLength`. A field
+  larger than 64 KiB gets no platform spell checking, and its accessible name
+  carries the first 65,536 runes.
+
 - **Hovering the libdecor titlebar no longer redraws the window on Wayland
   (#1203).** On GNOME and other compositors where go-gui draws the frame through
   libdecor, the frame shows only with a commit of the window's surface. Each
@@ -172,6 +190,16 @@ and this project adheres to
   whole frame of unchanged content to make that commit. The window now commits
   the buffer it already shows. A frame already due, such as one after a resize
   or a scale change, still makes the commit, and so does the first frame.
+
+- **`Input` undo keeps the edits, not copies of the text (#1187).** Each undo
+  step held a full copy of the field, up to fifty of them, and every keystroke
+  converted the whole text to runes and back. A step now holds only the bytes an
+  edit replaced, and an edit splices the text once: a keystroke in a 1 MiB field
+  allocates one copy of it instead of a rune slice and a memento. Two behaviours
+  follow. When the app or `PostCommitNormalize` replaces the field's text,
+  Ctrl+Z drops the history instead of bringing back an old copy over the new
+  text. An edit that leaves the text as it was, such as a `PreTextChange` that
+  hands back the current text, no longer adds a step that undoes nothing.
 
 ### Fixed
 
@@ -371,6 +399,47 @@ and this project adheres to
   stretch it. Three buttons in the examples could not be clicked because of it:
   the minesweeper reset button, the snake start button and the 2048 "Try again"
   button. The calculator's title bar had no height.
+
+- **A wheel notch moves one notch when a correction lands mid-ease (#1190).** A
+  discrete mouse wheel eases toward its target over several frames. When a
+  scroll anchor, measured list rows or long text moved the offset during that
+  ease, the target stayed where it was, so the ease travelled the correction on
+  screen as well and one notch jumped much further than the next. The target now
+  moves with the content. An ease to an offset, such as `ScrollAnchorReveal`,
+  keeps its target.
+
+- **Arrow keys in a password field move one character (#1187).** A password
+  field draws bullets, and its arrow, Home, End and vertical moves were taken on
+  the bullets with the caret of the hidden text, whose characters are other byte
+  lengths: End then Left put the caret about a third of the way into an ASCII
+  password, not before its last character. The moves now map the caret onto the
+  bullets and back.
+
+- **A click in an `Input` ends the undo run (#1187).** Typing, clicking
+  elsewhere and typing again made one undo step, so one Ctrl+Z took back the
+  typing on both sides of the click. A click now ends the run, as arrow keys and
+  drags already did.
+
+- **`Text` and `Input` draw text longer than 10,240 bytes (#1190).** go-glyph
+  shapes one layout at a time and refuses text past its 10,240-byte budget, and
+  a text shape shaped its whole text as one layout, so a longer `Text` or
+  `Input` kept its box and scrollbar but drew no glyph. Text is now laid out in
+  chunks of whole paragraphs, a paragraph longer than the budget is cut at the
+  line breaks a whole-paragraph layout also has, and only the chunks in view are
+  drawn. The chunks persist per widget across frames: an edit re-shapes the
+  chunk it touched and a rebuild re-shapes nothing, where every rebuild and
+  every keystroke used to re-shape the whole field. Above 64 KB the chunks not
+  yet shown start with estimated heights; when one scrolls into view, the scroll
+  offset absorbs the measured difference, so the lines on screen and the caret
+  stay where they were. A rotated or transformed long text turns as one block,
+  and a content transition's fade draws long texts chunk by chunk too. A
+  gradient text stays continuous up to 10,240 bytes, as before, and past that
+  draws in its plain colour; so does a shimmer. Rebuilding a gradient, transform
+  or font features each frame no longer re-shapes the text. Typing in an `Input`
+  past one chunk no longer shapes the whole text to measure it, which at 10 KB
+  was most of what a key cost. A box that fits a long multi-line text is as wide
+  as its longest line. `docs/specs/large-text-input.md` records the design and
+  the alternatives.
 
 ## [v0.94.0] - 2026-10-31
 

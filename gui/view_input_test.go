@@ -658,19 +658,16 @@ func seedInputGlyphLayout(t *testing.T, ctx *inputTestCtx, text string, cursors 
 		t.Fatal("inner child is not a text shape")
 	}
 	style := textStyleOrDefault(shape)
-	shape.TC.textLayout = glyphCursorLayout(text, cursors)
-	shape.TC.textLayoutWidth = plainTextLayoutWidthArg(shape, shape.TC, style)
-	shape.TC.textLayoutText = text
-	shape.TC.textLayoutStyle = style
-	shape.TC.textLayoutMode = shape.TC.TextMode
-	shape.TC.textLayoutValid = true
+	shape.TC.block = newTextBlockFromLayout(text, glyphCursorLayout(text, cursors),
+		plainTextLayoutWidthArg(shape, shape.TC, style), style,
+		shape.TC.TextMode, ctx.w)
 }
 
 func TestInputArrowLeftGraphemeGlyphPath(t *testing.T) {
 	// 👍🏽 = base + skin-tone modifier, one cluster: Left from the end
 	// lands before the cluster, never between base and modifier.
 	text := "\U0001F44D\U0001F3FD"
-	ctx := newInputTest(text, "f620", utf8RuneCount(text))
+	ctx := newInputTest(text, "f620", len(text))
 	seedInputGlyphLayout(t, ctx, text, []int{0, len(text)})
 	ctx.fireKeyDown(KeyLeft, ModNone)
 	if is := ctx.state(); is.CursorPos != 0 {
@@ -685,8 +682,8 @@ func TestInputArrowRightGraphemeGlyphPath(t *testing.T) {
 	ctx := newInputTest(text, "f621", 0)
 	seedInputGlyphLayout(t, ctx, text, []int{0, len(text)})
 	ctx.fireKeyDown(KeyRight, ModNone)
-	if is := ctx.state(); is.CursorPos != utf8RuneCount(text) {
-		t.Fatalf("cursor=%d, want %d", is.CursorPos, utf8RuneCount(text))
+	if is := ctx.state(); is.CursorPos != len(text) {
+		t.Fatalf("cursor=%d, want %d", is.CursorPos, len(text))
 	}
 }
 
@@ -694,23 +691,23 @@ func TestInputShiftLeftGraphemeGlyphPath(t *testing.T) {
 	// Shift+Left from the end of a ZWJ family emoji extends the
 	// selection by the whole cluster, not one rune.
 	text := "a\U0001F468\u200D\U0001F469\u200D\U0001F467"
-	ctx := newInputTest(text, "f622", utf8RuneCount(text))
+	ctx := newInputTest(text, "f622", len(text))
 	seedInputGlyphLayout(t, ctx, text, []int{0, 1, len(text)})
 	ctx.fireKeyDown(KeyLeft, ModShift)
 	is := ctx.state()
 	if is.CursorPos != 1 {
 		t.Fatalf("cursor=%d, want 1", is.CursorPos)
 	}
-	if is.selectBeg != uint32(utf8RuneCount(text)) || is.selectEnd != 1 {
+	if is.selectBeg != uint32(len(text)) || is.selectEnd != 1 {
 		t.Fatalf("sel=%d-%d, want %d-1", is.selectBeg, is.selectEnd,
-			utf8RuneCount(text))
+			len(text))
 	}
 }
 
 func TestInputArrowLeftGraphemeFallback(t *testing.T) {
 	// No glyph layout: Left snaps to the previous UAX #29 boundary.
 	text := "\U0001F44D\U0001F3FD"
-	ctx := newInputTest(text, "f623", utf8RuneCount(text))
+	ctx := newInputTest(text, "f623", len(text))
 	ctx.fireKeyDown(KeyLeft, ModNone)
 	if is := ctx.state(); is.CursorPos != 0 {
 		t.Fatalf("cursor=%d, want 0", is.CursorPos)
@@ -722,8 +719,8 @@ func TestInputArrowRightGraphemeFallback(t *testing.T) {
 	text := "\U0001F1FA\U0001F1F8"
 	ctx := newInputTest(text, "f624", 0)
 	ctx.fireKeyDown(KeyRight, ModNone)
-	if is := ctx.state(); is.CursorPos != utf8RuneCount(text) {
-		t.Fatalf("cursor=%d, want %d", is.CursorPos, utf8RuneCount(text))
+	if is := ctx.state(); is.CursorPos != len(text) {
+		t.Fatalf("cursor=%d, want %d", is.CursorPos, len(text))
 	}
 }
 
@@ -731,7 +728,7 @@ func TestInputBackspaceGraphemeFallback(t *testing.T) {
 	// One Backspace on a ZWJ family emoji removes the whole cluster,
 	// leaving the leading "a".
 	text := "a\U0001F468\u200D\U0001F469\u200D\U0001F467\u200D\U0001F466"
-	ctx := newInputTest(text, "f625", utf8RuneCount(text))
+	ctx := newInputTest(text, "f625", len(text))
 	ctx.fireKeyDown(KeyBackspace, ModNone)
 	if ctx.lastText != "a" {
 		t.Fatalf("text=%q, want %q", ctx.lastText, "a")
@@ -805,11 +802,11 @@ func TestMoveCursorWordClassRuns(t *testing.T) {
 	assertEqual(t, moveCursorWordLeft("snake_case_name", 15), 0)
 
 	// Japanese has no spaces; script transitions are the boundaries.
-	// 日本語 | の | テキスト at rune indices 0, 3, 4.
+	// 日本語 | の | テキスト at byte offsets 0, 9, 12 (3-byte runes).
 	const jp = "日本語のテキスト"
-	assertEqual(t, moveCursorWordRight(jp, 0), 3)
-	assertEqual(t, moveCursorWordRight(jp, 3), 4)
-	assertEqual(t, moveCursorWordLeft(jp, 8), 4)
+	assertEqual(t, moveCursorWordRight(jp, 0), 9)
+	assertEqual(t, moveCursorWordRight(jp, 9), 12)
+	assertEqual(t, moveCursorWordLeft(jp, 24), 12)
 
 	// Right motion skips a punctuation run to land on the next word
 	// start; the old whitespace-only separator rules skipped through the
@@ -867,10 +864,11 @@ func TestWordBoundsAtClassRuns(t *testing.T) {
 		{"lone punctuation", "a+b", 1, 1, 2},
 		{"snake_case is one word", "snake_case_name", 3, 0, 15},
 		{"whitespace run selects the run", "hello   world", 6, 5, 8},
-		// The combining acute stays attached to its base "e".
-		{"combining mark joins base", "café", 3, 0, 5},
-		{"han run", "日本語のテキスト", 1, 0, 3},
-		{"katakana run", "日本語のテキスト", 5, 4, 8},
+		// The combining acute stays attached to its base "e". Offsets
+		// are bytes: the acute is two, the Japanese runes three each.
+		{"combining mark joins base", "café", 3, 0, 6},
+		{"han run", "日本語のテキスト", 3, 0, 9},
+		{"katakana run", "日本語のテキスト", 15, 12, 24},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -923,7 +921,7 @@ func TestInputCursorRenderedWhenFocused(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	found := false
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.W < 2 {
@@ -948,7 +946,7 @@ func TestInputCursorNotRenderedWhenUnfocused(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("cursor should not render when unfocused")
 	}
@@ -968,7 +966,7 @@ func TestInputCursorTransparentWhenBlinkOff(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 1 {
 		t.Fatal("cursor should emit one transparent rect when blink off")
 	}
@@ -1001,7 +999,7 @@ func TestInputCursorRenderedViaFocusOwner(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	found := false
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.W < 2 {
@@ -1030,7 +1028,7 @@ func TestInputCursorNotRenderedWhenFocusOwnerUnfocused(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("cursor should not render for an unfocused owner")
 	}
@@ -1053,7 +1051,7 @@ func TestInputCursorNotRenderedForPlainText(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("cursor should not render for non-focusable text")
 	}
@@ -1077,7 +1075,7 @@ func TestInputCursorUsesColumnZeroForPlaceholder(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "Add your task", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "Add your task", 0, 0, nil, false, w)
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.W < 2 {
 			if r.X != 0 {
@@ -1106,7 +1104,8 @@ func TestInputSelectionRendered(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputSelection(shape, "hello", 0, 0, nil, false,
+		makeClip(0, 0, 800, 600), w)
 	found := false
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.Color.A > 0 {
@@ -1131,7 +1130,8 @@ func TestInputSelectionNotRenderedWhenNoSelection(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputSelection(shape, "hello", 0, 0, nil, false,
+		makeClip(0, 0, 800, 600), w)
 	if len(w.renderers) != 0 {
 		t.Fatal("selection should not render with no selection")
 	}
@@ -1154,7 +1154,8 @@ func TestInputSelectionMultiline(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, text, 0, 0, glyph.Layout{}, false, w)
+	renderInputSelection(shape, text, 0, 0, nil, false,
+		makeClip(0, 0, 800, 600), w)
 	count := 0
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill {

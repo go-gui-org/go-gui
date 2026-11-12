@@ -1039,7 +1039,7 @@ func TestShrinkWrapToInkSkipsFloat(t *testing.T) {
 		wrapSizingDefault: true,
 	}
 	shape := &Shape{Width: 400, Sizing: FillFit, TC: tc, Float: true}
-	l := glyph.Layout{Width: 70, Height: 20}
+	l := &textBlock{width: 70, height: 20, widthArg: 400}
 
 	if shrinkWrapToInk(shape, tc, TextStyle{}, l, HAlignCenter) {
 		t.Fatal("shrinkWrapToInk shrank a float box")
@@ -1069,7 +1069,7 @@ func TestShrinkWrapToInkSkipsOverflowScrollX(t *testing.T) {
 		overflowScrollX:   true,
 	}
 	shape := &Shape{Width: 400, Sizing: FillFit, TC: tc}
-	l := glyph.Layout{Width: 70, Height: 20}
+	l := &textBlock{width: 70, height: 20, widthArg: 400}
 
 	if shrinkWrapToInk(shape, tc, TextStyle{}, l, HAlignCenter) {
 		t.Fatal("shrinkWrapToInk shrank an overflowScrollX box")

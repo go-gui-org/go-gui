@@ -4,6 +4,9 @@ import "math"
 
 const f32Tolerance = float32(0.01)
 
+// f32Inf is positive infinity, for an open-ended band.
+var f32Inf = float32(math.Inf(1))
+
 // f32Clamp returns x constrained between lo and hi. Callers must
 // pass lo <= hi. NaN passes through unchanged: comparisons against
 // NaN are all false, so no bound wins. Contain NaN at the trust

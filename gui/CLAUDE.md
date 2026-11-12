@@ -251,6 +251,19 @@ both `EventCtx` methods are nil-safe.
 
 - `(*Layout).spacing()` counts only visible children (`ShapeType != ShapeNone`,
   `!Float`, `!OverDraw`) — fence-post gap calc.
+- **A text shape's layout is a `textBlock`** (`gui/text_block.go`): chunks of
+  whole paragraphs within `textChunkBytes`, shaped on demand and persisted per
+  identity in `nsTextBlock`. Every caret, hit-test, selection and key path
+  queries the block (`text_block_query.go`) in whole-text byte offsets; never
+  shape a text shape's text with `LayoutText` directly, and never hold a
+  `glyph.Layout` of it across frames. Resolve it with `plainTextBlock`
+  (`inputGlyphLayout` for an input, which masks a password). A rich-text layout
+  the caller shaped wraps as a one-chunk block with `newTextBlockFromLayout`. A
+  gradient text is one chunk up to `glyph.MaxTextLength` and draws plain past
+  it, because glyph spans a gradient over one layout. Measuring an estimated
+  chunk above the view moves the lines on screen; only `layoutAnchorTextBlocks`
+  compensates, so do not shape ahead from an event handler.
+  `docs/specs/large-text-input.md`.
 - Shape text fields live in `Shape.TC` (`*shapeTextConfig`), not on `Shape`.
 - `ContainerCfg.Title`/`TitleBG` render a group-box label in the top border,
   like an HTML fieldset legend (`gui/group_box_title.go`). The label is not a

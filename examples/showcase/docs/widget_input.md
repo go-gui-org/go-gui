@@ -42,6 +42,12 @@ gui.Input(gui.InputCfg{
 })
 ```
 
+In text that mixes directions, the arrow keys move the caret in stored order, so
+inside a right-to-left run Left moves it to the right. Digits right after
+right-to-left text are drawn as part of it, as the Unicode bidi rules say:
+delete the line break after a line that ends in Arabic, and the next line's
+number moves to the left of the Arabic.
+
 ## Masked Input
 
 ```go
@@ -62,6 +68,7 @@ token definitions).
 | ----------- | --------------- | ------------------------------------- |
 | Text        | string          | Current text value                    |
 | Placeholder | string          | Hint text shown when empty            |
+| MaxLength   | int             | Rune budget; 0 means 1,048,576        |
 | IsPassword  | bool            | Mask characters for password entry    |
 | Keyboard    | KeyboardKind    | Soft-keyboard layout on touch devices |
 | Mode        | InputMode       | InputSingleLine or InputMultiline     |
@@ -99,6 +106,11 @@ token definitions).
 | PreTextChange       | func(current, proposed string) (string, bool) | Validate/transform before change |
 | PostCommitNormalize | func(text string, InputCommitReason) string   | Normalize text on commit         |
 | OnPasteRejected     | func(text string, EventCtx)                   | A paste is refused (whole text)  |
+
+An edit that would take the text past `MaxLength` is refused whole, and a
+refused paste reaches `OnPasteRejected`. Text the app sets past the budget shows
+in full; the field then takes only edits that do not grow it. Large text costs
+little: only the lines near the view stay laid out.
 
 ## Accessibility
 

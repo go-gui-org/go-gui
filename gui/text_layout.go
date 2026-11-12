@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"math"
+	"slices"
 	"strings"
 
 	"github.com/go-gui-org/go-glyph"
@@ -19,7 +21,7 @@ func fallbackLineHeight(style TextStyle) float32 {
 //
 // Without this the shape keeps the single-line estimate assigned in
 // view_text.go no matter how much text it holds, because the real
-// wrap path (plainTextLayoutResolved) needs a measurer and bails.
+// wrap path (plainTextBlock) needs a measurer and bails.
 // Wrapped text then reports one line, a scroll container around it
 // never overflows, and TestScroll comes back ErrTestUnhandled for a
 // reason that has nothing to do with the widget under test.
@@ -83,6 +85,18 @@ func plainTextNeedsGlyphLayout(
 	if shape == nil || tc == nil {
 		return false
 	}
+	// Past one chunk the text is drawn chunk by chunk: a single
+	// RenderText command would hand the backend a string the shaper
+	// refuses (#1190).
+	return plainTextStyleNeedsGlyphLayout(tc, style) ||
+		len(tc.Text) > textChunkBytes
+}
+
+// plainTextStyleNeedsGlyphLayout reports whether a text shape needs a
+// glyph layout for its mode or style, whatever its length. A single-line
+// text that needs one only for its length keeps the one-line box
+// GenerateLayout gives it (layoutPlainText).
+func plainTextStyleNeedsGlyphLayout(tc *ShapeTextConfig, style TextStyle) bool {
 	return tc.TextMode != TextModeSingleLine ||
 		style.Align != TextAlignLeft ||
 		style.LineSpacing != 0 ||
@@ -114,133 +128,286 @@ func plainTextLayoutWidthArg(
 	return 0
 }
 
-func plainTextLayoutResolved(
-	text string,
-	shape *Shape,
-	style TextStyle,
-	w *Window,
-) (glyph.Layout, bool) {
+// plainTextBlock returns the chunked layout of a text shape's text at
+// the shape's width: the block the frame already resolved for the
+// shape, else the one cached under the shape's identity (an input's
+// owner, a Text's ID, or for a large anonymous text the string's own
+// memory), brought up to date, else a new one. A short anonymous label
+// gets a block for the frame, which shapes it once as before.
+func plainTextBlock(
+	text string, shape *Shape, style TextStyle, w *Window,
+) (*textBlock, bool) {
 	if w == nil || w.textMeasurer == nil ||
 		shape == nil || shape.TC == nil {
-		return glyph.Layout{}, false
+		return nil, false
 	}
 	tc := shape.TC
 	widthArg := plainTextLayoutWidthArg(shape, tc, style)
-	if tc.textLayoutValid &&
-		f32AreClose(tc.textLayoutWidth, widthArg) &&
-		tc.textLayoutText == text &&
-		textLayoutStyleEqual(tc.textLayoutStyle, style) &&
-		tc.textLayoutMode == tc.TextMode &&
-		tc.textLayout != nil {
-		l := *tc.textLayout
-		// A hit on geometry with different paint colours is the render
-		// pass of a faded, pulsing or disabled text: renderText adjusts
-		// Color, BgColor and StrokeColor after the layout pass shaped
-		// with the plain ones. The glyphs are the same, so recolour a
-		// copy of the items instead of shaping the text again.
-		if !textPaintEqual(tc.textLayoutStyle, style) {
-			l.Items = recolorLayoutItems(l.Items, style, w)
+	b := tc.block
+	key := ""
+	var blocks *BoundedMap[string, *textBlock]
+	if b == nil {
+		key = shape.focusKey()
+		if key == "" && len(text) > textChunkBytes {
+			key = textBlockAnonKey(text, widthArg, tc.TextMode, style)
 		}
-		return l, true
-	}
-	shaped, err := w.textMeasurer.LayoutText(text, style, widthArg)
-	if err != nil {
-		// The shaper refused the text — past its byte budget, for
-		// example — so the frame falls back to approximate metrics.
-		// Report once per identity: without this the caret,
-		// selection and grapheme delete silently lose precision,
-		// and nothing else in the frame says why.
-		//
-		// Gated here as well as inside debugWarn: a refused text is
-		// refused again every frame, and the variadic args would
-		// allocate each time even with the check turned off.
-		if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback != 0 {
-			w.debugWarn(debugCheckGlyphLayoutFallback, shape.idKey(),
-				"glyph layout failed for %q (%d bytes): %v; "+
-					"using approximate metrics with degraded caret, "+
-					"selection and delete precision",
-				shape.idKey(), len(text), err)
+		if key != "" {
+			blocks = StateMap[string, *textBlock](w, nsTextBlock, capTextBlocks)
+			b, _ = blocks.Get(key)
 		}
-		return glyph.Layout{}, false
 	}
-	// Copied into its own variable here, on the success path only:
-	// taking the address of the call's result moved it to the heap on
-	// every call, a refused text included.
-	layout := shaped
-	tc.textLayout = &layout
-	tc.textLayoutWidth = widthArg
-	tc.textLayoutText = text
-	tc.textLayoutStyle = style
-	tc.textLayoutMode = tc.TextMode
-	tc.textLayoutValid = true
-	return layout, true
+
+	sourceText := text
+	singleLineInput := shape.focusOwner != "" &&
+		tc.TextMode == TextModeSingleLine
+	p, s := -1, -1
+	sourceLineBreaks := 0
+	if singleLineInput {
+		if b != nil && b.sourceTextSet && b.sourceText == sourceText {
+			text = b.text
+			sourceLineBreaks = b.sourceLineBreaks
+		} else if b != nil && b.sourceTextSet {
+			p = commonPrefixLen(b.sourceText, sourceText)
+			s = commonSuffixLen(b.sourceText, sourceText, p)
+			oldEnd := len(b.sourceText) - s
+			newEnd := len(sourceText) - s
+			sourceLineBreaks = b.sourceLineBreaks -
+				inputLineBreakCount(b.sourceText[p:oldEnd]) +
+				inputLineBreakCount(sourceText[p:newEnd])
+			if sourceLineBreaks == 0 {
+				text = sourceText
+			} else {
+				text = b.text[:p] +
+					singleLineInputDisplayText(sourceText[p:newEnd]) +
+					b.text[oldEnd:]
+			}
+		} else {
+			text = singleLineInputDisplayText(sourceText)
+			sourceLineBreaks = inputLineBreakCount(sourceText)
+		}
+	}
+	if b != nil {
+		b.updateKnownDelta(text, widthArg, style, tc.TextMode, w, p, s)
+		if shape.focusOwner == "" && len(b.text) <= textBlockEagerBytes &&
+			b.hasEstimates() {
+			// A Text within the eager budget stays exact, as it was
+			// when new: an update leaves what it re-chunked estimated,
+			// and an estimated wrapped paragraph guesses the full width,
+			// which keeps a shrink-wrapped box from its ink. An Input
+			// is left to the renderer, so typing shapes only what shows.
+			b.measureAll(w)
+			b.settle()
+		}
+	} else {
+		b = newTextBlock(text, widthArg, style, tc.TextMode, w)
+		if blocks != nil {
+			blocks.Set(key, b)
+		}
+	}
+	b.sourceText, b.sourceTextSet, b.sourceLineBreaks = "", false, 0
+	if singleLineInput {
+		b.sourceText = sourceText
+		b.sourceTextSet = true
+		b.sourceLineBreaks = sourceLineBreaks
+	}
+	if key != "" {
+		b.seen = w.viewPass
+	}
+	tc.block = b
+	if b.failErr != nil {
+		textBlockWarnRefused(shape, b, w)
+	}
+	if len(b.text) > glyph.MaxTextLength &&
+		(style.Gradient != nil || (tc.anim != nil && tc.anim.shimmerOn)) {
+		textBlockWarnGradientDropped(shape, b, w)
+	}
+	return b, true
 }
 
-// plainTextBoxHeight converts glyph's layout height into the box
-// go-gui sizes text with.
-//
-// glyph reports Height as n whole line boxes, and a line box is the
-// baseline-to-baseline advance: ascent + descent + leading, floored at
-// 1.15em (go-glyph linespacing.go). Rendering, though, puts the first
-// baseline at FontAscent below the shape top and advances by that same
-// line height, so the leading below the *last* baseline is space
-// nothing ever paints into. Kept in the shape, it is padding only at
-// the bottom: a centred or padded row then reads visibly top-biased —
-// 2.4px at size 16, which is what a ListBox row showed.
-//
-// Dropping the trailing leading makes a one-line shape exactly
-// FontHeight, the same box the single-line path in view_text.go
-// assigns, so the two paths agree and the optical-centring model in
-// text_optical.go ("a text shape is sized to FontHeight") holds for
-// multi-line text too. Inter-line spacing is untouched: only the tail
-// goes.
-func plainTextBoxHeight(
-	l glyph.Layout, style TextStyle, w *Window,
-) float32 {
-	lines := len(l.Lines)
-	if lines == 0 || l.Height <= 0 || !f32IsFinite(l.Height) {
-		return l.Height
+// sweepTextBlocks drops the cached blocks that no layout resolved in this
+// view pass or the one before: texts that left the tree. A block holds
+// its whole text and up to textBlockLiveLayouts layouts, and the cache is
+// bounded by count, so a large text that left would otherwise stay until
+// capTextBlocks other identities pushed it out. Same rule as
+// pruneContentTransitionStates. Called once per view pass, after layout.
+func sweepTextBlocks(w *Window) {
+	m := StateMapRead[string, *textBlock](w, nsTextBlock)
+	if m == nil || m.Len() == 0 {
+		return
 	}
-	fh := fontHeight(style, w)
-	// A non-finite face height (a corrupt measurer) must not poison
-	// the box: the shape would move to NaN and never paint again.
-	if !f32IsFinite(fh) {
-		return l.Height
+	// Walk the entries in place: Range takes a closure, which would
+	// escape and allocate on every pass.
+	stale := w.scratch.textBlockStale[:0]
+	for k, b := range m.data {
+		if b == nil || b.seen+1 < w.viewPass {
+			stale = append(stale, k)
+		}
 	}
-	// The trailing leading is the last line's own box minus the face
-	// height. Read it from the last line, not from an average: glyph
-	// adds LineSpacing after every line but the last, and a fallback
-	// face can make one line taller than the rest, so Height/lines is
-	// not the last line's height. An average made the box short by
-	// (n-1)*LineSpacing/n, and the last line's descenders hung out of
-	// it. A layout without line rects (a host-built one) falls back
-	// to the average, which is exact when the lines are even.
-	lastH := l.Lines[lines-1].Rect.Height
-	if lastH <= 0 || !f32IsFinite(lastH) {
-		lastH = l.Height / float32(lines)
+	for _, k := range stale {
+		m.Delete(k)
 	}
-	// Guard a face whose line box is tighter than ascent+descent:
-	// growing the shape here would be a regression.
-	if fh >= lastH {
-		return l.Height
+	clear(stale)
+	w.scratch.textBlockStale = stale[:0]
+}
+
+// textBlockWarnRefused reports a chunk the shaper refused, once per
+// identity: the caret, selection and grapheme delete lose precision in
+// that chunk, and nothing else in the frame says why. Gated here as
+// well as inside debugWarn: this runs every frame while the block holds
+// a refusal, and the variadic args would allocate each time even with the
+// check turned off.
+func textBlockWarnRefused(shape *Shape, b *textBlock, w *Window) {
+	if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback == 0 {
+		return
 	}
-	return l.Height - (lastH - fh)
+	w.debugWarn(debugCheckGlyphLayoutFallback, shape.idKey(),
+		"glyph layout failed for %q (%d bytes): %v; "+
+			"using approximate metrics with degraded caret, "+
+			"selection and delete precision",
+		shape.idKey(), b.failBytes, b.failErr)
+}
+
+// textBlockWarnGradientDropped reports a gradient or shimmer that
+// renderTextBlock leaves out, once per identity. Gated here as well as
+// inside debugWarn, for the same reason as textBlockWarnRefused.
+func textBlockWarnGradientDropped(shape *Shape, b *textBlock, w *Window) {
+	if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback == 0 {
+		return
+	}
+	w.debugWarn(debugCheckTextGradientDropped, shape.idKey(),
+		"text %q is %d bytes, past the %d one glyph layout can hold, so "+
+			"it draws in its plain colour without its gradient or shimmer",
+		shape.idKey(), len(b.text), glyph.MaxTextLength)
+}
+
+// longestLine returns the longest hard line of text, in bytes.
+func longestLine(text string) string {
+	longest := ""
+	for {
+		line, rest, more := strings.Cut(text, "\n")
+		if len(line) > len(longest) {
+			longest = line
+		}
+		if !more {
+			return longest
+		}
+		text = rest
+	}
+}
+
+// textWidthEstimate approximates the advance of a text that is not
+// measured whole (see textView.GenerateLayout), from the average advance
+// of a sample. The sizing pass replaces it with the chunked layout's
+// width.
+func textWidthEstimate(text string, style TextStyle, w *Window) float32 {
+	avg := style.Size * 0.5
+	if w != nil && w.textMeasurer != nil {
+		if wd := w.textMeasurer.TextWidth(textBlockSample, style); wd > 0 &&
+			f32IsFinite(wd) {
+			avg = wd / float32(len(textBlockSample))
+		}
+	}
+	return float32(utf8RuneCount(text)) * avg
 }
 
 // textLayoutStyleEqual reports whether two styles shape to the same
-// glyph layout. It is == with the paint colours left out: they change
-// the colour stamped on each item but no glyph position. Whether a
-// background or a stroke is present does change the layout (the item
-// carries HasBgColor and HasStroke), so presence still counts.
+// glyph layout. It is == with what only the draw reads left out: the
+// paint colours change the colour stamped on each item but no glyph
+// position, and a gradient, a rotation and a transform apply at the
+// draw. A view that builds its gradient each frame would otherwise
+// re-shape the text on every rebuild. Whether a background or a stroke
+// is present does change the layout (the item carries HasBgColor and
+// HasStroke), and a gradient's presence decides the chunks
+// (textBlockOneLayout), so presence still counts. Font features do
+// shape, and are compared by value for the same reason.
 func textLayoutStyleEqual(a, b TextStyle) bool {
 	if (a.BgColor.A > 0) != (b.BgColor.A > 0) ||
-		(a.StrokeColor.A > 0) != (b.StrokeColor.A > 0) {
+		(a.StrokeColor.A > 0) != (b.StrokeColor.A > 0) ||
+		(a.Gradient != nil) != (b.Gradient != nil) ||
+		!fontFeaturesEqual(a.Features, b.Features) {
 		return false
 	}
 	a.Color, b.Color = Color{}, Color{}
 	a.BgColor, b.BgColor = Color{}, Color{}
 	a.StrokeColor, b.StrokeColor = Color{}, Color{}
+	a.Gradient, b.Gradient = nil, nil
+	a.AffineTransform, b.AffineTransform = nil, nil
+	a.RotationRadians, b.RotationRadians = 0, 0
+	a.Features, b.Features = nil, nil
 	return a == b
+}
+
+// fontFeaturesEqual reports whether two feature sets shape alike.
+func fontFeaturesEqual(a, b *glyph.FontFeatures) bool {
+	if a == b {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return slices.Equal(a.OpenTypeFeatures, b.OpenTypeFeatures) &&
+		slices.Equal(a.VariationAxes, b.VariationAxes)
+}
+
+// textStyleShapingHash hashes what textLayoutStyleEqual compares, so two
+// styles it calls equal hash alike, for the key of a block with no
+// identity (textBlockAnonKey). TestTextStyleShapingHashCoversEquality
+// fails when a field that shapes is left out.
+func textStyleShapingHash(s TextStyle) uint64 {
+	h := shapingHash(14695981039346656037) // FNV-1a offset basis
+	h.str(s.Family)
+	h.u64(uint64(s.Typeface))
+	for _, f := range [...]float32{s.Size, s.LineSpacing, s.LetterSpacing,
+		s.StrokeWidth, s.EmojiBoxWidth, s.CellWidth, s.CellHeight} {
+		h.u64(uint64(math.Float32bits(f)))
+	}
+	h.u64(uint64(s.Align))
+	var bits uint64
+	for i, b := range [...]bool{s.Underline, s.NoBuiltinBoxGlyphs,
+		s.Strikethrough, s.disabledRole, s.glyphRole, s.defaultedColor,
+		s.BgColor.A > 0, s.StrokeColor.A > 0, s.Gradient != nil,
+		s.Features != nil} {
+		if b {
+			bits |= 1 << i
+		}
+	}
+	h.u64(bits)
+	if f := s.Features; f != nil {
+		h.u64(uint64(len(f.OpenTypeFeatures)))
+		for _, ft := range f.OpenTypeFeatures {
+			h.str(ft.Tag)
+			h.u64(uint64(ft.Value))
+		}
+		h.u64(uint64(len(f.VariationAxes)))
+		for _, ax := range f.VariationAxes {
+			h.str(ax.Tag)
+			h.u64(uint64(math.Float32bits(ax.Value)))
+		}
+	}
+	return uint64(h)
+}
+
+// shapingHash is an FNV-1a hash, written out so that hashing a style
+// allocates nothing.
+type shapingHash uint64
+
+func (h *shapingHash) byte(b byte) {
+	*h = (*h ^ shapingHash(b)) * 1099511628211 // FNV-1a prime
+}
+
+func (h *shapingHash) u64(v uint64) {
+	for range 8 {
+		h.byte(byte(v))
+		v >>= 8
+	}
+}
+
+// str hashes s and its length, so "ab"+"c" and "a"+"bc" differ.
+func (h *shapingHash) str(s string) {
+	for i := 0; i < len(s); i++ {
+		h.byte(s[i])
+	}
+	h.u64(uint64(len(s)))
 }
 
 // textPaintEqual reports whether two styles paint in the same colours.

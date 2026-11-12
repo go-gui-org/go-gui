@@ -64,8 +64,11 @@ func markdownBlockAmendSel(l *Layout, w *Window) {
 	}
 	localBeg := max(beg, blockStart) - blockStart
 	localEnd := min(end, blockEnd) - blockStart
-	tc.textSelBeg = localBeg
-	tc.textSelEnd = localEnd
+	// The markdown selection counts runes across its blocks; the shape's
+	// selection is in byte offsets of this block's text.
+	flat := tc.rtf.rTFFlatText
+	tc.textSelBeg = uint32(runeToByteIndex(flat, int(localBeg)))
+	tc.textSelEnd = uint32(runeToByteIndex(flat, int(localEnd)))
 }
 
 // markdownContainerAmendLayout is the AmendLayout hook on the markdown Column.

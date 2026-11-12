@@ -1,10 +1,6 @@
 package gui
 
-import (
-	"time"
-
-	"github.com/go-gui-org/go-glyph"
-)
+import "time"
 
 // spellCheckState caches spell check results for an input.
 type spellCheckState struct {
@@ -13,6 +9,11 @@ type spellCheckState struct {
 }
 
 const spellCheckDelay = 300 * time.Millisecond
+
+// spellCheckMaxBytes bounds the text a field hands the platform spell
+// checker. Each change re-checks the whole text, which past this size
+// costs more than the underlines are worth; a larger field has none.
+const spellCheckMaxBytes = 64 << 10
 
 func spellCheckAnimID(focusID string) string {
 	return ScopeID("spell-check", focusID)
@@ -23,6 +24,10 @@ func spellCheckAnimID(focusID string) string {
 // from AmendLayout (under w.mu).
 func spellCheckTrigger(focusID string, text string, w *Window) {
 	if w.nativePlatform == nil {
+		return
+	}
+	if len(text) > spellCheckMaxBytes {
+		spellCheckClear(focusID, w)
 		return
 	}
 	sm := StateMap[string, spellCheckState](
@@ -97,7 +102,8 @@ func spellCheckHasRanges(focusID string, w *Window) bool {
 func renderSpellCheckUnderlines(
 	shape *Shape, text string,
 	baseX, baseY float32,
-	gl glyph.Layout,
+	blk *textBlock,
+	clip drawClip,
 	w *Window,
 ) {
 	// Keyed by the owning widget: an input's inner text shape carries
@@ -121,13 +127,15 @@ func renderSpellCheckUnderlines(
 
 	color := defaultInputStyle.colorSpellError
 	underlineH := max(float32(1.5), shape.TC.TextStyle.Size/10)
+	xMin, xMax, yMin, yMax := textBlockVisibleBox(baseX, baseY, clip)
 
 	for _, r := range state.Ranges {
 		endByte := r.StartByte + r.LenBytes
 		if endByte > len(text) {
 			continue
 		}
-		rects := gl.GetSelectionRects(r.StartByte, endByte)
+		rects := blk.selectionRectsVisible(r.StartByte, endByte,
+			xMin, xMax, yMin, yMax)
 		for _, rect := range rects {
 			emitRenderer(RenderCmd{
 				Kind:  RenderRect,

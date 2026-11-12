@@ -24,7 +24,7 @@ func TestEditInsert(t *testing.T) {
 		{"replace selection", "hello", "J", inputState{CursorPos: 1, selectBeg: 1, selectEnd: 0}, "Jello", 1, true, inputOpInsert},
 		{"selection outside text", "ab", "x", inputState{CursorPos: 1, selectBeg: 2, selectEnd: 5}, "ab", 1, false, inputOpNone},
 		{"multi-rune breaks run", "ab", "xy", inputState{CursorPos: 2}, "abxy", 4, true, inputOpNone},
-		{"runes not bytes", "héllo", "!", inputState{CursorPos: 2}, "hé!llo", 3, true, inputOpInsert},
+		{"byte offsets", "héllo", "!", inputState{CursorPos: 3}, "hé!llo", 4, true, inputOpInsert},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -44,11 +44,42 @@ func TestEditInsert(t *testing.T) {
 			if is.selectBeg != is.selectEnd || is.cursorOffset != -1 || is.lastEditOp != tc.wantOpID {
 				t.Errorf("state = %+v, want no selection, offset -1, op %d", is, tc.wantOpID)
 			}
-			if m, _ := is.Undo.Pop(); m.Text != tc.text {
-				t.Errorf("undo top = %q, want %q", m.Text, tc.text)
+			// The undo step restores the old text from the new one.
+			if m, _ := is.Undo.Pop(); !m.applies(got) || m.apply(got) != tc.text {
+				t.Errorf("undo top restores %q, want %q", m.apply(got), tc.text)
 			}
 		})
 	}
+}
+
+func TestEditInsertProposed(t *testing.T) {
+	t.Run("selection and byte offsets", func(t *testing.T) {
+		text, ins := "aéXYZz", "界"
+		is := inputState{CursorPos: 5, selectBeg: 1, selectEnd: 5}
+		proposed := editProposedText(text, ins, is)
+		got, next, ok := editInsertProposed(text, ins, proposed, is)
+		if !ok || got != "a界Zz" || next.CursorPos != 4 {
+			t.Fatalf("got (%q, pos %d, %v), want (a界Zz, pos 4, true)",
+				got, next.CursorPos, ok)
+		}
+		undone, restored, ok := editUndo(got, next)
+		if !ok || undone != text ||
+			restored.selectBeg != 1 || restored.selectEnd != 5 {
+			t.Fatalf("undo = (%q, selection %d..%d, %v), want original edit state",
+				undone, restored.selectBeg, restored.selectEnd, ok)
+		}
+	})
+
+	t.Run("stale proposal commits the approved text whole", func(t *testing.T) {
+		text, ins := "abc", "X"
+		stale := editProposedText(text, ins, inputState{CursorPos: 1})
+		got, next, ok := editInsertProposed(
+			text, ins, stale, inputState{CursorPos: 2})
+		if !ok || got != "aXbc" || next.CursorPos != 4 {
+			t.Fatalf("got (%q, pos %d, %v), want (aXbc, pos 4, true)",
+				got, next.CursorPos, ok)
+		}
+	})
 }
 
 func TestEditDelete(t *testing.T) {
@@ -68,8 +99,8 @@ func TestEditDelete(t *testing.T) {
 		{"negative caret is end", "abc", inputState{CursorPos: -1}, false, "ab", 2, true},
 		{"selection", "hello", inputState{CursorPos: 4, selectBeg: 4, selectEnd: 1}, true, "ho", 1, true},
 		{"selection outside text", "ab", inputState{selectBeg: 1, selectEnd: 7}, false, "ab", 0, false},
-		// e + combining acute is one grapheme cluster: two runes, one delete.
-		{"whole cluster", "aé", inputState{CursorPos: 3}, false, "a", 1, true},
+		// e + combining acute is one grapheme cluster: three bytes, one delete.
+		{"whole cluster", "aé", inputState{CursorPos: 4}, false, "a", 1, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -98,14 +129,14 @@ func TestEditDeleteSurrounding(t *testing.T) {
 		wantBeg      uint32
 		wantEnd      uint32
 	}{
-		{"utf16 emoji backward", "A😀", inputState{CursorPos: 2}, false, 2, false, "A", 1, 0, 0},
+		{"utf16 emoji backward", "A😀", inputState{CursorPos: 5}, false, 2, false, "A", 1, 0, 0},
 		{"utf16 emoji forward", "😀A", inputState{CursorPos: 0}, true, 2, false, "A", 0, 0, 0},
 		{"code points", "abcde", inputState{CursorPos: 4}, false, 3, true, "ae", 1, 0, 0},
 		{"preserve selection", "abcdef", inputState{CursorPos: 4, selectBeg: 2, selectEnd: 4}, false, 2, true, "cdef", 2, 0, 2},
 		{"delete after selection", "abcdef", inputState{CursorPos: 2, selectBeg: 2, selectEnd: 4}, true, 2, true, "abcd", 2, 2, 4},
 		// The count is exact, even inside a grapheme cluster: a Devanagari
 		// IME's Backspace on "कि" (क + vowel sign ि) takes only the sign.
-		{"inside cluster", "aकि", inputState{CursorPos: 3}, false, 1, true, "aक", 2, 0, 0},
+		{"inside cluster", "aकि", inputState{CursorPos: 7}, false, 1, true, "aक", 4, 0, 0},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -149,7 +180,7 @@ func TestEditUndoCoalescing(t *testing.T) {
 		t.Fatal("undo on empty stack reported ok")
 	}
 	text, is, _ = editRedo(text, is)
-	text, _, _ = editRedo(text, is)
+	text, is, _ = editRedo(text, is)
 	if text != "z" {
 		t.Fatalf("redo twice = %q, want \"z\"", text)
 	}
@@ -199,8 +230,8 @@ func TestEditCutAndSelectedText(t *testing.T) {
 func TestEditSelectAllKeepsHistory(t *testing.T) {
 	undo := newBoundedStack[inputMemento](undoMaxSize)
 	is := editSelectAll("héllo", inputState{CursorPos: 1, Undo: undo, lastEditOp: inputOpInsert})
-	if is.selectBeg != 0 || is.selectEnd != 5 || is.CursorPos != 5 {
-		t.Fatalf("select all = %+v, want 0..5 caret 5", is)
+	if is.selectBeg != 0 || is.selectEnd != 6 || is.CursorPos != 6 {
+		t.Fatalf("select all = %+v, want 0..6 caret 6", is)
 	}
 	if is.Undo != undo || is.lastEditOp != inputOpInsert {
 		t.Fatal("select all dropped the undo stack or run")
@@ -209,7 +240,7 @@ func TestEditSelectAllKeepsHistory(t *testing.T) {
 
 func TestEditSetTextCursorAtEnd(t *testing.T) {
 	is := editSetTextCursorAtEnd("ab", "héllo", inputState{lastEditOp: inputOpInsert})
-	if is.CursorPos != 5 || is.lastEditOp != inputOpNone || is.Undo.Len() != 1 {
-		t.Fatalf("state = %+v, want caret 5, op none, undo depth 1", is)
+	if is.CursorPos != 6 || is.lastEditOp != inputOpNone || is.Undo.Len() != 1 {
+		t.Fatalf("state = %+v, want caret 6, op none, undo depth 1", is)
 	}
 }

@@ -1,93 +1,121 @@
 package gui
 
-// Grapheme-boundary helpers for the caret-motion fallback path. When no
-// glyph layout exists (nil textMeasurer — headless tests, defensive
-// fallback), edit state has no shaped cluster information, so boundaries
-// are recomputed here with UAX #29 via rivo/uniseg — the same
-// segmentation go-glyph uses to build its valid cursor positions. That
-// keeps fallback motion and delete agreeing with the shaped path on
-// where the caret may rest.
+// Grapheme-boundary helpers for the caret paths that have no glyph
+// layout: the nil-measurer fallback (headless tests, defensive
+// fallback), a chunk seam of a textBlock, and the cut of a paragraph
+// longer than a chunk. Boundaries are recomputed with UAX #29 via
+// rivo/uniseg — the same segmentation go-glyph uses to build its valid
+// cursor positions — so fallback motion and delete agree with the shaped
+// path on where the caret may rest.
+//
+// Every helper takes and returns byte offsets and segments only a window
+// of the text around the offset, so a caret step in a large field costs
+// the same as in a short one.
 
 import (
-	"slices"
 	"unicode/utf8"
 
 	"github.com/rivo/uniseg"
 )
 
-// graphemeStops returns the rune indices at which the caret may rest in
-// text — every grapheme-cluster boundary, including 0 and the end. The
-// nil-measurer fallback computes this set once per motion or delete;
-// the shaped path needs no equivalent because glyph.Layout carries the
-// positions already.
-func graphemeStops(text string) []int {
-	// Fixed guess, not a RuneCountInString pre-scan: that would cost
-	// a full pass over text on every fallback keypress. Growth
-	// handles long text with amortized copies.
-	stops := make([]int, 0, 16)
-	stops = append(stops, 0)
-	runeIdx := 0
-	gr := uniseg.NewGraphemes(text)
-	for gr.Next() {
-		runeIdx += utf8.RuneCountInString(gr.Str())
-		stops = append(stops, runeIdx)
-	}
-	return stops
+// graphemeWindow bounds the bytes a boundary search segments before an
+// offset. A cluster longer than it (a run of combining marks) is cut.
+const graphemeWindow = 64
+
+// Regional indicators are the letters of a flag: two of them, paired off
+// from the start of their run.
+const (
+	regionalIndicatorFirst = '\U0001F1E6'
+	regionalIndicatorLast  = '\U0001F1FF'
+	regionalIndicatorBytes = 4
+)
+
+func isRegionalIndicator(r rune) bool {
+	return r >= regionalIndicatorFirst && r <= regionalIndicatorLast
 }
 
-// prevGraphemeStop returns the largest stop strictly before pos, or 0
-// when there is none — the fallback for Backspace and Left-arrow
-// granularity. stops must be sorted ascending, as graphemeStops
-// returns; an empty slice holds no boundary, so pos is returned
-// unchanged (no motion).
-func prevGraphemeStop(stops []int, pos int) int {
-	if len(stops) == 0 {
-		return pos
+// regionalPairStart returns j, a rune start, or the start of the flag it
+// falls inside. Which flag a letter belongs to depends on how many letters
+// precede it, so a search that opened on a second letter would shift every
+// pair after it. The letters are counted, not segmented, and only in a run
+// that reaches j.
+func regionalPairStart(text string, j int) int {
+	if r, _ := utf8.DecodeRuneInString(text[j:]); !isRegionalIndicator(r) {
+		return j
 	}
-	i, _ := slices.BinarySearch(stops, pos)
-	if i == 0 {
+	before := 0
+	for k := j; k > 0; k -= regionalIndicatorBytes {
+		r, _ := utf8.DecodeLastRuneInString(text[:k])
+		if !isRegionalIndicator(r) {
+			break
+		}
+		before++
+	}
+	return j - before%2*regionalIndicatorBytes
+}
+
+// prevGraphemeBoundary returns the last grapheme-cluster boundary at or
+// before byte offset i. It segments only a window before i, from a rune
+// start, which is exact for every cluster shorter than the window.
+func prevGraphemeBoundary(text string, i int) int {
+	if i <= 0 {
 		return 0
 	}
-	return stops[i-1]
+	if i >= len(text) {
+		return len(text)
+	}
+	j := max(0, i-graphemeWindow)
+	for j > 0 && !utf8.RuneStart(text[j]) {
+		j--
+	}
+	j = regionalPairStart(text, j)
+	last := j
+	rest := text[j:]
+	state := -1
+	off := j
+	for len(rest) > 0 {
+		var tail string
+		_, tail, _, state = uniseg.FirstGraphemeClusterInString(rest, state)
+		off += len(rest) - len(tail)
+		if off > i {
+			break
+		}
+		last = off
+		rest = tail
+	}
+	return last
 }
 
-// nextGraphemeStop returns the smallest stop strictly after pos, or the
-// final stop (end of text) when there is none — the fallback for Delete
-// and Right-arrow granularity. stops must be sorted ascending, as
-// graphemeStops returns; an empty slice holds no boundary, so pos is
-// returned unchanged (no motion).
-func nextGraphemeStop(stops []int, pos int) int {
-	if len(stops) == 0 {
-		return pos
+// nextGraphemeBoundary returns the first grapheme-cluster boundary after
+// byte offset i, or len(text). From inside a cluster, where a caret the
+// app's new text left behind can sit, the answer is that cluster's end:
+// the search starts from the cluster's start, because the rest of a
+// cluster segmented alone can split again (at a joiner).
+func nextGraphemeBoundary(text string, i int) int {
+	if i >= len(text) {
+		return len(text)
 	}
-	// BinarySearch finds the first stop >= pos; stops hold unique
-	// values, so stepping past an exact hit lands on the first
-	// stop strictly after pos.
-	i, found := slices.BinarySearch(stops, pos)
-	if found {
-		i++
+	i = prevGraphemeBoundary(text, max(i, 0))
+	cluster, _, _, _ := uniseg.FirstGraphemeClusterInString(text[i:], -1)
+	if len(cluster) == 0 {
+		return len(text)
 	}
-	if i >= len(stops) {
-		return stops[len(stops)-1]
-	}
-	return stops[i]
+	return i + len(cluster)
 }
 
-// closestGraphemeStop returns the stop nearest pos, preferring the one
-// on the left when equidistant — the fallback snap for vertical motion,
-// whose rune-column target can land inside a cluster on the target line.
-// stops must be sorted ascending, as graphemeStops returns; an empty
-// slice holds no boundary, so pos is returned unchanged (no motion).
-func closestGraphemeStop(stops []int, pos int) int {
-	if len(stops) == 0 {
-		return pos
+// nearestGraphemeBoundary returns the boundary nearest to byte offset i,
+// preferring the one on the left when equidistant — the snap for
+// vertical motion, whose rune-column target can land inside a cluster
+// on the target line.
+func nearestGraphemeBoundary(text string, i int) int {
+	i = max(0, min(i, len(text)))
+	prev := prevGraphemeBoundary(text, i)
+	if prev == i {
+		return i
 	}
-	i, _ := slices.BinarySearch(stops, pos)
-	if i == len(stops) {
-		return stops[len(stops)-1]
+	next := nextGraphemeBoundary(text, prev)
+	if i-prev <= next-i {
+		return prev
 	}
-	if i > 0 && pos-stops[i-1] <= stops[i]-pos {
-		return stops[i-1]
-	}
-	return stops[i]
+	return next
 }

@@ -1,80 +1,91 @@
 package gui
 
-import (
-	"strings"
+import "strings"
 
-	"github.com/go-gui-org/go-glyph"
-)
+// inputMoveSpace returns the text and state a caret move of key works
+// in. A password's block holds its bullets, which are other bytes than
+// the runes they hide, so there a move runs in the bullets' offsets:
+// masked is then true, the mapped state is already stored, and the
+// caller maps the stored result back with textOffset.
+func inputMoveSpace(
+	hcfg *inputHandlerCfg, imap *BoundedMap[string, inputState],
+	id string, is inputState, text string, gl *textBlock, glOK bool,
+	key KeyCode,
+) (moveText string, moveIs inputState, masked bool) {
+	if !hcfg.IsPassword || !glOK || gl.text == text {
+		return text, is, false
+	}
+	switch key {
+	case KeyLeft, KeyRight, KeyHome, KeyEnd, KeyUp, KeyDown:
+	default:
+		return text, is, false
+	}
+	moveIs = is.mapped(text, gl.text, displayOffset)
+	imap.Set(id, moveIs)
+	return gl.text, moveIs, true
+}
 
 func inputKeyLeft(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, isWordMod bool,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) {
 	if isWordMod {
 		var newPos int
 		if glOK {
-			byteIdx := runeToByteIndex(text, pos)
-			newPos = byteToRuneIndex(text,
-				gl.MoveCursorWordLeft(byteIdx))
+			newPos = gl.moveWordLeft(pos)
 		} else {
 			newPos = moveCursorWordLeft(text, pos)
 		}
 		updateCursorAndSelection(imap, id, is,
-			newPos, isShift, utf8RuneCount(text))
+			newPos, isShift, len(text))
 	} else if !isShift && is.selectBeg != is.selectEnd {
 		beg, _ := u32Sort(is.selectBeg, is.selectEnd)
 		updateCursorAndSelection(imap, id, is,
-			int(beg), false, utf8RuneCount(text))
+			int(beg), false, len(text))
 	} else {
 		var newPos int
 		if glOK {
-			byteIdx := runeToByteIndex(text, pos)
-			newPos = byteToRuneIndex(text,
-				gl.MoveCursorLeft(byteIdx))
+			newPos = gl.moveLeft(pos)
 		} else {
 			// No glyph layout: snap to the previous UAX #29 grapheme
 			// boundary so the caret never rests mid-cluster.
-			newPos = prevGraphemeStop(graphemeStops(text), pos)
+			newPos = prevGraphemeBoundary(text, pos-1)
 		}
 		updateCursorAndSelection(imap, id, is,
-			newPos, isShift, utf8RuneCount(text))
+			newPos, isShift, len(text))
 	}
 }
 
 func inputKeyRight(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, isWordMod bool,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) {
 	if isWordMod {
 		var newPos int
 		if glOK {
-			byteIdx := runeToByteIndex(text, pos)
-			newPos = byteToRuneIndex(text,
-				gl.MoveCursorWordRight(byteIdx))
+			newPos = gl.moveWordRight(pos)
 		} else {
 			newPos = moveCursorWordRight(text, pos)
 		}
 		updateCursorAndSelection(imap, id, is,
-			newPos, isShift, utf8RuneCount(text))
+			newPos, isShift, len(text))
 	} else if !isShift && is.selectBeg != is.selectEnd {
 		_, end := u32Sort(is.selectBeg, is.selectEnd)
 		updateCursorAndSelection(imap, id, is,
-			int(end), false, utf8RuneCount(text))
+			int(end), false, len(text))
 	} else {
 		var newPos int
 		if glOK {
-			byteIdx := runeToByteIndex(text, pos)
-			newPos = byteToRuneIndex(text,
-				gl.MoveCursorRight(byteIdx))
+			newPos = gl.moveRight(pos)
 		} else {
 			// No glyph layout: snap to the next UAX #29 grapheme
 			// boundary so the caret never rests mid-cluster.
-			newPos = nextGraphemeStop(graphemeStops(text), pos)
+			newPos = nextGraphemeBoundary(text, pos)
 		}
 		updateCursorAndSelection(imap, id, is,
-			newPos, isShift, utf8RuneCount(text))
+			newPos, isShift, len(text))
 	}
 }
 
@@ -85,17 +96,15 @@ func inputKeyRight(
 func inputKeyHome(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, savedTrailing, cycle bool,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) {
 	var newPos int
 	if glOK {
-		byteIdx := runeToByteIndex(text, pos)
-		startByte := gl.MoveCursorLineStart(byteIdx)
+		startByte := gl.moveLineStart(pos)
 		if savedTrailing {
-			startByte = trailingLineStart(
-				gl.Lines, byteIdx, startByte)
+			startByte = gl.trailingLineStart(pos, startByte)
 		}
-		lineStart := byteToRuneIndex(text, startByte)
+		lineStart := startByte
 		if pos != lineStart || !cycle {
 			newPos = lineStart
 		} else {
@@ -115,25 +124,23 @@ func inputKeyHome(
 		}
 	}
 	updateCursorAndSelection(imap, id, is,
-		newPos, isShift, utf8RuneCount(text))
+		newPos, isShift, len(text))
 }
 
 // inputKeyEnd is inputKeyHome for the line end; cycle works the same.
 func inputKeyEnd(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, savedTrailing, cycle bool,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) {
 	var newPos int
 	trailing := false
 	if glOK {
-		byteIdx := runeToByteIndex(text, pos)
-		endByte := gl.MoveCursorLineEnd(byteIdx)
+		endByte := gl.moveLineEnd(pos)
 		if savedTrailing {
-			endByte = trailingLineEnd(
-				gl.Lines, byteIdx, endByte)
+			endByte = gl.trailingLineEnd(pos, endByte)
 		}
-		lineEnd := byteToRuneIndex(text, endByte)
+		lineEnd := endByte
 		if pos != lineEnd || !cycle {
 			newPos = lineEnd
 			trailing = true
@@ -156,7 +163,7 @@ func inputKeyEnd(
 	}
 	is.cursorTrailing = trailing
 	updateCursorAndSelection(imap, id, is,
-		newPos, isShift, utf8RuneCount(text))
+		newPos, isShift, len(text))
 }
 
 // inputKeyVertical handles KeyUp (up=true) and KeyDown (up=false)
@@ -166,27 +173,24 @@ func inputKeyVertical(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift bool,
 	savedOffset float32, up bool, mode InputMode,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) bool {
 	if mode != InputMultiline {
 		return false
 	}
 	var newPos int
 	if glOK {
-		byteIdx := runeToByteIndex(text, pos)
 		preferredX := savedOffset
 		if preferredX < 0 {
-			if cp, ok := gl.GetCursorPos(byteIdx); ok {
+			if cp, ok := gl.cursorPos(pos); ok {
 				preferredX = cp.X
 			}
 		}
 		is.cursorOffset = preferredX
 		if up {
-			newPos = byteToRuneIndex(text,
-				gl.MoveCursorUp(byteIdx, preferredX))
+			newPos = gl.moveUp(pos, preferredX)
 		} else {
-			newPos = byteToRuneIndex(text,
-				gl.MoveCursorDown(byteIdx, preferredX))
+			newPos = gl.moveDown(pos, preferredX)
 		}
 	} else {
 		if up {
@@ -197,10 +201,10 @@ func inputKeyVertical(
 		// The column is counted in runes; snap the result to the
 		// nearest cluster boundary so vertical motion cannot park
 		// the caret inside a multi-rune grapheme.
-		newPos = closestGraphemeStop(graphemeStops(text), newPos)
+		newPos = nearestGraphemeBoundary(text, newPos)
 	}
 	updateCursorAndSelection(imap, id, is,
-		newPos, isShift, utf8RuneCount(text))
+		newPos, isShift, len(text))
 	return true
 }
 
@@ -220,26 +224,30 @@ func inputKeyPaste(
 	// before any []rune conversion downstream: clipboard content is
 	// platform-sized, not app-sized. Inserting a prefix instead cut
 	// structured text (JSON, CSV) mid-document with no sign (#1187).
-	if !inputPasteFits(text, clip, inputStateOrDefault(id, w)) {
+	// A mask is budgeted on its result instead: it can overwrite as it
+	// inserts, and it reads the clipboard only until its slots are full.
+	if mask == nil && !inputEditFits(text, clip, inputStateOrDefault(id, w), hcfg.budget()) {
 		hcfg.rejectPaste(clip, layout, w)
 		return text, false
 	}
 	if mask != nil {
 		cis := inputStateOrDefault(id, w)
-		res := inputMaskInsert(text,
-			cis.CursorPos,
-			cis.selectBeg,
-			cis.selectEnd, clip, mask)
+		cursor, selBeg, selEnd := maskRuneArgs(text, cis)
+		res := inputMaskInsert(text, cursor, selBeg, selEnd, clip, mask)
+		if res.Changed && !inputResultFits(text, res.Text, hcfg.budget()) {
+			hcfg.rejectPaste(clip, layout, w)
+			return text, false
+		}
 		if res.Changed {
 			// A paste is never part of a typing run.
-			inputStoreState(id, w, editCommit(cis, text, res.CursorPos, inputOpNone))
+			inputStoreState(id, w, editCommit(cis, text, res.Text, maskByteCaret(res), inputOpNone))
 			return res.Text, true
 		}
 		if res.accepted {
 			// Accepted, but the same digits as before: not a refusal.
 			// A paste is never part of a typing run, even one that
 			// changed nothing, so the next keystroke starts a new step.
-			next := editCaretOnly(cis, res.CursorPos)
+			next := editCaretOnly(cis, maskByteCaret(res))
 			next.lastEditOp = inputOpNone
 			inputStoreState(id, w, next)
 			return text, false
@@ -256,9 +264,9 @@ func inputKeyPaste(
 			return text, false
 		}
 		if adjusted == proposed {
-			return inputInsert(text, clip, id, w), true
+			return inputInsertProposed(text, clip, proposed, id, w), true
 		}
-		adjusted = capCallbackText(adjusted)
+		adjusted = capCallbackText(text, adjusted, hcfg.budget())
 		inputSetTextAndCursorAtEnd(text, adjusted, id, w)
 		return adjusted, true
 	}
@@ -278,7 +286,7 @@ func inputKeyKill(
 ) (string, bool) {
 	end := cursorEndOfParagraph(text, pos)
 	if end == pos {
-		if pos >= utf8RuneCount(text) {
+		if pos >= len(text) {
 			return text, false
 		}
 		end = pos + 1
@@ -319,8 +327,7 @@ func inputKeyKill(
 	}
 	// Clone: a substring would pin the whole old text in memory for as
 	// long as the kill buffer holds it.
-	w.killBuffer = strings.Clone(
-		text[runeToByteIndex(text, pos):runeToByteIndex(text, end)])
+	w.killBuffer = strings.Clone(text[pos:end])
 	return newText, true
 }
 
@@ -359,18 +366,17 @@ func inputHandleDelete(
 ) (string, bool) {
 	if mask != nil {
 		is := inputStateOrDefault(id, w)
+		cursor, selBeg, selEnd := maskRuneArgs(text, is)
 		var res maskEditResult
 		if forward {
-			res = inputMaskDelete(text, is.CursorPos,
-				is.selectBeg, is.selectEnd, mask)
+			res = inputMaskDelete(text, cursor, selBeg, selEnd, mask)
 		} else {
-			res = inputMaskBackspace(text, is.CursorPos,
-				is.selectBeg, is.selectEnd, mask)
+			res = inputMaskBackspace(text, cursor, selBeg, selEnd, mask)
 		}
 		if !res.Changed {
 			return text, false
 		}
-		inputStoreState(id, w, editCommit(is, text, res.CursorPos, inputOpDelete))
+		inputStoreState(id, w, editCommit(is, text, res.Text, maskByteCaret(res), inputOpDelete))
 		return res.Text, true
 	}
 	return inputDeleteGrapheme(text, id, forward, layout, w)

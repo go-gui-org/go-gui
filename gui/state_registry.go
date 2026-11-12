@@ -189,6 +189,7 @@ const (
 	nsScrollY             = "gui.scroll.y"
 	nsSelect              = "gui.select"
 	nsInput               = "gui.input"
+	nsTextBlock           = "gui.text.block"
 	nsInputFocus          = "gui.input.focus"
 	nsSelectHL            = "gui.select.highlight"
 	nsListBoxFocus        = "gui.listbox.focus"
@@ -255,10 +256,15 @@ const (
 
 // Capacity tiers.
 const (
-	capFew        = 20
-	capModerate   = 50
-	capMany       = 100
-	capScroll     = 200
+	capFew      = 20
+	capModerate = 50
+	capMany     = 100
+	capScroll   = 200
+	// capTextBlocks bounds the chunked text layouts kept across frames:
+	// one per identified text shape, so a screen of labels stays all
+	// hits while a longer list recomputes what does not fit, as it did
+	// before the cache.
+	capTextBlocks = 256
 	capImageCache = 500
 	// capIDJoin bounds the ID-join memo. Sized well above the number of
 	// distinct identities a normal screen holds so the common frame is

@@ -1,10 +1,6 @@
 package gui
 
-import (
-	"strings"
-
-	"github.com/go-gui-org/go-glyph"
-)
+import "github.com/go-gui-org/go-glyph"
 
 // Text rendering functions. Extracted from render_layout.go to keep
 // both files under 800 lines.
@@ -40,8 +36,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		if focused {
 			baseX := shape.X + shape.PaddingLeft()
 			baseY := shape.Y + shape.PaddingTop()
-			renderInputCursor(shape, "", baseX, baseY,
-				glyph.Layout{}, false, w)
+			renderInputCursor(shape, "", baseX, baseY, nil, false, w)
 		}
 		return
 	}
@@ -49,11 +44,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// paints past its shape's right edge (see Shape.inkOverflowW), and
 	// once the field is scrolled the box can sit entirely left of the
 	// clip while the visible part of the text does not.
-	bounds := shapeBounds(shape)
-	if f32IsFinite(shape.inkOverflowW) &&
-		shape.inkOverflowW > bounds.Width {
-		bounds.Width = shape.inkOverflowW
-	}
+	bounds := textRenderBounds(shape, tc)
 	if !rectsOverlap(bounds, clip) {
 		return
 	}
@@ -86,30 +77,28 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	imeComposing := !tc.textReadOnly &&
 		focused && w.IMEComposing()
 	compText := ""
-	compRuneLen := 0
 	compInsertPos := 0
 	if imeComposing {
 		compText = w.IMECompText()
-		compRunes := []rune(compText)
-		compRuneLen = len(compRunes)
 		is := StateReadOr(w, nsInput, shape.focusKey(),
-			inputState{})
-		runes := []rune(text)
+			inputState{}).in(tc.Text)
+		base := text
 		if tc.textIsPlaceholder {
 			// The placeholder is a hint, not content: a composition
 			// replaces it outright. Inserting into it would push the
 			// hint out to the right of the preedit.
-			runes = nil
+			base = ""
 		}
-		// Clamped both ways: the slices below panic on a cursor
-		// outside the text, and the preedit is drawn every frame.
-		compInsertPos = min(max(is.CursorPos, 0), len(runes))
-		var sb strings.Builder
-		sb.Grow(len(text) + len(compText))
-		sb.WriteString(string(runes[:compInsertPos]))
-		sb.WriteString(compText)
-		sb.WriteString(string(runes[compInsertPos:]))
-		text = sb.String()
+		// The caret is an offset of the field's text; the preedit is
+		// spliced into the text as drawn. Clamped both ways: the slices
+		// below panic on a cursor outside the text, and the preedit is
+		// drawn every frame.
+		compInsertPos = displayOffset(tc.Text, base,
+			min(max(is.CursorPos, 0), len(tc.Text)))
+		if tc.textIsPlaceholder {
+			compInsertPos = 0
+		}
+		text = base[:compInsertPos] + compText + base[compInsertPos:]
 	}
 
 	baseX := shape.X + shape.PaddingLeft()
@@ -146,16 +135,17 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		return
 	}
 
-	var preLayout glyph.Layout
-	hasPreLayout := false
+	var blk *textBlock
+	hasBlk := false
 	needLayout := tc.textSelBeg != tc.textSelEnd ||
 		(focused && w.inputCursorOn()) ||
 		imeComposing ||
 		spellCheckHasRanges(shape.focusKey(), w)
 	renderWithLayout := plainTextNeedsGlyphLayout(shape, tc, renderStyle)
 	if needLayout || renderWithLayout {
-		preLayout, hasPreLayout = inputGlyphLayoutResolved(text, shape, renderStyle, w, true)
+		blk, hasBlk = inputGlyphLayoutResolved(text, shape, renderStyle, w, true)
 	}
+	text = textRenderDisplay(text, shape, blk, hasBlk)
 
 	// A gradient fill carries no color of its own, so it needs the
 	// same treatment c got above — except under the disabled role,
@@ -178,9 +168,12 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// once all of it is shown.
 	reveal := tc.anim != nil && tc.anim.revealOn && !tc.textIsPassword &&
 		!imeComposing
-	if renderWithLayout && hasPreLayout {
-		emitTextLayoutCmd(shape, text, baseX, baseY, preLayout,
-			renderStyle, textGradient, reveal, w)
+	if renderWithLayout && hasBlk {
+		// Drawn chunk by chunk from the block the sizing pass shaped,
+		// so a text past the shaper's budget still paints (#1190).
+		xf, xfOn := textLayoutTransform(shape, renderStyle)
+		renderTextBlock(shape, baseX, baseY, blk, renderStyle,
+			textGradient, reveal, xf, xfOn, clip, w)
 	} else {
 		// No glyph layout (no measurer, or the shaper refused the
 		// text): the reveal falls back to painting the prefix. Only
@@ -219,67 +212,124 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// Selection highlight (drawn after text so BgColor does not
 	// obscure it; semi-transparent overlay remains readable).
 	if !imeComposing {
-		renderInputSelection(shape, text, baseX, baseY,
-			preLayout, hasPreLayout, w)
+		renderInputSelection(shape, text, baseX, baseY, blk, hasBlk, clip, w)
 	}
 
 	// Cursor (drawn after text).
 	if !imeComposing {
-		renderInputCursor(shape, text, baseX, baseY,
-			preLayout, hasPreLayout, w)
+		renderInputCursor(shape, text, baseX, baseY, blk, hasBlk, w)
 	}
 
 	// IME preedit underline.
-	if imeComposing && hasPreLayout {
-		renderIMEPreeditUnderline(shape, text, baseX, baseY,
-			compInsertPos, compRuneLen,
+	if imeComposing && hasBlk {
+		renderIMEPreeditUnderline(shape, baseX, baseY,
+			compInsertPos, compText,
 			w.IMECompCursor(), w.IMECompSelLen(),
-			preLayout, style, w)
+			blk, style, clip, w)
 	}
 
 	// Spell check underlines.
-	if !imeComposing && hasPreLayout {
-		renderSpellCheckUnderlines(shape, text,
-			baseX, baseY, preLayout, w)
+	if !imeComposing && hasBlk {
+		renderSpellCheckUnderlines(shape, text, baseX, baseY, blk, clip, w)
 	}
 }
 
-// emitTextLayoutCmd emits the glyph-layout draw of a text shape: the
-// path for wrapped, aligned, decorated, transformed or animated text.
-// reveal paints only a typewriter's revealed prefix.
-func emitTextLayoutCmd(
-	shape *Shape, text string, baseX, baseY float32,
-	layout glyph.Layout, style TextStyle,
-	gradient *glyph.GradientConfig, reveal bool, w *Window,
-) {
+// textRenderBounds includes ink that can reach past a text shape's arranged
+// box. A Fill-width single-line input keeps that box at the viewport width
+// and records the full run as MinWidth. Once caret following shifts it left,
+// later chunks still reach into the clip and need the chunk-level cull.
+func textRenderBounds(shape *Shape, tc *ShapeTextConfig) drawClip {
+	bounds := shapeBounds(shape)
+	if tc.TextMode == TextModeSingleLine &&
+		f32IsFinite(shape.MinWidth) && shape.MinWidth > bounds.Width {
+		bounds.Width = shape.MinWidth
+	}
+	if f32IsFinite(shape.inkOverflowW) &&
+		shape.inkOverflowW > bounds.Width {
+		bounds.Width = shape.inkOverflowW
+	}
+	return bounds
+}
+
+// textRenderDisplay returns the exact string the frame shapes and paints.
+// A block already owns it; only a short single-line input with no caret
+// showing, selection, composition or spelling ranges can take the direct
+// RenderText path without resolving one.
+func textRenderDisplay(
+	text string, shape *Shape, blk *textBlock, hasBlk bool,
+) string {
+	if hasBlk {
+		return blk.text
+	}
+	if shape.focusOwner != "" && shape.TC.TextMode == TextModeSingleLine {
+		return singleLineInputDisplayText(text)
+	}
+	return text
+}
+
+// textBlockVisibleBox maps the renderer's current clip into a text block's
+// coordinates. Using the current clip, rather than just the window height,
+// also bounds work inside an Input or a nested scroll view.
+func textBlockVisibleBox(
+	baseX, baseY float32, clip drawClip,
+) (xMin, xMax, yMin, yMax float32) {
+	xMin, yMin = clip.X-baseX, clip.Y-baseY
+	xMax, yMax = xMin+clip.Width, yMin+clip.Height
+	return xMin, xMax, yMin, yMax
+}
+
+// textLayoutTransform returns the transform a text shape's glyph layout
+// draws through, about the text's origin, and whether there is one: the
+// style's rotation or transform, after the animation's motion when it
+// moves. The animation moves the text in its own frame, then the style's
+// rotation applies to the result; replacing the style's transform
+// dropped a caller's rotation on every frame the animation moved.
+func textLayoutTransform(
+	shape *Shape, style TextStyle,
+) (glyph.AffineTransform, bool) {
 	var anim *textAnimRender
 	if shape.TC != nil {
 		anim = shape.TC.anim
 	}
-	if reveal && anim != nil {
-		layout = revealLayoutGlyphs(layout, anim.revealEnd, w)
+	animT, animMoves := anim.transform(shape)
+	if !style.hasTextTransform() && !animMoves {
+		return glyph.AffineTransform{}, false
 	}
+	transform := style.effectiveTextTransform()
+	if animMoves {
+		transform = transform.Multiply(animT)
+	}
+	return transform, true
+}
+
+// emitTextLayoutCmd emits the glyph-layout draw of one chunk of a text
+// block: the path for wrapped, aligned, decorated, transformed or
+// animated text. The chunk sits at (dx, dy) in a block drawn at (baseX,
+// baseY). glyph applies a draw's transform about the draw's origin, so
+// under xf the draw keeps the block's origin and moves the chunk inside
+// the transform: the block turns as one, where a chunk drawn at its own
+// origin would turn about its own corner.
+func emitTextLayoutCmd(
+	text string, baseX, baseY, dx, dy float32,
+	layout glyph.Layout, style TextStyle, gradient *glyph.GradientConfig,
+	xf glyph.AffineTransform, xfOn bool, w *Window,
+) {
 	cmd := RenderCmd{
 		Kind:         RenderLayout,
-		X:            baseX,
-		Y:            baseY,
+		X:            baseX + dx,
+		Y:            baseY + dy,
 		Text:         text,
 		LayoutPtr:    w.scratch.renderGlyphLayouts.alloc(layout),
 		TextStylePtr: w.scratch.renderTextStyles.alloc(style),
 		TextGradient: gradient,
 	}
-	animT, animMoves := anim.transform(shape)
-	if style.hasTextTransform() || animMoves {
-		// The animation moves the text in its own frame, then the
-		// style's rotation or transform applies to the result.
-		// Replacing the style's transform dropped a caller's rotation
-		// on every frame the animation moved.
-		transform := style.effectiveTextTransform()
-		if animMoves {
-			transform = transform.Multiply(animT)
+	if xfOn {
+		if dx != 0 || dy != 0 {
+			xf = xf.Multiply(glyph.AffineTranslation(dx, dy))
 		}
 		cmd.Kind = RenderLayoutTransformed
-		cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(transform)
+		cmd.X, cmd.Y = baseX, baseY
+		cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(xf)
 	}
 	emitRenderer(cmd, w)
 }
@@ -291,7 +341,7 @@ func emitTextLayoutCmd(
 // toggle its visibility in place without rebuilding the render
 // list (issue #404).
 func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
-	preLayout glyph.Layout, hasPreLayout bool, w *Window) {
+	blk *textBlock, hasBlk bool, w *Window) {
 	if !textShapeFocused(shape, w) {
 		return
 	}
@@ -299,17 +349,14 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 		text = ""
 	}
 	is := StateReadOr(w, nsInput, shape.focusKey(), inputState{})
-	runeLen := utf8RuneCount(text)
-	pos := min(is.CursorPos, runeLen)
+	byteIdx := drawnOffset(shape.TC, text, is.CursorPos)
 
 	style := textStyleOrDefault(shape)
-	byteIdx := runeToByteIndex(text, pos)
 	cursorW := inputCaretW
 
-	layout := preLayout
-	ok := hasPreLayout
-	if !ok {
-		layout, ok = inputGlyphLayoutResolved(text, shape, style, w, shape.TC != nil && shape.TC.textIsPassword)
+	if !hasBlk {
+		blk, hasBlk = inputGlyphLayoutResolved(text, shape, style, w,
+			shape.TC != nil && shape.TC.textIsPassword)
 	}
 	color := style.Color
 	// A background window draws no caret (native macOS/Windows
@@ -320,37 +367,24 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 	if !w.inputCursorOn() || !w.hasFocus() {
 		color = ColorTransparent
 	}
-	if ok {
-		cp, cpOK := layout.GetCursorPos(byteIdx)
-		if !cpOK {
-			// End-of-text fallback: use layout dimensions.
-			cp.X = layout.VisualWidth
-			cp.Y = 0
-			cp.Height = fontHeight(style, w)
-			if len(layout.Lines) > 0 {
-				last := layout.Lines[len(layout.Lines)-1]
-				cp.X = last.Rect.X + last.Rect.Width
-				cp.Y = last.Rect.Y
-				cp.Height = last.Rect.Height
-			}
+	if hasBlk {
+		if cp, ok := blk.cursorPosTrailing(byteIdx, is.cursorTrailing); ok {
+			emitCaretCmd(RenderCmd{
+				Kind:  RenderRect,
+				X:     baseX + cp.X,
+				Y:     baseY + cp.Y,
+				W:     cursorW,
+				H:     cp.Height,
+				Color: color,
+				Fill:  true,
+			}, style.Color, w)
+			return
 		}
-		adjustCursorTrailing(
-			&cp, layout.Lines, byteIdx, is.cursorTrailing)
-		emitCaretCmd(RenderCmd{
-			Kind:  RenderRect,
-			X:     baseX + cp.X,
-			Y:     baseY + cp.Y,
-			W:     cursorW,
-			H:     cp.Height,
-			Color: color,
-			Fill:  true,
-		}, style.Color, w)
-		return
 	}
 
 	// Fallback for nil textMeasurer (tests).
 	fh := fontHeight(style, w)
-	cx := textWidthFallback(text, pos, shape.TC, style, w, true)
+	cx := textWidthFallback(text, byteIdx, shape.TC, style, w, true)
 	emitCaretCmd(RenderCmd{
 		Kind:  RenderRect,
 		X:     baseX + cx,
@@ -415,32 +449,50 @@ func commandToggleCaretBlink(w *Window) {
 	w.renderersDirty = true
 }
 
+// drawnOffset maps a caret or selection offset of a shape's text to the
+// text as drawn, clamped to it. They differ only for a password, whose
+// bullets are wider in bytes than most of the runes they hide; every
+// other drawn text is the text the offsets were taken in — the shape's
+// own, or a rich text's flat text.
+func drawnOffset(tc *ShapeTextConfig, drawn string, off int) int {
+	if tc != nil && tc.textIsPassword && !tc.textIsPlaceholder {
+		return displayOffset(tc.Text, drawn, off)
+	}
+	return runeStartAtOrBefore(drawn, max(0, min(off, len(drawn))))
+}
+
 // renderInputSelection emits highlight rectangles for the selected
 // text range. Uses glyph layout for precise boundaries.
 func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
-	preLayout glyph.Layout, hasPreLayout bool, w *Window) {
+	blk *textBlock, hasBlk bool, clip drawClip, w *Window) {
 	tc := shape.TC
 	if tc == nil || tc.textSelBeg == tc.textSelEnd {
 		return
 	}
 	beg, end := u32Sort(tc.textSelBeg, tc.textSelEnd)
-	runeLen := utf8RuneCount(text)
-	if int(beg) > runeLen || int(end) > runeLen {
+	// The offsets are of the field's text. A password draws bullets,
+	// which can be fewer bytes than the runes they hide; drawnOffset
+	// maps the offsets onto them.
+	limit := len(text)
+	if tc.textIsPassword && !tc.textIsPlaceholder {
+		limit = len(tc.Text)
+	}
+	if int(beg) > limit || int(end) > limit {
 		return
 	}
 
 	style := textStyleOrDefault(shape)
 	selColor := RGBA(51, 153, 255, 100)
-	startByte := runeToByteIndex(text, int(beg))
-	endByte := runeToByteIndex(text, int(end))
+	startByte := drawnOffset(tc, text, int(beg))
+	endByte := drawnOffset(tc, text, int(end))
 
-	layout := preLayout
-	ok := hasPreLayout
-	if !ok {
-		layout, ok = inputGlyphLayoutResolved(text, shape, style, w, tc.textIsPassword)
+	if !hasBlk {
+		blk, hasBlk = inputGlyphLayoutResolved(text, shape, style, w, tc.textIsPassword)
 	}
-	if ok {
-		rects := layout.GetSelectionRects(startByte, endByte)
+	if hasBlk {
+		xMin, xMax, yMin, yMax := textBlockVisibleBox(baseX, baseY, clip)
+		rects := blk.selectionRectsVisible(startByte, endByte,
+			xMin, xMax, yMin, yMax)
 		for _, r := range rects {
 			emitRenderer(RenderCmd{
 				Kind:  RenderRect,
@@ -457,8 +509,8 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 
 	// Fallback for nil textMeasurer (tests).
 	fh := fontHeight(style, w)
-	x0 := textWidthFallback(text, int(beg), tc, style, w, true)
-	x1 := textWidthFallback(text, int(end), tc, style, w, true)
+	x0 := textWidthFallback(text, startByte, tc, style, w, true)
+	x1 := textWidthFallback(text, endByte, tc, style, w, true)
 	emitRenderer(RenderCmd{
 		Kind:  RenderRect,
 		X:     baseX + x0,
@@ -475,14 +527,14 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 // selected clause. Reports the cursor rect to the platform for
 // candidate window positioning.
 func renderIMEPreeditUnderline(
-	shape *Shape, compositeText string,
-	baseX, baseY float32,
-	insertPos, compRuneLen, compCursor, compSelLen int,
-	gl glyph.Layout, style TextStyle, w *Window,
+	shape *Shape, baseX, baseY float32,
+	insertPos int, compText string, compCursor, compSelLen int,
+	blk *textBlock, style TextStyle, clip drawClip, w *Window,
 ) {
-	startByte := runeToByteIndex(compositeText, insertPos)
-	endByte := runeToByteIndex(compositeText,
-		insertPos+compRuneLen)
+	// insertPos is a byte offset into the drawn text; the input method
+	// reports its caret and clause in runes of the preedit.
+	startByte := insertPos
+	endByte := insertPos + len(compText)
 
 	c := style.Color
 	if shape.Opacity < 1.0 {
@@ -491,9 +543,11 @@ func renderIMEPreeditUnderline(
 
 	thinH := max(float32(1), style.Size/14)
 	thickH := max(float32(2), style.Size/7)
+	xMin, xMax, yMin, yMax := textBlockVisibleBox(baseX, baseY, clip)
 
 	// Thin underline for the entire preedit region.
-	rects := gl.GetSelectionRects(startByte, endByte)
+	rects := blk.selectionRectsVisible(startByte, endByte,
+		xMin, xMax, yMin, yMax)
 	for _, r := range rects {
 		emitRenderer(RenderCmd{
 			Kind:  RenderRect,
@@ -508,11 +562,10 @@ func renderIMEPreeditUnderline(
 
 	// Thick underline for the selected clause.
 	if compSelLen > 0 {
-		selStart := insertPos + compCursor
-		selEnd := min(selStart+compSelLen, insertPos+compRuneLen)
-		sb := runeToByteIndex(compositeText, selStart)
-		eb := runeToByteIndex(compositeText, selEnd)
-		selRects := gl.GetSelectionRects(sb, eb)
+		sb := insertPos + runeToByteIndex(compText, compCursor)
+		eb := insertPos + runeToByteIndex(compText, compCursor+compSelLen)
+		selRects := blk.selectionRectsVisible(sb, eb,
+			xMin, xMax, yMin, yMax)
 		for _, r := range selRects {
 			emitRenderer(RenderCmd{
 				Kind:  RenderRect,
@@ -530,9 +583,8 @@ func renderIMEPreeditUnderline(
 	// Anchored to the caret rather than the preedit start, so a
 	// mid-preedit cursor on a wrapped line puts the candidate on
 	// the line being edited.
-	caretByte := runeToByteIndex(compositeText,
-		min(insertPos+compCursor, insertPos+compRuneLen))
-	if cp, ok := gl.GetCursorPos(caretByte); ok {
+	caretByte := insertPos + runeToByteIndex(compText, compCursor)
+	if cp, ok := blk.cursorPos(caretByte); ok {
 		imeSetRectDrawn(drawClip{X: baseX + cp.X, Y: baseY + cp.Y,
 			Width: inputCaretW, Height: cp.Height}, w)
 	} else if len(rects) > 0 {
@@ -551,21 +603,21 @@ func imeSetRectDrawn(r drawClip, w *Window) {
 	w.IMESetRect(r.X, r.Y, r.Width, r.Height)
 }
 
-// inputGlyphLayout creates a glyph layout for the input text,
+// inputGlyphLayout returns the chunked layout of the input text,
 // applying password masking and wrap width as needed.
-func inputGlyphLayout(text string, shape *Shape, style TextStyle, w *Window) (glyph.Layout, bool) {
+func inputGlyphLayout(text string, shape *Shape, style TextStyle, w *Window) (*textBlock, bool) {
 	return inputGlyphLayoutResolved(text, shape, style, w, false)
 }
 
-func inputGlyphLayoutResolved(text string, shape *Shape, style TextStyle, w *Window, textAlreadyMasked bool) (glyph.Layout, bool) {
-	if w.textMeasurer == nil {
-		return glyph.Layout{}, false
+func inputGlyphLayoutResolved(text string, shape *Shape, style TextStyle, w *Window, textAlreadyMasked bool) (*textBlock, bool) {
+	if w == nil || w.textMeasurer == nil {
+		return nil, false
 	}
 	displayText := text
 	if shape.TC != nil && shape.TC.textIsPassword && !textAlreadyMasked {
 		displayText = maskPassword(text)
 	}
-	return plainTextLayoutResolved(displayText, shape, style, w)
+	return plainTextBlock(displayText, shape, style, w)
 }
 
 // textStyleOrDefault returns the TextStyle from shape.TC or a
@@ -583,7 +635,7 @@ func textStyleOrDefault(shape *Shape) TextStyle {
 // 1.4em approximation view_text.go sizes new text with — so layout
 // and optical centring agree on the box in headless tests.
 func fontHeight(style TextStyle, w *Window) float32 {
-	if w.textMeasurer != nil {
+	if w != nil && w.textMeasurer != nil {
 		return w.textMeasurer.FontHeight(style)
 	}
 	if style.Size > 0 {
@@ -592,14 +644,13 @@ func fontHeight(style TextStyle, w *Window) float32 {
 	return 16
 }
 
-// textWidthFallback approximates text width for tests (no glyph).
-// textAlreadyMasked skips password masking: renderText's fallback
-// sites pass text masked at the top of the frame, and masking bullets
-// again is a wasted allocation for an identical string.
-func textWidthFallback(text string, runePos int, tc *ShapeTextConfig, style TextStyle, w *Window, textAlreadyMasked bool) float32 {
-	runeLen := utf8RuneCount(text)
-	runePos = min(runePos, runeLen)
-	prefix := text[:runeToByteIndex(text, runePos)]
+// textWidthFallback approximates the width of text up to byte offset
+// pos for tests (no glyph). textAlreadyMasked skips password masking:
+// renderText's fallback sites pass text masked at the top of the frame,
+// and masking bullets again is a wasted allocation for an identical
+// string.
+func textWidthFallback(text string, pos int, tc *ShapeTextConfig, style TextStyle, w *Window, textAlreadyMasked bool) float32 {
+	prefix := text[:max(0, min(pos, len(text)))]
 	if tc != nil && tc.textIsPassword && !textAlreadyMasked {
 		prefix = maskPassword(prefix)
 	}
@@ -630,9 +681,14 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		LayoutPtr: shape.TC.rtf.rTFLayout,
 	}, w)
 
-	if shape.TC.rtf.rTFFlatText != "" {
-		renderInputSelection(shape, shape.TC.rtf.rTFFlatText,
-			baseX, baseY, *shape.TC.rtf.rTFLayout, true, w)
+	if flat := shape.TC.rtf.rTFFlatText; flat != "" &&
+		shape.TC.textSelBeg != shape.TC.textSelEnd {
+		// The selection path queries a block; this one wraps the shaped
+		// rich-text layout and is never asked to shape. Built only for a
+		// selection: a document of many blocks draws every frame.
+		blk := newTextBlockFromLayout(flat, shape.TC.rtf.rTFLayout, 0,
+			textStyleOrDefault(shape), shape.TC.TextMode, w)
+		renderInputSelection(shape, flat, baseX, baseY, blk, true, clip, w)
 	}
 
 	// Emit RenderImage for inline math objects.

@@ -487,29 +487,27 @@ type ShapeTextConfig struct {
 	// text leaves it nil, so a plain textView does not carry ~176 bytes
 	// it never uses. See shapeRichText.
 	rtf *shapeRichText
+	// block is the chunked layout of Text at the shape's width, resolved
+	// by plainTextBlock for the frame; it points into the per-identity
+	// cache (nsTextBlock) when the shape has one. See textBlock.
+	block *textBlock
 
-	textLayoutStyle   TextStyle
 	TextStyle         *TextStyle
-	textLayout        *glyph.Layout
 	Text              string
-	textLayoutText    string
 	textSelBeg        uint32
 	textSelEnd        uint32
 	TextTabSize       uint32
 	wrapCacheWidth    float32
 	wrapCacheHeight   float32
-	textLayoutWidth   float32
 	TextMode          TextMode
 	textIsPassword    bool
 	textIsPlaceholder bool
 	// TextReadOnly suppresses IME preedit rendering for read-only
 	// fields, which stay Focusable (for selection/cursor) but can
 	// never commit a composition. See render_text.go.
-	textReadOnly    bool
-	textKeyboard    KeyboardKind // soft-keyboard kind asked for while focused (#770)
-	wrapCacheValid  bool
-	textLayoutValid bool
-	textLayoutMode  TextMode
+	textReadOnly   bool
+	textKeyboard   KeyboardKind // soft-keyboard kind asked for while focused (#770)
+	wrapCacheValid bool
 	// overflowScrollX opts this shape into ink-overflow accounting:
 	// layoutPlainText records how far an unbreakable run reaches past
 	// the wrap width in Shape.inkOverflowW so an ancestor scroll

@@ -72,10 +72,12 @@ type ShowcaseApp struct {
 	// InputPasteNotice explains the last paste the multiline field
 	// refused; the next text change clears it.
 	InputPasteNotice string
-	HTMLSource       string
-	RadioValue       string
-	SegmentValue     string
-	SegmentView      string
+	// InputLarge is the Large text field's content.
+	InputLarge   string
+	HTMLSource   string
+	RadioValue   string
+	SegmentValue string
+	SegmentView  string
 
 	ComboboxValue      string
 	SvgSpinnerCategory string

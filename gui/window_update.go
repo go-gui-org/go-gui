@@ -412,6 +412,7 @@ func (w *Window) updateLocked() {
 	}
 
 	w.layout = composeLayout(layers, w)
+	sweepTextBlocks(w)
 	// Repair focus before anything reads it: a widget disabled or
 	// removed since the last frame cannot keep holding it. Runs under
 	// w.mu, ahead of the debug audit and renderer build, so neither

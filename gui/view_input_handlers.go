@@ -7,9 +7,22 @@ package gui
 
 func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id string, w *Window) (string, bool) {
 	mask := hcfg.CompiledMask
+	// A mask can overwrite as it inserts, so its edit is budgeted on
+	// the result below, not on the insert.
+	if mask == nil && !inputEditFits(text, ins, inputStateOrDefault(id, w), hcfg.budget()) {
+		// The field is at its budget (MaxLength): a typed character or
+		// an IME commit is refused whole, like a mask with no slot.
+		playSoundCue(hcfg.cues.reject, w)
+		return text, false
+	}
 	if mask != nil {
 		is := inputStateOrDefault(id, w)
-		res := inputMaskInsert(text, is.CursorPos, is.selectBeg, is.selectEnd, ins, mask)
+		cursor, selBeg, selEnd := maskRuneArgs(text, is)
+		res := inputMaskInsert(text, cursor, selBeg, selEnd, ins, mask)
+		if res.Changed && !inputResultFits(text, res.Text, hcfg.budget()) {
+			playSoundCue(hcfg.cues.reject, w)
+			return text, false
+		}
 		if res.Changed {
 			// IME commits are multi-rune; they break the run the way
 			// inputInsert does for a paste. Only the ">1 rune"
@@ -19,13 +32,13 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 			if isMultiRuneInsert(ins) {
 				op = inputOpNone
 			}
-			inputStoreState(id, w, editCommit(is, text, res.CursorPos, op))
+			inputStoreState(id, w, editCommit(is, text, res.Text, maskByteCaret(res), op))
 			return res.Text, true
 		}
 		if res.accepted {
 			// A digit typed over the same digit: the text stays, the
 			// caret moves on, and nothing was refused.
-			inputStoreState(id, w, editCaretOnly(is, res.CursorPos))
+			inputStoreState(id, w, editCaretOnly(is, maskByteCaret(res)))
 			resetBlinkCursorVisible(w)
 			return text, false
 		}
@@ -33,9 +46,9 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 		proposed := inputProposedText(text, ins, id, w)
 		if adjusted, ok := hcfg.preTextChange(text, proposed); ok {
 			if adjusted == proposed {
-				text = inputInsert(text, ins, id, w)
+				text = inputInsertProposed(text, ins, proposed, id, w)
 			} else {
-				adjusted = capCallbackText(adjusted)
+				adjusted = capCallbackText(text, adjusted, hcfg.budget())
 				inputSetTextAndCursorAtEnd(
 					text, adjusted, id, w)
 				text = adjusted
@@ -153,9 +166,8 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 		is.cursorOffset = -1
 		is.cursorTrailing = false
 		text := inputTextFromLayout(ctx.Layout)
-		runeLen := utf8RuneCount(text)
-		pos := is.CursorPos
-		pos = min(pos, runeLen)
+		is = is.in(text)
+		pos := max(0, min(is.CursorPos, len(text)))
 		// The key binding mode decides what the modifiers mean: Cmd or
 		// Ctrl for shortcuts, Option or Ctrl for word moves, and on
 		// macOS the Cocoa Emacs keys (#969).
@@ -174,26 +186,30 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 			tk.key = KeyInvalid
 		}
 
+		moveText, moveIs, masked := inputMoveSpace(
+			hcfg, imap, id, is, text, gl, glOK, tk.key)
+		movePos := max(0, min(moveIs.CursorPos, len(moveText)))
+
 		switch tk.key {
 		case KeyInvalid:
 			// Handled by a key-binding case above.
 		case KeyLeft:
-			inputKeyLeft(imap, id, is, text, pos,
+			inputKeyLeft(imap, id, moveIs, moveText, movePos,
 				isShift, isWordMod, gl, glOK)
 		case KeyRight:
-			inputKeyRight(imap, id, is, text, pos,
+			inputKeyRight(imap, id, moveIs, moveText, movePos,
 				isShift, isWordMod, gl, glOK)
 		case KeyHome:
-			inputKeyHome(imap, id, is, text, pos,
+			inputKeyHome(imap, id, moveIs, moveText, movePos,
 				isShift, savedTrailing, !tk.lineEdge, gl, glOK)
 		case KeyEnd:
-			inputKeyEnd(imap, id, is, text, pos,
+			inputKeyEnd(imap, id, moveIs, moveText, movePos,
 				isShift, savedTrailing, !tk.lineEdge, gl, glOK)
 		case KeyUp:
-			handled = inputKeyVertical(imap, id, is, text, pos,
+			handled = inputKeyVertical(imap, id, moveIs, moveText, movePos,
 				isShift, savedOffset, true, hcfg.Mode, gl, glOK)
 		case KeyDown:
-			handled = inputKeyVertical(imap, id, is, text, pos,
+			handled = inputKeyVertical(imap, id, moveIs, moveText, movePos,
 				isShift, savedOffset, false, hcfg.Mode, gl, glOK)
 		case KeyEnter:
 			text, textChanged = inputKeyEnter(
@@ -232,6 +248,9 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 				ctx.Layout, ctx.Window, hcfg.cues.reject)
 		default:
 			handled = false
+		}
+		if masked {
+			imap.Set(id, imap.GetOr(id, moveIs).mapped(text, gl.text, textOffset))
 		}
 
 		if handled {

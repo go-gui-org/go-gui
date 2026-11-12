@@ -509,7 +509,7 @@ func TestRenderInputCursorNotFocusedSkips(t *testing.T) {
 		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 
 	if len(w.renderers) != 0 {
 		t.Error("cursor should not render when not focused")
@@ -526,7 +526,7 @@ func TestRenderInputCursorBlinkOffEmitsTransparent(t *testing.T) {
 		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("cursor should emit one transparent rect, got %d", len(w.renderers))
@@ -555,7 +555,7 @@ func TestRenderInputCursorWindowUnfocusedEmitsTransparent(t *testing.T) {
 		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("cursor should emit one transparent rect, got %d", len(w.renderers))
@@ -592,7 +592,7 @@ func TestRenderInputCursorFallbackPosition(t *testing.T) {
 	}
 	setInputState(w, "f100", inputState{CursorPos: 3})
 
-	renderInputCursor(shape, "hello", 10, 20, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 10, 20, nil, false, w)
 
 	if len(w.renderers) == 0 {
 		t.Fatal("expected cursor rect via fallback")
@@ -623,7 +623,7 @@ func TestRenderInputSelectionEqualBegEndSkips(t *testing.T) {
 	}
 
 	renderInputSelection(shape, "hello", 0, 0,
-		glyph.Layout{}, false, w)
+		nil, false, makeClip(0, 0, 800, 600), w)
 
 	if len(w.renderers) != 0 {
 		t.Error("no selection highlight for equal beg/end")
@@ -643,7 +643,7 @@ func TestRenderInputSelectionFallbackEmitsRect(t *testing.T) {
 	}
 
 	renderInputSelection(shape, "hello", 10, 20,
-		glyph.Layout{}, false, w)
+		nil, false, makeClip(0, 0, 800, 600), w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("got %d renderers, want 1 selection rect",
@@ -809,12 +809,13 @@ func TestTextWidthFallbackPasswordMask(t *testing.T) {
 	// one bullet per rune, so masking bullets changes nothing), so
 	// only the allocation distinguishes the two paths — assert that,
 	// not the width, or the flag can be deleted with the test green.
+	// The offset is a byte offset of the text as drawn: three bullets.
 	masked := maskPassword("abc")
-	if got = textWidthFallback(masked, 3, tc, style, w, true); !f32AreClose(got, want) {
+	if got = textWidthFallback(masked, len(masked), tc, style, w, true); !f32AreClose(got, want) {
 		t.Errorf("pre-masked textWidthFallback = %f, want %f", got, want)
 	}
 	if n := testing.AllocsPerRun(100, func() {
-		sinkWidth = textWidthFallback(masked, 3, tc, style, w, true)
+		sinkWidth = textWidthFallback(masked, len(masked), tc, style, w, true)
 	}); n != 0 {
 		t.Errorf("pre-masked allocs = %v, want 0 (no second mask)", n)
 	}

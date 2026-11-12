@@ -18,27 +18,6 @@ func fireOnScroll(ly *Layout, w *Window) {
 	}
 }
 
-// adjustCursorTrailing adjusts cursor position to the end of
-// the previous line when CursorTrailing is set and the byte
-// index matches the start of a later line.
-func adjustCursorTrailing(
-	cp *glyph.CursorPosition, lines []glyph.Line,
-	byteIdx int, trailing bool,
-) {
-	if !trailing {
-		return
-	}
-	for i, line := range lines {
-		if i > 0 && byteIdx == line.StartIndex {
-			prev := lines[i-1]
-			cp.X = prev.Rect.X + prev.Rect.Width
-			cp.Y = prev.Rect.Y
-			cp.Height = prev.Rect.Height
-			return
-		}
-	}
-}
-
 // inputCaretW is the painted width of the text caret. Shared with
 // renderInputCursor so the horizontal follow below scrolls the whole
 // caret into view, not just the edge the glyph layout reports.
@@ -65,27 +44,19 @@ func inputScrollCursorIntoView(
 	}
 
 	is := StateReadOr(w, nsInput,
-		layout.Shape.idKey(), inputState{})
-	runeLen := utf8RuneCount(text)
-	pos := is.CursorPos
-	pos = min(pos, runeLen)
-	// The glyph layout above was built from the masked text for a
-	// password field (inputGlyphLayoutResolved masks internally), so the
-	// byte index has to be taken against that same string. A bullet and
-	// the rune it hides are different byte lengths, so indexing the raw
-	// text lands the caret in the wrong place.
-	idxText := text
-	if txtShape.TC.textIsPassword {
-		idxText = maskPassword(text)
-		pos = min(pos, utf8RuneCount(idxText))
-	}
-	byteIdx := runeToByteIndex(idxText, pos)
+		layout.Shape.idKey(), inputState{}).in(text)
+	pos := max(0, min(is.CursorPos, len(text)))
+	// The block above was built from the masked text for a password
+	// field (inputGlyphLayoutResolved masks internally), so the offset
+	// has to be taken against that same string. A bullet and the rune it
+	// hides are different byte lengths, so indexing the raw text lands
+	// the caret in the wrong place.
+	byteIdx := displayOffset(text, gl.text, pos)
 
-	cp, ok := gl.GetCursorPos(byteIdx)
+	cp, ok := gl.cursorPosTrailing(byteIdx, is.cursorTrailing)
 	if !ok {
 		return
 	}
-	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.cursorTrailing)
 
 	inputScrollCursorIntoViewX(id, layout, txtShape, cp, w)
 
@@ -191,17 +162,13 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	}
 
 	is := StateReadOr(
-		w, nsInput, shape.idKey(), inputState{})
-	runeLen := utf8RuneCount(text)
-	pos := is.CursorPos
-	pos = min(pos, runeLen)
-	byteIdx := runeToByteIndex(text, pos)
+		w, nsInput, shape.idKey(), inputState{}).in(text)
+	byteIdx := max(0, min(is.CursorPos, len(text)))
 
-	cp, ok := gl.GetCursorPos(byteIdx)
+	cp, ok := gl.cursorPosTrailing(byteIdx, is.cursorTrailing)
 	if !ok {
 		return
 	}
-	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.cursorTrailing)
 
 	// Default 0: unscrolled position when no offset recorded yet.
 	sy := w.scrollY()

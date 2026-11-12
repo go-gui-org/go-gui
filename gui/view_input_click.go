@@ -82,6 +82,7 @@ func inputOnClick(
 			is.selectBeg = 0
 			is.selectEnd = 0
 			is.cursorOffset = -1
+			is.lastEditOp = inputOpNone
 			imap.Set(focusID, is)
 			resetBlinkCursorVisible(ctx.Window)
 			ctx.Consume()
@@ -100,12 +101,11 @@ func inputOnClick(
 		// (padding, below the last line) resolves to the closest offset.
 		relX := ctx.Event.MouseX - (ly.Shape.X - field.Shape.X)
 		relY := ctx.Event.MouseY - (ly.Shape.Y - field.Shape.Y)
-		byteIdx := gl.GetClosestOffset(relX, relY)
-		displayText := text
-		if ly.Shape.TC.textIsPassword {
-			displayText = maskPassword(text)
-		}
-		runePos := byteToRuneIndex(displayText, byteIdx)
+		byteIdx := gl.closestOffset(relX, relY)
+		displayText := gl.text
+		// The block speaks in offsets of the text as drawn; the state
+		// holds offsets of the field's text.
+		pos := textOffset(text, displayText, byteIdx)
 		imap := StateMap[string, inputState](
 			ctx.Window, nsInput, capMany,
 		)
@@ -120,16 +120,23 @@ func inputOnClick(
 		is.LastClickTime = now
 
 		if doubleClick {
-			beg, end := wordBoundsAt(displayText, runePos)
+			// Words of the text as drawn: a password's bullets are one
+			// word, which gives nothing away.
+			beg, end := wordBoundsAt(displayText, byteIdx)
+			beg = textOffset(text, displayText, beg)
+			end = textOffset(text, displayText, end)
 			is.CursorPos = end
 			is.selectBeg = uint32(beg)
 			is.selectEnd = uint32(end)
 		} else {
-			is.CursorPos = runePos
-			is.selectBeg = uint32(runePos)
-			is.selectEnd = uint32(runePos)
+			is.CursorPos = pos
+			is.selectBeg = uint32(pos)
+			is.selectEnd = uint32(pos)
 		}
 		is.cursorOffset = -1
+		// A click is caret motion: it ends the undo run, so the next
+		// edit is a step of its own (#328).
+		is.lastEditOp = inputOpNone
 		imap.Set(focusID, is)
 		resetBlinkCursorVisible(ctx.Window)
 		if scrollID != "" {
@@ -149,6 +156,7 @@ func inputOnClick(
 			anchorPos:   is.selectBeg,
 			anchorEnd:   is.selectEnd,
 			gl:          gl,
+			text:        text,
 			displayText: displayText,
 			wordSelect:  doubleClick,
 			txtOffX:     ly.Shape.X,

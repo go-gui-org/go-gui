@@ -79,13 +79,16 @@ func demoInput(w *gui.Window) gui.View {
 				Mode:        gui.InputMultiline,
 				Height:      90,
 				SpellCheck:  app.InputSpellCheck,
+				// A note field: 10,000 characters are plenty. The
+				// default budget is 1,048,576.
+				MaxLength: 10_000,
 				OnTextChanged: func(s string, ctx gui.EventCtx) {
 					st := appState(ctx.Window)
 					st.InputMultiline = s
 					st.InputPasteNotice = ""
 				},
-				// A paste that would take the field past its rune
-				// budget is refused whole; tell the user why.
+				// A paste that would take the field past MaxLength is
+				// refused whole; tell the user why.
 				OnPasteRejected: func(text string, ctx gui.EventCtx) {
 					appState(ctx.Window).InputPasteNotice = fmt.Sprintf(
 						"Paste refused: %d characters do not fit in this field.",
@@ -98,8 +101,71 @@ func demoInput(w *gui.Window) gui.View {
 				Mode:      gui.TextModeWrap,
 				Invisible: app.InputPasteNotice == "",
 			}),
+			labeledRow(t, "Large text", gui.Column(gui.ContainerCfg{
+				Sizing:     gui.FillFit,
+				Spacing:    gui.SpacingSmall,
+				Padding:    gui.NoPadding,
+				SizeBorder: gui.NoBorder,
+				Content: []gui.View{
+					// No MaxLength: the default budget holds a large
+					// paste, and only the lines in view are shaped.
+					gui.Input(gui.InputCfg{
+						ID:          "input-large",
+						Sizing:      gui.FillFixed,
+						Height:      160,
+						Text:        app.InputLarge,
+						Placeholder: "Paste a large text, or fill it below...",
+						Mode:        gui.InputMultiline,
+						Scrollable:  true,
+						OnTextChanged: func(s string, ctx gui.EventCtx) {
+							appState(ctx.Window).InputLarge = s
+						},
+					}),
+					gui.Row(gui.ContainerCfg{
+						Sizing:     gui.FillFit,
+						Spacing:    gui.SpacingSmall,
+						Padding:    gui.NoPadding,
+						SizeBorder: gui.NoBorder,
+						VAlign:     gui.VAlignMiddle,
+						Content: []gui.View{
+							gui.Button(gui.ButtonCfg{
+								ID:      "input-large-fill",
+								Content: []gui.View{gui.Text(gui.TextCfg{Text: "Fill with 100 KB", TextStyle: t.TextStyleBody})},
+								OnClick: func(ctx gui.EventCtx) {
+									appState(ctx.Window).InputLarge = largeSampleText()
+									ctx.Consume()
+								},
+							}),
+							gui.Text(gui.TextCfg{
+								Text: fmt.Sprintf("%d characters",
+									utf8.RuneCountInString(app.InputLarge)),
+								TextStyle: t.TextStyleSecondary,
+							}),
+						},
+					}),
+				},
+			})),
 		},
 	})
+}
+
+// largeSampleText returns about 100 KB of numbered lines for the Large
+// text field: enough to pass the 10,240-byte layout budget of one glyph
+// shape many times over. Only the last line mixes scripts, and it ends
+// in Latin. When every line ended in Arabic, deleting a line break drew
+// the next line's number to the left of the Arabic: digits that follow
+// Arabic text join its run (Unicode bidi rule W2). That is correct,
+// but it looked like a bug.
+func largeSampleText() string {
+	var b strings.Builder
+	i := 1
+	for ; b.Len() < 100_000; i++ {
+		fmt.Fprintf(&b, "%04d  The quick brown fox jumps over the lazy dog.\n", i)
+	}
+	fmt.Fprintf(&b, "%04d  Mixed scripts: \u00c9t\u00e9, "+
+		"\u65e5\u672c\u8a9e\u306e\u30c6\u30ad\u30b9\u30c8, "+
+		"\u0645\u0631\u062d\u0628\u0627, \U0001F389 and back to Latin.\n", i)
+	return b.String()
 }
 
 func demoNumericInput(w *gui.Window) gui.View {

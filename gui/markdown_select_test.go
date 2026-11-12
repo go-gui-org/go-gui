@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -106,7 +107,8 @@ func TestMarkdownBlockAmendSel_SelectionSpansEntireBlock(t *testing.T) {
 		rtf: &shapeRichText{
 			markdownID:         mdID,
 			markdownBlockStart: 5,
-			markdownRuneLen:    8, // block covers [5, 13)
+			markdownRuneLen:    8,
+			rTFFlatText:        strings.Repeat("x", 8), // block covers [5, 13)
 		},
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
@@ -127,6 +129,7 @@ func TestMarkdownBlockAmendSel_PartialOverlapStart(t *testing.T) {
 			markdownID:         mdID,
 			markdownBlockStart: 10, // block covers [10, 20)
 			markdownRuneLen:    10,
+			rTFFlatText:        strings.Repeat("x", 10),
 		},
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
@@ -147,12 +150,16 @@ func TestMarkdownBlockAmendSel_PartialOverlapEnd(t *testing.T) {
 			markdownID:         mdID,
 			markdownBlockStart: 10, // block covers [10, 20)
 			markdownRuneLen:    10,
+			// Ten runes, eleven bytes: the "é" makes the block's rune
+			// positions and the shape's byte offsets differ after it.
+			rTFFlatText: "abédefghij",
 		},
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
-	// localBeg = max(13,10)-10 = 3, localEnd = min(25,20)-10 = 10
-	if tc.textSelBeg != 3 || tc.textSelEnd != 10 {
-		t.Errorf("got %d/%d, want 3/10", tc.textSelBeg, tc.textSelEnd)
+	// localBeg = max(13,10)-10 = rune 3, byte 4;
+	// localEnd = min(25,20)-10 = rune 10, byte 11.
+	if tc.textSelBeg != 4 || tc.textSelEnd != 11 {
+		t.Errorf("got %d/%d, want 4/11", tc.textSelBeg, tc.textSelEnd)
 	}
 }
 
@@ -167,6 +174,7 @@ func TestMarkdownBlockAmendSel_InvertedSelection_SortsCorrectly(t *testing.T) {
 			markdownID:         mdID,
 			markdownBlockStart: 0,
 			markdownRuneLen:    20,
+			rTFFlatText:        strings.Repeat("x", 20),
 		},
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)

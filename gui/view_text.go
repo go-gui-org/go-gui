@@ -1,5 +1,7 @@
 package gui
 
+import "github.com/go-gui-org/go-glyph"
+
 // TextCfg configures a text view. Use for labels, headings, or
 // multiline text blocks. Set Focusable to enable text selection
 // and clipboard copy.
@@ -106,27 +108,6 @@ var textEventHandlers = &eventHandlers{
 
 func (tv *textView) GenerateLayout(w *Window) Layout {
 	c := &tv.cfg
-	// App-supplied input text bypasses the insert/paste/callback
-	// caps, so bound it here. Scoped to Input's inner text
-	// (focusOwner): standalone Text has no undo history or
-	// per-keystroke reshape, so long-form display stays unbounded.
-	// Warn-once per identity. The byte-length guard skips the rune
-	// scan for small texts.
-	if c.focusOwner != "" && len(c.Text) > inputMaxInsertRunes &&
-		utf8RuneCount(c.Text) > inputMaxInsertRunes {
-		// Gated at the call site, not only inside debugWarn: the
-		// app hands the same oversize string back every frame, so
-		// the preview and the args slice would allocate per frame.
-		// The gate is this check's own category, not DebugEnabled():
-		// any other category being on would otherwise pay the same
-		// per-frame allocation for a finding debugWarn discards.
-		if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback != 0 {
-			w.debugWarn(debugCheckTextTruncated, c.focusOwner,
-				"text exceeds %d runes; truncating to budget (preview %q)",
-				inputMaxInsertRunes, truncatePreview(c.Text, 30))
-		}
-		c.Text = truncateToMaxRunes(c.Text)
-	}
 	ts := &c.TextStyle
 
 	// From the arena, not the view: the same View placed twice in one
@@ -148,8 +129,13 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	// it is part of the name, not an ID scope. Nil when there is no
 	// name or description, which means no a11y node.
 	var a11y *accessInfo
-	if label := a11yProseLabel(c.A11YLabel, c.Text); label != "" ||
-		c.A11YDescription != "" {
+	label := a11yProseLabel(c.A11YLabel, c.Text)
+	if c.focusOwner != "" {
+		// An input's text names its text shape; past a bound the
+		// platform gets a prefix, not megabytes per tree sync.
+		label = truncateRunes(label, inputA11YLabelRunes)
+	}
+	if label != "" || c.A11YDescription != "" {
 		a11y = w.allocAccessInfo(accessInfo{Label: label, Description: c.A11YDescription})
 	}
 
@@ -188,7 +174,29 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	if c.IsPassword {
 		measured = maskPassword(measured)
 	}
-	layout.Shape.Width = w.TextWidth(measured, *ts)
+	// The shaper refuses to measure past its budget. An Input past one
+	// chunk estimates too: its text changes on every key, and a measure
+	// would shape all of it to learn a width the sizing pass replaces
+	// from the chunks
+	// (layoutPlainText). It keys on the stored text, the test that sends
+	// a text to that pass, not on a password's longer bullets. A plain
+	// Text keeps its exact width, which a fit-sized wrap depends on.
+	estimate := len(measured) > glyph.MaxTextLength ||
+		(c.focusOwner != "" && len(c.Text) > textChunkBytes)
+	switch {
+	case estimate:
+		// The estimate depends only on length, so an Input skips its
+		// CR/LF-to-space display string, which plainTextBlock creates
+		// and caches once.
+		if c.Mode != TextModeSingleLine {
+			measured = longestLine(measured)
+		}
+		layout.Shape.Width = textWidthEstimate(measured, *ts, w)
+	case c.focusOwner != "" && c.Mode == TextModeSingleLine:
+		layout.Shape.Width = w.TextWidth(singleLineInputDisplayText(measured), *ts)
+	default:
+		layout.Shape.Width = w.TextWidth(measured, *ts)
+	}
 	if w.textMeasurer != nil {
 		layout.Shape.Height = w.textMeasurer.FontHeight(*ts)
 	} else {
