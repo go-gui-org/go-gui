@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"slices"
 	"strings"
 
@@ -148,7 +149,7 @@ func plainTextBlock(
 	if b == nil {
 		key = shape.focusKey()
 		if key == "" && len(text) > textChunkBytes {
-			key = textBlockAnonKey(text, widthArg, tc.TextMode)
+			key = textBlockAnonKey(text, widthArg, tc.TextMode, style)
 		}
 		if key != "" {
 			blocks = StateMap[string, *textBlock](w, nsTextBlock, capTextBlocks)
@@ -346,6 +347,67 @@ func fontFeaturesEqual(a, b *glyph.FontFeatures) bool {
 	}
 	return slices.Equal(a.OpenTypeFeatures, b.OpenTypeFeatures) &&
 		slices.Equal(a.VariationAxes, b.VariationAxes)
+}
+
+// textStyleShapingHash hashes what textLayoutStyleEqual compares, so two
+// styles it calls equal hash alike, for the key of a block with no
+// identity (textBlockAnonKey). TestTextStyleShapingHashCoversEquality
+// fails when a field that shapes is left out.
+func textStyleShapingHash(s TextStyle) uint64 {
+	h := shapingHash(14695981039346656037) // FNV-1a offset basis
+	h.str(s.Family)
+	h.u64(uint64(s.Typeface))
+	for _, f := range [...]float32{s.Size, s.LineSpacing, s.LetterSpacing,
+		s.StrokeWidth, s.EmojiBoxWidth, s.CellWidth, s.CellHeight} {
+		h.u64(uint64(math.Float32bits(f)))
+	}
+	h.u64(uint64(s.Align))
+	var bits uint64
+	for i, b := range [...]bool{s.Underline, s.NoBuiltinBoxGlyphs,
+		s.Strikethrough, s.disabledRole, s.glyphRole, s.defaultedColor,
+		s.BgColor.A > 0, s.StrokeColor.A > 0, s.Gradient != nil,
+		s.Features != nil} {
+		if b {
+			bits |= 1 << i
+		}
+	}
+	h.u64(bits)
+	if f := s.Features; f != nil {
+		h.u64(uint64(len(f.OpenTypeFeatures)))
+		for _, ft := range f.OpenTypeFeatures {
+			h.str(ft.Tag)
+			h.u64(uint64(ft.Value))
+		}
+		h.u64(uint64(len(f.VariationAxes)))
+		for _, ax := range f.VariationAxes {
+			h.str(ax.Tag)
+			h.u64(uint64(math.Float32bits(ax.Value)))
+		}
+	}
+	return uint64(h)
+}
+
+// shapingHash is an FNV-1a hash, written out so that hashing a style
+// allocates nothing.
+type shapingHash uint64
+
+func (h *shapingHash) byte(b byte) {
+	*h = (*h ^ shapingHash(b)) * 1099511628211 // FNV-1a prime
+}
+
+func (h *shapingHash) u64(v uint64) {
+	for range 8 {
+		h.byte(byte(v))
+		v >>= 8
+	}
+}
+
+// str hashes s and its length, so "ab"+"c" and "a"+"bc" differ.
+func (h *shapingHash) str(s string) {
+	for i := 0; i < len(s); i++ {
+		h.byte(s[i])
+	}
+	h.u64(uint64(len(s)))
 }
 
 // textPaintEqual reports whether two styles paint in the same colours.

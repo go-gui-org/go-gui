@@ -718,12 +718,16 @@ func (b *textBlock) single() (glyph.Layout, bool) {
 // the text's backing memory, so a large label an app keeps across
 // frames keeps its layout too. The hit is content-checked by update, so
 // a different text behind the same pointer only costs a re-chunk. The
-// width and mode are part of the key: two shapes showing one string at
-// two widths would otherwise share a block and reset it to each other's
-// width every frame, and the first would draw at the second's.
-func textBlockAnonKey(text string, widthArg float32, mode TextMode) string {
+// width, the mode and the shaping style are part of the key: two shapes
+// showing one string at two widths or in two sizes would otherwise share
+// a block and reset it to each other's every frame, and the first would
+// draw what the second shaped.
+func textBlockAnonKey(
+	text string, widthArg float32, mode TextMode, style TextStyle,
+) string {
 	return "~text:" + strconv.Itoa(len(text)) + ":" +
 		strconv.FormatUint(uint64(uintptr(unsafe.Pointer(unsafe.StringData(text)))), 16) +
 		":" + strconv.Itoa(int(mode)) +
-		":" + strconv.FormatUint(uint64(math.Float32bits(widthArg)), 16)
+		":" + strconv.FormatUint(uint64(math.Float32bits(widthArg)), 16) +
+		":" + strconv.FormatUint(textStyleShapingHash(style), 16)
 }

@@ -88,3 +88,26 @@ func TestShrinkWrappedTextEditShapesAtColumnWidth(t *testing.T) {
 		t.Fatalf("box width after the edit = %v, want 300", got)
 	}
 }
+
+// One large string shown by two anonymous Texts at one width in two
+// sizes: each keeps its own block. Keyed without the style, they shared
+// one, reset it to each other's style every frame, and the first drew
+// the glyphs the second shaped.
+func TestAnonymousTextBlockPerStyle(t *testing.T) {
+	text := strings.Repeat("lorem ipsum dolor sit amet ", 160)
+	box := func(size float32) View {
+		return Column(ContainerCfg{Sizing: FixedFit, Width: 300,
+			SizeBorder: NoBorder, Content: []View{
+				Text(TextCfg{Text: text, Mode: TextModeWrap,
+					TextStyle: TextStyle{Size: size, Color: RGB(255, 255, 255)}}),
+			}})
+	}
+	n := shapesPerRebuild(t, func(*Window) View {
+		return Row(ContainerCfg{Sizing: FillFill, Content: []View{
+			box(14), box(20),
+		}})
+	})
+	if n != 0 {
+		t.Fatalf("five unchanged frames shaped %d layouts, want 0", n)
+	}
+}
