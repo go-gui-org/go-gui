@@ -3,6 +3,7 @@ package gui
 import (
 	"strings"
 	"testing"
+	"unsafe"
 )
 
 // The input and combobox event handlers close over window state and
@@ -184,5 +185,23 @@ func TestInputBudgetDefault(t *testing.T) {
 	}
 	if got := (&inputHandlerCfg{}).budget(); got != inputMaxRunesDefault {
 		t.Errorf("zero handler budget = %d, want the default", got)
+	}
+}
+
+// A cut callback output is a copy: the field's text, its undo step and
+// undoText keep the budget's bytes, not the whole of a runaway return.
+func TestCapCallbackTextCopiesTheCut(t *testing.T) {
+	const budget = 100
+	out := strings.Repeat("y", 1<<20)
+	got := capCallbackText("", out, budget)
+	if len(got) != budget {
+		t.Fatalf("cut output has %d bytes, want %d", len(got), budget)
+	}
+	if unsafe.StringData(got) == unsafe.StringData(out) {
+		t.Error("cut output shares the callback's 1 MiB backing array")
+	}
+	kept := strings.Repeat("x", budget)
+	if got := capCallbackText("", kept, budget); unsafe.StringData(got) != unsafe.StringData(kept) {
+		t.Error("output within the budget was copied")
 	}
 }

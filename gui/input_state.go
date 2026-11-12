@@ -413,12 +413,13 @@ func inputResultFits(text, result string, maxRunes int) bool {
 // per-window state. Output that grows past neither the budget nor in is
 // kept whole, as inputResultFits keeps an edit: a field holding app-set
 // text past its budget does not lose it to a callback that handed it
-// back unchanged.
+// back unchanged. A cut is copied: as a slice it would keep all of out
+// alive in the field's text and undo history.
 func capCallbackText(in, out string, maxRunes int) string {
 	if inputResultFits(in, out, maxRunes) {
 		return out
 	}
-	return truncateRunes(out, max(maxRunes, utf8RuneCount(in)))
+	return strings.Clone(truncateRunes(out, max(maxRunes, utf8RuneCount(in))))
 }
 
 // inputSetTextAndCursorAtEnd pushes undo and places cursor at end
