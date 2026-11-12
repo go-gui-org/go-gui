@@ -470,3 +470,29 @@ func TestGradientTextAroundGlyphBudget(t *testing.T) {
 		}
 	}
 }
+
+// A fit-sized single-line text past the shaper's budget starts from an
+// estimate, the average advance times its length, and the sizing pass
+// replaces it with the chunks' width. A run of narrow letters is
+// estimated far too wide; keeping the larger of the two left the box
+// that much wider than its text.
+func TestSingleLineTextFitsItsMeasuredWidth(t *testing.T) {
+	text := strings.Repeat("i", 11_000)
+	win := newWin(t, 800, 100, func(*gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{Sizing: gui.FillFill, Content: []gui.View{
+			gui.Text(gui.TextCfg{ID: "t", Text: text,
+				TextStyle: gui.TextStyle{Size: 16, Color: gui.RGB(255, 255, 255)}}),
+		}})
+	})
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatal(err)
+	}
+	sh, ok := win.TestRender(nil).FindByID("t")
+	if !ok {
+		t.Fatal("text not found")
+	}
+	// MinWidth holds the chunks' measured width (layoutPlainText).
+	if w, measured := sh.Shape.Width, sh.Shape.MinWidth; w > measured+1 {
+		t.Fatalf("box %v wide, its text %v", w, measured)
+	}
+}

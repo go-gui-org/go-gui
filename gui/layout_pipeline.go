@@ -687,10 +687,16 @@ func layoutPlainText(
 		blk.width > 0 {
 		// GenerateLayout may have only estimated this width (past the
 		// shaper's limit, or an Input past one chunk); the chunks' width
-		// replaces it, exact once they are measured.
+		// replaces it, exact once they are measured. The estimate can be
+		// the wider of the two, for narrow letters, so a fit box takes
+		// the chunks' width outright; a fixed box only grows to it.
 		shape.MinWidth = blk.width
-		if shape.Sizing.Width != SizingFill {
+		switch shape.Sizing.Width {
+		case SizingFill:
+		case SizingFixed:
 			shape.Width = f32Max(shape.Width, blk.width)
+		default:
+			shape.Width = blk.width
 		}
 	}
 	shrank := shrinkWrapToInk(shape, tc, style, blk, parentHAlign)
