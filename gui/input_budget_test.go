@@ -135,3 +135,43 @@ func TestSpellCheckSkipsLargeText(t *testing.T) {
 		t.Fatal("the pending check of the smaller text must be cancelled")
 	}
 }
+
+// PreTextChange runs app code between the budget check and the commit.
+// When that code moves the caret or selection, here by moving focus,
+// which clears the field's selection, the edit still commits the text
+// the validator approved, which the budget check passed. Inserting at
+// the moved caret instead committed "abcx", past MaxLength and never
+// shown to the validator.
+func TestPreTextChangeStateChangeCommitsApprovedText(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 300, Height: 100})
+	t.Cleanup(w.WindowCleanup)
+	text := "abc"
+	moved := false
+	var approved string
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			Input(InputCfg{ID: "f", Text: text, MaxLength: 3, Sizing: FillFit,
+				PreTextChange: func(_, proposed string) (string, bool) {
+					if !moved {
+						moved = true
+						w.SetFocus("g")
+					}
+					approved = proposed
+					return proposed, true
+				},
+				OnTextChanged: func(s string, _ EventCtx) { text = s }}),
+			Input(InputCfg{ID: "g", Sizing: FillFit}),
+		}})
+	})
+	w.SetFocus("f")
+	if err := w.TestKey("f", KeyA, ModCtrl); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.TestType("f", "x"); err != nil {
+		t.Fatal(err)
+	}
+	if approved != "x" || text != "x" {
+		t.Fatalf("validator approved %q, field committed %q; want both %q",
+			approved, text, "x")
+	}
+}

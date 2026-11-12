@@ -137,8 +137,11 @@ func editInsert(text, ins string, is inputState) (string, inputState, bool) {
 // editInsertProposed commits proposed without rebuilding it when it is the
 // exact insertion ins makes in the current state. PreTextChange runs app code
 // between proposing and accepting; if that code indirectly changed the caret
-// or selection, the proposal no longer describes the current edit. In that
-// rare case, fall back to editInsert and preserve the previous behavior.
+// or selection (moving focus clears it), the proposal no longer describes
+// the current edit. In that rare case the text the validator approved, which
+// the budget check passed, still commits, as a whole with the caret at its
+// end, as an adjusted text does. Inserting at the moved caret instead would
+// commit a text the validator never saw, past the budget.
 func editInsertProposed(
 	text, ins, proposed string, is inputState,
 ) (string, inputState, bool) {
@@ -155,7 +158,7 @@ func editInsertProposed(
 		proposed[:beg] != text[:beg] ||
 		proposed[beg:insertEnd] != ins ||
 		proposed[insertEnd:] != text[end:] {
-		return editInsert(text, ins, is)
+		return proposed, editSetTextCursorAtEnd(text, proposed, is), true
 	}
 	return proposed,
 		editCommitInsert(is, text, proposed, ins, beg, end), true

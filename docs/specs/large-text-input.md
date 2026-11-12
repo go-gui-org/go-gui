@@ -218,7 +218,11 @@ was at the old one. `PreTextChange` necessarily receives a materialized proposed
 value. When it accepts that value unchanged, the input commits the same
 immutable string instead of materializing an identical result a second time. The
 allocation regression `TestInputLargeAcceptedPreTextChangeAllocBudget` keeps
-that path at the ordinary edit's allocation cost.
+that path at the ordinary edit's allocation cost. If the validator moved the
+caret or selection meanwhile (moving focus clears the selection), the approved
+text still commits, whole and with the caret at its end, as an adjusted text
+does. Inserting at the moved caret would commit a text the validator never saw,
+and could pass the budget.
 
 Two costs scale with the whole text and are bounded instead: the inner text
 shape's accessible name carries the first 65,536 runes, and a field past 64 KiB

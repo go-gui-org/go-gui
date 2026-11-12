@@ -70,13 +70,13 @@ func TestEditInsertProposed(t *testing.T) {
 		}
 	})
 
-	t.Run("stale proposal falls back to current caret", func(t *testing.T) {
+	t.Run("stale proposal commits the approved text whole", func(t *testing.T) {
 		text, ins := "abc", "X"
 		stale := editProposedText(text, ins, inputState{CursorPos: 1})
 		got, next, ok := editInsertProposed(
 			text, ins, stale, inputState{CursorPos: 2})
-		if !ok || got != "abXc" || next.CursorPos != 3 {
-			t.Fatalf("got (%q, pos %d, %v), want (abXc, pos 3, true)",
+		if !ok || got != "aXbc" || next.CursorPos != 4 {
+			t.Fatalf("got (%q, pos %d, %v), want (aXbc, pos 4, true)",
 				got, next.CursorPos, ok)
 		}
 	})
