@@ -45,8 +45,12 @@ func (f *contentTransitionFrame) oldContentW() float32 {
 func (f *contentTransitionFrame) fade(clip drawClip) {
 	run := f.run
 	tc := f.shape.TC
+	// The test reads the new text; an old one past one chunk takes the
+	// layouts too, or a single-line plain text faded to a short value
+	// would hand the backend all of the old one as one string.
 	if f.w.textMeasurer != nil &&
-		plainTextNeedsGlyphLayout(f.shape, tc, f.style) && f.fadeLayouts(clip) {
+		(plainTextNeedsGlyphLayout(f.shape, tc, f.style) ||
+			len(run.from) > textChunkBytes) && f.fadeLayouts(clip) {
 		return
 	}
 	// The plain path draws at the box's left edge, and wraps at the

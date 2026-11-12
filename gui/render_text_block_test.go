@@ -160,24 +160,32 @@ func TestRenderInputSelectionCullsHorizontalChunks(t *testing.T) {
 // #1190 for the length of the fade.
 func TestContentTransitionFadeLargeText(t *testing.T) {
 	big := func(word string) string { return strings.Repeat(word+" text line\n", 1000) }
-	cases := []struct{ name, from, to string }{
-		{"both past one chunk", big("old"), big("new")},
-		{"a long text cleared", big("old"), "new text"},
+	// A single-line text past the shaper's budget, faded to a short one:
+	// the new text alone needs no layout, so the old one has to be what
+	// sends the fade down the chunked path.
+	line := strings.Repeat("old text line ", 1000)
+	cases := []struct {
+		name, from, to string
+		mode           TextMode
+	}{
+		{"both past one chunk", big("old"), big("new"), TextModeWrap},
+		{"a long text cleared", big("old"), "new text", TextModeWrap},
+		{"a long single line cleared", line, "new text", TextModeSingleLine},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fadeLargeText(t, tc.from, tc.to)
+			fadeLargeText(t, tc.from, tc.to, tc.mode)
 		})
 	}
 }
 
-func fadeLargeText(t *testing.T, from, to string) {
+func fadeLargeText(t *testing.T, from, to string, mode TextMode) {
 	w := NewTestWindow(t, WindowCfg{State: new(int), Width: 300, Height: 200})
 	w.textMeasurer = blockStubMeasurer{}
 	text := from
 	w.viewGenerator = func(*Window) View {
 		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
-			Text(TextCfg{ID: "n", Text: text, Mode: TextModeWrap,
+			Text(TextCfg{ID: "n", Text: text, Mode: mode,
 				Transition: ContentTransition{Kind: ContentTransitionFade}}),
 		}})
 	}
