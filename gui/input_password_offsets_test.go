@@ -52,4 +52,8 @@ func TestRenderInputSelectionPasswordStaleOffsets(t *testing.T) {
 	if len(w.renderers) != 1 {
 		t.Fatalf("got %d renderers, want 1 selection rect", len(w.renderers))
 	}
+	if want := float32(14) * 0.6; !f32AreClose(w.renderers[0].W, want) {
+		t.Errorf("selection width = %v, want %v (the first bullet)",
+			w.renderers[0].W, want)
+	}
 }
