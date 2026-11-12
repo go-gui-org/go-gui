@@ -313,6 +313,14 @@ is not handed to the platform spell checker.
   shimmer, and typing across that limit switches the gradient off and on. Below
   the limit a shimmer stays in chunks, so on unwrapped text it can start over at
   a piece.
+- The caret moves through mixed-direction text in stored order, as it did before
+  the chunks: inside a right-to-left run, Left moves it to the right. go-glyph
+  has only logical caret moves (`MoveCursorLeft`, `MoveCursorRight`). Digits
+  that follow Arabic text are drawn as part of its run (Unicode bidi rule W2),
+  so deleting the line break after a line that ends in Arabic draws the next
+  line's `0002` to the left of the Arabic. Both happen the same way in one
+  layout; the chunks do not cause them. The showcase's Large text sample keeps
+  Arabic to one line that ends in Latin for this reason.
 - At a character-level wrap of a run with no break opportunity the chunk
   boundary is the break the shaper would also make, and the caret at that offset
   sits on the later line, where glyph's single layout puts it on the earlier

@@ -42,6 +42,12 @@ gui.Input(gui.InputCfg{
 })
 ```
 
+In text that mixes directions, the arrow keys move the caret in stored order, so
+inside a right-to-left run Left moves it to the right. Digits right after
+right-to-left text are drawn as part of it, as the Unicode bidi rules say:
+delete the line break after a line that ends in Arabic, and the next line's
+number moves to the left of the Arabic.
+
 ## Masked Input
 
 ```go

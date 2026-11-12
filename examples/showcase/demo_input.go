@@ -149,16 +149,22 @@ func demoInput(w *gui.Window) gui.View {
 	})
 }
 
-// largeSampleText returns about 100 KB of numbered lines mixing scripts,
-// for the Large text field: enough to pass the 10,240-byte layout budget
-// of one glyph shape many times over.
+// largeSampleText returns about 100 KB of numbered lines for the Large
+// text field: enough to pass the 10,240-byte layout budget of one glyph
+// shape many times over. Only the last line mixes scripts, and it ends
+// in Latin. When every line ended in Arabic, deleting a line break drew
+// the next line's number to the left of the Arabic: digits that follow
+// Arabic text join its run (Unicode bidi rule W2). That is correct,
+// but it looked like a bug.
 func largeSampleText() string {
 	var b strings.Builder
-	for i := 1; b.Len() < 100_000; i++ {
-		fmt.Fprintf(&b, "%04d  The quick brown fox jumps over the lazy dog. "+
-			"\u00c9t\u00e9 \u65e5\u672c\u8a9e\u306e\u30c6\u30ad\u30b9\u30c8 "+
-			"\u0645\u0631\u062d\u0628\u0627 \U0001F389\n", i)
+	i := 1
+	for ; b.Len() < 100_000; i++ {
+		fmt.Fprintf(&b, "%04d  The quick brown fox jumps over the lazy dog.\n", i)
 	}
+	fmt.Fprintf(&b, "%04d  Mixed scripts: \u00c9t\u00e9, "+
+		"\u65e5\u672c\u8a9e\u306e\u30c6\u30ad\u30b9\u30c8, "+
+		"\u0645\u0631\u062d\u0628\u0627, \U0001F389 and back to Latin.\n", i)
 	return b.String()
 }
 
