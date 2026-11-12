@@ -3,6 +3,7 @@
 package soft
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -460,7 +461,11 @@ func TestGradientTextAroundGlyphBudget(t *testing.T) {
 		if lit == 0 {
 			t.Errorf("%d bytes with a gradient drew nothing", n)
 		}
-		if _, plainH := render(long[:n], nil); h != plainH {
+		// The gradient's one layout and the plain text's chunks sum
+		// their line heights in a different order, so the two can differ
+		// in the last bit (seen on arm64, where Go fuses multiply-adds).
+		// A changed layout would differ by at least a line.
+		if _, plainH := render(long[:n], nil); math.Abs(float64(h-plainH)) > 0.01 {
 			t.Errorf("%d bytes: height %v with a gradient, %v without", n, h, plainH)
 		}
 	}
