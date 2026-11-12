@@ -36,7 +36,7 @@ func TestTextStyleShapingHashCoversEquality(t *testing.T) {
 		case reflect.Pointer:
 			f.Set(reflect.New(f.Type().Elem()))
 		case reflect.Struct:
-			if f.Type() != reflect.TypeOf(Color{}) {
+			if f.Type() != reflect.TypeFor[Color]() {
 				t.Fatalf("field %s: no test value for %s", typ.Field(i).Name, f.Type())
 			}
 			f.Set(reflect.ValueOf(RGB(1, 2, 3)))
