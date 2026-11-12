@@ -95,3 +95,24 @@ func TestRuneStartAtOrBefore(t *testing.T) {
 		}
 	}
 }
+
+// A masked field converts its byte offsets to the mask's rune slots. A
+// stale offset inside a character snaps first, or a selection over that
+// character converts to an empty one and the insert lands beside it.
+func TestMaskRuneArgsSnapStaleOffsets(t *testing.T) {
+	is := inputState{CursorPos: 2, selectBeg: 1, selectEnd: 2}
+	cursor, beg, end := maskRuneArgs("é1", is)
+	if cursor != 1 || beg != 0 || end != 1 {
+		t.Errorf("maskRuneArgs = (%d, %d, %d), want (1, 0, 1)", cursor, beg, end)
+	}
+}
+
+// A password draws bullets. A stale offset inside a character of the
+// text maps to the bullet before that character, where the edit core
+// snaps the same offset, not to the bullet after it.
+func TestDisplayOffsetSnapsStaleOffset(t *testing.T) {
+	text := "éa"
+	if got := displayOffset(text, maskPassword(text), 1); got != 0 {
+		t.Errorf("displayOffset(%q, 1) = %d, want 0", text, got)
+	}
+}

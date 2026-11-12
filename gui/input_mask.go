@@ -50,8 +50,10 @@ type maskEditResult struct {
 // maskRuneArgs converts the caret and selection of is — byte offsets
 // into text — to the rune indices the mask engine works in. A masked
 // field is short, so the conversion is cheap, and the engine's rune
-// slots stay as they are.
+// slots stay as they are. Offsets the app's new text left inside a
+// character snap to its start first, as the edit core snaps them.
 func maskRuneArgs(text string, is inputState) (cursor int, selBeg, selEnd uint32) {
+	is = is.in(text)
 	cursor = byteToRuneIndex(text, is.CursorPos)
 	if is.CursorPos < 0 {
 		cursor = -1

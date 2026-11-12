@@ -34,12 +34,14 @@ func inputLineBreakCount(text string) int {
 
 // displayOffset maps a byte offset in text to the same caret position in
 // display, the text as drawn: text itself for most fields, a password's
-// bullets otherwise. The two share rune positions, not byte offsets.
+// bullets otherwise. The two share rune positions, not byte offsets. An
+// offset the app's new text left inside a character counts from that
+// character's start, where the edit core snaps it.
 func displayOffset(text, display string, off int) int {
 	if display == text {
 		return off
 	}
-	off = max(0, min(off, len(text)))
+	off = runeStartAtOrBefore(text, max(0, min(off, len(text))))
 	return advanceRunes(display, utf8.RuneCountInString(text[:off]))
 }
 

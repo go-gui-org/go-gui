@@ -30,3 +30,26 @@ func TestRenderInputSelectionPasswordWiderThanMask(t *testing.T) {
 			w.renderers[0].W, want)
 	}
 }
+
+// A stale selection inside the characters of an app-set password still
+// highlights: 2..4 of "😀😀" is the first emoji once both ends snap to
+// rune starts. Counted unsnapped, the start mapped past the end.
+func TestRenderInputSelectionPasswordStaleOffsets(t *testing.T) {
+	w := makeWindow()
+	style := TextStyle{Color: RGB(0, 0, 0), Size: 14}
+	text := "😀😀"
+	shape := &Shape{
+		TC: &ShapeTextConfig{
+			Text:           text,
+			textSelBeg:     2,
+			textSelEnd:     4,
+			textIsPassword: true,
+			TextStyle:      &style,
+		},
+	}
+	renderInputSelection(shape, maskPassword(text), 0, 0,
+		nil, false, makeClip(0, 0, 800, 600), w)
+	if len(w.renderers) != 1 {
+		t.Fatalf("got %d renderers, want 1 selection rect", len(w.renderers))
+	}
+}
