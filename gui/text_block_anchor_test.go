@@ -453,11 +453,15 @@ func TestTextAnchorCaretWalkScrollsByRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	keys := 0
+	caret := func() int { return StateReadOr(w, nsInput, "f", inputState{}).CursorPos }
 	walk := func(key KeyCode, n int) {
 		t.Helper()
+		start := caret()
 		for range n {
 			before := chunkScreenYs(w)
-			_ = w.TestKey("f", key, ModNone)
+			if err := w.TestKey("f", key, ModNone); err != nil {
+				t.Fatalf("key %d: %v", keys+1, err)
+			}
 			keys++
 			if !w.caretCmd.ok {
 				t.Fatalf("key %d: no caret drawn", keys)
@@ -474,6 +478,12 @@ func TestTextAnchorCaretWalkScrollsByRows(t *testing.T) {
 					}
 				}
 			}
+		}
+		// A key may stop at the text's start, but the walk as a whole
+		// must move the caret back, or every check above held trivially.
+		if end := caret(); end >= start {
+			t.Fatalf("%d presses of key %d left the caret at %d, from %d",
+				n, key, end, start)
 		}
 	}
 	walk(KeyUp, 300)

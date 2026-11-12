@@ -751,7 +751,18 @@ func TestTextBlockLargeTextEstimatesThenMeasures(t *testing.T) {
 	if !ok || cp.Y != 3000*stubLH {
 		t.Errorf("caret at end = %+v %v", cp, ok)
 	}
-	if b.chunks[len(b.chunks)-1].measured == false {
+	// The caret at the end sits on the empty line after the trailing
+	// newline, a chunk that counts as measured from the start. The end
+	// of the last line is in the last chunk with text, which a query
+	// must measure.
+	lastLine := len(text) - 1
+	if b.chunks[b.chunkAt(lastLine)].measured {
+		t.Fatal("the last line's chunk is measured before any query")
+	}
+	if cp, ok := b.cursorPos(lastLine); !ok || cp.Y != 2999*stubLH {
+		t.Errorf("caret at the last line's end = %+v %v", cp, ok)
+	}
+	if !b.chunks[b.chunkAt(lastLine)].measured {
 		t.Error("the queried chunk was not measured")
 	}
 }
@@ -906,7 +917,7 @@ func TestTextBlockCacheDropsTextsThatLeft(t *testing.T) {
 		t.Fatalf("cache holds %d blocks of the big text and small %v", n, small != nil)
 	}
 	show = false
-	for range 3 {
+	for range 2 {
 		w.TestRender(nil)
 	}
 	n, again := holding()
