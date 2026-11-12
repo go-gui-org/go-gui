@@ -148,3 +148,16 @@ func TestPrevGraphemeBoundaryWindow(t *testing.T) {
 			"inside the run", got)
 	}
 }
+
+// A caret the app's new text left inside a cluster, at a rune start, steps
+// to the end of the whole cluster. Segmenting from the caret alone split
+// the cluster at the joiner and left the caret inside the emoji.
+func TestNextGraphemeBoundaryFromInsideCluster(t *testing.T) {
+	text := "👩‍👩x" // one cluster of 11 bytes, then "x"
+	if got := nextGraphemeBoundary(text, 4); got != 11 {
+		t.Errorf("nextGraphemeBoundary(%q, 4) = %d, want 11", text, got)
+	}
+	if got := nextGraphemeBoundary(text, 11); got != 12 {
+		t.Errorf("nextGraphemeBoundary(%q, 11) = %d, want 12", text, got)
+	}
+}

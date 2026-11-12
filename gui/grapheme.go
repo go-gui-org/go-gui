@@ -87,16 +87,15 @@ func prevGraphemeBoundary(text string, i int) int {
 }
 
 // nextGraphemeBoundary returns the first grapheme-cluster boundary after
-// byte offset i, or len(text). i is expected to be a boundary itself, as
-// a caret offset is; from inside a cluster the rest of that cluster is
-// the answer.
+// byte offset i, or len(text). From inside a cluster, where a caret the
+// app's new text left behind can sit, the answer is that cluster's end:
+// the search starts from the cluster's start, because the rest of a
+// cluster segmented alone can split again (at a joiner).
 func nextGraphemeBoundary(text string, i int) int {
 	if i >= len(text) {
 		return len(text)
 	}
-	if i < 0 {
-		i = 0
-	}
+	i = prevGraphemeBoundary(text, max(i, 0))
 	cluster, _, _, _ := uniseg.FirstGraphemeClusterInString(text[i:], -1)
 	if len(cluster) == 0 {
 		return len(text)
