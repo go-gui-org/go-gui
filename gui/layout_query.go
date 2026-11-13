@@ -60,8 +60,7 @@ func findLayoutByFocusIDDepth(layout *Layout, effectiveID string, depth int) (*L
 	//
 	// The match is canTakeFocus, the same predicate dispatch and tab
 	// order use: a disabled shape must not receive the focused
-	// scroll, and a parked focus ID must not count as "inside" for
-	// retainDialogFocus.
+	// scroll.
 	if s := layout.Shape; effectiveID != "" && s != nil &&
 		s.canTakeFocus() && s.idKey() == effectiveID {
 		return layout, true

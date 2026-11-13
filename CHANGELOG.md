@@ -8,6 +8,24 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Keyboard focus stays inside a modal dialog, and a `Menubar` behind it no
+  longer opens its menu (#1242).** A `DialogCustom` dialog without `FocusID`
+  focused an ID its custom body never carries. Each frame, focus then moved to
+  the first tab stop of the window behind the dialog. An `Input` there showed
+  focus, and a `Menubar` there selected its first item and opened its menu while
+  the dialog was up. Focus also changed twice per frame, which cleared input
+  selections every time. The same move happened for one frame with a correct
+  `FocusID`, when the focused widget in the dialog was turned off through its
+  container. Now a dialog whose `FocusID` names nothing focuses its first tab
+  stop, or no widget when it has none, and a focused widget that goes away under
+  a dialog hands focus to another tab stop in the dialog. A `FocusID` on the
+  turned-away face of a `FlipPanel` also counts as naming nothing: the panel
+  takes focus off that face, and the dialog used to put it back every other
+  frame. `DialogCfg.FocusID` now has a doc comment that says how to set it for
+  `DialogCustom`.
+
 ## [v0.95.0] - 2026-11-12
 
 ### Added
