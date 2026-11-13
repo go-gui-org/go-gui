@@ -126,12 +126,31 @@ func (w *Window) fixupFocusLocked() {
 	defer func() { w.scratch.focusCandidates.put(candidates) }()
 	seen := w.scratch.focusSeen.take(0)
 	defer func() { w.scratch.focusSeen.put(seen) }()
-	collectFocusCandidates(&w.layout, &candidates, seen)
+	collectFocusCandidates(w.focusRepairRoot(), &candidates, seen)
 	if next, ok := focusFindNext(candidates, id); ok {
 		w.setFocusLocked(next.idKey())
 		return
 	}
 	w.setFocusLocked("")
+}
+
+// focusRepairRoot returns the tree fixupFocusLocked picks the new
+// focus from: the dialog layer while a modal dialog shows, the whole
+// window otherwise.
+//
+// Searching the whole window under a dialog moved focus to the first
+// tab stop behind the modal. A Menubar there selected its first item
+// and opened its menu with the dialog still up (#1242). The layers
+// above the dialog are left out too. They hold the dialog's own popups,
+// the inspector and the Input context menu, and the repair belongs in
+// the dialog itself.
+func (w *Window) focusRepairRoot() *Layout {
+	if w.dialogCfg.visible {
+		if d := dialogLayerIndex(w.layout.Children); d >= 0 {
+			return &w.layout.Children[d]
+		}
+	}
+	return &w.layout
 }
 
 // resetBlinkCursorVisible resets the blink timer so the cursor

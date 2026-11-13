@@ -70,6 +70,23 @@ type DialogCfg struct {
 	MinHeight float32
 	MaxHeight float32
 
+	// FocusID is the ID of the widget that gets keyboard focus when
+	// the dialog opens. The dialog moves focus back to it when
+	// something outside the dialog takes focus.
+	//
+	// The built-in types give this ID to their own control: the OK
+	// or No button, or the prompt's input (DefaultButton can pick
+	// Yes instead). Leave it empty there unless the app needs to
+	// name that control.
+	//
+	// For DialogCustom, set it to the ID of a focusable widget in
+	// CustomView, spelled as that widget's Cfg spells it. That works
+	// when no container with an ID sits between the widget and the
+	// dialog. When FocusID is empty or names no widget that can take
+	// focus (a disabled one counts as none, and so does one on the
+	// turned-away face of a FlipPanel), focus goes to the dialog's
+	// first tab stop, or to no widget when the dialog has none
+	// (#1242).
 	FocusID      string
 	oldFocusID   string
 	Color        Color
@@ -478,7 +495,7 @@ func (w *Window) DialogIsVisible() bool {
 // the dialog layer, but with no focused element there Tab/Esc/Enter stop
 // working while mouse clicks still land by coordinate. When the current
 // focus is not a focusable element within the freshly generated dialog
-// subtree, reassert the dialog's focus id so apps need not guard their
+// subtree, move it to dialogFocusTarget so apps need not guard their
 // own SetFocus with DialogIsVisible.
 //
 // dialog is the dialog's layout for this frame. above holds the layers
@@ -493,20 +510,87 @@ func (w *Window) retainDialogFocus(dialog *Layout, above []*Layout) {
 	if dialog == nil || dialog.Shape == nil {
 		return
 	}
-	// empty focus means nothing is focused: FindLayoutByFocusID would match
-	// the dialog root (it is not focusable), so treat it as escaped.
+	// Empty focus means nothing is focused, so treat it as escaped.
+	// Focus on a shape the walk skips (on a disabled container, or on
+	// the turned-away face of a FlipPanel) has escaped too.
 	if id := w.FocusID(); id != "" {
-		if _, ok := findLayoutByFocusID(dialog, id); ok {
+		if found, _ := dialogFocusWalk(dialog, id, 0); found {
 			return
 		}
 		for _, ly := range above {
 			if ly == nil || ly.Shape == nil {
 				continue
 			}
-			if _, ok := findLayoutByFocusID(ly, id); ok {
+			if found, _ := dialogFocusWalk(ly, id, 0); found {
 				return
 			}
 		}
 	}
-	w.setFocusLocked(dialogFocusID(w.dialogCfg))
+	// A dialog with nothing to focus leaves focus empty. Writing ""
+	// over "" again would only bump the focus counter.
+	if target := w.dialogFocusTarget(dialog); target != w.FocusID() {
+		w.setFocusLocked(target)
+	}
+}
+
+// dialogFocusTarget returns the ID retainDialogFocus moves focus to:
+// the dialog's focus ID when a shape in the dialog can take it, else
+// the dialog's first tab stop, else "" for a dialog with no tab stops.
+//
+// The focus ID names nothing when a DialogCustom body does not set
+// FocusID (the default ID belongs to the built-in bodies' buttons), or
+// when the app's FocusID is misspelled or disabled. Focusing it anyway
+// parked focus on a dead ID, and fixupFocusLocked then moved it every
+// frame, back and forth, which also cleared the input selections each
+// time (#1242).
+func (w *Window) dialogFocusTarget(dialog *Layout) string {
+	id := dialogFocusID(w.dialogCfg)
+	found, first := dialogFocusWalk(dialog, id, 0)
+	if found {
+		return id
+	}
+	return first
+}
+
+// dialogFocusWalk reports whether a shape in ly that can hold focus
+// has the effective ID id. When it finds none, it also returns the
+// first tab stop of ly, or "".
+//
+// The walk runs before layoutDisables, which turns off every shape
+// under a disabled container. It skips such a container's subtree
+// itself. Otherwise it would pick a stop that layoutDisables turns off
+// later in the frame. fixupFocusLocked would then clear focus, and the
+// next frame would set it again (#1242).
+//
+// It skips an inert subtree (the turned-away face of a FlipPanel) too.
+// The FlipPanel takes focus off that face with a queued command, and a
+// dialog that focused it again fought the panel every other frame.
+func dialogFocusWalk(ly *Layout, id string, depth int) (found bool, first string) {
+	if overMaxDepth(depth) {
+		return false, ""
+	}
+	if s := ly.Shape; s != nil {
+		if s.Disabled || s.isInert() {
+			return false, ""
+		}
+		if s.canTakeFocus() {
+			key := s.idKey()
+			if key == id {
+				return true, ""
+			}
+			if !s.FocusSkip {
+				first = key
+			}
+		}
+	}
+	for i := range ly.Children {
+		hit, stop := dialogFocusWalk(&ly.Children[i], id, depth+1)
+		if hit {
+			return true, ""
+		}
+		if first == "" {
+			first = stop
+		}
+	}
+	return false, first
 }

@@ -478,13 +478,14 @@ func contractCombobox(ctl *contractCtl, id string) View {
 func contractFocusWants(readonly contractWant) [8]contractWant {
 	return [8]contractWant{
 		wantMoved, readonly, wantMoved, wantMoved,
-		wantMoved, wantMoved, wantKept, wantCleared,
+		wantMoved, wantMoved, wantKept, wantMoved,
 	}
 }
 
 const contractFocusNote = "P1: unfocus changes eligibility nowhere, " +
-	"so FocusID stays; a modal takes focus (retainDialogFocus), and " +
-	"the bare seam dialog offers no tab stop, so focus clears"
+	"so FocusID stays; a modal takes focus (retainDialogFocus): the " +
+	"bare seam dialog sets no FocusID, so focus moves to its first " +
+	"tab stop, the OK button (#1242)"
 
 var contractRows = []contractRow{
 	{widget: "input", state: stFocus, build: contractInput,
@@ -522,7 +523,7 @@ var contractRows = []contractRow{
 			"has no Invisible, so the flag cannot be expressed",
 		wants: [8]contractWant{
 			wantMoved, wantNA, wantNA, wantMoved,
-			wantMoved, wantMoved, wantKept, wantCleared,
+			wantMoved, wantMoved, wantKept, wantMoved,
 		}},
 
 	{widget: "input", state: stIME, build: contractInput,
