@@ -526,9 +526,8 @@ func mdRenderListItem(
 	var prefixW float32
 	var prefixView View
 	if block.IsTaskItem {
-		boxSize := cfg.Style.Text.Size * 0.8
-		prefixW = boxSize + 6
-		prefixView = mdTaskCheckbox(block.TaskChecked, boxSize, cfg)
+		prefixW = mdTaskBoxEdge(cfg) + 6
+		prefixView = mdTaskCheckbox(block.TaskChecked, cfg)
 		if block.ListIndent > 0 {
 			indentW += 4
 		}
@@ -584,11 +583,37 @@ func mdRenderListItem(
 	}), cfg)
 }
 
+// mdTaskBoxEdge is the edge of a task-list box: the markdown body text
+// size (#1254). A box at the toggle's full edge (text size plus its
+// inset) read too large beside body text, and the old local factor
+// (0.8 of the text size) read too small and cramped.
+func mdTaskBoxEdge(cfg MarkdownCfg) float32 {
+	return cfg.Style.Text.Size
+}
+
+// mdTaskCheckScale sizes the task-list check relative to its box edge.
+// It is tuned for the icon font's check (IconCheck), not taken from
+// Toggle: Toggle draws "✓" from the body font, a different glyph with a
+// different ink box, so no Toggle ratio carries over. IconCheck's ink is
+// about 2/3 of its font size wide, so 0.78 of the edge gives ink about
+// half the box wide: at a 14px box, a 7px by 5px mark, measured 2.5px
+// clear of the fill at the sides and 3.5px at top and bottom. The old
+// size (1.1 of the box) put the ink flush
+// to the border once centerGlyphOnInk centred it (#1254).
+// gui/backend/soft/markdown_task_ink_test.go pins the drawn inset.
+const mdTaskCheckScale = 0.78
+
+// mdTaskCheckSize is the check glyph size inside a task-list box.
+func mdTaskCheckSize(cfg MarkdownCfg) float32 {
+	return mdTaskBoxEdge(cfg) * mdTaskCheckScale
+}
+
 // mdTaskCheckbox renders a fixed-size box for a GFM task-list item.
 // Drawing a real box (rather than relying on Unicode ballot-box glyphs
 // like ☑/☐) keeps checked/unchecked states pixel-identical regardless
 // of platform font/glyph-fallback differences.
-func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
+func mdTaskCheckbox(checked bool, cfg MarkdownCfg) View {
+	boxSize := mdTaskBoxEdge(cfg)
 	boxColor := ColorTransparent
 	var content []View
 	var amend func(EventCtx)
@@ -597,7 +622,7 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 		// tuned to read as text on the page (issue #863).
 		boxColor = guiTheme.ColorSelect
 		checkStyle := guiTheme.TextStyleIconXSmall
-		checkStyle.Size = boxSize * 1.1
+		checkStyle.Size = mdTaskCheckSize(cfg)
 		checkStyle.Color = White
 		content = []View{
 			Text(TextCfg{Text: IconCheck, TextStyle: checkStyle}),
@@ -619,9 +644,10 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 		ColorBorder: cfg.Style.HRColor,
 		// Fixed px, not BorderThin: the outline is the checkbox, so
 		// it must survive WithBorders(false) (#867).
-		SizeBorder:  BorderPx(sizeBorderDef),
-		Radius:      RadiusSmall,
-		Padding:     NoPadding,
+		SizeBorder: BorderPx(sizeBorderDef),
+		Radius:     RadiusSmall,
+		// The toggle's inner inset, so the two boxes match.
+		Padding:     defaultToggleStyle.Padding,
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
 		AmendLayout: amend,

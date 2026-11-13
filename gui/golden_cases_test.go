@@ -1776,6 +1776,13 @@ func goldenCases() []goldenCase {
 			name:  "markdown_blocked_image",
 			build: buildMarkdownBlockedImage,
 		},
+		{
+			// GFM task-list items, checked and unchecked (#1254). The
+			// box follows the toggle style: edge, inner padding, and a
+			// check at text size that keeps a margin inside the border.
+			name:  "markdown_task_list",
+			build: buildMarkdownTaskList,
+		},
 
 		// Interaction-state cases (#690). Every recording above this
 		// point leaves the pointer at the origin, so layoutHover fires
@@ -2309,6 +2316,15 @@ func buildMarkdownBlockedImage(w *Window) View {
 		ID: "md",
 		Source: "![tracking pixel](https://example.test/p.png)\n\n" +
 			"![local file](notes/diagram.png)\n",
+	})
+}
+
+// buildMarkdownTaskList renders one unchecked and one checked GFM task
+// item (#1254).
+func buildMarkdownTaskList(w *Window) View {
+	return w.Markdown(MarkdownCfg{
+		ID:     "md",
+		Source: "- [ ] open item\n- [x] done item\n",
 	})
 }
 

@@ -26,6 +26,14 @@ and this project adheres to
   frame. `DialogCfg.FocusID` now has a doc comment that says how to set it for
   `DialogCustom`.
 
+- **Markdown task-list checkboxes have room around the check (#1254).** A GFM
+  task item (`- [ ]`, `- [x]`) drew its box at 0.8 of the text size, smaller
+  than the text beside it, and its check at 1.1 of the box, so the mark touched
+  the border. The box is now the body text size, with the toggle style's inner
+  padding, and the check is sized for the icon font so its ink is about half the
+  box wide. At the default 14px body text the box grows from 11.2px to 14px, and
+  the check sits at least 2.5px clear of the border on every side.
+
 ## [v0.96.0] - 2026-11-13
 
 ### Changed
