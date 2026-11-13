@@ -166,6 +166,15 @@ feature: the example directory and its README, the top-level `README.md` entry,
 the `CHANGELOG.md` entry, and status rows in feature docs such as
 `docs/svg-support.md`. Docs left to a later polish pass go stale.
 
+**A PR is not pushed while anything that describes the change disagrees with
+it.** Before pushing, grep every identifier the change adds, removes or changes
+in `gui/` doc comments, `docs/`, `examples/` (code, READMEs, the showcase demos
+and `examples/showcase/docs/`), `CHANGELOG.md` and the wiki (`../go-gui.wiki`).
+Fix each place that is now wrong in the same PR. Compile any Go a guide quotes.
+The wiki is a separate repo that the maintainer pushes: the PR description names
+the wiki commit. In #1257 the Form API was described three different ways (code,
+showcase guide, wiki) because earlier changes skipped this pass.
+
 ## Coding Conventions
 
 - **No variable shadowing.** Never `:=` redeclare a var from an outer scope. Use
