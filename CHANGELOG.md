@@ -26,6 +26,14 @@ and this project adheres to
   frame. `DialogCfg.FocusID` now has a doc comment that says how to set it for
   `DialogCustom`.
 
+## [v0.96.0] - 2026-11-13
+
+### Changed
+
+- **Bump go-glyph v1.26.4 to v1.26.5 (#1252).** CR and CRLF are hard line
+  breaks, and `GetParagraphAtIndex` stops at the paragraph end. Transitive
+  `x/image`, `x/text`, `x/tools`, `x/mod`, `x/sync` and `x/sys` bumps.
+
 ## [v0.95.0] - 2026-11-12
 
 ### Added
