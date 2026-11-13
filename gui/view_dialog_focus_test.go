@@ -196,6 +196,59 @@ func TestDialogFocusSkipsTurnedAwayFace(t *testing.T) {
 	}
 }
 
+// While a dialog shows, the frame's focus repair picks the new focus
+// from the dialog layer, never from the window behind it (#1242).
+// retainDialogFocus keeps the dead IDs the other tests make away from
+// the repair, so this drives fixupFocusLocked on its own: it has the
+// last word on focus each frame, after layoutDisables.
+func TestFixupFocusStaysInDialog(t *testing.T) {
+	tests := []struct {
+		name string
+		body View
+		want string
+	}{
+		{
+			name: "a dialog stop takes focus",
+			body: Button(ButtonCfg{
+				ID:      "inside",
+				Content: []View{Text(TextCfg{Text: "Inside"})},
+			}),
+			want: ScopeID(reservedDialogID, "inside"),
+		},
+		{
+			name: "no dialog stop clears focus",
+			body: Text(TextCfg{Text: "only text"}),
+			want: "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := NewWindow(WindowCfg{})
+			body := tc.body
+			w.Dialog(DialogCfg{
+				DialogType: DialogCustom,
+				CustomView: func(*Window) View { return body },
+			})
+			app := generateViewLayout(Column(ContainerCfg{Content: []View{
+				Button(ButtonCfg{
+					ID:      "background",
+					Content: []View{Text(TextCfg{Text: "Behind"})},
+				}),
+			}}), w)
+			dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+			// The composed tree: one layer per child, the dialog on top.
+			w.layout = Layout{Shape: &Shape{}, Children: []Layout{app, dialog}}
+
+			w.SetFocus("gone")
+			w.fixupFocusLocked()
+
+			if got := w.FocusID(); got != tc.want {
+				t.Fatalf("focus = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 // retainDialogFocus moves stolen focus to the dialog's first tab stop
 // when the dialog's focus ID names no widget in it (#1242).
 func TestRetainDialogFocus_CustomTakesFirstTabStop(t *testing.T) {
