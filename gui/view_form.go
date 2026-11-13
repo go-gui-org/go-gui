@@ -28,8 +28,10 @@ const (
 // FormIssueKind distinguishes error from warning.
 type FormIssueKind uint8
 
-// FormIssueKind values. The library carries the tag; the app sets it in
-// a validator and reads it back when rendering its summary.
+// FormIssueKind values. A validator sets the kind. An error makes its
+// field invalid and blocks submit. A warning is reported in
+// FormSummaryState.Issues and FormFieldState.Errors, but leaves the
+// field valid.
 const (
 	FormIssueError FormIssueKind = iota
 	FormIssueWarning
@@ -89,7 +91,8 @@ type FormSnapshot struct {
 }
 
 // FormSummaryState aggregates validation state across all
-// fields.
+// fields. Issues holds every field's issues, warnings included.
+// InvalidCount and Valid count only fields with an error.
 type FormSummaryState struct {
 	Issues       map[string][]FormIssue
 	InvalidCount int

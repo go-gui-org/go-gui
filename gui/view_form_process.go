@@ -88,6 +88,18 @@ func formFieldSnapshot(
 	}
 }
 
+// formHasBlockingIssue reports whether issues make a field invalid. A
+// warning does not (#1236). Any other Kind does, so an out-of-range
+// value blocks submit instead of slipping through.
+func formHasBlockingIssue(issues []FormIssue) bool {
+	for i := range issues {
+		if issues[i].Kind != FormIssueWarning {
+			return true
+		}
+	}
+	return false
+}
+
 func formComputeSummary(
 	state *formRuntimeState,
 ) FormSummaryState {
@@ -96,7 +108,9 @@ func formComputeSummary(
 	for fieldID, field := range state.fields {
 		merged := formMergeErrors(field)
 		if len(merged) > 0 {
-			invalidCount++
+			if formHasBlockingIssue(merged) {
+				invalidCount++
+			}
 			if issues == nil {
 				issues = make(map[string][]FormIssue, 4)
 			}

@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Fixed
 
+- **A form warning no longer blocks submit (#1236).** Before, go-gui ignored
+  `FormIssue.Kind`. An issue tagged `FormIssueWarning` therefore counted like an
+  error. `FormSummaryState.Valid` was false, `InvalidCount` counted the field,
+  and submit was blocked unless the form set `AllowInvalidSubmit`. Now only an
+  error makes a field invalid. Warnings still appear in
+  `FormSummaryState.Issues` and `FormFieldState.Errors`, so an app can still
+  show them. An issue that does not set `Kind` is an error, as before, so
+  existing validators keep working.
+
 - **Keyboard focus stays inside a modal dialog, and a `Menubar` behind it no
   longer opens its menu (#1242).** A `DialogCustom` dialog without `FocusID`
   focused an ID its custom body never carries. Each frame, focus then moved to
