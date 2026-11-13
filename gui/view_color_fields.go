@@ -218,8 +218,14 @@ func colorHexField(
 		) {
 			apply(text, ctx)
 		},
+		OnEnter: colorFieldKeepEnter,
 	})
 }
+
+// colorFieldKeepEnter consumes Enter in a color field. Enter there
+// applies the typed color (OnTextCommit runs first); it must not also
+// submit a Form the color picker sits in (#1257).
+func colorFieldKeepEnter(ctx EventCtx) { ctx.Consume() }
 
 // colorFieldSpec is one labeled channel input: the label, the current
 // value to show, the scoped ID, and the parse-and-commit closure.
@@ -521,5 +527,6 @@ func colorFieldColumn(
 			) {
 				apply(text, ctx)
 			},
+			OnEnter: colorFieldKeepEnter,
 		}))
 }

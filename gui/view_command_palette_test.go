@@ -366,6 +366,9 @@ func TestPaletteOnEnterSelectsHighlighted(t *testing.T) {
 	if CommandPaletteIsVisible(id, w) {
 		t.Error("palette should dismiss after Enter select")
 	}
+	if !e.IsHandled {
+		t.Error("Enter must be consumed, or it also submits a Form around the palette")
+	}
 }
 
 func TestPaletteOnEnterDisabledBlocked(t *testing.T) {
@@ -386,6 +389,10 @@ func TestPaletteOnEnterDisabledBlocked(t *testing.T) {
 	onEnter(EventCtx{nil, e, w})
 	if selected != "" {
 		t.Errorf("disabled item should not select, got %q", selected)
+	}
+	if !e.IsHandled {
+		t.Error("Enter on a disabled item must still be consumed, or it " +
+			"submits a Form around the palette")
 	}
 }
 

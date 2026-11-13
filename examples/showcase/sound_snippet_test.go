@@ -257,6 +257,35 @@ var snippetEntries = []snippetEntry{
 	},
 }
 
+// formGuideSnippets pins every Go block of the forms guide to
+// gui/form_example_test.go (#1257): marker name, anchor, heading.
+var formGuideSnippets = [][3]string{
+	{"form-basic", "func signupView(w *gui.Window) gui.View {", "## Basic Usage"},
+	{"form-widget-id", `WidgetID:       "signup-email",`, "## Linking a Field to Its Widget"},
+	{"form-sync-validators", "func validatePassword(", "## Sync Validators"},
+	{"form-async-validator", "func checkUsernameFree(", "## Async Validators"},
+	{"form-cross-field", "func registerConfirm(", "## Cross-Field Validation"},
+	{"form-issue-kinds", "gui.FormIssueWarning", "## Issue Codes and Kinds"},
+	{"form-results", "w.FormFieldState(formID, fieldID)", "## Showing Validation Results"},
+	{"form-reset", "func resetSignup(", "## Submit and Reset"},
+	{"form-initial-value", "HasInitialValue: true,", "### InitialValue"},
+	{"form-allow-invalid", "AllowInvalidSubmit: true,", "## Allow Submit Despite Errors or Pending"},
+	{"form-slots", "PendingSlot: func(p gui.FormPendingState) gui.View {", "## Custom Slots"},
+}
+
+func init() {
+	for _, s := range formGuideSnippets {
+		snippetEntries = append(snippetEntries, snippetEntry{
+			sourceFile: "../../gui/form_example_test.go",
+			beginMark:  "// doc:snippet-begin " + s[0],
+			endMark:    "// doc:snippet-end " + s[0],
+			anchor:     s[1],
+			heading:    s[2],
+			guides:     []string{"docs/widget_forms.md"},
+		})
+	}
+}
+
 // markedRegion returns the source between the snippet markers, minus
 // the marker's own explanatory comment block (which ends at the
 // first blank line) and minus surrounding blank lines.

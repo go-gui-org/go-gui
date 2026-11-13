@@ -81,10 +81,10 @@ injected overlays continue the root counters.
   `ScopeID(w.EffID(cfg.ID), part)`, never a relative leaf: two ID-less instances
   in one scope would collide. `TestAutoIDEveryWidgetTwiceHasNoDuplicates` is the
   gate — add every new auto-ID widget to it.
-- **A registry keyed window-wide by the bare ID** (Form) uses `autoLeafWindow`,
-  which counts across the whole window.
 - **Kept `required`:** `InputGroupCfg.ID` (its ID is the scope that names its
-  segments) and `datagrid` (a subpackage cannot reach `autoLeaf`).
+  segments), `FormCfg.ID` (the app registers fields and submits by it, so a
+  generated one is useless; #1257) and `datagrid` (a subpackage cannot reach
+  `autoLeaf`).
 - `DebugAutoIDs` reports a focused auto key that moved to another widget
   (fingerprint: role + a11y label), and an app ID with the `~` prefix.
 

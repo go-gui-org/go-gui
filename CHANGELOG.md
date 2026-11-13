@@ -8,6 +8,56 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **A form checks its fields by itself (#1257).** Before, the app reported every
+  edit and blur by calling `FormOnFieldEvent` from each widget's callbacks. The
+  call from `OnBlur` did nothing: Input runs `OnBlur` after the frame, without a
+  layout, so the form was never found. No field was validated when the user left
+  it. Now the form compares each frame with the last one. An edit while the
+  field's widget has focus is a change, and focus leaving the widget is a blur.
+  The app still registers each field every frame with `FormRegisterFieldByID`,
+  and gives the field's widget the field's ID. The new
+  `FormFieldAdapterCfg.WidgetID` names the widget when its ID differs. After an
+  edit, the form also re-runs the sync validators of the fields it has already
+  checked, so a rule such as "confirm matches password" follows an edit of the
+  password. A field set to `FormValidateOnSubmit` is left alone until submit. A
+  value the app sets itself while the widget has no focus is validated on
+  submit, not before.
+
+### Changed
+
+- **Enter submits a form (#1257).** Enter in a single-line Input inside a Form
+  now requests submit, as in an HTML form. Before, Enter did nothing there, and
+  `NoSubmitOnEnter` turned off a feature that did not exist. An app that wired
+  Enter itself, with an `OnEnter` that calls `FormRequestSubmit`, still submits
+  once. Migration, for an app whose Enter in a form must not submit: set
+  `FormCfg.NoSubmitOnEnter`, or call `ctx.Consume()` in that Input's `OnEnter`.
+  An `OnEnter` that does something else without consuming the key now also
+  submits. go-gui's own fields that use Enter for something else consume it: the
+  command palette, the data grid's jump-to-row box and the color picker's
+  fields.
+
+- **BREAKING: `FormCfg.ID` is required (#1257).** A form without an ID used to
+  get a generated one (#881). No app could register a field with that ID or
+  submit the form, so such a form never worked. Now it shows its content and
+  nothing else, and `DebugMissingIDs` reports it. Migration: give the Form an
+  ID, and pass the same ID to `FormRegisterFieldByID` and `FormRequestSubmit`.
+
+- **`FormOnFieldEvent` is deprecated (#1257).** The form now detects edits and
+  blur itself, so the call can go. An app that keeps calling it needs no change.
+  Each call does what it did before, with one exception: a blur report for a
+  field whose widget the form finds does nothing, because the form runs that
+  blur itself when focus leaves the widget. Before, a report sent while the
+  widget still had focus, such as from a commit on Enter, validated the field
+  there and then. Two things improve without a change. When a field's widget
+  carries the field's ID, the form now also validates the field on blur, which
+  the call from `OnBlur` never did. After each change, the form re-checks fields
+  it has already checked, so a stale cross-field error clears. The call also
+  finds the form from a part of a composite widget now, such as a color field.
+  Before, that part's own ID started with `form:`, was taken for the form's, and
+  the call did nothing.
+
 ### Fixed
 
 - **A form warning no longer blocks submit (#1236).** Before, go-gui ignored

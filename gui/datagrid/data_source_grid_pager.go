@@ -353,6 +353,9 @@ func dataGridSourcePagerJump(cfg *DataGridCfg, focusID string, state dataGridSou
 			OnEnter: func(ctx gg.EventCtx) {
 				dataGridSourceSubmitJump(onSelectionChange, rowCount,
 					loadError, kind, pageLimit, gridID, focusID, ctx.Event, ctx.Window)
+				// Enter belongs to the jump box even when the row is not
+				// valid: it must not also submit a Form around the grid.
+				ctx.Consume()
 			},
 		}),
 	}

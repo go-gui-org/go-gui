@@ -332,7 +332,7 @@ func inputKeyKill(
 }
 
 // inputCommitEnter handles single-line Enter: normalize, commit,
-// fire OnEnter.
+// fire OnEnter, then submit the form around the input.
 func inputCommitEnter(
 	hcfg inputHandlerCfg,
 	layout *Layout, text string, e *Event, w *Window,
@@ -354,6 +354,12 @@ func inputCommitEnter(
 	}
 	if hcfg.OnEnter != nil {
 		hcfg.OnEnter(EventCtx{layout, e, w})
+	}
+	// Enter in a single-line field submits its form, as in an HTML
+	// form (#1257). An OnEnter that consumed the key keeps it, and a
+	// form with NoSubmitOnEnter opts out.
+	if e == nil || !e.IsHandled {
+		formRequestSubmitForLayout(w, layout)
 	}
 }
 

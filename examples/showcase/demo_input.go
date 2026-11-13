@@ -503,10 +503,14 @@ func demoForms(w *gui.Window) gui.View {
 	app := appState(w)
 	form := &app.Form
 
-	// Register fields each frame so the form runtime tracks them.
+	// Register fields each frame so the form runtime tracks them. The
+	// form finds each field's widget by its ID and validates on edit,
+	// on blur and on submit by itself.
 	gui.FormRegisterFieldByID(w, showcaseFormID, usernameAdapterCfg(form.Username))
 	gui.FormRegisterFieldByID(w, showcaseFormID, emailAdapterCfg(form.Email))
 	gui.FormRegisterFieldByID(w, showcaseFormID, ageAdapterCfg(form.AgeText))
+	gui.FormRegisterFieldByID(w, showcaseFormID, passwordAdapterCfg(form.Password))
+	gui.FormRegisterFieldByID(w, showcaseFormID, confirmAdapterCfg(form.Confirm))
 
 	summary := w.FormSummary(showcaseFormID)
 	pending := w.FormPendingState(showcaseFormID)
@@ -533,47 +537,45 @@ func demoForms(w *gui.Window) gui.View {
 			app.Form.Email = e.Values["email"]
 			app.Form.AgeText = e.Values["age"]
 			app.Form.AgeValue = gui.Opt[float64]{}
+			app.Form.Password = e.Values["password"]
+			app.Form.Confirm = e.Values["confirm"]
 			app.Form.SubmitMessage = "Form reset"
 		},
 		Content: []gui.View{
+			gui.Text(gui.TextCfg{
+				Text:      "Tab out of a field to check it. Enter in a field submits.",
+				TextStyle: gui.CurrentTheme().TextStyleSecondary,
+			}),
+			// Each widget's ID is its field's FieldID, so the form
+			// can find it. The callbacks only store the value.
 			showcaseFormRow("Username", gui.Input(gui.InputCfg{
-				ID:          "showcase-form-username",
+				ID:          "username",
 				Width:       260,
 				Sizing:      gui.FixedFit,
 				Text:        form.Username,
 				Placeholder: "username",
 				OnTextChanged: func(s string, ctx gui.EventCtx) {
 					appState(ctx.Window).Form.Username = s
-					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, usernameAdapterCfg(s), gui.FormTriggerChange)
-				},
-				OnBlur: func(ctx gui.EventCtx) {
-					app := appState(ctx.Window)
-					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, usernameAdapterCfg(app.Form.Username), gui.FormTriggerBlur)
 				},
 			})),
 			showcaseFormFieldState(w, "username"),
 			showcaseFormFieldIssues(w, "username"),
 
 			showcaseFormRow("Email", gui.Input(gui.InputCfg{
-				ID:          "showcase-form-email",
+				ID:          "email",
 				Width:       260,
 				Sizing:      gui.FixedFit,
 				Text:        form.Email,
 				Placeholder: "user@example.com",
 				OnTextChanged: func(s string, ctx gui.EventCtx) {
 					appState(ctx.Window).Form.Email = s
-					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, emailAdapterCfg(s), gui.FormTriggerChange)
-				},
-				OnBlur: func(ctx gui.EventCtx) {
-					app := appState(ctx.Window)
-					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, emailAdapterCfg(app.Form.Email), gui.FormTriggerBlur)
 				},
 			})),
 			showcaseFormFieldState(w, "email"),
 			showcaseFormFieldIssues(w, "email"),
 
 			showcaseFormRow("Age", gui.NumericInput(gui.NumericInputCfg{
-				ID:       "showcase-form-age",
+				ID:       "age",
 				Width:    120,
 				Sizing:   gui.FixedFit,
 				Decimals: 0,
@@ -583,17 +585,39 @@ func demoForms(w *gui.Window) gui.View {
 				Value:    form.AgeValue,
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
 					appState(ctx.Window).Form.AgeText = text
-					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, ageAdapterCfg(text), gui.FormTriggerChange)
 				},
 				OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
 					app := appState(ctx.Window)
 					app.Form.AgeValue = value
 					app.Form.AgeText = text
-					gui.FormOnFieldEvent(ctx.Window, ctx.Layout, ageAdapterCfg(text), gui.FormTriggerBlur)
 				},
 			})),
 			showcaseFormFieldState(w, "age"),
 			showcaseFormFieldIssues(w, "age"),
+
+			showcaseFormRow("Password", gui.Input(gui.InputCfg{
+				ID:         "password",
+				Width:      260,
+				Sizing:     gui.FixedFit,
+				Text:       form.Password,
+				IsPassword: true,
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					appState(ctx.Window).Form.Password = s
+				},
+			})),
+			showcaseFormFieldIssues(w, "password"),
+
+			showcaseFormRow("Confirm", gui.Input(gui.InputCfg{
+				ID:         "confirm",
+				Width:      260,
+				Sizing:     gui.FixedFit,
+				Text:       form.Confirm,
+				IsPassword: true,
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					appState(ctx.Window).Form.Confirm = s
+				},
+			})),
+			showcaseFormFieldIssues(w, "confirm"),
 
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,

@@ -355,6 +355,9 @@ func makePaletteOnEnter(paletteID string, onAction func(string, EventCtx), onDis
 				onDismiss(ctx.Window)
 			}
 		}
+		// Enter belongs to the palette, with or without a match: it
+		// must not also submit a Form the palette sits in (#1257).
+		ctx.Consume()
 	}
 }
 

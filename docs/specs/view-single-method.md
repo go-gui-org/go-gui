@@ -117,6 +117,13 @@ carries `FieldID: "username"`. Fields enter the registry only through explicit
 `w.FormFieldState(formID, fieldID)`. **No form field key is ever produced from a
 `Shape.ID`, so no amount of scoping can affect the field registry.**
 
+Later change (#1257): the showcase Inputs now carry their field's ID
+(`ID: "username"`), and `FormOnFieldEvent` is deprecated. The form links each
+field to its widget to detect edits and blur: it looks for the widget whose leaf
+ID is the `FieldID`, or `FormFieldAdapterCfg.WidgetID` when that is set. The
+registry is still keyed by `FieldID`, and the match is on the leaf, which no
+scope changes. The conclusion above still holds.
+
 What the truncation actually suppresses is the `form:<formID>` prefix on the
 **child widgets'** effective IDs — reaching `SetFocus`, `FindByID`, scroll
 offsets, and the `Test*` APIs, not forms at all.

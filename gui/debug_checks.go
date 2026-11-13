@@ -126,6 +126,10 @@ const (
 	// check and the text, so a shared check let an ID-less text with
 	// both Anim and Transition report only one of them.
 	debugCheckContentTransitionNoID
+	// debugCheckFormNoID fires from Form's generation when FormCfg.ID
+	// is empty: no field can register with the form and it cannot
+	// submit (#1257).
+	debugCheckFormNoID
 )
 
 // checkCategory maps an internal check to the public category that
@@ -137,7 +141,7 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugDuplicates
 	case debugCheckFocusNoID, debugCheckScrollNoID,
 		debugCheckMouseLeaveNoID, debugCheckTextAnimNoID,
-		debugCheckContentTransitionNoID,
+		debugCheckContentTransitionNoID, debugCheckFormNoID,
 		debugCheckInteractiveIDMismatch, debugCheckInteractiveKeyboard:
 		return DebugMissingIDs
 	case debugCheckUnconsumed:

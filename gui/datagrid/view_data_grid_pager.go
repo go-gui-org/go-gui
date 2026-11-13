@@ -200,6 +200,9 @@ func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID string, ju
 			ctx := jumpCtx
 			ctx.focusID = gridFocusID
 			dataGridSubmitLocalJump(ctx, ectx.Event, ectx.Window)
+			// Enter belongs to the jump box even when the row is not
+			// valid: it must not also submit a Form around the grid.
+			ectx.Consume()
 		},
 	})
 }

@@ -85,24 +85,6 @@ func (w *Window) autoLeaf(kind string) string {
 	return w.autoLeafIn(w.viewState.idScope, kind)
 }
 
-// autoWindowScope is the counter scope of autoLeafWindow. It holds a
-// NUL, which no effective ID can, so it never equals a real scope.
-const autoWindowScope = "\x00window"
-
-// autoLeafWindow is autoLeaf with one count for the whole window
-// instead of one per scope. Use it for a widget whose own registry is
-// keyed by the bare ID, window-wide: Form keys its field registry and
-// FormSummary on it and builds the absolute layout ID "form:<id>", so
-// two ID-less forms in two panels would both be "~form0" and share
-// one registry. The price is a weaker firewall: a form inserted
-// anywhere earlier in the window shifts the key of the forms after it.
-func (w *Window) autoLeafWindow(kind string) string {
-	if w == nil {
-		return autoIDPrefix + kind + "0"
-	}
-	return w.autoLeafIn(autoWindowScope, kind)
-}
-
 // autoLeafIn counts kind in the given counter scope and returns the
 // leaf for that count.
 func (w *Window) autoLeafIn(scope, kind string) string {

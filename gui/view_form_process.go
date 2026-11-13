@@ -209,6 +209,11 @@ func formProcessRequests(
 				field.activeAbort.Abort()
 			}
 			field.value = field.initialValue
+			// The reset value is not an edit: the next pass compares
+			// against it, and nothing counts as checked yet.
+			field.prevValue = field.initialValue
+			field.checked = false
+			field.blurPending = false
 			field.dirty = false
 			field.touched = false
 			field.pending = false
@@ -246,15 +251,7 @@ func formProcessRequests(
 		if field == nil {
 			continue
 		}
-		formOnFieldEventForForm(w, formID, FormFieldAdapterCfg{
-			FieldID:            fieldID,
-			Value:              field.value,
-			InitialValue:       field.initialValue,
-			HasInitialValue:    true,
-			SyncValidators:     field.syncVals,
-			AsyncValidators:    field.asyncVals,
-			ValidateOnOverride: field.validateOn,
-		}, FormTriggerSubmit)
+		formRunTrigger(w, formID, state, fieldID, field, FormTriggerSubmit)
 	}
 
 	summary := formComputeSummary(state)
@@ -285,25 +282,27 @@ func formProcessRequests(
 
 // ---------- public API ----------
 
-// FormFindAncestorID walks the parent chain to find an ancestor
-// form layout and returns its form ID.
-func formFindAncestorID(layout *Layout) string {
-	if layout == nil {
-		return ""
-	}
-	if layout.Shape != nil {
-		formID := formDecodeLayoutID(layout.Shape.ID)
-		if formID != "" {
+// formFindAncestorID walks the parent chain to the nearest form and
+// returns its form ID, or "" when layout is in no form. The "form:"
+// prefix alone does not identify a form's container: a part of a
+// composite widget inside a form carries an absolute ID under the
+// form's scope ("form:f:cf:hex"), which decodes to a form "f:cf" that
+// does not exist. So a candidate counts only when that form has
+// runtime state.
+func formFindAncestorID(w *Window, layout *Layout) string {
+	for l := layout; l != nil; l = l.Parent {
+		if l.Shape == nil {
+			continue
+		}
+		if formID := formDecodeLayoutID(l.Shape.ID); formID != "" &&
+			formRuntimeRead(w, formID) != nil {
 			return formID
 		}
 	}
-	if layout.Parent == nil {
-		return ""
-	}
-	return formFindAncestorID(layout.Parent)
+	return ""
 }
 
-// FormRegisterField registers a field with the ancestor form
+// formRegisterField registers a field with the ancestor form
 // found by walking layout's parent chain. Use in AmendLayout
 // or event handlers where parents are set.
 func formRegisterField(
@@ -312,7 +311,7 @@ func formRegisterField(
 	if cfg.FieldID == "" {
 		return
 	}
-	formID := formFindAncestorID(layout)
+	formID := formFindAncestorID(w, layout)
 	if formID == "" {
 		return
 	}
@@ -332,7 +331,13 @@ func formEnsureField(
 		} else {
 			field.initialValue = cfg.Value
 		}
+		// The value a field starts with is not an edit.
+		field.prevValue = cfg.Value
 		state.fields[cfg.FieldID] = field
+	}
+	field.widgetID = cfg.WidgetID
+	if field.widgetID == "" {
+		field.widgetID = cfg.FieldID
 	}
 	field.value = cfg.Value
 	field.dirty = field.value != field.initialValue
@@ -344,9 +349,18 @@ func formEnsureField(
 	return field
 }
 
-// FormRegisterFieldByID registers a field with a known form ID.
-// Safe to call during view construction when the form ID is
-// known. Must be called every frame to prevent stale cleanup.
+// FormRegisterFieldByID registers a field with the form formID. Call it
+// every frame from the view, with the field's current value: a field
+// that is not registered in a frame is dropped at the end of it.
+//
+// The form links the field to the widget whose ID is cfg.FieldID, or
+// cfg.WidgetID when set. It validates the field when the user edits it,
+// when focus leaves it and on submit; FormCfg.ValidateOn and
+// cfg.ValidateOnOverride choose which of these run the validators.
+// Nothing is called back. The view reads the results every frame with
+// (*Window).FormFieldErrors, FormFieldState and FormSummary, or shows
+// them through FormCfg.ErrorSlot and the other slots. The form redraws
+// the window when they change.
 func FormRegisterFieldByID(
 	w *Window, formID string, cfg FormFieldAdapterCfg,
 ) {
@@ -357,9 +371,23 @@ func FormRegisterFieldByID(
 	formEnsureField(state, cfg)
 }
 
-// FormOnFieldEvent triggers validation for a field based on
-// the given trigger type. Walks the parent chain to find the
-// ancestor form.
+// FormOnFieldEvent validates a field now, for trigger. It finds the
+// form by walking up from layout and updates the field from cfg. On a
+// blur or submit trigger it marks the field touched. When the field's
+// mode covers trigger, it runs the sync validators, restarts the async
+// ones and stores the results; on a change it also re-checks the other
+// fields already checked. Nothing is notified: the view reads the
+// results as described at FormRegisterFieldByID. A blur trigger does
+// nothing for a field whose widget the form has found, because the
+// form runs that blur itself when focus leaves the widget.
+//
+// Deprecated: the form detects edits and blur on its fields' widgets
+// itself (#1257), with the same results. Remove the call and register
+// the field every frame with FormRegisterFieldByID. In a deferred
+// callback such as Input's OnBlur, ctx.Layout is nil and this call
+// does nothing.
+//
+// exportaudit:keep — deprecated; apps still call it until they migrate
 func FormOnFieldEvent(
 	w *Window, layout *Layout,
 	cfg FormFieldAdapterCfg, trigger FormValidationTrigger,
@@ -367,14 +395,14 @@ func FormOnFieldEvent(
 	if cfg.FieldID == "" {
 		return
 	}
-	formID := formFindAncestorID(layout)
+	formID := formFindAncestorID(w, layout)
 	if formID == "" {
 		return
 	}
 	formOnFieldEventForForm(w, formID, cfg, trigger)
 }
 
-// FormOnFieldEventByID triggers validation for a field with a
+// formOnFieldEventByID triggers validation for a field with a
 // known form ID.
 func formOnFieldEventByID(
 	w *Window, formID string,
@@ -394,29 +422,66 @@ func formOnFieldEventForForm(
 ) {
 	state := formRuntime(w, formID)
 	field := formEnsureField(state, cfg)
+	if trigger == FormTriggerBlur && field.widgetEff != "" {
+		// The form found this field's widget and runs its blur itself
+		// when focus leaves it. A reported blur, often sent while the
+		// widget still has focus (a commit on Enter), would validate
+		// the field twice.
+		return
+	}
+	formRunTrigger(w, formID, state, cfg.FieldID, field, trigger)
+	if trigger == FormTriggerChange {
+		// The caller reported this edit itself, so the amend pass must
+		// not count it a second time.
+		field.prevValue = field.value
+		formRecheckOthers(formID, state, cfg.FieldID)
+	}
+}
+
+// formRunTrigger marks the field touched on blur or submit, then runs
+// its validators when its mode covers trigger.
+func formRunTrigger(
+	w *Window, formID string, state *formRuntimeState,
+	fieldID string, field *formFieldRuntime,
+	trigger FormValidationTrigger,
+) {
 	if trigger == FormTriggerBlur || trigger == FormTriggerSubmit {
 		field.touched = true
 	}
-
 	if !formShouldValidate(field.validateOn, trigger) {
 		return
 	}
+	formRunSync(formID, state, fieldID, field)
+	formStartAsync(w, formID, state, fieldID, field)
+}
 
-	// Sync validation.
+// formRunSync replaces the field's sync issues with what its sync
+// validators report for the current values.
+func formRunSync(
+	formID string, state *formRuntimeState,
+	fieldID string, field *formFieldRuntime,
+) {
+	field.checked = true
 	field.syncErrors = field.syncErrors[:0]
-	if len(field.syncVals) > 0 {
-		snapshot := formSnapshotFromState(formID, state)
-		fieldSnap := formFieldSnapshot(formID, cfg.FieldID, field)
-		for _, validator := range field.syncVals {
-			issues := validator(fieldSnap, snapshot)
-			if len(issues) > 0 {
-				field.syncErrors = append(
-					field.syncErrors, issues...)
-			}
+	if len(field.syncVals) == 0 {
+		return
+	}
+	snapshot := formSnapshotFromState(formID, state)
+	fieldSnap := formFieldSnapshot(formID, fieldID, field)
+	for _, validator := range field.syncVals {
+		issues := validator(fieldSnap, snapshot)
+		if len(issues) > 0 {
+			field.syncErrors = append(field.syncErrors, issues...)
 		}
 	}
+}
 
-	// Abort previous async.
+// formStartAsync aborts the field's running async validators and
+// starts them again for the current values.
+func formStartAsync(
+	w *Window, formID string, state *formRuntimeState,
+	fieldID string, field *formFieldRuntime,
+) {
 	if field.pending && field.activeAbort != nil {
 		field.activeAbort.Abort()
 	}
@@ -424,7 +489,6 @@ func formOnFieldEventForForm(
 	field.asyncErrors = field.asyncErrors[:0]
 	field.activeAbort = nil
 
-	// Async validation.
 	if len(field.asyncVals) > 0 {
 		field.pending = true
 		field.requestSeq++
@@ -432,11 +496,9 @@ func formOnFieldEventForForm(
 		controller := NewGridAbortController()
 		field.activeAbort = controller
 		snapshot := formSnapshotFromState(formID, state)
-		fieldSnap := formFieldSnapshot(
-			formID, cfg.FieldID, field)
+		fieldSnap := formFieldSnapshot(formID, fieldID, field)
 		validators := slices.Clone(field.asyncVals)
 		signal := controller.Signal
-		fieldID := cfg.FieldID
 		go func() {
 			var issues []FormIssue
 			for _, validator := range validators {
@@ -482,7 +544,13 @@ func formApplyAsyncResult(
 	w.InvalidateLayout()
 }
 
-// FormRequestSubmit triggers a submit request for the form.
+// FormRequestSubmit asks the form to submit, typically from a submit
+// button's OnClick; Enter in a single-line Input inside the form calls
+// it too. In its next frame the form validates every field. It then
+// calls OnSubmit, unless an error or a running async validator blocks
+// the submit (see FormCfg.AllowInvalidSubmit and AllowPendingSubmit).
+// A blocked submit calls nothing; the issues show through the read
+// functions and slots.
 func FormRequestSubmit(w *Window, formID string) {
 	if formID == "" {
 		return
@@ -492,7 +560,10 @@ func FormRequestSubmit(w *Window, formID string) {
 	w.InvalidateLayout()
 }
 
-// FormRequestReset triggers a reset request for the form.
+// FormRequestReset asks the form to reset. In its next frame every
+// field goes back to its initial value and loses its issues and its
+// touched state. Then OnReset gets the initial values, and must copy
+// them into the app's state (see FormResetEvent).
 func FormRequestReset(w *Window, formID string) {
 	if formID == "" {
 		return
@@ -502,13 +573,14 @@ func FormRequestReset(w *Window, formID string) {
 	w.InvalidateLayout()
 }
 
-// FormRequestSubmitForLayout finds the ancestor form and
-// requests submit if SubmitOnEnter is enabled.
+// formRequestSubmitForLayout finds the ancestor form and requests
+// submit unless the form sets NoSubmitOnEnter. Input's Enter handling
+// calls it (#1257).
 func formRequestSubmitForLayout(w *Window, layout *Layout) {
 	if layout == nil || layout.Shape == nil {
 		return
 	}
-	formID := formFindAncestorID(layout)
+	formID := formFindAncestorID(w, layout)
 	if formID == "" {
 		return
 	}
@@ -519,7 +591,11 @@ func formRequestSubmitForLayout(w *Window, layout *Layout) {
 	FormRequestSubmit(w, formID)
 }
 
-// FormSummary returns the aggregate validation state.
+// FormSummary returns the validation state of the whole form, as of
+// its last validation. Read it in the view, every frame: it changes
+// after an edit, a blur, a submit or an async result, and the form
+// redraws the window when it does. A form that has not been built yet
+// reads as valid, so a submit button can be enabled from the start.
 func (w *Window) FormSummary(formID string) FormSummaryState {
 	state := formRuntimeRead(w, formID)
 	if state == nil {
@@ -528,8 +604,8 @@ func (w *Window) FormSummary(formID string) FormSummaryState {
 	return formComputeSummary(state)
 }
 
-// FormPendingState returns which fields have pending async
-// validation.
+// FormPendingState returns the fields whose async validators run, for
+// a "checking …" line. Read it in the view, like FormSummary.
 func (w *Window) FormPendingState(
 	formID string,
 ) FormPendingState {
@@ -540,7 +616,9 @@ func (w *Window) FormPendingState(
 	return formComputePending(formID, state)
 }
 
-// FormFieldState returns the public state of a single field.
+// FormFieldState returns a field's state: value, issues, touched,
+// dirty and pending. ok is false when the field is not registered.
+// Read it in the view, like FormSummary.
 func (w *Window) FormFieldState(
 	formID, fieldID string,
 ) (FormFieldState, bool) {
@@ -555,7 +633,10 @@ func (w *Window) FormFieldState(
 	return formToPublicFieldState(field), true
 }
 
-// FormFieldErrors returns validation issues for a single field.
+// FormFieldErrors returns a field's issues, warnings included, or nil
+// when it has none or is not registered. The slice is the form's own
+// and the next validation reuses it: read it in the view, and copy it
+// before keeping it past the frame.
 func (w *Window) FormFieldErrors(
 	formID, fieldID string,
 ) []FormIssue {
@@ -566,12 +647,12 @@ func (w *Window) FormFieldErrors(
 	return fs.Errors
 }
 
-// FormSubmit requests form submit and triggers a window update.
+// formSubmit requests form submit and triggers a window update.
 func (w *Window) formSubmit(formID string) {
 	FormRequestSubmit(w, formID)
 }
 
-// FormReset requests form reset and triggers a window update.
+// formReset requests form reset and triggers a window update.
 func (w *Window) formReset(formID string) {
 	FormRequestReset(w, formID)
 }
