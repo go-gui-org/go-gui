@@ -526,10 +526,12 @@ func demoForms(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		OnSubmit: func(e gui.FormSubmitEvent, ctx gui.EventCtx) {
 			app := appState(ctx.Window)
+			// The password is submitted but never echoed.
 			app.Form.SubmitMessage = fmt.Sprintf(
-				"Submitted username=%s, email=%s",
+				"Submitted username=%s, email=%s, age=%s (password not shown)",
 				strings.TrimSpace(e.Values["username"]),
-				strings.TrimSpace(e.Values["email"]))
+				strings.TrimSpace(e.Values["email"]),
+				strings.TrimSpace(e.Values["age"]))
 		},
 		OnReset: func(e gui.FormResetEvent, ctx gui.EventCtx) {
 			app := appState(ctx.Window)
