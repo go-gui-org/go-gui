@@ -74,7 +74,7 @@ func mainView(w *gui.Window) gui.View {
 	rows := []gui.View{
 		gui.Label("Optical centring probe — issue #346", th.TextStyleTitle),
 		gui.Label("corrected: badge and progress readout on their own "+
-			"ink; button, tab, select and menu on the face's cap band; "+
+			"ink; button, tab, select and menu on its label band; "+
 			"colour fields and masked inputs on its figures. "+
 			"uncorrected: plain text, input. a badge that descends is "+
 			"left alone, while a button that descends is not — the "+
@@ -82,12 +82,12 @@ func mainView(w *gui.Window) gui.View {
 			th.TextStyleSecondary),
 		gui.Separator(gui.SeparatorCfg{}),
 		// Select re-labels itself as the selection changes, so it takes
-		// the content-free cap-band form: both of these must sit at the
+		// the content-free label-band form: both of these must sit at the
 		// same height, and the descender in "language" must hang below
 		// the middle rather than pull the whole label up. It leads the
 		// page because a control's label is what the correction is most
 		// often judged by.
-		gui.Label("select — cap band, whatever the label says",
+		gui.Label("select — label band, whatever the label says",
 			th.TextStyleLabel),
 		gui.Row(gui.ContainerCfg{
 			Spacing:    gui.SpacingMedium,
@@ -200,7 +200,7 @@ func sizeRow(size float32, text string) gui.View {
 				// func would only add noise.
 			}),
 			// A cap-only button beside the row's own spelling. Buttons
-			// take the cap band, so this one and the "gypsy" button a
+			// take the label band, so this one and the "gypsy" button a
 			// row down must sit at the same height in their boxes —
 			// that is the property, and it is only visible as a pair.
 			gui.Button(gui.ButtonCfg{

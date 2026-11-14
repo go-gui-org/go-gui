@@ -209,12 +209,13 @@ user types into an unconstrained control is not eligible. Correcting it drops
 descender-bearing content low, and that is measured, not predicted (issue #346).
 
 A control that **re-labels itself** — a `Select` that shows a placeholder until
-an option is chosen — takes `opticalCenterLabelText`. It uses the cap band,
-whatever the label says. Measuring the run there both misses the defect (a
-descending label's ink band already reads low while its cap band rides high) and
-steps the label when the selection changes.
+an option is chosen — takes `opticalCenterLabelText`. It uses the label band
+(halfway between the cap band and the x-height band), whatever the label says.
+Measuring the run there both misses the defect (a descending label's ink band
+already reads low while its cap band rides high) and steps the label when the
+selection changes.
 
-A control in a **list at a regular pitch** — a menu item — takes the cap band
+A control in a **list at a regular pitch** — a menu item — takes the label band
 for a second reason. Measuring each run moves a descender-free label while
 leaving its neighbor. Uneven baselines read down the whole list. The same
 disagreement between two badges side by side does not.
@@ -224,11 +225,13 @@ one rule:
 
 - a **value** — a badge's count, a progress readout — is centered on its own
   ink.
-- a **label** — a button, tab, menu item, select — on the face's cap band.
+- a **label** — a button, tab, menu item, select — on the face's label band:
+  halfway between its cap height and its x-height. Caps alone left a lowercase
+  label low.
 - a **glyph** — an icon, a step triangle, a `×` — always on its own ink, and it
   says so through its style. The theme's icon roles carry the mark, and
   `glyphStyle(ts)` applies it to a symbol drawn in a text face. A glyph child
-  inside a cap-band container corrects itself, so an icon button needs nothing
+  inside a label-band container corrects itself, so an icon button needs nothing
   at the call site.
 - **editable text** takes a content-free band, or none at all.
 
