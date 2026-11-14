@@ -4,13 +4,48 @@ import "fmt"
 
 const boundedOrderCompactMin = 64
 
-// BoundedMap is a map with maximum size. When full, oldest entries
-// are evicted (FIFO).
+// BoundedMap is a map with maximum size.
+//
+// When Set adds a key to a full map, one entry goes:
+//
+//   - A map from StateMap, or a hot state map (ScrollX, ScrollY and the
+//     overflow and hover maps), removes the oldest inserted entry that was
+//     not used in the current view pass. Get, GetOr and Set stamp an entry
+//     with the window's view pass, so state that a widget on screen reads
+//     every frame is not the target while an unused entry exists. When
+//     every entry was used in this pass, the oldest inserted goes (#1263).
+//   - A map from NewBoundedMap has no view pass and removes the oldest
+//     inserted entry (FIFO).
+//
+// Keys, Range and time-travel snapshots use insertion order in both cases.
+// evictToBudget always removes the oldest inserted entries first.
 type BoundedMap[K comparable, V any] struct {
-	data    map[K]V
-	order   []K
-	head    int
-	maxSize int
+	data  map[K]boundedEntry[V]
+	order []K
+	head  int
+	// pass points at the window's view-pass counter (Window.viewPass).
+	// Nil selects FIFO eviction and no stamps are read.
+	pass *uint64
+	// usedTo caches the scan of evictUnused within one view pass: every
+	// live entry in order[head:usedTo] was used in pass usedPass. Stamps
+	// only rise, so that stays true for the rest of the pass, and the next
+	// eviction starts at usedTo. Without the cache, a pass that inserts
+	// many keys into a full map rescans the same used entries on every
+	// insert. usedOK is false after any change that moves order slots.
+	usedTo   int
+	usedPass uint64
+	usedOK   bool
+	maxSize  int
+}
+
+// boundedEntry keeps the stamp beside the value, so a Get that stamps
+// costs one map write on an existing key and allocates nothing. A second
+// map for the stamps would add a lookup to every Get.
+type boundedEntry[V any] struct {
+	val V
+	// seen is the view pass of the last Get, GetOr or Set. Unused when
+	// BoundedMap.pass is nil.
+	seen uint64
 }
 
 // NewBoundedMap creates a BoundedMap with the given max size.
@@ -28,7 +63,7 @@ func NewBoundedMap[K comparable, V any](maxSize int) *BoundedMap[K, V] {
 	// allocates the full table up front per map. Maps that do fill pay
 	// only amortized rehash cost on the way up.
 	return &BoundedMap[K, V]{
-		data:    make(map[K]V),
+		data:    make(map[K]boundedEntry[V]),
 		order:   make([]K, 0, orderCap),
 		maxSize: maxSize,
 	}
@@ -66,13 +101,27 @@ func (m *BoundedMap[K, V]) restoreAny(src any) {
 	})
 }
 
-// Set adds or updates a key-value pair. Evicts oldest if at capacity.
+// stamp returns the current view pass, or zero for a map with no pass.
+func (m *BoundedMap[K, V]) stamp() uint64 {
+	if m.pass == nil {
+		return 0
+	}
+	return *m.pass
+}
+
+// Set adds or updates a key-value pair. At capacity it evicts one entry
+// first: for a StateMap map the oldest inserted entry not used in this
+// view pass, otherwise the oldest inserted (see BoundedMap).
 func (m *BoundedMap[K, V]) Set(key K, value V) {
+	seen := m.stamp()
 	if _, exists := m.data[key]; exists {
-		m.data[key] = value
+		m.data[key] = boundedEntry[V]{val: value, seen: seen}
 		return
 	}
 	if m.maxSize > 0 {
+		if m.pass != nil && len(m.data) >= m.maxSize {
+			m.evictUnused()
+		}
 		for len(m.data) >= m.maxSize && m.head < len(m.order) {
 			oldestKey := m.order[m.head]
 			m.head++
@@ -83,23 +132,75 @@ func (m *BoundedMap[K, V]) Set(key K, value V) {
 		}
 	}
 	m.order = append(m.order, key)
-	m.data[key] = value
+	m.data[key] = boundedEntry[V]{val: value, seen: seen}
 	if m.maxSize > 0 {
 		m.compactOrder()
 	}
 }
 
-// Get returns value for key. Second return is false if not found.
+// evictUnused removes the oldest inserted entry not used in the current
+// view pass. It does nothing when every entry was used in this pass: Set
+// then evicts the oldest inserted entry, as FIFO does.
+//
+// Exact least-recently-used order was rejected (#1263): it needs a scan of
+// the whole map on every insert into a full map. That cost 900 µs per pass
+// for 1000 keys through a 256-entry map, against 46 µs for FIFO. This rule
+// still keeps state that is read every frame, and with the usedTo cache it
+// passes each used entry at most once per pass.
+func (m *BoundedMap[K, V]) evictUnused() {
+	cur := *m.pass
+	i := m.head
+	if m.usedOK && m.usedPass == cur && m.usedTo > i {
+		i = m.usedTo
+	}
+	for ; i < len(m.order); i++ {
+		k := m.order[i]
+		e, exists := m.data[k]
+		if !exists || e.seen >= cur {
+			continue
+		}
+		m.removeSlot(i)
+		delete(m.data, k)
+		// Slots before i did not move, so the cache stays valid.
+		m.usedTo, m.usedPass, m.usedOK = i, cur, true
+		return
+	}
+	m.usedTo, m.usedPass, m.usedOK = len(m.order), cur, true
+}
+
+// removeSlot drops order[i]. The head slot only advances head; any other
+// slot shifts the tail left in place, which allocates nothing. Either way
+// the slots before i keep their index.
+func (m *BoundedMap[K, V]) removeSlot(i int) {
+	var zero K
+	if i == m.head {
+		m.order[i] = zero
+		m.head++
+		return
+	}
+	copy(m.order[i:], m.order[i+1:])
+	m.order[len(m.order)-1] = zero
+	m.order = m.order[:len(m.order)-1]
+}
+
+// Get returns value for key. Second return is false if not found. For a
+// StateMap map, a hit stamps the entry with the current view pass. The
+// write happens only when the stamp is old, so a key read many times in one
+// pass costs one extra map write in that pass.
 func (m *BoundedMap[K, V]) Get(key K) (V, bool) {
-	v, ok := m.data[key]
-	return v, ok
+	e, ok := m.data[key]
+	if ok && m.pass != nil && e.seen != *m.pass {
+		e.seen = *m.pass
+		m.data[key] = e
+	}
+	return e.val, ok
 }
 
 // GetOr returns the value for key, or def if the key is absent.
 // Use at call sites that would otherwise ignore Get's ok boolean, so
 // the assumed default is explicit rather than an implicit zero value.
 func (m *BoundedMap[K, V]) GetOr(key K, def V) V {
-	if v, ok := m.data[key]; ok {
+	if v, ok := m.Get(key); ok {
 		return v
 	}
 	return def
@@ -111,6 +212,8 @@ func (m *BoundedMap[K, V]) Delete(key K) {
 		return
 	}
 	delete(m.data, key)
+	// The shift below moves slots under the evictUnused cache.
+	m.usedOK = false
 	if len(m.data) == 0 {
 		// Zero the slots before the reslice: slots past len must stay
 		// zero so dead keys are releasable and Clear's clear(m.order)
@@ -125,14 +228,10 @@ func (m *BoundedMap[K, V]) Delete(key K) {
 	// Set(key) sees the key as absent and appends a second slot: Keys and
 	// Range then yield it twice, and eviction treats it as the oldest entry.
 	// Every live key holds exactly one slot in order[head:], so the first
-	// match is the only one. The shift is in place and allocates nothing.
-	live := m.order[m.head:]
-	for i, k := range live {
+	// match is the only one. removeSlot allocates nothing.
+	for i, k := range m.order[m.head:] {
 		if k == key {
-			copy(live[i:], live[i+1:])
-			var zero K
-			live[len(live)-1] = zero
-			m.order = m.order[:len(m.order)-1]
+			m.removeSlot(m.head + i)
 			break
 		}
 	}
@@ -159,6 +258,7 @@ func (m *BoundedMap[K, V]) Clear() {
 	clear(m.order)
 	m.order = m.order[:0]
 	m.head = 0
+	m.usedOK = false
 }
 
 // Keys returns all keys in insertion order.
@@ -202,11 +302,11 @@ func (m *BoundedMap[K, V]) Range(fn func(K, V) bool) {
 		return
 	}
 	for _, k := range m.order[m.head:] {
-		v, exists := m.data[k]
+		e, exists := m.data[k]
 		if !exists {
 			continue
 		}
-		if !fn(k, v) {
+		if !fn(k, e.val) {
 			return
 		}
 	}
@@ -222,8 +322,8 @@ func (m *BoundedMap[K, V]) evictToBudget(maxBytes int, newBytes int, sizeFn func
 	}
 	// Sum current entries + pending new bytes.
 	total := newBytes
-	for _, v := range m.data {
-		total += sizeFn(v)
+	for _, e := range m.data {
+		total += sizeFn(e.val)
 	}
 	if total <= maxBytes {
 		return 0
@@ -232,8 +332,8 @@ func (m *BoundedMap[K, V]) evictToBudget(maxBytes int, newBytes int, sizeFn func
 	for total > maxBytes && m.head < len(m.order) {
 		oldestKey := m.order[m.head]
 		m.head++
-		if v, exists := m.data[oldestKey]; exists {
-			total -= sizeFn(v)
+		if e, exists := m.data[oldestKey]; exists {
+			total -= sizeFn(e.val)
 			delete(m.data, oldestKey)
 			evicted++
 		}
@@ -265,6 +365,7 @@ func (m *BoundedMap[K, V]) compactOrder() {
 	}
 	m.order = m.order[:dst]
 	m.head = 0
+	m.usedOK = false
 }
 
 // stringKeys returns the map's keys when they are strings, and nil

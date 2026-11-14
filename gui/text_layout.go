@@ -238,8 +238,8 @@ func sweepTextBlocks(w *Window) {
 	// Walk the entries in place: Range takes a closure, which would
 	// escape and allocate on every pass.
 	stale := w.scratch.textBlockStale[:0]
-	for k, b := range m.data {
-		if b == nil || b.seen+1 < w.viewPass {
+	for k, e := range m.data {
+		if b := e.val; b == nil || b.seen+1 < w.viewPass {
 			stale = append(stale, k)
 		}
 	}

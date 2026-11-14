@@ -27,6 +27,18 @@ and this project adheres to
 
 ### Changed
 
+- **A full state map evicts state that is not in use, not the oldest state
+  (#1263).** Before, a full `StateMap` namespace, or the scroll, overflow and
+  hover maps, removed the oldest inserted key when a new key arrived. A widget
+  on screen that reads its state every frame could lose it, for example the rows
+  of a list where paging adds new row IDs. Now `Get`, `GetOr` and `Set` stamp
+  each entry with the view pass. A full map removes the oldest entry that was
+  not used in the current pass. Only when every entry was used in this pass does
+  the oldest inserted go. Off-screen state, such as a hidden tab, stays until
+  the map is full, as before. Capacities do not change, eviction stays about as
+  fast as before, and `Keys` and `Range` keep insertion order. A map built with
+  `NewBoundedMap` alone still removes the oldest inserted key.
+
 - **Enter submits a form (#1257).** Enter in a single-line Input inside a Form
   now requests submit, as in an HTML form. Before, Enter did nothing there, and
   `NoSubmitOnEnter` turned off a feature that did not exist. An app that wired
