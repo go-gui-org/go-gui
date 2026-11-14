@@ -59,11 +59,11 @@ different guarantees:
 | `opticalCapOffset(style)`   | the face's caps    | editable text whose alphabet includes caps (hex)           |
 | `opticalDigitOffset(style)` | the face's figures | editable text that is digits and separators                |
 | `opticalCenterFieldText`    | the face's figures | the same, as an `AmendLayout` hook                         |
-| `opticalCenterLabelText`    | the face's caps    | a widget-owned label the control swaps as it changes state |
+| `opticalCenterLabelText`    | caps and x-height  | a widget-owned label the control swaps as it changes state |
 | `OpticalCenterText`         | the run            | text the widget owns and the user cannot type into         |
 
-`opticalCenterChildren` takes an `opticalBand` — run, cap or digit — rather than
-a boolean, because the choice was never binary: those are three different
+`opticalCenterChildren` takes an `opticalBand` — run, label or digit — rather
+than a boolean, because the choice was never binary: those are three different
 answers, and which is right is a property of the widget's text, not of the
 correction.
 
@@ -75,10 +75,12 @@ back. It is worth stating as a rule, because a new widget is judged against it:
 - **A value takes its own ink.** A badge's count, a progress bar's readout:
   centring that string on its own ink keeps two of them side by side consistent.
   A descender is left where metric centring put it.
-- **A label takes the face's cap band.** A button, a tab, a menu item, a select:
-  the text names a control, the eye reads it by its caps, and a row or a list of
-  them must agree whatever any one of them happens to say. A descender hangs
-  below centre, which is how a control label is set.
+- **A label takes the face's label band** — halfway between its cap band and its
+  x-height band (see the last section; it was the cap band alone at first). A
+  button, a tab, a menu item, a select: the text names a control, the eye reads
+  it by its caps, and a row or a list of them must agree whatever any one of
+  them happens to say. A descender hangs below centre, which is how a control
+  label is set.
 - **A glyph takes its own ink, always.** An icon or a symbol has no cap band to
   centre on. `TextStyle.glyphRole` marks one. The theme's `Icon` rungs carry the
   mark, and `glyphStyle(ts)` is the spelling for a symbol drawn in an ordinary
@@ -330,3 +332,35 @@ constrained (by the rule above), and the widgets that centre text without going
 through `Button` or the menu item — breadcrumb, expand panel. Those are a
 straightforward extension when wanted. Each needs the hook on the container that
 holds its label.
+
+## The label band: caps and x-height, not caps alone
+
+Labels first took the cap band alone, and a mostly-lowercase label read low. On
+the showcase "Open Command Palette" button, measured on the real render in
+device pixels, the caps were centred to the pixel while the lowercase sat 2.5
+below centre: the eye reads a lowercase word by its x-height, and the x band
+sits lower than the cap band.
+
+`opticalLabelOffset` now centres the midpoint of the cap band and the x-height
+band (probes `H` and `x`, weight `opticalLabelXWeight = 0.5`). It is still
+content-free, so a row of labels keeps one baseline and a label that changes
+does not move. `opticalBandCap` became `opticalBandLabel`; `opticalCapOffset`
+stays for hex fields, whose alphabet is caps.
+
+- **The blend is taken before the clamp.** On a real face the x band sits at or
+  below the box centre, so its own offset is zero or negative. Clamping it first
+  would make the result half the cap offset whatever the face does. Only the
+  final value is held at zero or above.
+- **Cost.** An all-caps or digit label now sits about 1.25 device pixels high at
+  size 16 on a 2x display, where it was centred. Half the error was traded for
+  half the error on the other kind of label.
+
+### Rejected
+
+- **x-height only.** Fixes lowercase fully but leaves all-caps labels 2.5 device
+  pixels high.
+- **Cap plus descender band (probe `Hp`).** Same overshoot on labels with no
+  descenders, and it moves every label.
+- **Centring each run on its own ink.** The first rejection above: labels in a
+  toolbar move by different amounts.
+- **A public knob on `ButtonCfg`.** Surface for a default apps should not tune.

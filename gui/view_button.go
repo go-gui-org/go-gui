@@ -139,14 +139,15 @@ func buttonAmendLayout(ctx EventCtx) {
 	// the button's state, and the early return below covers only the
 	// hover/focus colouring and the caller's own hook.
 	//
-	// The cap band, not the run: a button is a control whose text is a
+	// The label band (cap height blended with x-height), not the run:
+	// a button is a control whose text is a
 	// label, and a strip of tabs or a toolbar row is a list at a
 	// regular pitch, where measuring each run would drop a
 	// descender-free label and leave its descending neighbour behind.
 	// A label holding digits by construction says so and takes the
 	// figure band; an icon child opts itself back onto its own ink
 	// through the style's glyph role (issue #346).
-	band := opticalBandCap
+	band := opticalBandLabel
 	if ctx.Layout.Shape.bc != nil && ctx.Layout.Shape.bc.opticalDigits {
 		band = opticalBandDigit
 	}
