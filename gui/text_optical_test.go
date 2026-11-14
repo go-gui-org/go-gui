@@ -33,6 +33,8 @@ func (m *runInkMeasurer) TextInkBounds(text string, _ TextStyle) (
 // disagree by construction:
 //
 //	"H" (the cap probe)  ink 2..14, centre  8 → cap offset   +2
+//	"x" (the x probe)    ink 6..14, centre 10 → x offset      0
+//	label band           midpoint of cap and x → label offset +1
 //	"0" (the digit probe) ink 4..14, centre  9 → digit offset +1
 //	an icon glyph         ink 6..16, centre 11 → run offset    0 (clamped)
 //
@@ -45,6 +47,7 @@ func bandTestWindow() *Window {
 		stubTextMeasurer: stubTextMeasurer{charWidth: 10, fontHeight: 20},
 		ink: map[string]InkBounds{
 			opticalProbe:      {Y: 2, Height: 12, Width: 10},
+			opticalXProbe:     {Y: 6, Height: 8, Width: 10},
 			opticalDigitProbe: {Y: 4, Height: 10, Width: 10},
 			"Save":            {Y: 2, Height: 12, Width: 40},
 			iconProbeRune:     {Y: 6, Height: 10, Width: 10},
@@ -75,19 +78,19 @@ func TestOpticalCapBandLeavesGlyphsOnTheirOwnInk(t *testing.T) {
 
 	iconStyle := TextStyle{Size: 16, glyphRole: true}
 	frame := bandTestFrame(iconProbeRune, iconStyle)
-	opticalCenterChildren(EventCtx{&frame, nil, w}, opticalBandCap)
+	opticalCenterChildren(EventCtx{&frame, nil, w}, opticalBandLabel)
 	if got := frame.Children[0].Shape.Y; got != 0 {
 		t.Errorf("icon glyph moved by %v, want 0 (its ink is already low)",
 			got)
 	}
 
 	// The same container, same band, a label rather than a glyph: this
-	// one takes the cap band, or the test above would pass with the
+	// one takes the label band, or the test above would pass with the
 	// correction switched off entirely.
 	labelFrame := bandTestFrame("Save", TextStyle{Size: 16})
-	opticalCenterChildren(EventCtx{&labelFrame, nil, w}, opticalBandCap)
-	if got := labelFrame.Children[0].Shape.Y; got != 2 {
-		t.Errorf("label moved by %v, want the cap offset 2", got)
+	opticalCenterChildren(EventCtx{&labelFrame, nil, w}, opticalBandLabel)
+	if got := labelFrame.Children[0].Shape.Y; got != 1 {
+		t.Errorf("label moved by %v, want the label offset 1", got)
 	}
 }
 
@@ -124,13 +127,13 @@ func TestButtonDigitLabelTakesFigureBand(t *testing.T) {
 		t.Errorf("digit label moved by %v, want the figure offset 1", got)
 	}
 
-	// The same button without the flag reads the cap band, which is the
-	// default for every other label.
+	// The same button without the flag reads the label band, which is
+	// the default for every other label.
 	capFrame := bandTestFrame("Save", TextStyle{Size: 16})
 	capFrame.Shape.bc = &shapeButtonColors{}
 	buttonAmendLayout(EventCtx{&capFrame, nil, w})
-	if got := capFrame.Children[0].Shape.Y; got != 2 {
-		t.Errorf("label moved by %v, want the cap offset 2", got)
+	if got := capFrame.Children[0].Shape.Y; got != 1 {
+		t.Errorf("label moved by %v, want the label offset 1", got)
 	}
 }
 
@@ -314,5 +317,66 @@ func TestOpticalGlyphRunSkipsCapProbe(t *testing.T) {
 	opticalCenterChildren(EventCtx{&labelFrame, nil, w}, opticalBandRun)
 	if got := labelFrame.Children[0].Shape.Y; got != 2 {
 		t.Errorf("label moved by %v, want the cap clamp 2", got)
+	}
+}
+
+// A control label is centred halfway between the face's cap band and its
+// x-height band. Caps alone left a mostly-lowercase label reading low: on
+// a showcase button the caps were centred to the pixel while the
+// lowercase sat 2.5 device pixels below centre.
+//
+// The x-height term must not be clamped on its own. On a real face the
+// x band sits at or below the box centre, so its offset is zero or
+// negative — and clamping it to zero first would turn the blend into
+// half the cap offset no matter where the x band is.
+func TestOpticalLabelBandBlendsCapAndXHeight(t *testing.T) {
+	cases := []struct {
+		name string
+		x    InkBounds
+		want float32
+	}{
+		// x centre 10 on a box centre of 10: (2 + 0) / 2.
+		{"x on centre", InkBounds{Y: 6, Height: 8, Width: 10}, 1},
+		// x centre 11, one below: (2 + -1) / 2.
+		{"x below centre", InkBounds{Y: 7, Height: 8, Width: 10}, 0.5},
+		// x centre 12: (2 + -2) / 2. The blend never moves text up.
+		{"x far below", InkBounds{Y: 8, Height: 8, Width: 10}, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := newTestWindow()
+			w.SetTextMeasurer(&runInkMeasurer{
+				stubTextMeasurer: stubTextMeasurer{fontHeight: 20},
+				ink: map[string]InkBounds{
+					opticalProbe:  {Y: 2, Height: 12, Width: 10},
+					opticalXProbe: tc.x,
+				},
+			})
+			style := TextStyle{Size: 16}
+			if got := w.opticalLabelOffset(style); got != tc.want {
+				t.Errorf("label offset = %v, want %v", got, tc.want)
+			}
+			// The cap band itself is unchanged: editable fields with a
+			// caps alphabet still centre on it.
+			if got := w.opticalCapOffset(style); got != 2 {
+				t.Errorf("cap offset = %v, want 2", got)
+			}
+		})
+	}
+}
+
+// Without an ink box the label band falls back to a fixed fraction of
+// the size, below the cap fallback: the blend moves labels less far
+// down than caps-only centring did.
+func TestOpticalLabelBandFallback(t *testing.T) {
+	w := newTestWindow()
+	style := TextStyle{Size: 20}
+	got := w.opticalLabelOffset(style)
+	if want := style.Size * fallbackLabelOffsetRatio; got != want {
+		t.Errorf("fallback label offset = %v, want %v", got, want)
+	}
+	if got >= w.opticalCapOffset(style) {
+		t.Errorf("label fallback %v not below cap fallback %v",
+			got, w.opticalCapOffset(style))
 	}
 }

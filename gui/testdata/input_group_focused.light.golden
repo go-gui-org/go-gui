@@ -14,12 +14,12 @@ Rect xy=55.40,21.00 wh=1.50,19.60 color=#1a1d21ff fill
 Clip xy=15.00,15.00 wh=230.20,31.60
 Rect xy=115.40,16.00 wh=1.00,29.60 color=#d8dde4ff fill
 Rect xy=116.40,16.00 wh=90.00,29.60 color=#ffffffff fill
-Clip xy=126.40,21.00 wh=48.96,20.84
-Text xy=126.40,22.24 wh=0.00,0.00 color=#1a1d21ff text="site.org" size=14.00
+Clip xy=126.40,21.00 wh=48.96,20.22
+Text xy=126.40,21.62 wh=0.00,0.00 color=#1a1d21ff text="site.org" size=14.00
 Clip xy=15.00,15.00 wh=230.20,31.60
 Text xy=190.36,25.76 wh=0.00,0.00 color=#1a1d21ff text="▼" size=8.40
 Rect xy=206.40,16.00 wh=1.00,29.60 color=#d8dde4ff fill
 Rect xy=207.40,16.00 wh=36.80,29.60 color=#ffffffff fill
-Text xy=217.40,22.24 wh=0.00,0.00 color=#1a1d21ff text="Go" size=14.00
+Text xy=217.40,21.62 wh=0.00,0.00 color=#1a1d21ff text="Go" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00
 StencilEnd xy=16.00,16.00 wh=228.20,29.60 radius=5.00 sdepth=1

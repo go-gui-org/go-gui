@@ -76,6 +76,27 @@ const opticalProbe = "H"
 // the guarantee is the caller's to give.
 const opticalDigitProbe = "0"
 
+// opticalXProbe measures the x-height band. 'x' is flat on top and bottom
+// in nearly every design, so its ink is the x-height with no overshoot.
+// It is half of the label band; see opticalLabelOffset.
+const opticalXProbe = "x"
+
+// opticalLabelXWeight is how far the label band sits from the cap band
+// toward the x-height band: 0 is caps only, 1 is x-height only.
+//
+// Caps only was the first rule, and it read low on a real label. On the
+// showcase "Open Command Palette" button the caps were centred to the
+// pixel, while the lowercase — most of what the eye sees — sat 2.5
+// device pixels below centre. Halfway gives that label back half the
+// error, and moves an all-caps label ("OK") only half as far up as
+// x-height centring would.
+const opticalLabelXWeight = 0.5
+
+// opticalLabelMemoProbe keys the label band in the offset memo. It is
+// not a run any label can hold, so the blended entry can never collide
+// with a measured run or with the plain cap entry.
+const opticalLabelMemoProbe = "\x00label"
+
 // fallbackCapOffsetRatio is the correction to apply when the ink box
 // cannot be measured: no measurer (tests), a backend without the ink
 // capability (WASM/canvas), or a face whose outline will not read. It is
@@ -95,6 +116,12 @@ const fallbackCapOffsetRatio = 0.0886
 // reintroducing the overshoot the measured path avoids.
 const fallbackDigitOffsetRatio = 0.0708
 
+// fallbackLabelOffsetRatio is the label band's correction when no ink can
+// be measured. On the platform UI face the x band is centred on the line
+// box (x-height about 0.538em above a baseline at 0.770em), so its own
+// offset is about zero and the blend is half the cap ratio.
+const fallbackLabelOffsetRatio = fallbackCapOffsetRatio * (1 - opticalLabelXWeight)
+
 // descenderRunes are the ASCII letters that paint below the baseline.
 // They are consulted only on the fallback path, where no ink box can be
 // measured: a rune test cannot know what an arbitrary face does, but it
@@ -113,10 +140,11 @@ const (
 	// opticalBandRun measures the run about to be moved. Only for text
 	// the widget owns and that does not change with the control's state.
 	opticalBandRun opticalBand = iota
-	// opticalBandCap centres the face's cap band, ignoring whatever
-	// descends. For a label whose alphabet is unconstrained but whose
-	// content changes — a Select's placeholder and selected option.
-	opticalBandCap
+	// opticalBandLabel centres between the face's cap band and its
+	// x-height band, ignoring whatever descends. For a control label: a
+	// button, a tab, a Select's placeholder and selected option. See
+	// opticalLabelOffset.
+	opticalBandLabel
 	// opticalBandDigit centres the face's figure band. For an editable
 	// field whose mask admits digits and separators only.
 	opticalBandDigit
@@ -224,17 +252,7 @@ func (w *Window) opticalOffset(
 	if w == nil || style.Size <= 0 || !f32IsFinite(style.Size) {
 		return 0
 	}
-	key := opticalKey{
-		family:      style.Family,
-		probe:       probe,
-		features:    fnvFontFeatures(Fnv64Offset, style.Features),
-		typeface:    style.Typeface,
-		size:        style.Size,
-		spacing:     style.LineSpacing,
-		emojiBox:    style.EmojiBoxWidth,
-		cellHeight:  style.CellHeight,
-		contentFree: contentFree,
-	}
+	key := newOpticalKey(style, probe, contentFree)
 	// Memoized per window, not per package: the measurement comes from
 	// the window's own backend, and two windows need not share one. It
 	// costs a shaping pass and a glyph-outline read, while the pass that
@@ -263,6 +281,63 @@ func (w *Window) opticalOffset(
 	}
 	// A run whose ink already sits centred or low needs no correction;
 	// a negative shift would move it further from centre, not closer.
+	off = f32Max(off, 0)
+	cache.Set(key, off)
+	return off
+}
+
+// newOpticalKey builds the memo key for probe measured in style.
+func newOpticalKey(style TextStyle, probe string, contentFree bool) opticalKey {
+	return opticalKey{
+		family:      style.Family,
+		probe:       probe,
+		features:    fnvFontFeatures(Fnv64Offset, style.Features),
+		typeface:    style.Typeface,
+		size:        style.Size,
+		spacing:     style.LineSpacing,
+		emojiBox:    style.EmojiBoxWidth,
+		cellHeight:  style.CellHeight,
+		contentFree: contentFree,
+	}
+}
+
+// opticalLabelOffset returns the downward shift that centres a control
+// label between the face's cap band and its x-height band, weighted by
+// opticalLabelXWeight. Like opticalCapOffset it depends only on the face
+// and size, so a row of labels keeps one baseline and a label that
+// changes does not move.
+//
+// The two bands are blended before the clamp, not after. On a real face
+// the x band sits at or below the box centre, so its own offset is zero
+// or negative; clamping it first would make the blend half the cap
+// offset whatever the face does. The final clamp keeps the rule every
+// band follows: never move text above where metric centring put it.
+func (w *Window) opticalLabelOffset(style TextStyle) float32 {
+	if w == nil || style.Size <= 0 || !f32IsFinite(style.Size) {
+		return 0
+	}
+	key := newOpticalKey(style, opticalLabelMemoProbe, true)
+	cache := StateMap[opticalKey, float32](w, nsOpticalOffset, capOptical)
+	if off, ok := cache.Get(key); ok {
+		return off
+	}
+
+	off := style.Size * fallbackLabelOffsetRatio
+	capInk, capOK := w.textInkBounds(opticalProbe, style)
+	xInk, xOK := w.textInkBounds(opticalXProbe, style)
+	// Both bands or neither: one band alone is not the label band, and
+	// using it would land the label on the cap or x rule by accident.
+	if capOK && xOK && capInk.Height > 0 && xInk.Height > 0 {
+		capCentre := capInk.Y + capInk.Height/2
+		xCentre := xInk.Y + xInk.Height/2
+		target := capCentre + (xCentre-capCentre)*opticalLabelXWeight
+		// Same solve as opticalOffset: both centres are measured from
+		// the top of the box fontHeight returns. A non-finite result
+		// keeps the fallback, as there.
+		if measured := fontHeight(style, w)/2 - target; f32IsFinite(measured) {
+			off = measured
+		}
+	}
 	off = f32Max(off, 0)
 	cache.Set(key, off)
 	return off
@@ -321,8 +396,9 @@ func OpticalCenterText(ctx EventCtx) {
 	opticalCenterChildren(ctx, opticalBandRun)
 }
 
-// opticalCenterLabelText centres a widget-owned label on the face's cap
-// band, ignoring what the label currently says. It is for a control that
+// opticalCenterLabelText centres a widget-owned label on the face's label
+// band (between cap height and x-height, see opticalLabelOffset),
+// ignoring what the label currently says. It is for a control that
 // *swaps* its label as its state changes — a Select showing a
 // placeholder until an option is chosen, then showing the option.
 //
@@ -343,7 +419,7 @@ func OpticalCenterText(ctx EventCtx) {
 // The consequence is deliberate: a descender hangs below centre instead
 // of pulling the whole label up, which is how a control label is set.
 func opticalCenterLabelText(ctx EventCtx) {
-	opticalCenterChildren(ctx, opticalBandCap)
+	opticalCenterChildren(ctx, opticalBandLabel)
 }
 
 // opticalCenterFieldText is the content-free sibling of
@@ -412,8 +488,8 @@ func opticalCenterChildren(ctx EventCtx, band opticalBand) {
 		switch effective {
 		case opticalBandDigit:
 			off = ctx.Window.opticalDigitOffset(style)
-		case opticalBandCap:
-			off = ctx.Window.opticalCapOffset(style)
+		case opticalBandLabel:
+			off = ctx.Window.opticalLabelOffset(style)
 		default:
 			off = ctx.Window.opticalTextOffset(style, txt.TC.Text)
 		}

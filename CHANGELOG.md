@@ -58,6 +58,17 @@ and this project adheres to
   Before, that part's own ID started with `form:`, was taken for the form's, and
   the call did nothing.
 
+- **Button, tab, Select and menu labels sit higher, so lowercase text looks
+  centred.** Before, a control label put the cap height on the vertical centre.
+  Most label text is lowercase, and lowercase is shorter than caps, so it sat
+  lower. On a showcase button, "Open Command Palette" had its caps centred to
+  the pixel and its lowercase 2.5 device pixels low. Now labels centre halfway
+  between the cap height and the x-height. That moves a lowercase label up by
+  about 0.044 of the font size (0.6 px at size 14), and an all-caps label sits
+  only that much high. The value comes from the font and its size, not from the
+  label text, so labels in a row keep one baseline. Input fields that hold
+  digits or hex values keep their own centring.
+
 ### Fixed
 
 - **`OnSubmit` and `OnReset` may call `SetFocus` and `SetView` (#1257).** The

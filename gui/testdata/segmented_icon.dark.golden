@@ -6,4 +6,4 @@ Text xy=28.00,22.24 wh=0.00,0.00 color=#ffffffff text="\uf17c" size=14.00
 Text xy=57.40,22.24 wh=0.00,0.00 color=#e6e8ebff text="\uf1ac" size=14.00
 Rect xy=75.80,18.00 wh=1.00,25.60 color=#ffffff2c fill
 Text xy=86.80,22.24 wh=0.00,0.00 color=#e6e8ebff text="\uf10f" size=14.00
-Text xy=109.20,22.24 wh=0.00,0.00 color=#e6e8ebff text="Calendar" size=14.00
+Text xy=109.20,21.62 wh=0.00,0.00 color=#e6e8ebff text="Calendar" size=14.00
