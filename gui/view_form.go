@@ -7,22 +7,23 @@ import (
 
 // ---------- public enum types ----------
 
-// FormValidateOn controls when field validation triggers.
+// FormValidateOn controls when a field's validators run. Submit runs
+// them in every mode.
 // exportaudit:keep — caller-facing config (issue #372)
 type FormValidateOn uint8
 
 // FormValidateOn values.
 const (
 	// exportaudit:keep — caller-facing config (issue #372)
-	FormValidateInherit FormValidateOn = iota
+	FormValidateInherit FormValidateOn = iota // take the form's mode
 	// exportaudit:keep — caller-facing config (issue #372)
-	FormValidateOnChange // every keystroke
+	FormValidateOnChange // each edit, on blur and on submit
 	// exportaudit:keep — caller-facing config (issue #372)
-	FormValidateOnBlur // field loses focus
+	FormValidateOnBlur // on blur and on submit; same as FormValidateOnBlurSubmit
 	// exportaudit:keep — caller-facing config (issue #372)
-	FormValidateOnBlurSubmit // blur or submit
+	FormValidateOnBlurSubmit // on blur and on submit (the default)
 	// exportaudit:keep — caller-facing config (issue #372)
-	FormValidateOnSubmit // submit only
+	FormValidateOnSubmit // on submit only
 )
 
 // FormIssueKind distinguishes error from warning.
@@ -38,7 +39,8 @@ const (
 )
 
 // FormValidationTrigger indicates which user action triggered
-// validation.
+// validation. Only the deprecated FormOnFieldEvent takes it: the form
+// detects change and blur itself.
 type FormValidationTrigger uint8
 
 // FormValidationTrigger values.
@@ -50,42 +52,64 @@ const (
 
 // ---------- public data types ----------
 
-// FormIssue is a single validation issue for a field.
+// FormIssue is one validation result for a field, as a validator
+// returns it.
 type FormIssue struct {
+	// Code is a name for the issue that code can test, chosen by the
+	// app ("EMAIL_REQUIRED"). go-gui does not read it.
 	// exportaudit:keep — json-tagged or same-named member
 	Code string
-	Msg  string
+	// Msg is the text to show the user.
+	Msg string
+	// Kind tells an error, which blocks submit, from a warning, which
+	// does not. The zero value is FormIssueError.
 	Kind FormIssueKind
 }
 
-// FormFieldSnapshot is a read-only snapshot of one field,
-// passed to validators.
+// FormFieldSnapshot is a read-only copy of one field, passed to
+// validators.
 type FormFieldSnapshot struct {
 	FormID  string
 	FieldID string
 	Value   string
+	// Touched is true once focus left the field's widget or the form
+	// was submitted.
 	Touched bool
-	Dirty   bool
+	// Dirty is true while Value differs from the initial value.
+	Dirty bool
 }
 
-// FormFieldState is the public view of a field's runtime state.
+// FormFieldState is a field's state as the form holds it, read with
+// (*Window).FormFieldState. It reflects the last validation; the form
+// redraws the window when that changes.
 type FormFieldState struct {
+	// Value is the value registered in the latest frame.
 	Value string
 	// InitialValue is the pristine value dirty-state is measured
 	// against.
 	// exportaudit:keep — caller-facing state (issue #372)
 	InitialValue string
+	// Errors holds the issues of the last validation, warnings
+	// included. Despite the name, check FormIssue.Kind to tell them
+	// apart.
 	// exportaudit:keep — field name collides with datagrid.Errors
-	Errors  []FormIssue
+	Errors []FormIssue
+	// Touched is true once focus left the field's widget or the form
+	// was submitted. Reset clears it.
 	Touched bool
-	Dirty   bool
+	// Dirty is true while Value differs from InitialValue.
+	Dirty bool
+	// Pending is true while the field's async validators run.
 	Pending bool
 }
 
-// FormSnapshot is a read-only snapshot of the entire form,
-// passed to validators.
+// FormSnapshot is a read-only copy of the whole form, passed to
+// validators. A rule that compares fields reads the other values from
+// Values.
 type FormSnapshot struct {
+	// Values maps each registered field ID to its value.
 	Values map[string]string
+	// Fields maps each registered field ID to its state.
 	Fields map[string]FormFieldState
 	FormID string
 }
@@ -94,30 +118,45 @@ type FormSnapshot struct {
 // fields. Issues holds every field's issues, warnings included.
 // InvalidCount and Valid count only fields with an error.
 type FormSummaryState struct {
-	Issues       map[string][]FormIssue
+	// Issues maps each field that has issues to them. It is nil when
+	// no field has any.
+	Issues map[string][]FormIssue
+	// InvalidCount is the number of fields with at least one error.
 	InvalidCount int
+	// PendingCount is the number of fields whose async validators run.
 	PendingCount int
-	Valid        bool
-	Pending      bool
+	// Valid is true when no field has an error and none is pending.
+	Valid bool
+	// Pending is true while any field's async validators run.
+	Pending bool
 }
 
-// FormPendingState lists fields with pending async validation.
+// FormPendingState lists the fields whose async validators run.
 type FormPendingState struct {
-	FormID       string
+	FormID string
+	// FieldIDs is sorted, so a "checking …" line does not reorder.
 	FieldIDs     []string
 	PendingCount int
 }
 
-// FormSubmitEvent is delivered to OnSubmit handlers.
+// FormSubmitEvent is delivered to OnSubmit handlers. By default
+// OnSubmit runs only for a valid form with nothing pending; with
+// AllowInvalidSubmit or AllowPendingSubmit, check Valid and Pending.
 type FormSubmitEvent struct {
-	State   FormSummaryState
+	// State is the form's summary right after submit validated every
+	// field.
+	State FormSummaryState
+	// Values maps each field ID to its value.
 	Values  map[string]string
 	FormID  string
 	Valid   bool
 	Pending bool
 }
 
-// FormResetEvent is delivered to OnReset handlers.
+// FormResetEvent is delivered to OnReset handlers. Values holds each
+// field's initial value. go-gui cannot change the app's state, so the
+// handler copies these values into it. Otherwise the next frame
+// registers the old values again and the reset does not show.
 type FormResetEvent struct {
 	Values map[string]string
 	FormID string
@@ -125,11 +164,22 @@ type FormResetEvent struct {
 
 // ---------- validator function types ----------
 
-// FormSyncValidator returns issues synchronously.
+// FormSyncValidator checks a field and returns its issues, or nil when
+// the value is fine. It runs on the UI thread while the form handles
+// an edit, a blur or a submit, so it must be quick and must not call
+// window functions.
 type FormSyncValidator func(FormFieldSnapshot, FormSnapshot) []FormIssue
 
-// FormAsyncValidator returns issues asynchronously. Check
-// signal.IsAborted() to detect cancellation.
+// FormAsyncValidator checks a field in the background, for a slow
+// check such as asking a server. It runs on its own goroutine with
+// copies taken when it started, and the field is Pending until it
+// returns. It runs again only when the field's value has changed: a
+// blur or a submit with the same value reuses its result, running or
+// done. A change of the value aborts it: check signal.IsAborted()
+// between slow steps and return early; its result is dropped. It must
+// not touch the window; the form applies its result on the UI thread
+// and redraws. Because it follows its own field's value, a rule that
+// also reads other fields belongs in a FormSyncValidator.
 type FormAsyncValidator func(
 	FormFieldSnapshot, FormSnapshot, *GridAbortSignal,
 ) []FormIssue
@@ -137,10 +187,17 @@ type FormAsyncValidator func(
 // ---------- FormFieldAdapterCfg ----------
 
 // FormFieldAdapterCfg configures how a field integrates with
-// an ancestor form.
+// an ancestor form. Register it every frame with
+// FormRegisterFieldByID. The form then detects edits and blur on the
+// field's widget itself.
 type FormFieldAdapterCfg struct {
 	FieldID string
-	Value   string
+	// WidgetID is the ID of the widget that edits this field, as
+	// written in its Cfg. Empty means the widget's ID is FieldID. The
+	// form watches focus on this widget: an edit while it has focus is
+	// a change, and focus leaving it is a blur.
+	WidgetID string
+	Value    string
 	// InitialValue is the pristine value that "dirty" state is
 	// measured against.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -165,21 +222,37 @@ const formLayoutIDPrefix = "form:"
 // and submit/reset semantics.
 type FormCfg struct {
 
-	// Callbacks.
+	// Callbacks. Both run after the frame, outside the frame lock, so
+	// they may call window functions such as SetFocus or SetView.
+	// ctx.Layout is nil.
+	//
+	// OnSubmit runs after a submit that is not rejected; see
+	// FormRequestSubmit.
 	OnSubmit func(FormSubmitEvent, EventCtx)
-	OnReset  func(FormResetEvent, EventCtx)
-	// ErrorSlot replaces the per-field error line renderer.
+	// OnReset runs after a reset. It must copy the event's Values into
+	// the app's state; see FormResetEvent.
+	OnReset func(FormResetEvent, EventCtx)
+	// ErrorSlot, when set, is called once per field that has issues,
+	// warnings included. The form appends what it returns after
+	// Content. Without it the form shows no issues; the app can still
+	// read them with FormFieldErrors.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ErrorSlot func(string, []FormIssue) View
-	// SummarySlot replaces the validation summary renderer.
+	// SummarySlot, when set, is called every frame with the form's
+	// summary. The form appends what it returns after Content.
 	// exportaudit:keep — caller-facing config (issue #372)
 	SummarySlot func(FormSummaryState) View
-	// PendingSlot replaces the async-pending renderer.
+	// PendingSlot, when set, is called every frame with the fields
+	// whose async validators are running, an empty list included. The
+	// form appends what it returns after Content.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PendingSlot func(FormPendingState) View
 
-	// Identity — required for validation runtime.
-	ID string `gui:"auto"`
+	// ID names the form for FormRegisterFieldByID, FormRequestSubmit
+	// and the other Form functions. Required: a form without an ID
+	// cannot register fields or submit. It builds as a plain column,
+	// and DebugMissingIDs reports it.
+	ID string `gui:"required"`
 
 	Content    []View
 	Padding    Padding
@@ -199,13 +272,17 @@ type FormCfg struct {
 	// (FormValidateInherit) takes the form-level default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ValidateOn FormValidateOn // 0 → BlurSubmit
-	// NoSubmitOnEnter disables enter-to-submit.
+	// NoSubmitOnEnter stops Enter from submitting the form. By
+	// default, Enter in a single-line Input inside the form requests
+	// submit, unless the Input's OnEnter consumed the key.
 	// exportaudit:keep — caller-facing config (issue #372)
 	NoSubmitOnEnter bool
 	// AllowInvalidSubmit permits submit with errors.
 	// exportaudit:keep — caller-facing config (issue #372)
 	AllowInvalidSubmit bool
-	// AllowPendingSubmit permits submit while async pending.
+	// AllowPendingSubmit submits at once, without waiting for running
+	// async validators. By default a submit waits for them, then goes
+	// ahead or is rejected.
 	// exportaudit:keep — caller-facing config (issue #372)
 	AllowPendingSubmit bool
 	Disabled           bool
@@ -213,10 +290,10 @@ type FormCfg struct {
 
 	// Sound overrides the theme's success cue for a submit this form
 	// accepts. SoundNone (the zero value) takes Theme.Sounds.Success,
-	// which is itself silent unless the app opted in. A submit blocked
-	// by validation or by a pending validator always takes the theme's
-	// Error role: Sound names the acceptance, not the refusal
-	// (issue #469).
+	// which is itself silent unless the app opted in. A submit that
+	// validation rejects always takes the theme's Error role: Sound
+	// names the acceptance, not the refusal (issue #469). A submit that
+	// waits for async validators sounds once, when the wait ends.
 	// exportaudit:keep — caller-facing config (issue #469)
 	Sound SoundCue
 
@@ -234,17 +311,9 @@ type formView struct {
 }
 
 // Form creates a form container with runtime validation and
-// submit/reset semantics.
+// submit/reset semantics. Each frame it detects edits and blur on its
+// registered fields' widgets, and handles submit and reset requests.
 func Form(cfg FormCfg) View {
-	// No ID: take a generated leaf at generation time (#881); see
-	// id_auto.go.
-	if cfg.ID == "" {
-		autoCfg := cfg
-		return ViewFunc(func(vw *Window) View {
-			autoCfg.ID = vw.autoLeafWindow("form")
-			return Form(autoCfg)
-		})
-	}
 	// A form is a full-width block whose height follows its fields;
 	// the zero Sizing (FitFit) shrink-wraps it to its widest label
 	// row, which no caller has meant so far.
@@ -257,6 +326,16 @@ func Form(cfg FormCfg) View {
 func (fv *formView) GenerateLayout(w *Window) Layout {
 	cfg := fv.cfg
 	formID := cfg.ID
+	if formID == "" {
+		// Nothing can register a field with an ID-less form or submit
+		// it (#1257). Show the content and say why it does nothing.
+		w.debugWarn(debugCheckFormNoID, "Form",
+			"Form has no ID: its fields cannot register and it cannot "+
+				"submit. Set FormCfg.ID.")
+		layout := generateViewLayout(formColumn(cfg, "", nil), w)
+		appendChildViews(w, &layout, fv.content)
+		return layout
+	}
 	onSubmit := cfg.OnSubmit
 	onReset := cfg.OnReset
 	// Resolved here, at generation time, so the AmendLayout closure
@@ -287,8 +366,29 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 		children = append(children, cfg.PendingSlot(pending))
 	}
 
-	inner := Column(ContainerCfg{
-		ID:          formLayoutID(formID),
+	inner := formColumn(cfg, formLayoutID(formID), func(ctx EventCtx) {
+		formCleanupStale(ctx.Window, formID)
+		formDetectFieldEvents(ctx.Window, ctx.Layout, formID)
+		formProcessRequests(ctx.Window, formID, onSubmit, onReset, cues)
+	})
+
+	// generateViewLayout rather than inner.GenerateLayout(w): the node
+	// belongs on the one generation path (ensureLayoutShape runs). inner
+	// carries no Content, so its own appendChildViews call is a no-op
+	// and no scope is pushed for it.
+	layout := generateViewLayout(inner, w)
+	// Children resolve under the absolute "form:<id>" scope (issue #306);
+	// the field registry is unaffected — FieldID never passes through ID
+	// resolution.
+	appendChildViews(w, &layout, children)
+	return layout
+}
+
+// formColumn builds the form's own container. id is empty for an
+// ID-less form, which gets no amend pass.
+func formColumn(cfg FormCfg, id string, amend func(EventCtx)) View {
+	return Column(ContainerCfg{
+		ID:          id,
 		Sizing:      cfg.Sizing,
 		Width:       cfg.Width,
 		Height:      cfg.Height,
@@ -304,22 +404,8 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 		Radius:      cfg.Radius,
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
-		AmendLayout: func(ctx EventCtx) {
-			formCleanupStale(ctx.Window, formID)
-			formProcessRequests(ctx.Window, formID, onSubmit, onReset, cues)
-		},
+		AmendLayout: amend,
 	})
-
-	// generateViewLayout rather than inner.GenerateLayout(w): the node
-	// belongs on the one generation path (ensureLayoutShape runs). inner
-	// carries no Content, so its own appendChildViews call is a no-op
-	// and no scope is pushed for it.
-	layout := generateViewLayout(inner, w)
-	// Children resolve under the absolute "form:<id>" scope (issue #306);
-	// the field registry is unaffected — FieldID never passes through ID
-	// resolution.
-	appendChildViews(w, &layout, children)
-	return layout
 }
 
 // ---------- internal runtime state ----------
@@ -328,21 +414,50 @@ type formFieldRuntime struct {
 	activeAbort  *GridAbortController
 	value        string
 	initialValue string
-	syncErrors   []FormIssue
-	asyncErrors  []FormIssue
-	syncVals     []FormSyncValidator
-	asyncVals    []FormAsyncValidator
-	requestSeq   uint64
-	seenGen      uint64
-	touched      bool
-	dirty        bool
-	pending      bool
+	// widgetID is the leaf ID of the widget that edits the field;
+	// FormFieldAdapterCfg.WidgetID, or FieldID when that is empty.
+	widgetID string
+	// widgetEff is the effective ID the widget had in the last amend
+	// pass, empty when the form did not find it.
+	widgetEff string
+	// prevValue is the value the last amend pass saw. A different
+	// value while the widget has focus is a change.
+	prevValue   string
+	syncErrors  []FormIssue
+	asyncErrors []FormIssue
+	syncVals    []FormSyncValidator
+	asyncVals   []FormAsyncValidator
+	requestSeq  uint64
+	seenGen     uint64
+	touched     bool
+	dirty       bool
+	pending     bool
+	// focused records whether focus was inside the field's widget at
+	// the last amend pass; losing it is a blur.
+	focused bool
+	// blurPending marks a blur seen at the last pass. The next pass
+	// validates it, once the widget's deferred blur commit has landed.
+	blurPending bool
+	// checked records that the sync validators have run since the
+	// field was created or reset. Only checked fields are re-checked
+	// when another field changes.
+	checked bool
+	// asyncFor is the value the async validators last started for. While
+	// asyncCurrent is set, their result, running or done, belongs to
+	// that value and is reused instead of asking again.
+	asyncFor     string
+	asyncCurrent bool
 	validateOn   FormValidateOn
 }
 
 type formRuntimeState struct {
-	fields        map[string]*formFieldRuntime
-	submitReq     bool
+	fields    map[string]*formFieldRuntime
+	submitReq bool
+	// submitWaiting marks a submit that only waits for running async
+	// validators. Each pass looks again; when they are done, the form
+	// submits, or rejects if they found errors. A value change makes it
+	// start over (submitReq), so it checks what it will send.
+	submitWaiting bool
 	resetReq      bool
 	validateOn    FormValidateOn
 	submitOnEnter bool

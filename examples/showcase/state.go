@@ -466,7 +466,7 @@ var demoEntries = []DemoEntry{
 	{ID: "input_group", Label: "Input Group", Group: groupEntry, Summary: "Join inputs, selects, buttons and text addons into one control.", Tags: []string{"addon", "prefix", "suffix", "group", "form"}},
 	{ID: "locale", Label: "Locale", Group: groupApp, Summary: "What the locale changes: number and date formats, widget strings, translations, text direction.", Tags: []string{"locale", "i18n", "l10n", "translation", "rtl", "number", "date", "currency"}},
 	{ID: "numeric_input", Label: "Numeric Input", Group: groupEntry, Summary: "Locale-aware number input with step controls.", Tags: []string{"number", "decimal", "locale", "spinner"}},
-	{ID: "forms", Label: "Forms", Group: groupEntry, Summary: "Form runtime with sync and async validation states recreated in example code.", Tags: []string{"form", "validation", "async", "touched", "dirty"}},
+	{ID: "forms", Label: "Forms", Group: groupEntry, Summary: "Form that validates fields on edit, blur and submit, with sync, async and cross-field validators.", Tags: []string{"form", "validation", "async", "touched", "dirty", "submit", "password"}},
 
 	{ID: "listbox", Label: "List Box", Group: groupChoices, Summary: "Single and multi-select list options.", Tags: []string{"list", "multi", "select"}},
 	{ID: "radio", Label: "Radio", Group: groupChoices, Summary: "Single radio control.", Tags: []string{"option", "boolean", "choice"}},

@@ -8,7 +8,86 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **A form checks its fields by itself (#1257).** Before, the app reported every
+  edit and blur by calling `FormOnFieldEvent` from each widget's callbacks. The
+  call from `OnBlur` did nothing: Input runs `OnBlur` after the frame, without a
+  layout, so the form was never found. No field was validated when the user left
+  it. Now the form compares each frame with the last one. An edit while the
+  field's widget has focus is a change, and focus leaving the widget is a blur.
+  The app still registers each field every frame with `FormRegisterFieldByID`,
+  and gives the field's widget the field's ID. The new
+  `FormFieldAdapterCfg.WidgetID` names the widget when its ID differs. After an
+  edit, the form also re-runs the sync validators of the fields it has already
+  checked, so a rule such as "confirm matches password" follows an edit of the
+  password. A field set to `FormValidateOnSubmit` is left alone until submit. A
+  value the app sets itself while the widget has no focus is validated on
+  submit, not before.
+
+### Changed
+
+- **Enter submits a form (#1257).** Enter in a single-line Input inside a Form
+  now requests submit, as in an HTML form. Before, Enter did nothing there, and
+  `NoSubmitOnEnter` turned off a feature that did not exist. An app that wired
+  Enter itself, with an `OnEnter` that calls `FormRequestSubmit`, still submits
+  once. Migration, for an app whose Enter in a form must not submit: set
+  `FormCfg.NoSubmitOnEnter`, or call `ctx.Consume()` in that Input's `OnEnter`.
+  An `OnEnter` that does something else without consuming the key now also
+  submits. go-gui's own fields that use Enter for something else consume it: the
+  command palette, the data grid's jump-to-row box and the color picker's
+  fields.
+
+- **BREAKING: `FormCfg.ID` is required (#1257).** A form without an ID used to
+  get a generated one (#881). No app could register a field with that ID or
+  submit the form, so such a form never worked. Now it shows its content and
+  nothing else, and `DebugMissingIDs` reports it. Migration: give the Form an
+  ID, and pass the same ID to `FormRegisterFieldByID` and `FormRequestSubmit`.
+
+- **`FormOnFieldEvent` is deprecated (#1257).** The form now detects edits and
+  blur itself, so the call can go. An app that keeps calling it needs no change.
+  Each call does what it did before, with one exception: a blur report for a
+  field whose widget the form finds does nothing, because the form runs that
+  blur itself when focus leaves the widget. Before, a report sent while the
+  widget still had focus, such as from a commit on Enter, validated the field
+  there and then. Two things improve without a change. When a field's widget
+  carries the field's ID, the form now also validates the field on blur, which
+  the call from `OnBlur` never did. After each change, the form re-checks fields
+  it has already checked, so a stale cross-field error clears. The call also
+  finds the form from a part of a composite widget now, such as a color field.
+  Before, that part's own ID started with `form:`, was taken for the form's, and
+  the call did nothing.
+
 ### Fixed
+
+- **`OnSubmit` and `OnReset` may call `SetFocus` and `SetView` (#1257).** The
+  form called them from its layout pass, which holds the frame lock. An
+  `OnSubmit` that moved focus or switched to the next page therefore panicked.
+  Both callbacks now run after the frame, outside the lock, as Input's blur
+  callbacks already do. `ctx.Layout` is nil in them, as before.
+
+- **A form with an async validator can submit (#1257).** Every submit started
+  the async validators again, and by default a submit is refused while one runs.
+  So `OnSubmit` never ran for a form with an async validator, unless the form
+  set `AllowPendingSubmit`. The showcase form was one of them. Now an async
+  validator runs again only when its field's value changes; a blur or a submit
+  with the same value reuses its result. A submit that only waits for a running
+  check goes ahead when the check passes, or is rejected when it reports an
+  issue. It sounds once, when the wait ends.
+
+- **An edit stops a running async check (#1257).** In the default mode an edit
+  does not validate, so it also did not stop a check of the old value. That
+  check's result then landed on the new value, for example "taken" for a name
+  the user had already changed. Now any change of a field's value stops its
+  running check and drops the result. A submit that waited for that check starts
+  over, so it checks what it will send. A reset stops the check too.
+
+- **A submit right after leaving a field sends the committed value (#1257).** A
+  click on a submit button moves focus out of the field, and the field commits
+  its text one frame later, for example NumericInput clamping `-5` to `0`. The
+  submit used the text from before the commit: `OnSubmit` got `-5` while the
+  field showed `0`. Now a submit made as focus leaves a field waits one frame
+  for the committed value.
 
 - **A form warning no longer blocks submit (#1236).** Before, go-gui ignored
   `FormIssue.Kind`. An issue tagged `FormIssueWarning` therefore counted like an

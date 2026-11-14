@@ -7,34 +7,6 @@ import (
 	"time"
 )
 
-// An ID-less Form counts window-wide, not per scope (#881). Its
-// registry and FormSummary key on the bare ID, and its layout ID is the
-// absolute "form:<id>", so two ID-less forms in two panels must still
-// get two different leaves.
-func TestFormWithoutIDCountsWindowWide(t *testing.T) {
-	w := NewTestWindow(t, WindowCfg{})
-	form := func() View {
-		return Form(FormCfg{Content: []View{Text(TextCfg{Text: "hello"})}})
-	}
-	w.TestRender(func(_ *Window) View {
-		return Column(ContainerCfg{
-			Sizing: FillFill,
-			Content: []View{
-				Column(ContainerCfg{ID: "p1", Content: []View{form()}}),
-				Column(ContainerCfg{ID: "p2", Content: []View{form()}}),
-			},
-		})
-	})
-	for _, id := range []string{"form:~form0", "form:~form1"} {
-		if _, ok := w.layout.findByID(id); !ok {
-			t.Errorf("no form layout %q in the frame", id)
-		}
-	}
-	if dups := w.TestDuplicateIDs(); len(dups) != 0 {
-		t.Fatalf("ID-less forms collide: %v", dups)
-	}
-}
-
 func TestFormValidateInheritPanics(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -59,32 +31,6 @@ func TestFormGeneratesLayout(t *testing.T) {
 	want := "form:test-form"
 	if layout.Shape.ID != want {
 		t.Fatalf("expected ID %q, got %q", want, layout.Shape.ID)
-	}
-}
-
-func TestFormFindAncestorID(t *testing.T) {
-	parent := Layout{
-		Shape: &Shape{ID: "form:my-form"},
-	}
-	child := Layout{
-		Shape:  &Shape{ID: "input-1"},
-		Parent: &parent,
-	}
-	grandchild := Layout{
-		Shape:  &Shape{ID: "input-2"},
-		Parent: &child,
-	}
-	got := formFindAncestorID(&grandchild)
-	if got != "my-form" {
-		t.Fatalf("expected my-form, got %q", got)
-	}
-}
-
-func TestFormFindAncestorIDNotFound(t *testing.T) {
-	layout := Layout{Shape: &Shape{ID: "no-form"}}
-	got := formFindAncestorID(&layout)
-	if got != "" {
-		t.Fatalf("expected empty, got %q", got)
 	}
 }
 
@@ -395,24 +341,6 @@ func formLayoutFixture(formID string) *Layout {
 	return &Layout{Shape: &Shape{ID: "input-1"}, Parent: parent}
 }
 
-func TestFormRegisterFieldViaLayout(t *testing.T) {
-	w := newTestWindow()
-	child := formLayoutFixture("layout-form")
-
-	formRegisterField(w, child, FormFieldAdapterCfg{
-		FieldID: "email",
-		Value:   "a@b.c",
-	})
-
-	fs, ok := w.FormFieldState("layout-form", "email")
-	if !ok {
-		t.Fatal("field not registered against the ancestor form")
-	}
-	if fs.Value != "a@b.c" {
-		t.Errorf("value = %q, want %q", fs.Value, "a@b.c")
-	}
-}
-
 func TestFormRegisterFieldNoOps(t *testing.T) {
 	// Each of these must leave the form state untouched rather than
 	// panic — widgets call this unconditionally from AmendLayout.
@@ -436,36 +364,6 @@ func TestFormRegisterFieldNoOps(t *testing.T) {
 			t.Errorf("%s: expected no field registration, got %d",
 				tc.name, len(state.fields))
 		}
-	}
-}
-
-func TestFormOnFieldEventViaLayout(t *testing.T) {
-	w := newTestWindow()
-	child := formLayoutFixture("evt-form")
-
-	required := func(f FormFieldSnapshot, _ FormSnapshot) []FormIssue {
-		if f.Value == "" {
-			return []FormIssue{{Msg: "required"}}
-		}
-		return nil
-	}
-	cfg := FormFieldAdapterCfg{
-		FieldID:        "name",
-		Value:          "",
-		SyncValidators: []FormSyncValidator{required},
-	}
-
-	formRegisterField(w, child, cfg)
-	FormOnFieldEvent(w, child, cfg, FormTriggerBlur)
-
-	issues := w.FormFieldErrors("evt-form", "name")
-	if len(issues) != 1 || issues[0].Msg != "required" {
-		t.Fatalf("expected the sync validator to run, got %v", issues)
-	}
-
-	fs, _ := w.FormFieldState("evt-form", "name")
-	if !fs.Touched {
-		t.Error("blur should mark the field touched")
 	}
 }
 

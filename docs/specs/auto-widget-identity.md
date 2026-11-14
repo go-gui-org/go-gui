@@ -103,6 +103,12 @@ absolute layout ID `form:<id>`. Two ID-less forms in two panels would both be
 window. The price is a weaker firewall for forms: a form inserted anywhere
 earlier shifts the key of each form after it.
 
+Later change (#1257): `FormCfg.ID` is required again and `autoLeafWindow` is
+deleted. An app registers fields with `FormRegisterFieldByID` and submits with
+`FormRequestSubmit`, both by the form's ID, so a form with a generated ID could
+never work. An ID-less form now shows its content, does nothing else, and
+`DebugMissingIDs` reports it.
+
 ### Allocation
 
 A per-window cache (`autoLeaves`) holds the leaf strings, indexed by kind and
@@ -158,7 +164,7 @@ The **reserved-prefix check** reports an app ID whose last segment starts with
    names its segments (`login:email`) and an auto leaf opens no scope; and
    `datagrid.DataGridCfg.ID`, because a subpackage cannot reach the unexported
    `autoLeaf`, and adding an exported seam is new API surface outside this
-   issue.
+   issue. #1257 later added `FormCfg.ID` to this list (see "Form" above).
 3. Scrolling and overflowing containers take auto IDs. `requireScrollID`,
    `requireOverflowID` and `requireFocusID` are deleted.
 4. Auto-ID widgets join Tab traversal. A form without IDs gets focus from Tab

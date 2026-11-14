@@ -13,6 +13,8 @@ type FormModel struct {
 	Username      string
 	Email         string
 	AgeText       string
+	Password      string
+	Confirm       string
 	SubmitMessage string
 	AgeValue      gui.Opt[float64]
 }
@@ -56,6 +58,27 @@ func validateAgeFormSync(
 	return nil
 }
 
+func validatePasswordFormSync(
+	f gui.FormFieldSnapshot, _ gui.FormSnapshot,
+) []gui.FormIssue {
+	if len(f.Value) < 8 {
+		return []gui.FormIssue{{Msg: "password min length is 8"}}
+	}
+	return nil
+}
+
+// validateConfirmFormSync reads the password through the form
+// snapshot. It is registered on the confirm field only: when the
+// password changes, the form re-checks confirm by itself.
+func validateConfirmFormSync(
+	f gui.FormFieldSnapshot, form gui.FormSnapshot,
+) []gui.FormIssue {
+	if f.Value != form.Values["password"] {
+		return []gui.FormIssue{{Msg: "passwords do not match"}}
+	}
+	return nil
+}
+
 // --- Async validator ---
 
 func validateUsernameFormAsync(
@@ -86,6 +109,8 @@ var (
 	usernameAsyncVals = []gui.FormAsyncValidator{validateUsernameFormAsync}
 	emailSyncVals     = []gui.FormSyncValidator{validateEmailFormSync}
 	ageSyncVals       = []gui.FormSyncValidator{validateAgeFormSync}
+	passwordSyncVals  = []gui.FormSyncValidator{validatePasswordFormSync}
+	confirmSyncVals   = []gui.FormSyncValidator{validateConfirmFormSync}
 )
 
 func usernameAdapterCfg(value string) gui.FormFieldAdapterCfg {
@@ -110,5 +135,21 @@ func ageAdapterCfg(value string) gui.FormFieldAdapterCfg {
 		FieldID:        "age",
 		Value:          value,
 		SyncValidators: ageSyncVals,
+	}
+}
+
+func passwordAdapterCfg(value string) gui.FormFieldAdapterCfg {
+	return gui.FormFieldAdapterCfg{
+		FieldID:        "password",
+		Value:          value,
+		SyncValidators: passwordSyncVals,
+	}
+}
+
+func confirmAdapterCfg(value string) gui.FormFieldAdapterCfg {
+	return gui.FormFieldAdapterCfg{
+		FieldID:        "confirm",
+		Value:          value,
+		SyncValidators: confirmSyncVals,
 	}
 }

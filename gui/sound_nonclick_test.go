@@ -187,43 +187,65 @@ func TestSoundFormSubmitAcceptedAndBlocked(t *testing.T) {
 	})
 }
 
-// A submit blocked by a pending async validator is a refusal like any
-// other and takes the Error role. The submit sweep re-pends the field
-// synchronously before the summary is computed, so the block lands in
-// the pass that requested it. This pins the sound gate to the same
-// condition as the callback gate: a refactor that dropped
-// blockedPending from one but not the other would split them.
-func TestSoundFormSubmitBlockedByPending(t *testing.T) {
-	restoreTheme(t)
-	spy := &soundSpy{}
-	w := NewTestWindow(t, WindowCfg{})
-	w.SetTheme(soundingTheme(t))
-	w.SetSoundPlayer(spy)
+// A submit that waits for a running async validator sounds once, when
+// the wait ends: Success when the check passes, Error when it reports
+// an issue (#1257). Before, the submit was refused at once with Error,
+// and every new submit restarted the check, so it could never pass.
+// This pins the sound gate to the callback gate: both decide in
+// formFinishSubmit.
+func TestSoundFormSubmitWaitsForPending(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		issues []FormIssue
+		want   SoundCue
+	}{
+		{"check passes", nil, SoundSuccess},
+		{"check fails", []FormIssue{{Msg: "taken"}}, SoundError},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			restoreTheme(t)
+			spy := &soundSpy{}
+			w := NewTestWindow(t, WindowCfg{})
+			w.SetTheme(soundingTheme(t))
+			w.SetSoundPlayer(spy)
 
-	formID := "sound-form-pending"
-	asyncVal := func(
-		FormFieldSnapshot, FormSnapshot, *GridAbortSignal,
-	) []FormIssue {
-		return nil
-	}
-	FormRegisterFieldByID(w, formID, FormFieldAdapterCfg{
-		FieldID:         "name",
-		Value:           "Alice",
-		AsyncValidators: []FormAsyncValidator{asyncVal},
-	})
-	formApplyCfg(w, formID, FormCfg{})
-	// Resolved off the window's theme, as in soundFormSubmit: nothing
-	// renders here, so no frame has installed the guiTheme mirror.
-	sounds := w.Theme().Sounds
-	cues := soundCues{
-		act:    ResolveSoundCue(sounds.Success, SoundNone, false),
-		reject: ResolveSoundCue(sounds.Error, SoundNone, false),
-	}
-	state := formRuntime(w, formID)
-	state.submitReq = true
-	formProcessRequests(w, formID, nil, nil, cues)
-	if len(spy.cues) != 1 || spy.cues[0] != SoundError {
-		t.Errorf("cues = %v, want [SoundError]", spy.cues)
+			formID := "sound-form-pending"
+			block := make(chan struct{})
+			t.Cleanup(func() { close(block) })
+			asyncVal := func(
+				FormFieldSnapshot, FormSnapshot, *GridAbortSignal,
+			) []FormIssue {
+				<-block
+				return nil
+			}
+			FormRegisterFieldByID(w, formID, FormFieldAdapterCfg{
+				FieldID:         "name",
+				Value:           "Alice",
+				AsyncValidators: []FormAsyncValidator{asyncVal},
+			})
+			formApplyCfg(w, formID, FormCfg{})
+			// Resolved off the window's theme, as in soundFormSubmit:
+			// nothing renders here, so no frame has installed the
+			// guiTheme mirror.
+			sounds := w.Theme().Sounds
+			cues := soundCues{
+				act:    ResolveSoundCue(sounds.Success, SoundNone, false),
+				reject: ResolveSoundCue(sounds.Error, SoundNone, false),
+			}
+			state := formRuntime(w, formID)
+			state.submitReq = true
+			formProcessRequests(w, formID, nil, nil, cues)
+			if len(spy.cues) != 0 {
+				t.Fatalf("cues while the check runs = %v, want none", spy.cues)
+			}
+			// The check returns; the next pass decides the submit.
+			field := state.fields["name"]
+			formApplyAsyncResult(w, formID, "name", field.requestSeq, tt.issues)
+			formProcessRequests(w, formID, nil, nil, cues)
+			if len(spy.cues) != 1 || spy.cues[0] != tt.want {
+				t.Errorf("cues = %v, want [%v]", spy.cues, tt.want)
+			}
+		})
 	}
 }
 

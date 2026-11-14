@@ -290,7 +290,6 @@ func TestAutoIDEveryWidgetTwiceHasNoDuplicates(t *testing.T) {
 		"DatePickerRoller":   func(_ *Window) View { return DatePickerRoller(DatePickerRollerCfg{}) },
 		"DatePicker":         func(_ *Window) View { return DatePicker(DatePickerCfg{}) },
 		"FlipPanel":          func(_ *Window) View { return FlipPanel(FlipPanelCfg{}) },
-		"Form":               func(_ *Window) View { return Form(FormCfg{}) },
 		"InputDate":          func(_ *Window) View { return InputDate(InputDateCfg{}) },
 		"NumericInput":       func(_ *Window) View { return NumericInput(NumericInputCfg{}) },
 		"Input":              func(_ *Window) View { return Input(InputCfg{}) },

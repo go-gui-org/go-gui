@@ -81,10 +81,10 @@ injected overlays continue the root counters.
   `ScopeID(w.EffID(cfg.ID), part)`, never a relative leaf: two ID-less instances
   in one scope would collide. `TestAutoIDEveryWidgetTwiceHasNoDuplicates` is the
   gate — add every new auto-ID widget to it.
-- **A registry keyed window-wide by the bare ID** (Form) uses `autoLeafWindow`,
-  which counts across the whole window.
 - **Kept `required`:** `InputGroupCfg.ID` (its ID is the scope that names its
-  segments) and `datagrid` (a subpackage cannot reach `autoLeaf`).
+  segments), `FormCfg.ID` (the app registers fields and submits by it, so a
+  generated one is useless; #1257) and `datagrid` (a subpackage cannot reach
+  `autoLeaf`).
 - `DebugAutoIDs` reports a focused auto key that moved to another widget
   (fingerprint: role + a11y label), and an app ID with the `~` prefix.
 
@@ -216,8 +216,9 @@ reentrant; they panic naming themselves. The remedy is
 `ctx.Window.QueueCommand`. Library code reaching app code from the pass raises
 it with `deferCallback` (`gui/window_deferred.go`) — which is how Input's blur
 commit works, so `OnTextCommit` with `InputCommitBlur`, `OnBlur` and a
-normalize-driven `OnTextChanged` get a **nil `ctx.Layout`**. The Enter commit
-path dispatches from `EventFn` with no lock held.
+normalize-driven `OnTextChanged` get a **nil `ctx.Layout`**. Form's `OnSubmit`
+and `OnReset` go the same way (`formCallApp`, #1257). The Enter commit path
+dispatches from `EventFn` with no lock held.
 (`docs/specs/frame-lock-callback-deferral.md`)
 
 ## Container children
