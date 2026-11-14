@@ -29,12 +29,19 @@ type stateRegistry struct {
 // NewBoundedMap). Pass a positive capacity tier (capFew and
 // friends); an unbounded registry map grows without limit.
 //
+// A full map evicts the oldest inserted entry not used in the current
+// view pass: Get, GetOr and Set stamp the window's view pass on an
+// entry, so state a widget on screen reads every frame stays while an
+// unused entry exists (see BoundedMap).
+//
 // SAFETY: main-goroutine only (see StateRegistry doc).
 func StateMap[K comparable, V any](w *Window, ns string, maxSize int) *BoundedMap[K, V] {
 	if ptr, found := w.viewState.registry.maps[ns]; found {
 		return registryMapAs[K, V](ptr, "StateMap", ns)
 	}
 	m := NewBoundedMap[K, V](maxSize)
+	// &w.viewPass stays valid: w is a pointer and the field is not moved.
+	m.pass = &w.viewPass
 	if w.viewState.registry.maps == nil {
 		w.viewState.registry.maps = make(map[string]any)
 	}
@@ -96,8 +103,21 @@ func lazyBoundedMap[K comparable, V any](pp **BoundedMap[K, V], cap int) *Bounde
 	return *pp
 }
 
+// lazyStateMap is lazyBoundedMap for a hot namespace that holds widget
+// state. It gives the map the window's view pass, so a full map evicts
+// the oldest entry not used this pass, as StateMap maps do (#1263). Memos such
+// as idJoinCache stay on lazyBoundedMap: FIFO, with no stamp to write.
+// SAFETY: main-goroutine only (see StateRegistry doc).
+func lazyStateMap[K comparable, V any](w *Window, pp **BoundedMap[K, V], cap int) *BoundedMap[K, V] {
+	if *pp == nil {
+		*pp = NewBoundedMap[K, V](cap)
+		(*pp).pass = &w.viewPass
+	}
+	return *pp
+}
+
 func (w *Window) hoverInside() *BoundedMap[string, uint64] {
-	return lazyBoundedMap(&w.hoverInsideMap, capModerate)
+	return lazyStateMap(w, &w.hoverInsideMap, capModerate)
 }
 
 // ScrollX returns the horizontal scroll state map keyed by the
@@ -105,7 +125,7 @@ func (w *Window) hoverInside() *BoundedMap[string, uint64] {
 // position for virtualization.
 // SAFETY: main-goroutine only (see StateRegistry doc).
 func (w *Window) ScrollX() *BoundedMap[string, float32] {
-	return lazyBoundedMap(&w.scrollXMap, capScroll)
+	return lazyStateMap(w, &w.scrollXMap, capScroll)
 }
 
 // ScrollY returns the vertical scroll state map keyed by the
@@ -113,7 +133,7 @@ func (w *Window) ScrollX() *BoundedMap[string, float32] {
 // position for virtualization.
 // SAFETY: main-goroutine only (see StateRegistry doc).
 func (w *Window) ScrollY() *BoundedMap[string, float32] {
-	return lazyBoundedMap(&w.scrollYMap, capScroll)
+	return lazyStateMap(w, &w.scrollYMap, capScroll)
 }
 
 func (w *Window) scrollX() *BoundedMap[string, float32] {
@@ -125,7 +145,7 @@ func (w *Window) scrollY() *BoundedMap[string, float32] {
 }
 
 func (w *Window) overflow() *BoundedMap[string, int] {
-	return lazyBoundedMap(&w.overflowMap, capModerate)
+	return lazyStateMap(w, &w.overflowMap, capModerate)
 }
 
 // scrollXRead returns the cached scroll-x map, or nil if it hasn't

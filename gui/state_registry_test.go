@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -312,5 +314,89 @@ func TestBoundedMapDeleteAllThenClearZeroesOrderSlots(t *testing.T) {
 		if k != "" {
 			t.Errorf("order[%d] = %q after delete-all+Clear, want zero", i, k)
 		}
+	}
+}
+
+// A full StateMap namespace evicts an entry not used in the current view
+// pass, not simply the oldest inserted (#1263). One key is read every view pass, as an on-screen
+// widget reads its state; each pass also inserts a new key, as paging adds
+// row IDs. Under FIFO the read key went on the third insert.
+func TestStateMapKeepsStateUsedThisPass(t *testing.T) {
+	w := newTestWindow()
+	sm := StateMap[string, int](w, "test-lrs", 3)
+	sm.Set("live", 1)
+	for i := range 10 {
+		w.viewPass++
+		if _, ok := sm.Get("live"); !ok {
+			t.Fatalf("pass %d: live key evicted", i)
+		}
+		sm.Set(fmt.Sprintf("row-%d", i), i)
+		if sm.Len() > 3 {
+			t.Fatalf("pass %d: len %d exceeds cap 3", i, sm.Len())
+		}
+	}
+	// The two newest rows stay with the live key; Keys keeps insertion
+	// order, so "live" still comes first.
+	want := []string{"live", "row-8", "row-9"}
+	if got := sm.Keys(); !slices.Equal(got, want) {
+		t.Errorf("keys: got %v, want %v", got, want)
+	}
+}
+
+// GetOr and an update through Set also count as use. When every entry was
+// used in this pass, the oldest inserted goes, as FIFO did.
+func TestStateMapUseStampsAndAllUsedFallback(t *testing.T) {
+	w := newTestWindow()
+	sm := StateMap[string, int](w, "test-lrs-ties", 3)
+	sm.Set("a", 1)
+	sm.Set("b", 2)
+	sm.Set("c", 3)
+	w.viewPass++
+	_ = sm.GetOr("a", 0)
+	sm.Set("b", 20)
+	sm.Set("d", 4) // c is the only entry not seen this pass
+	if sm.Contains("c") {
+		t.Error("c should be evicted: it is the only entry not used this pass")
+	}
+	sm.Set("e", 5) // a, b, d all seen this pass: oldest inserted (a) goes
+	want := []string{"b", "d", "e"}
+	if got := sm.Keys(); !slices.Equal(got, want) {
+		t.Errorf("keys: got %v, want %v", got, want)
+	}
+	// A key evicted and inserted again holds one order slot.
+	sm.Set("a", 6)
+	if got := len(sm.Keys()); got != 3 {
+		t.Errorf("keys after re-insert: got %d, want 3", got)
+	}
+}
+
+// A map built by NewBoundedMap has no view pass and stays FIFO: reads do
+// not protect an entry.
+func TestBoundedMapStandaloneStaysFIFO(t *testing.T) {
+	m := NewBoundedMap[string, int](2)
+	m.Set("a", 1)
+	m.Set("b", 2)
+	_, _ = m.Get("a")
+	m.Set("c", 3)
+	if m.Contains("a") {
+		t.Error("standalone map: a should be evicted (FIFO)")
+	}
+}
+
+// The hot scroll map is widget state too: an on-screen scrollable reads
+// its offset every pass and must not be evicted while newer IDs go in.
+func TestScrollYKeepsOffsetUsedThisPass(t *testing.T) {
+	w := newTestWindow()
+	sy := w.ScrollY()
+	sy.Set("live", 10)
+	for i := range capScroll + 10 {
+		w.viewPass++
+		if _, ok := sy.Get("live"); !ok {
+			t.Fatalf("pass %d: live scroll offset evicted", i)
+		}
+		sy.Set(fmt.Sprintf("pane-%d", i), float32(i))
+	}
+	if sy.Len() != capScroll {
+		t.Errorf("len: got %d, want %d", sy.Len(), capScroll)
 	}
 }

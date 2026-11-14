@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"math/rand/v2"
+	"slices"
+	"testing"
+)
 
 func TestBoundedMapBasicOperations(t *testing.T) {
 	m := NewBoundedMap[string, int](3)
@@ -534,6 +538,99 @@ func TestBoundedMapDeleteThenSetEvictsInFIFOOrder(t *testing.T) {
 	for i := range want {
 		if keys[i] != want[i] {
 			t.Fatalf("keys: got %v, want %v", keys, want)
+		}
+	}
+}
+
+// refUnusedMap is the eviction rule of a StateMap map spelled out with no
+// cache: on insert into a full map, drop the oldest inserted key not used
+// in the current pass, or the oldest inserted key if all were used (#1263).
+type refUnusedMap struct {
+	keys []int // insertion order
+	seen map[int]uint64
+	max  int
+}
+
+func (r *refUnusedMap) use(k int, pass uint64) bool {
+	if _, ok := r.seen[k]; !ok {
+		return false
+	}
+	r.seen[k] = pass
+	return true
+}
+
+func (r *refUnusedMap) set(k int, pass uint64) {
+	if r.use(k, pass) {
+		return
+	}
+	if len(r.keys) >= r.max {
+		victim := 0
+		for i, key := range r.keys {
+			if r.seen[key] < pass {
+				victim = i
+				break
+			}
+		}
+		delete(r.seen, r.keys[victim])
+		r.keys = slices.Delete(r.keys, victim, victim+1)
+	}
+	r.keys = append(r.keys, k)
+	r.seen[k] = pass
+}
+
+// budget mirrors evictToBudget with sizeFn = 1: drop the oldest inserted
+// keys until len+1 <= limit.
+func (r *refUnusedMap) budget(limit int) {
+	for len(r.keys) > 0 && len(r.keys)+1 > limit {
+		delete(r.seen, r.keys[0])
+		r.keys = r.keys[1:]
+	}
+}
+
+func (r *refUnusedMap) del(k int) {
+	if _, ok := r.seen[k]; !ok {
+		return
+	}
+	delete(r.seen, k)
+	r.keys = slices.DeleteFunc(r.keys, func(key int) bool { return key == k })
+}
+
+// The usedTo scan cache must not change which key goes. Random Get, Set,
+// Delete and evictToBudget over many passes, checked against refUnusedMap after every
+// operation. Sizes cross boundedOrderCompactMin so compaction runs.
+func TestBoundedMapEvictUnusedMatchesReference(t *testing.T) {
+	for _, size := range []int{1, 3, 17, 100} {
+		rng := rand.New(rand.NewPCG(uint64(size), 1263))
+		var pass uint64
+		m := NewBoundedMap[int, int](size)
+		m.pass = &pass
+		ref := &refUnusedMap{seen: map[int]uint64{}, max: size}
+		for op := range 20000 {
+			k := rng.IntN(size * 3)
+			switch r := rng.IntN(100); {
+			case r < 5:
+				pass++
+			case r < 45:
+				_, got := m.Get(k)
+				if want := ref.use(k, pass); got != want {
+					t.Fatalf("size %d op %d: Get(%d) = %v, want %v",
+						size, op, k, got, want)
+				}
+			case r < 95:
+				m.Set(k, k)
+				ref.set(k, pass)
+			case r < 98:
+				m.Delete(k)
+				ref.del(k)
+			default:
+				limit := 1 + rng.IntN(size) // 0 means unbounded
+				m.evictToBudget(limit, 1, func(int) int { return 1 })
+				ref.budget(limit)
+			}
+			if got := m.Keys(); !slices.Equal(got, ref.keys) {
+				t.Fatalf("size %d op %d: keys %v, want %v",
+					size, op, got, ref.keys)
+			}
 		}
 	}
 }
