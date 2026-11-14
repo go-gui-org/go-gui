@@ -306,6 +306,10 @@ makes it start over, so it checks what it sends. A submit made just as focus
 leaves a field, for example by clicking the submit button, waits one frame for
 that field's committed value.
 
+`OnSubmit` and `OnReset` run after the frame, outside the frame lock, so they
+may call window functions such as `SetFocus` or `SetView`, for example to move
+on to the next page.
+
 `FormRequestReset` sets every field back to its initial value and clears its
 issues and touched state. go-gui cannot change the app's state, so `OnReset`
 copies the initial values into it:

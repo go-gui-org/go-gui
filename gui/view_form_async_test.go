@@ -127,13 +127,41 @@ func TestFormSubmitWaitsForRunningCheck(t *testing.T) {
 // A value change while a check runs stops it, so its result for the
 // old value never lands. A submit waiting for that check starts over:
 // it checks the new value, then goes ahead.
+//
+// Two things keep the old result out, and the test checks each one
+// directly instead of waiting for a goroutine: the old check's signal
+// is aborted, so its goroutine drops the result instead of queuing it;
+// and a result that was queued anyway carries an outdated request ID,
+// so formApplyAsyncResult ignores it.
 func TestFormValueChangeStopsRunningCheck(t *testing.T) {
-	release := make(chan struct{})
-	var runs atomic.Int32
+	// One gate per value: the new value's check can return while the
+	// old one is still held.
+	gates := map[string]chan struct{}{
+		"admin":  make(chan struct{}),
+		"xadmin": make(chan struct{}),
+	}
+	t.Cleanup(func() { close(gates["admin"]) })
+	oldSignal := make(chan *GridAbortSignal, 1)
+	val := func(f FormFieldSnapshot, _ FormSnapshot, signal *GridAbortSignal) []FormIssue {
+		if f.Value == "admin" {
+			oldSignal <- signal
+		}
+		<-gates[f.Value]
+		if f.Value == "admin" {
+			return []FormIssue{{Msg: "taken: admin"}}
+		}
+		return nil
+	}
 	submits := 0
-	w, app := asyncForm(t, "admin", gatedValidator(release, &runs), &submits)
+	w, app := asyncForm(t, "admin", val, &submits)
 	FormRequestSubmit(w, "f")
 	w.TestRender(nil)
+	var signal *GridAbortSignal
+	select {
+	case signal = <-oldSignal:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the old check never started")
+	}
 	firstSeq := formRuntimeRead(w, "f").fields["name"].requestSeq
 
 	app.Name = "xadmin"
@@ -146,13 +174,26 @@ func TestFormValueChangeStopsRunningCheck(t *testing.T) {
 			field.asyncFor, field.requestSeq, firstSeq,
 			formRuntimeRead(w, "f").submitWaiting, "xadmin")
 	}
-	close(release)
+	if !signal.IsAborted() {
+		t.Fatal("the old check's signal is not aborted; its goroutine " +
+			"would queue a result for the old value")
+	}
+	// The new value's check passes: the submit goes ahead.
+	close(gates["xadmin"])
 	asyncSettle(t, w)
+	w.TestRender(nil)
+	if submits != 1 {
+		t.Fatalf("after the new check: OnSubmit=%d, want 1", submits)
+	}
+	// The old check's result, had it been queued, arrives now. It must
+	// not reach the field.
+	formApplyAsyncResult(w, "f", "name", firstSeq,
+		[]FormIssue{{Msg: "taken: admin"}})
 	w.TestRender(nil)
 	fs, _ := w.FormFieldState("f", "name")
 	if len(fs.Errors) != 0 || submits != 1 {
-		t.Fatalf("value=%q errors=%v OnSubmit=%d; want no errors (the "+
-			"old check's result must not land) and one submit",
+		t.Fatalf("value=%q errors=%v OnSubmit=%d; the old check's result "+
+			"landed, want no errors and still one submit",
 			fs.Value, fs.Errors, submits)
 	}
 }

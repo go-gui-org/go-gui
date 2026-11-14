@@ -216,8 +216,9 @@ reentrant; they panic naming themselves. The remedy is
 `ctx.Window.QueueCommand`. Library code reaching app code from the pass raises
 it with `deferCallback` (`gui/window_deferred.go`) — which is how Input's blur
 commit works, so `OnTextCommit` with `InputCommitBlur`, `OnBlur` and a
-normalize-driven `OnTextChanged` get a **nil `ctx.Layout`**. The Enter commit
-path dispatches from `EventFn` with no lock held.
+normalize-driven `OnTextChanged` get a **nil `ctx.Layout`**. Form's `OnSubmit`
+and `OnReset` go the same way (`formCallApp`, #1257). The Enter commit path
+dispatches from `EventFn` with no lock held.
 (`docs/specs/frame-lock-callback-deferral.md`)
 
 ## Container children

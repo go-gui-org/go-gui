@@ -87,7 +87,14 @@ fields, which it already did.
      waits one pass. A click on a submit button moves focus in the same event,
      and the field's deferred blur commit has not reached the app yet. Deciding
      at once sent `-5` while NumericInput had clamped the field to `0`, and with
-     an async validator the commit then stopped the check and lost the submit.
+     an async validator the commit then stopped the check and lost the submit. A
+     submit that already waits does not finish in such a pass either.
+  5. A field that registers while a submit waits starts the submit over, so it
+     is validated before its value is sent.
+  6. `OnSubmit` and `OnReset` run through `formCallApp`: deferred with
+     `deferCallback` in a frame pass, so they may call `SetFocus` or `SetView`.
+     Before, the form called them in its `AmendLayout`, under the frame lock,
+     and such a call panicked (`docs/specs/frame-lock-callback-deferral.md`).
 
   An async validator that also reads other fields does not re-run when only
   those change; such a rule belongs in a sync validator.
@@ -154,6 +161,9 @@ redraws the window. The view reads them every frame with `FormFieldErrors`,
   value, a submit right after a blur commit, and a waiting submit that allocates
   nothing. `TestSoundFormSubmitWaitsForPending` in `gui/sound_nonclick_test.go`:
   one cue, when the wait ends.
+- `gui/view_form_submit_test.go`: `OnSubmit` and `OnReset` that call `SetFocus`
+  and `SetView`, a waiting submit in a pass with a blur commit on its way, and a
+  field that appears while a submit waits.
 - `gui/view_color_fields_enter_test.go`,
   `gui/datagrid/view_data_grid_jump_form_test.go`, and the palette tests: Enter
   in go-gui's own fields does not submit a form around them.

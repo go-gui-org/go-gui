@@ -60,6 +60,12 @@ and this project adheres to
 
 ### Fixed
 
+- **`OnSubmit` and `OnReset` may call `SetFocus` and `SetView` (#1257).** The
+  form called them from its layout pass, which holds the frame lock. An
+  `OnSubmit` that moved focus or switched to the next page therefore panicked.
+  Both callbacks now run after the frame, outside the lock, as Input's blur
+  callbacks already do. `ctx.Layout` is nil in them, as before.
+
 - **A form with an async validator can submit (#1257).** Every submit started
   the async validators again, and by default a submit is refused while one runs.
   So `OnSubmit` never ran for a form with an async validator, unless the form

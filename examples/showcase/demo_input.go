@@ -578,6 +578,7 @@ func demoForms(w *gui.Window) gui.View {
 
 			showcaseFormRow("Age", gui.NumericInput(gui.NumericInputCfg{
 				ID:       "age",
+				A11YCfg:  gui.A11YCfg{A11YLabel: "Age"},
 				Width:    120,
 				Sizing:   gui.FixedFit,
 				Decimals: 0,
@@ -599,6 +600,7 @@ func demoForms(w *gui.Window) gui.View {
 
 			showcaseFormRow("Password", gui.Input(gui.InputCfg{
 				ID:         "password",
+				A11YCfg:    gui.A11YCfg{A11YLabel: "Password"},
 				Width:      260,
 				Sizing:     gui.FixedFit,
 				Text:       form.Password,
@@ -611,6 +613,7 @@ func demoForms(w *gui.Window) gui.View {
 
 			showcaseFormRow("Confirm", gui.Input(gui.InputCfg{
 				ID:         "confirm",
+				A11YCfg:    gui.A11YCfg{A11YLabel: "Confirm password"},
 				Width:      260,
 				Sizing:     gui.FixedFit,
 				Text:       form.Confirm,

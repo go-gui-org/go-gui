@@ -222,7 +222,12 @@ const formLayoutIDPrefix = "form:"
 // and submit/reset semantics.
 type FormCfg struct {
 
-	// Callbacks.
+	// Callbacks. Both run after the frame, outside the frame lock, so
+	// they may call window functions such as SetFocus or SetView.
+	// ctx.Layout is nil.
+	//
+	// OnSubmit runs after a submit that is not rejected; see
+	// FormRequestSubmit.
 	OnSubmit func(FormSubmitEvent, EventCtx)
 	// OnReset runs after a reset. It must copy the event's Values into
 	// the app's state; see FormResetEvent.

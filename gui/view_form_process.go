@@ -223,10 +223,8 @@ func formProcessRequests(
 		state.resetReq = false
 		stateChanged = true
 		if onReset != nil {
-			onReset(FormResetEvent{
-				FormID: formID,
-				Values: values,
-			}, EventCtx{nil, nil, w})
+			ev := FormResetEvent{FormID: formID, Values: values}
+			formCallApp(w, func(w *Window) { onReset(ev, EventCtx{nil, nil, w}) })
 		}
 	}
 
@@ -256,7 +254,10 @@ func formProcessRequests(
 		// run, in a later one.
 		state.submitWaiting = true
 	}
-	if state.submitWaiting && formFinishSubmit(w, formID, state, onSubmit, cues) {
+	// A blur commit on its way (focus left a field in this pass) may
+	// still change a value; the submit decides once it has landed.
+	if state.submitWaiting && !formAnyBlurPending(state) &&
+		formFinishSubmit(w, formID, state, onSubmit, cues) {
 		stateChanged = true
 	}
 	if stateChanged {
@@ -295,15 +296,30 @@ func formFinishSubmit(
 	}
 	playSoundCue(cues.act, w)
 	if onSubmit != nil {
-		onSubmit(FormSubmitEvent{
+		ev := FormSubmitEvent{
 			FormID:  formID,
 			Values:  formSnapshotFromState(formID, state).Values,
 			Valid:   summary.Valid,
 			Pending: summary.Pending,
 			State:   summary,
-		}, EventCtx{nil, nil, w})
+		}
+		formCallApp(w, func(w *Window) { onSubmit(ev, EventCtx{nil, nil, w}) })
 	}
 	return true
+}
+
+// formCallApp runs an app callback (OnSubmit, OnReset) from the form's
+// pass. In a frame pass the form runs under the frame lock, from its
+// AmendLayout, so the call is deferred until the lock is released. An
+// OnSubmit may then call SetFocus or SetView, which before panicked
+// (docs/specs/frame-lock-callback-deferral.md). Outside a frame pass,
+// as in tests that drive formProcessRequests directly, it calls at once.
+func formCallApp(w *Window, fn func(*Window)) {
+	if w.inFramePass.Load() {
+		w.deferCallback(fn)
+		return
+	}
+	fn(w)
 }
 
 // formSubmitGate reports, without allocating, whether any field's async
@@ -383,6 +399,13 @@ func formEnsureField(
 		// The value a field starts with is not an edit.
 		field.prevValue = cfg.Value
 		state.fields[cfg.FieldID] = field
+		if state.submitWaiting {
+			// A field that appears while a submit waits was never
+			// validated. Start the submit over so it is, before its
+			// value is sent.
+			state.submitWaiting = false
+			state.submitReq = true
+		}
 	}
 	field.widgetID = cfg.WidgetID
 	if field.widgetID == "" {

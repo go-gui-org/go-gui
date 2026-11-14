@@ -45,6 +45,9 @@ Deferred (app code):
 - `OnBlur`
 - `OnTextChanged` raised by `PostCommitNormalize` on the blur path
   (`fireTextChangedDeferred`, `gui/view_input.go`)
+- Form's `OnSubmit` and `OnReset` (`formCallApp`, `gui/view_form_process.go`).
+  Added in #1257: the form calls them from its `AmendLayout`, and an `OnSubmit`
+  that called `SetFocus` or `SetView` panicked.
 
 Not deferred (gui-internal, and needs the live tree):
 
@@ -72,6 +75,11 @@ Two routes lead from an `AmendLayout` hook into app code across `gui/`:
 
 The second cannot be deferred. The hook exists to mutate the arranged tree in
 place, so it must run in the pass. It is covered by the fail-fast below instead.
+
+Later change (#1257): this audit missed a third route. Form's `AmendLayout` runs
+the app's validators and calls `OnSubmit` and `OnReset`. The callbacks are
+deferred now. The validators still run in the pass; their doc comments say they
+must not call window functions.
 
 Everything else that sets `AmendLayout` is geometry, focus-ring, hover or
 window-state work.
