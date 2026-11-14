@@ -65,6 +65,32 @@ fields, which it already did.
   that form exists. A part of a composite inside a form carries an absolute ID
   under the form's scope (`form:f:cf:hex`). Taken as a form ID, it named a form
   `f:cf`, and Enter and `FormOnFieldEvent` found nothing.
+- **Async validators follow their field's value.** Found in review; both defects
+  predate this issue. Every submit restarted the async validators, and by
+  default a pending submit is refused, so a form with an async validator never
+  submitted. An edit in the default mode did not stop a running check either,
+  and its result for the old value landed on the new one. Now:
+  1. An async validator runs again only when its field's value has changed
+     (`asyncFor`, `asyncCurrent`). A blur or a submit with the same value reuses
+     the result, running or done.
+  2. A submit that only waits for running checks stays armed (`submitWaiting`).
+     Each pass calls `formFinishSubmit` again. When the checks are done, it
+     submits, or rejects if they reported an error, with one cue either way. The
+     wait is decided by `formSubmitGate`, which allocates nothing: it runs every
+     frame of the wait, and `formComputeSummary` builds a map once any field has
+     issues.
+  3. Every value change, registered or reported, stops the field's running check
+     (`formStopAsync`): `requestSeq` moves on, so a queued result is dropped. A
+     submit waiting for that check starts over (`submitReq`), so it checks what
+     it will send. Reset stops the check too.
+  4. A submit requested in the pass where focus left a field (`blurPending`)
+     waits one pass. A click on a submit button moves focus in the same event,
+     and the field's deferred blur commit has not reached the app yet. Deciding
+     at once sent `-5` while NumericInput had clamped the field to `0`, and with
+     an async validator the commit then stopped the check and lost the submit.
+
+  An async validator that also reads other fields does not re-run when only
+  those change; such a rule belongs in a sync validator.
 
 Nothing is called back when the form validates. It stores the results and
 redraws the window. The view reads them every frame with `FormFieldErrors`,
@@ -100,6 +126,18 @@ redraws the window. The view reads them every frame with `FormFieldErrors`,
   remove the double run of a reported blur). Extra state in the core, kept only
   for a deprecated path. The rule "the form owns blur for a field whose widget
   it finds" is one condition.
+- **Restarting async validators on every trigger** (the behaviour before). It
+  made a form with an async validator unable to submit, and it asked a server
+  again for a value it had just checked.
+- **Reusing async results without an armed submit.** A click while a check runs
+  would be rejected with the Error cue, and the user would have to click again.
+- **Restarting all checks on submit, then waiting.** It submits, but asks the
+  server again on every submit.
+- **Telling apps to set `AllowPendingSubmit`.** It skips the check instead of
+  waiting for it.
+- **Cancelling a waiting submit when a value changes.** The first form of this
+  fix. Nothing told the user: no cue, no `OnSubmit`, and the click was lost. A
+  field's own blur commit after a click triggered it every time.
 
 ## Tests
 
@@ -110,6 +148,12 @@ redraws the window. The view reads them every frame with `FormFieldErrors`,
 - `gui/view_form_ancestor_test.go`: the form lookup, including absolute part
   IDs.
 - `gui/view_form_blur_report_test.go`: `FormOnFieldEvent` blur reports.
+- `gui/view_form_async_test.go`: submit with an async validator, a submit that
+  waits for a check that passes or fails, a value change that stops a running
+  check and makes a waiting submit start over, result reuse for an unchanged
+  value, a submit right after a blur commit, and a waiting submit that allocates
+  nothing. `TestSoundFormSubmitWaitsForPending` in `gui/sound_nonclick_test.go`:
+  one cue, when the wait ends.
 - `gui/view_color_fields_enter_test.go`,
   `gui/datagrid/view_data_grid_jump_form_test.go`, and the palette tests: Enter
   in go-gui's own fields does not submit a form around them.

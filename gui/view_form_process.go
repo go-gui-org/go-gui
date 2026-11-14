@@ -198,16 +198,16 @@ func formProcessRequests(
 	stateChanged := false
 	if state.disabled {
 		state.submitReq = false
+		state.submitWaiting = false
 		state.resetReq = false
 		return
 	}
 
 	if state.resetReq {
 		values := make(map[string]string, len(state.fields))
+		state.submitWaiting = false
 		for fieldID, field := range state.fields {
-			if field.pending && field.activeAbort != nil {
-				field.activeAbort.Abort()
-			}
+			formStopAsync(field)
 			field.value = field.initialValue
 			// The reset value is not an edit: the next pass compares
 			// against it, and nothing counts as checked yet.
@@ -216,10 +216,8 @@ func formProcessRequests(
 			field.blurPending = false
 			field.dirty = false
 			field.touched = false
-			field.pending = false
 			field.syncErrors = field.syncErrors[:0]
 			field.asyncErrors = field.asyncErrors[:0]
-			field.activeAbort = nil
 			values[fieldID] = field.initialValue
 		}
 		state.resetReq = false
@@ -232,41 +230,71 @@ func formProcessRequests(
 		}
 	}
 
-	if !state.submitReq {
-		if stateChanged {
-			w.InvalidateLayout()
+	if state.submitReq && formAnyBlurPending(state) {
+		// Focus left a field in this pass: clicking a submit button
+		// moves it. The field's widget commits its text in a deferred
+		// callback (NumericInput's clamp, Input's normalize), so the
+		// registered value is still the one from before the commit.
+		// Decide the submit in the next pass, with the committed value.
+		stateChanged = true
+	} else if state.submitReq {
+		state.submitReq = false
+		stateChanged = true
+		fieldIDs := make([]string, 0, len(state.fields))
+		for fid := range state.fields {
+			fieldIDs = append(fieldIDs, fid)
 		}
-		return
-	}
-
-	state.submitReq = false
-	stateChanged = true
-	fieldIDs := make([]string, 0, len(state.fields))
-	for fid := range state.fields {
-		fieldIDs = append(fieldIDs, fid)
-	}
-	slices.Sort(fieldIDs)
-	for _, fieldID := range fieldIDs {
-		field := state.fields[fieldID]
-		if field == nil {
-			continue
+		slices.Sort(fieldIDs)
+		for _, fieldID := range fieldIDs {
+			field := state.fields[fieldID]
+			if field == nil {
+				continue
+			}
+			formRunTrigger(w, formID, state, fieldID, field, FormTriggerSubmit)
 		}
-		formRunTrigger(w, formID, state, fieldID, field, FormTriggerSubmit)
+		// Decided below, in this pass or, while async validators
+		// run, in a later one.
+		state.submitWaiting = true
 	}
+	if state.submitWaiting && formFinishSubmit(w, formID, state, onSubmit, cues) {
+		stateChanged = true
+	}
+	if stateChanged {
+		w.InvalidateLayout()
+	}
+}
 
+// formFinishSubmit decides a requested submit. While async validators
+// run and the form waits for them (the default), it leaves the submit
+// waiting and returns false: their result redraws the window, and the
+// next pass calls it again. Otherwise it ends the wait, plays the cue,
+// calls onSubmit unless an error blocks the submit, and returns true.
+// An error rejects at once, even while other checks still run.
+//
+// The cue plays before the callback and independent of consumption,
+// the same ordering every other cue keeps. The submitWaiting latch
+// makes it one-shot even though AmendLayout runs every frame; emitting
+// inline is safe because playSoundCue takes no lock (issue #469).
+func formFinishSubmit(
+	w *Window, formID string, state *formRuntimeState,
+	onSubmit func(FormSubmitEvent, EventCtx), cues soundCues,
+) bool {
+	// This runs every frame of a wait, so the wait is decided without
+	// building the summary, which allocates once any field has issues.
+	pending, blocking := formSubmitGate(state)
+	if state.blockPending && pending && (!state.blockInvalid || !blocking) {
+		return false
+	}
 	summary := formComputeSummary(state)
 	blockedInvalid := state.blockInvalid && summary.InvalidCount > 0
 	blockedPending := state.blockPending && summary.Pending
-	// Before the callback and independent of consumption, the same
-	// ordering every other cue keeps. The submitReq latch above makes
-	// this one-shot even though AmendLayout runs every frame; emitting
-	// inline is safe because playSoundCue takes no lock (issue #469).
+	state.submitWaiting = false
 	if blockedInvalid || blockedPending {
 		playSoundCue(cues.reject, w)
-	} else {
-		playSoundCue(cues.act, w)
+		return true
 	}
-	if !blockedInvalid && !blockedPending && onSubmit != nil {
+	playSoundCue(cues.act, w)
+	if onSubmit != nil {
 		onSubmit(FormSubmitEvent{
 			FormID:  formID,
 			Values:  formSnapshotFromState(formID, state).Values,
@@ -275,9 +303,30 @@ func formProcessRequests(
 			State:   summary,
 		}, EventCtx{nil, nil, w})
 	}
-	if stateChanged {
-		w.InvalidateLayout()
+	return true
+}
+
+// formSubmitGate reports, without allocating, whether any field's async
+// validators run and whether any field has an error. It answers what
+// formComputeSummary's Pending and InvalidCount would.
+func formSubmitGate(state *formRuntimeState) (pending, blocking bool) {
+	for _, field := range state.fields {
+		pending = pending || field.pending
+		blocking = blocking || formHasBlockingIssue(field.syncErrors) ||
+			formHasBlockingIssue(field.asyncErrors)
 	}
+	return pending, blocking
+}
+
+// formAnyBlurPending reports whether focus left one of the form's fields
+// in this pass, so the field's blur commit is still on its way.
+func formAnyBlurPending(state *formRuntimeState) bool {
+	for _, field := range state.fields {
+		if field.blurPending {
+			return true
+		}
+	}
+	return false
 }
 
 // ---------- public API ----------
@@ -338,6 +387,17 @@ func formEnsureField(
 	field.widgetID = cfg.WidgetID
 	if field.widgetID == "" {
 		field.widgetID = cfg.FieldID
+	}
+	if exists && cfg.Value != field.value {
+		// A running async check is for a value the field no longer
+		// holds. A submit waiting for it starts over, so it validates
+		// what it will send; dropping it would lose the user's submit
+		// without a sound.
+		formStopAsync(field)
+		if state.submitWaiting {
+			state.submitWaiting = false
+			state.submitReq = true
+		}
 	}
 	field.value = cfg.Value
 	field.dirty = field.value != field.initialValue
@@ -476,20 +536,39 @@ func formRunSync(
 	}
 }
 
-// formStartAsync aborts the field's running async validators and
-// starts them again for the current values.
-func formStartAsync(
-	w *Window, formID string, state *formRuntimeState,
-	fieldID string, field *formFieldRuntime,
-) {
+// formStopAsync stops the field's running async validators. Their
+// result, already queued or still to come, is dropped: requestSeq
+// moves on, so formApplyAsyncResult no longer matches it. The issues
+// of an earlier, finished run stay until the field is validated again,
+// as sync issues do.
+func formStopAsync(field *formFieldRuntime) {
 	if field.pending && field.activeAbort != nil {
 		field.activeAbort.Abort()
 	}
 	field.pending = false
-	field.asyncErrors = field.asyncErrors[:0]
 	field.activeAbort = nil
+	field.requestSeq++
+	field.asyncCurrent = false
+}
+
+// formStartAsync starts the field's async validators for its current
+// value. When they already ran, or still run, for that value, it keeps
+// that result instead: an async check may be slow or costly, and
+// asking again could not change its answer for the same value.
+func formStartAsync(
+	w *Window, formID string, state *formRuntimeState,
+	fieldID string, field *formFieldRuntime,
+) {
+	if len(field.asyncVals) > 0 && field.asyncCurrent &&
+		field.asyncFor == field.value {
+		return
+	}
+	formStopAsync(field)
+	field.asyncErrors = field.asyncErrors[:0]
 
 	if len(field.asyncVals) > 0 {
+		field.asyncFor = field.value
+		field.asyncCurrent = true
 		field.pending = true
 		field.requestSeq++
 		requestID := field.requestSeq
@@ -546,11 +625,15 @@ func formApplyAsyncResult(
 
 // FormRequestSubmit asks the form to submit, typically from a submit
 // button's OnClick; Enter in a single-line Input inside the form calls
-// it too. In its next frame the form validates every field. It then
-// calls OnSubmit, unless an error or a running async validator blocks
-// the submit (see FormCfg.AllowInvalidSubmit and AllowPendingSubmit).
-// A blocked submit calls nothing; the issues show through the read
-// functions and slots.
+// it too. In its next frame the form validates every field; when focus
+// just left a field, as a click on a submit button does, it first waits
+// one frame for that field's committed value. When async validators
+// still run, the submit waits for them; a change of any field's value
+// makes it start over with the new values. Then the form calls
+// OnSubmit, unless an error blocks the submit (see
+// FormCfg.AllowInvalidSubmit, and AllowPendingSubmit to submit without
+// waiting). A rejected submit calls nothing; the issues show through
+// the read functions and slots.
 func FormRequestSubmit(w *Window, formID string) {
 	if formID == "" {
 		return

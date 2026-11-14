@@ -375,19 +375,20 @@ zero-allocation sharing. Hover and focus cues are still to come.
 
 Four interactions sound without a widget being clicked:
 
-| Interaction                                    | Cue       |
-| ---------------------------------------------- | --------- |
-| A toast appears (info, success, warning)       | `Notify`  |
-| A toast appears with `ToastError` severity     | `Error`   |
-| `(*Window).Dialog` opens a dialog              | `Open`    |
-| `Form` submit accepted                         | `Success` |
-| `Form` submit blocked by validation or pending | `Error`   |
-| `datagrid` CRUD save failure                   | `Error`   |
+| Interaction                                | Cue       |
+| ------------------------------------------ | --------- |
+| A toast appears (info, success, warning)   | `Notify`  |
+| A toast appears with `ToastError` severity | `Error`   |
+| `(*Window).Dialog` opens a dialog          | `Open`    |
+| `Form` submit accepted                     | `Success` |
+| `Form` submit rejected by validation       | `Error`   |
+| `datagrid` CRUD save failure               | `Error`   |
 
 Toast severity is the one place severity picks a cue. `ToastCfg.Sound` still
 names the toast's buttons, not its appearance; `ToastCfg.SoundDisabled` silences
 both. The same split holds for `DialogCfg` and for `FormCfg`, where `Sound`
-names the accepted submit and a refusal always takes `Theme.Sounds.Error`.
+names the accepted submit and a refusal always takes `Theme.Sounds.Error`. A
+submit that waits for async validators sounds once, when they return.
 
 Closing is silent: `DialogDismiss` and `ToastDismiss` make no sound, because the
 button that closed the surface has already sounded. A native dialog is silent

@@ -173,10 +173,13 @@ type FormSyncValidator func(FormFieldSnapshot, FormSnapshot) []FormIssue
 // FormAsyncValidator checks a field in the background, for a slow
 // check such as asking a server. It runs on its own goroutine with
 // copies taken when it started, and the field is Pending until it
-// returns. A newer validation of the field aborts it: check
-// signal.IsAborted() between slow steps and return early. It must not
-// touch the window; the form applies its result on the UI thread and
-// redraws.
+// returns. It runs again only when the field's value has changed: a
+// blur or a submit with the same value reuses its result, running or
+// done. A change of the value aborts it: check signal.IsAborted()
+// between slow steps and return early; its result is dropped. It must
+// not touch the window; the form applies its result on the UI thread
+// and redraws. Because it follows its own field's value, a rule that
+// also reads other fields belongs in a FormSyncValidator.
 type FormAsyncValidator func(
 	FormFieldSnapshot, FormSnapshot, *GridAbortSignal,
 ) []FormIssue
@@ -272,7 +275,9 @@ type FormCfg struct {
 	// AllowInvalidSubmit permits submit with errors.
 	// exportaudit:keep — caller-facing config (issue #372)
 	AllowInvalidSubmit bool
-	// AllowPendingSubmit permits submit while async pending.
+	// AllowPendingSubmit submits at once, without waiting for running
+	// async validators. By default a submit waits for them, then goes
+	// ahead or is rejected.
 	// exportaudit:keep — caller-facing config (issue #372)
 	AllowPendingSubmit bool
 	Disabled           bool
@@ -280,10 +285,10 @@ type FormCfg struct {
 
 	// Sound overrides the theme's success cue for a submit this form
 	// accepts. SoundNone (the zero value) takes Theme.Sounds.Success,
-	// which is itself silent unless the app opted in. A submit blocked
-	// by validation or by a pending validator always takes the theme's
-	// Error role: Sound names the acceptance, not the refusal
-	// (issue #469).
+	// which is itself silent unless the app opted in. A submit that
+	// validation rejects always takes the theme's Error role: Sound
+	// names the acceptance, not the refusal (issue #469). A submit that
+	// waits for async validators sounds once, when the wait ends.
 	// exportaudit:keep — caller-facing config (issue #469)
 	Sound SoundCue
 
@@ -431,13 +436,23 @@ type formFieldRuntime struct {
 	// checked records that the sync validators have run since the
 	// field was created or reset. Only checked fields are re-checked
 	// when another field changes.
-	checked    bool
-	validateOn FormValidateOn
+	checked bool
+	// asyncFor is the value the async validators last started for. While
+	// asyncCurrent is set, their result, running or done, belongs to
+	// that value and is reused instead of asking again.
+	asyncFor     string
+	asyncCurrent bool
+	validateOn   FormValidateOn
 }
 
 type formRuntimeState struct {
-	fields        map[string]*formFieldRuntime
-	submitReq     bool
+	fields    map[string]*formFieldRuntime
+	submitReq bool
+	// submitWaiting marks a submit that only waits for running async
+	// validators. Each pass looks again; when they are done, the form
+	// submits, or rejects if they found errors. A value change makes it
+	// start over (submitReq), so it checks what it will send.
+	submitWaiting bool
 	resetReq      bool
 	validateOn    FormValidateOn
 	submitOnEnter bool

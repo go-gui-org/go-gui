@@ -60,6 +60,29 @@ and this project adheres to
 
 ### Fixed
 
+- **A form with an async validator can submit (#1257).** Every submit started
+  the async validators again, and by default a submit is refused while one runs.
+  So `OnSubmit` never ran for a form with an async validator, unless the form
+  set `AllowPendingSubmit`. The showcase form was one of them. Now an async
+  validator runs again only when its field's value changes; a blur or a submit
+  with the same value reuses its result. A submit that only waits for a running
+  check goes ahead when the check passes, or is rejected when it reports an
+  issue. It sounds once, when the wait ends.
+
+- **An edit stops a running async check (#1257).** In the default mode an edit
+  does not validate, so it also did not stop a check of the old value. That
+  check's result then landed on the new value, for example "taken" for a name
+  the user had already changed. Now any change of a field's value stops its
+  running check and drops the result. A submit that waited for that check starts
+  over, so it checks what it will send. A reset stops the check too.
+
+- **A submit right after leaving a field sends the committed value (#1257).** A
+  click on a submit button moves focus out of the field, and the field commits
+  its text one frame later, for example NumericInput clamping `-5` to `0`. The
+  submit used the text from before the commit: `OnSubmit` got `-5` while the
+  field showed `0`. Now a submit made as focus leaves a field waits one frame
+  for the committed value.
+
 - **A form warning no longer blocks submit (#1236).** Before, go-gui ignored
   `FormIssue.Kind`. An issue tagged `FormIssueWarning` therefore counted like an
   error. `FormSummaryState.Valid` was false, `InvalidCount` counted the field,

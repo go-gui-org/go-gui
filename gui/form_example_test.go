@@ -276,7 +276,7 @@ func draftForm(content []gui.View) gui.View {
 	return gui.Form(gui.FormCfg{
 		ID:                 "draft",
 		AllowInvalidSubmit: true, // submit even with errors
-		AllowPendingSubmit: true, // submit while async validators run
+		AllowPendingSubmit: true, // submit without waiting for async validators
 		OnSubmit: func(e gui.FormSubmitEvent, ctx gui.EventCtx) {
 			for fieldID, issues := range e.State.Issues {
 				log.Printf("field %s: %v", fieldID, issues)

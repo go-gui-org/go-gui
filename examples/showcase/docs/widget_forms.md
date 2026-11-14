@@ -72,8 +72,8 @@ func signupView(w *gui.Window) gui.View {
 }
 ```
 
-`FormRequestSubmit` validates every field first. `OnSubmit` runs only when no
-field has an error and no async validator is still running.
+`FormRequestSubmit` validates every field first. If async validators still run,
+the submit waits for them. `OnSubmit` runs only when no field has an error.
 
 ## Linking a Field to Its Widget
 
@@ -111,6 +111,7 @@ gets no validation when the user edits it or leaves it.
 | Focus leaves a field                 | Marks the field touched. Runs its validators if its mode includes blur                                |
 | Submit                               | Marks every field touched and runs every field's validators, whatever the mode                        |
 | The app changes a value by itself    | Nothing until submit. Only a change while the field's widget has focus counts as an edit              |
+| Any value changes                    | Stops the field's async check that still runs. A submit that waits for it starts over                 |
 | A field's async validator comes back | Stores its issues and redraws the window                                                              |
 
 `FormCfg.ValidateOn` sets the mode for the whole form, and
@@ -160,8 +161,10 @@ func validatePassword(
 ## Async Validators
 
 An async validator is for a slow check, such as asking a server. It runs on its
-own goroutine, and the field is pending until it returns. A newer edit of the
-field aborts it, so it checks the signal between slow steps:
+own goroutine, and the field is pending until it returns. It runs again only
+when the field's value has changed: a blur or a submit with the same value
+reuses its result. A change of the value aborts it, so it checks the signal
+between slow steps:
 
 ```go
 // usernameTaken stands in for a request to the app's server.
@@ -187,7 +190,9 @@ func checkUsernameFree(
 ```
 
 Register it with `AsyncValidators: []gui.FormAsyncValidator{checkUsernameFree}`.
-A submit while it runs is blocked, unless the form sets `AllowPendingSubmit`.
+A submit while it runs waits for it, then goes ahead or is rejected. Because it
+follows its own field's value, a rule that also reads other fields belongs in a
+sync validator.
 
 ## Cross-Field Validation
 
@@ -296,6 +301,10 @@ func signupStatus(w *gui.Window) gui.View {
 Submit comes from `FormRequestSubmit`, usually in a button's `OnClick`, or from
 Enter in a single-line Input inside the form. To keep Enter from submitting, set
 `FormCfg.NoSubmitOnEnter`, or call `ctx.Consume()` in that Input's `OnEnter`.
+While async validators run, a submit waits for them. An edit in the meantime
+makes it start over, so it checks what it sends. A submit made just as focus
+leaves a field, for example by clicking the submit button, waits one frame for
+that field's committed value.
 
 `FormRequestReset` sets every field back to its initial value and clears its
 issues and touched state. go-gui cannot change the app's state, so `OnReset`
@@ -332,8 +341,9 @@ func registerUsername(w *gui.Window, username, saved string) {
 
 ## Allow Submit Despite Errors or Pending
 
-By default, submit is blocked while any field has an error or an async validator
-runs. A form can let it through and look at the event itself:
+By default, a submit is rejected while any field has an error, and waits while
+an async validator runs. A form can let it through at once and look at the event
+itself:
 
 ```go
 // draftForm saves whatever the user typed, issues and all.
@@ -341,7 +351,7 @@ func draftForm(content []gui.View) gui.View {
 	return gui.Form(gui.FormCfg{
 		ID:                 "draft",
 		AllowInvalidSubmit: true, // submit even with errors
-		AllowPendingSubmit: true, // submit while async validators run
+		AllowPendingSubmit: true, // submit without waiting for async validators
 		OnSubmit: func(e gui.FormSubmitEvent, ctx gui.EventCtx) {
 			for fieldID, issues := range e.State.Issues {
 				log.Printf("field %s: %v", fieldID, issues)
@@ -424,7 +434,7 @@ It is deprecated and keeps working. To move:
 | ValidateOn         | FormValidateOn | When validators run (default `FormValidateOnBlurSubmit`)   |
 | NoSubmitOnEnter    | bool           | Enter in a field does not submit                           |
 | AllowInvalidSubmit | bool           | Submit even with errors                                    |
-| AllowPendingSubmit | bool           | Submit while async validators run                          |
+| AllowPendingSubmit | bool           | Submit without waiting for async validators                |
 | OnSubmit           | func           | Called after a submit that is not blocked                  |
 | OnReset            | func           | Called after reset; copies the initial values to app state |
 | ErrorSlot          | func           | Builds the issues of one field                             |

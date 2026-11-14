@@ -49,7 +49,9 @@ built-in player.
   a window-mutating API.
 - **A blocked submit sounds where nothing else reports it.** The
   `blockedInvalid || blockedPending` branch has no callback: the cue is the only
-  feedback the app gets for free.
+  feedback the app gets for free. Later change (#1257): a submit that only waits
+  for async validators no longer sounds at once. `formFinishSubmit` decides it
+  when they return, and the `submitWaiting` latch keeps the emit one-shot.
 - **One emit site for the grid.** Every DataGrid CRUD failure funnels through
   `dataGridCrudRestoreOnError`, so the cue lives there and `dataGridSounds`
   gains an `err` role resolved beside `click` and `selection`. Keying off
