@@ -24,8 +24,13 @@ func BenchmarkStateTypeLookup(b *testing.B) {
 func BenchmarkStateMapLookup(b *testing.B) {
 	w := newTestWindow()
 	sm := StateMap[string, int](w, nsCombobox, capModerate)
-	for i := range 100 {
+	// Fill to capacity, not past it: 100 keys into a cap-50 map evicted
+	// "key-Z", so the loop below measured a miss.
+	for i := range capModerate {
 		sm.Set("key-"+string(rune('A'+i)), i)
+	}
+	if _, ok := sm.Get("key-Z"); !ok {
+		b.Fatal("key-Z must be retained so the loop measures a hit")
 	}
 
 	b.ReportAllocs()
@@ -67,6 +72,27 @@ func BenchmarkStateMapEvictAtCapacity(b *testing.B) {
 	n := capScroll
 	for b.Loop() {
 		w.viewPass++
+		sm.Set(n, n)
+		n++
+	}
+}
+
+// BenchmarkStateMapEvictBehindLiveKey inserts into a full namespace whose
+// oldest entry is read every pass, as a long-lived on-screen widget's state
+// is. Each eviction takes the entry behind the live key, so it shifts the
+// order slots after it (#1263).
+func BenchmarkStateMapEvictBehindLiveKey(b *testing.B) {
+	w := newTestWindow()
+	sm := StateMap[int, int](w, "bench-live", capTextBlocks)
+	for i := range capTextBlocks {
+		sm.Set(i, i)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	n := capTextBlocks
+	for b.Loop() {
+		w.viewPass++
+		sm.Get(0) // key 0 is the oldest and stays in use
 		sm.Set(n, n)
 		n++
 	}
