@@ -45,7 +45,7 @@ func TestQuitFromTrayClosesEveryWindow(t *testing.T) {
 // tray menu's "Show Window".
 func TestCloseHidesToTheTray(t *testing.T) {
 	t.Parallel()
-	w := gui.NewWindow(gui.WindowCfg{State: &App{HasTray: true}})
+	w := gui.NewWindow(gui.WindowCfg{State: &App{Tray: &gui.SystemTrayHandle{}}})
 
 	hideToTrayOrClose(w)
 
