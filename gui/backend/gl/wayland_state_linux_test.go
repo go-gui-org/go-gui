@@ -155,6 +155,33 @@ func TestWaylandFullscreenRoundTrip(t *testing.T) {
 	}
 }
 
+// harnessScreenW and harnessScreenH are the virtual screen that
+// scripts/wayland/in-container.sh gives each compositor.
+const (
+	harnessScreenW = 1280
+	harnessScreenH = 800
+)
+
+// checkFullscreenSize checks the size of a window that went fullscreen.
+// In the container harness (GOGUI_REQUIRE_WAYLAND=1) the screen is
+// known, so the window must fill it exactly. On a developer's desktop
+// the screen has any size (issue #1268), so there the window must only
+// have grown past floorW × floorH: the size it had, or its ceiling.
+func checkFullscreenSize(t *testing.T, w *gui.Window, floorW, floorH int) {
+	t.Helper()
+	ww, wh := w.WindowSize()
+	if os.Getenv("GOGUI_REQUIRE_WAYLAND") == "1" {
+		if ww != harnessScreenW || wh != harnessScreenH {
+			t.Errorf("fullscreen size %d×%d, want %d×%d",
+				ww, wh, harnessScreenW, harnessScreenH)
+		}
+		return
+	}
+	if ww <= floorW || wh <= floorH {
+		t.Errorf("fullscreen size %d×%d, want more than %d×%d", ww, wh, floorW, floorH)
+	}
+}
+
 func fullscreenRoundTrip(t *testing.T, deco gui.WindowDecoration) {
 	b := newWaylandTestBackend(t, gui.WindowCfg{
 		Width: 300, Height: 200, Decorations: deco,
@@ -167,9 +194,7 @@ func fullscreenRoundTrip(t *testing.T, deco gui.WindowDecoration) {
 
 	n.SetWindowFullscreen(true)
 	pumpWindow(t, b, "fullscreen", w.IsFullscreen)
-	if ww, wh := w.WindowSize(); ww != 1280 || wh != 800 {
-		t.Errorf("fullscreen size %d×%d, want 1280×800", ww, wh)
-	}
+	checkFullscreenSize(t, w, 300, 200)
 
 	n.SetWindowFullscreen(false)
 	pumpWindow(t, b, "leaving fullscreen", func() bool { return !w.IsFullscreen() })
@@ -291,9 +316,9 @@ func TestWaylandFullscreenIgnoresLimits(t *testing.T) {
 
 			n.SetWindowFullscreen(true)
 			pumpWindow(t, b, "fullscreen", w.IsFullscreen)
-			if ww, wh := w.WindowSize(); ww != 1280 || wh != 800 {
-				t.Errorf("fullscreen size %d×%d, want 1280×800", ww, wh)
-			}
+			// Past the ceiling too, where the config has one.
+			checkFullscreenSize(t, w,
+				max(c.cfg.Width, c.cfg.MaxWidth), max(c.cfg.Height, c.cfg.MaxHeight))
 			if !b.plat.wl.place.lifted {
 				t.Error("ceiling still on in fullscreen")
 			}
