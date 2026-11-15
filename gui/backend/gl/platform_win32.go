@@ -563,8 +563,7 @@ func New(w *gui.Window) (*Backend, error) {
 		pSetWindowTextW.Call(hwnd, uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(t))))
 	})
 
-	pShowWindow.Call(hwnd, swShow)
-	pUpdateWindow.Call(hwnd)
+	showAtStart(w, hwnd)
 	return b, nil
 }
 
@@ -584,6 +583,17 @@ func (n *nativePlatform) SetWindowOpacity(opacity float32) {
 	// exists to refuse.
 	applyWindowOpacity(n.b.plat.w, n.b.plat.hwnd,
 		n.b.plat.transparent, opacity)
+}
+
+// showAtStart shows a new window, unless the app hid it before the
+// backend started (issue #1270). Such a window stays off the screen and
+// Window.Show brings it up later.
+func showAtStart(w *gui.Window, hwnd uintptr) {
+	if !w.IsVisible() {
+		return
+	}
+	pShowWindow.Call(hwnd, swShow)
+	pUpdateWindow.Call(hwnd)
 }
 
 // ShowWindow unhides a hidden window, restoring it when minimized,

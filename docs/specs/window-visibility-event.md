@@ -67,8 +67,9 @@ window hidden. When a platform that cannot hide then attaches, the mark is
 cleared and the app gets the event, so `IsVisible` does not stay false for a
 window the user sees. Only the mark is put right: a `Minimize`, `Maximize` or
 `SetFullscreen` made while the window was marked hidden was a no-op, as on any
-hidden window, and is not made up for. On a platform that can hide, such an
-early `Hide` still does not reach the OS window, as before this change.
+hidden window, and is not made up for. On a platform that can hide, the mark
+stands: the backend reads it when it creates the window and does not show it, so
+the app starts with no window on screen (#1270).
 
 ### Delivery
 

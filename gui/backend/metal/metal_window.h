@@ -21,9 +21,12 @@ typedef void *GoGuiNSWindow;
 // fixedSize: if non-zero, window is not resizable.
 // decorations: 0 standard frame, 1 hidden title bar (window controls
 //   stay, content runs full height), 2 borderless.
+// hidden: if non-zero, the window is created but not ordered front. The
+//   app hid it before the backend started (issue #1270);
+//   metalWindowShow brings it up later.
 // Returns NULL on failure.
 GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
-                                int fixedSize, int decorations);
+                                int fixedSize, int decorations, int hidden);
 
 // Constrain interactive resizing to the given content-size bounds, in
 // logical pixels (points, which is what AppKit's content size uses, so
@@ -247,7 +250,8 @@ void metalPostEmptyEvent(void);
 // Launch sequence (see metal_window_darwin.m for the full narrative):
 //   1. metalAppInit         — before any window: NSApplication singleton,
 //                             activation policy, menu bar, app delegate.
-//   2. metalWindowCreate    — order each window front.
+//   2. metalWindowCreate    — order each window front, unless the app
+//                             hid it before the backend started.
 //   3. metalAppFinishLaunch — after windows exist: complete the Launch
 //                             Services handshake, bring app to foreground.
 

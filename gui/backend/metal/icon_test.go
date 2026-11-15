@@ -262,6 +262,31 @@ func runMainThreadTests() {
 	}
 	db.Destroy()
 
+	// 8f. A window the app hid before New must stay off the screen, and
+	//     Show must bring it up (issue #1270). The window from step 5
+	//     was not hidden and is the control: it is on screen.
+	if !testWindowVisible(b.window) {
+		panic("metal.New: a window that was not hidden is not on screen")
+	}
+	hw := gui.NewWindow(gui.WindowCfg{State: new(int), Width: 200, Height: 200})
+	hw.Hide()
+	hb, err := New(hw)
+	if err != nil {
+		panic("metal.New with Hide: " + err.Error())
+	}
+	if testWindowVisible(hb.window) {
+		panic("Hide before New: the window is on screen")
+	}
+	hw.Show()
+	if !testWindowVisible(hb.window) {
+		panic("Show after a hidden start: the window is not on screen")
+	}
+	hw.Hide()
+	if testWindowVisible(hb.window) {
+		panic("Hide after Show: the window is still on screen")
+	}
+	hb.Destroy()
+
 	b.Destroy()
 
 	// 9. Destroy must unregister the window. Regression test for

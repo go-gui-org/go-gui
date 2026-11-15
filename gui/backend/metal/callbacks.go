@@ -44,6 +44,7 @@ int metalTestIMEKeySuppressedWhileComposing(void *windowHandle);
 int metalTestIMEDeadKeyDeliveredWithoutTextContext(void *windowHandle);
 int metalTestContentViewIsFirstResponder(void *windowHandle);
 int metalTestWindowAppearance(void *windowHandle);
+int metalTestWindowVisible(void *windowHandle);
 void metalTestStartLiveResize(void *windowHandle);
 void metalTestEndLiveResize(void *windowHandle);
 int metalTestLayerPresentsWithTransaction(void *windowHandle);
@@ -248,6 +249,11 @@ func testContentViewIsFirstResponder(handle C.GoGuiNSWindow) bool {
 // -1 none (follows the system), 0 Aqua, 1 DarkAqua, 2 anything else.
 func testWindowAppearance(handle C.GoGuiNSWindow) int {
 	return int(C.metalTestWindowAppearance(unsafe.Pointer(handle)))
+}
+
+// testWindowVisible reports whether the NSWindow is on screen.
+func testWindowVisible(handle C.GoGuiNSWindow) bool {
+	return C.metalTestWindowVisible(unsafe.Pointer(handle)) != 0
 }
 
 func testWindowID(handle C.GoGuiNSWindow) uint32 {

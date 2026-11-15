@@ -279,3 +279,14 @@ func (n *nativePlatform) BeepAvailable() bool { return nativehost.BeepAvailable(
 func (n *nativePlatform) PlaySystemSound(cue gui.SoundCue) { nativehost.PlaySystemSound(cue) }
 
 func (n *nativePlatform) SystemSoundAvailable() bool { return nativehost.SystemSoundAvailable() }
+
+// startHidden is the hidden argument of metalWindowCreate: 1 for a
+// window the app hid before the backend started (issue #1270). Such a
+// window is created but not ordered front, and Window.Show brings it up
+// later.
+func startHidden(w *gui.Window) int {
+	if w.IsVisible() {
+		return 0
+	}
+	return 1
+}

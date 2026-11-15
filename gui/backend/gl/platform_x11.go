@@ -173,7 +173,8 @@ func newX11(w *gui.Window) (*Backend, error) {
 	b.plat.loadKeyboardInfo(conn)
 
 	loadCursors(&b.plat)
-	xproto.MapWindow(conn, win)
+	// EGL below wraps an unmapped window as well as a mapped one.
+	mapAtStart(w, conn, win)
 
 	// Replay a SetWindowOpacity made before the native platform was
 	// attached (in OnInit, or before backend.Run). After MapWindow, so
@@ -476,4 +477,14 @@ func loadCursors(p *platformState) {
 	// X protocol ordering runs the glyph-cursor creations queued above
 	// before this closes the font.
 	xproto.CloseFont(p.conn, font)
+}
+
+// mapAtStart maps a new window, unless the app hid it before the
+// backend started (issue #1270). Such a window stays unmapped and
+// Window.Show maps it later.
+func mapAtStart(w *gui.Window, conn *xgb.Conn, win xproto.Window) {
+	if !w.IsVisible() {
+		return
+	}
+	xproto.MapWindow(conn, win)
 }

@@ -85,6 +85,11 @@ func (w *Window) reportVisibility() (shown bool) {
 // ExitOnTrayRemoved, the app stays alive with no window showing. Sends
 // EventVisibilityChanged when the window was shown before.
 //
+// Hide may be called before the backend starts, for an app that begins
+// with no window on screen, such as a tray app: the window is created
+// but not shown, and Show brings it up (issue #1270). In OnInit the
+// window is already on screen, so a Hide there takes it away again.
+//
 // Where no window can be hidden (web, iOS, Android, native Wayland),
 // Hide does nothing and IsVisible stays true: the user still
 // sees the app. DebugWindowDegraded reports the call. No-op
@@ -125,9 +130,9 @@ func (w *Window) canHide() bool {
 //
 // Only the mark is put right. A Minimize, Maximize or SetFullscreen
 // made while the window was marked hidden was a no-op, as it is on any
-// hidden window, and stays one. On a platform that can hide, a Hide
-// made before the backend attached still does not reach the OS window;
-// that is as it was before issue #1170.
+// hidden window, and stays one. On a platform that can hide, the mark
+// stands: the backend reads it when it creates the window and does not
+// show it (issue #1270).
 func (w *Window) reconcileHidden() {
 	if w.nativePlatform == nil || !w.hidden.Load() || w.canHide() {
 		return
