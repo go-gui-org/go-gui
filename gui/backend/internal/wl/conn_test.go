@@ -219,7 +219,14 @@ func TestHandlerPanic(t *testing.T) {
 // backend calls every frame. The allocations are purego.SyscallN's own (see
 // glbind/raw_other.go), not this package's: measured 4 under sway, weston
 // and mutter (linux/arm64, purego v0.11.1). A rise means new per-call work.
+//
+// Skipped under -race: the race runtime adds an allocation of its own (5 under
+// Cinnamon's muffin, where a plain build measures 4), so the budget would
+// fail every race run, make prepush included. Plain test runs still pin it.
 func TestDispatchIdleAllocs(t *testing.T) {
+	if raceEnabled {
+		t.Skip("allocation counts include the race runtime's own under -race")
+	}
 	c := connect(t)
 	allocs := testing.AllocsPerRun(50, func() { _ = c.Dispatch(0) })
 	if allocs > 4 {
