@@ -2301,6 +2301,13 @@ int metalTestWindowAppearance(void *windowHandle) {
     return 2;
 }
 
+// Report whether the window is on screen: 1 yes, 0 no.
+int metalTestWindowVisible(void *windowHandle) {
+    if (!windowHandle) return 0;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    return gw->nsWindow.isVisible ? 1 : 0;
+}
+
 // Drive the preedit decision an Option+printable key produces and
 // report whether the key reaches the app when no editable text widget
 // is focused. On the US layout Option+I is the circumflex dead key: it
