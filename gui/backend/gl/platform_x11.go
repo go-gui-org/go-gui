@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"syscall"
@@ -74,10 +75,18 @@ func newX11(w *gui.Window) (*Backend, error) {
 	setup := xproto.Setup(conn)
 	screen := setup.DefaultScreen(conn)
 
-	dpy, cands, err := eglInitDisplayNFunc()
-	if err != nil {
-		conn.Close()
-		return nil, newGPUContextError("init EGL display", err)
+	// GOGUI_RENDERER=soft (#1265) opens no EGL display at all: the frame is
+	// drawn on the CPU and uploaded with PutImage, so the window needs only
+	// an X visual soft can write into.
+	soft := softRequested()
+	var dpy uintptr
+	var cands []eglConfigVisual
+	if !soft {
+		dpy, cands, err = eglInitDisplayNFunc()
+		if err != nil {
+			conn.Close()
+			return nil, newGPUContextError("init EGL display", err)
+		}
 	}
 
 	cfg := w.Config
@@ -105,11 +114,26 @@ func newX11(w *gui.Window) (*Backend, error) {
 	// A transparent window needs an ARGB (depth-32) visual, which the
 	// driver does not offer first, so the config is chosen against this
 	// screen's visual list rather than taken from EGL's own ordering.
-	chosen, depth, gotARGB := pickVisual(cands,
-		visualDepths(screen.AllowedDepths), cfg.Transparent)
-	config, visualID := chosen.config, chosen.visualID
-	if depth == 0 {
-		depth = screen.RootDepth
+	var config uintptr
+	var visualID uint32
+	var depth byte
+	var gotARGB bool
+	if soft {
+		vis, d, argb, ok := pickSoftVisual(screen.AllowedDepths,
+			screen.RootVisual, cfg.Transparent)
+		if !ok || !softImageFormatOK(setup.PixmapFormats, setup.ImageByteOrder, d) {
+			conn.Close()
+			return nil, errors.New("gl: GOGUI_RENDERER=soft: the X server " +
+				"offers no 32 bpp little-endian TrueColor visual")
+		}
+		visualID, depth, gotARGB = uint32(vis), d, argb
+	} else {
+		chosen, d, ok := pickVisual(cands,
+			visualDepths(screen.AllowedDepths), cfg.Transparent)
+		config, visualID, depth, gotARGB = chosen.config, chosen.visualID, d, ok
+		if depth == 0 {
+			depth = screen.RootDepth
+		}
 	}
 	if cfg.Transparent {
 		warnTransparency(w, gotARGB, hasCompositor(conn, conn.DefaultScreen))
@@ -136,6 +160,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 		[]uint32{0, x11EventMask, cmID})
 
 	b := &Backend{}
+	b.plat.softMode = soft
 	b.plat.conn = conn
 	b.plat.window = win
 	b.plat.eglDpy = dpy
@@ -187,22 +212,24 @@ func newX11(w *gui.Window) (*Backend, error) {
 	// the window before EGL (on its own X connection) wraps it.
 	conn.Sync()
 
-	surface, context, err := eglCreateSurfaceContextFunc(dpy, config, uintptr(wid))
-	if err != nil {
-		b.plat.destroy()
-		return nil, newGPUContextError("create EGL surface/context", err)
-	}
-	b.plat.eglSurface = surface
-	b.plat.eglContext = context
-	// The context is current on this surface, which is what
-	// eglSwapInterval applies to.
-	applyVSync(cfg.VSyncOff, func(n int32) bool {
-		return eglSwapInterval(dpy, n) != 0
-	}, w.DebugWindowVSync, "eglSwapInterval")
+	if !soft {
+		surface, context, cerr := eglCreateSurfaceContextFunc(dpy, config, uintptr(wid))
+		if cerr != nil {
+			b.plat.destroy()
+			return nil, newGPUContextError("create EGL surface/context", cerr)
+		}
+		b.plat.eglSurface = surface
+		b.plat.eglContext = context
+		// The context is current on this surface, which is what
+		// eglSwapInterval applies to.
+		applyVSync(cfg.VSyncOff, func(n int32) bool {
+			return eglSwapInterval(dpy, n) != 0
+		}, w.DebugWindowVSync, "eglSwapInterval")
 
-	if err := gogl.InitWithProcAddrFunc(eglProc); err != nil {
-		b.plat.destroy()
-		return nil, fmt.Errorf("gl: glbind init: %w", err)
+		if gerr := gogl.InitWithProcAddrFunc(eglProc); gerr != nil {
+			b.plat.destroy()
+			return nil, fmt.Errorf("gl: glbind init: %w", gerr)
+		}
 	}
 
 	wakeConn, err := xgb.NewConn()
@@ -221,9 +248,14 @@ func newX11(w *gui.Window) (*Backend, error) {
 	b.physH = physH
 	b.initCaches(cfg)
 
-	if err := b.initGLResources(w); err != nil {
+	if soft {
+		if serr := b.initSoftX11(w, depth, crtc); serr != nil {
+			b.Destroy()
+			return nil, serr
+		}
+	} else if gerr := b.initGLResources(w); gerr != nil {
 		b.Destroy()
-		return nil, fmt.Errorf("gl: initGLResources: %w", err)
+		return nil, fmt.Errorf("gl: initGLResources: %w", gerr)
 	}
 
 	w.SetTitleFn(func(t string) { setWindowTitle(conn, win, &b.plat, t) })

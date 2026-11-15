@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/jezek/xgb"
 
@@ -15,7 +16,14 @@ import (
 
 // Destroy releases all backend resources.
 func (b *Backend) Destroy() {
-	b.destroyGLResources()
+	// A soft window (#1265) never loaded EGL or the GL function table, so
+	// the GL teardown would call through nil function pointers.
+	if b.plat.softMode {
+		b.plat.soft.destroy()
+		b.plat.soft = nil
+	} else {
+		b.destroyGLResources()
+	}
 	b.plat.destroy()
 	b.plat.releaseThread()
 }
@@ -61,7 +69,7 @@ func (b *Backend) Run(w *gui.Window) {
 		}
 		rendered = w.FrameFn()
 		if rendered {
-			b.renderFrame(w)
+			b.presentX11(w)
 		}
 		b.plat.setCursor(w.MouseCursorState())
 		if !rendered {
@@ -115,7 +123,20 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 // is the same as none. Without WAYLAND_DISPLAY, libwayland would connect to
 // "wayland-0", which can be a stray socket in an X11 session, so the default
 // does not try.
+//
+// GOGUI_RENDERER=soft declines Wayland outright (#1265): the CPU renderer
+// presents through X11 PutImage only, so until the wl_shm path lands it runs
+// on XWayland. The decision is logged once, since a user who set both
+// GOGUI_RENDERER=soft and GOGUI_WAYLAND=1 gets a backend they did not name.
 func waylandRequested() bool {
+	if softRequested() {
+		softWaylandOnce.Do(func() {
+			if os.Getenv("WAYLAND_DISPLAY") != "" || waylandForced() {
+				log.Printf("gl: GOGUI_RENDERER=soft presents through X11; using XWayland")
+			}
+		})
+		return false
+	}
 	switch os.Getenv("GOGUI_WAYLAND") {
 	case "0":
 		return false
@@ -129,6 +150,17 @@ func waylandRequested() bool {
 // Wayland backend that cannot be used on this CPU worth a warning: on the
 // default path, X11 is the expected result there.
 func waylandForced() bool { return os.Getenv("GOGUI_WAYLAND") == "1" }
+
+// softWaylandOnce keeps waylandRequested's XWayland notice to one line per
+// process: New and RunApp both ask, and RunApp may open many windows.
+var softWaylandOnce sync.Once
+
+// softRequested reports whether GOGUI_RENDERER=soft asks for the CPU renderer
+// (gui/backend/soft) in place of EGL/GL (#1265). Only the exact value "soft"
+// counts; "gl", empty and unknown values keep GL, and matching is
+// case-sensitive like GOGUI_WAYLAND. Step 3 of #1265 adds auto-pick for the
+// unset case.
+func softRequested() bool { return os.Getenv("GOGUI_RENDERER") == "soft" }
 
 // taggedEvent carries an X event alongside the backend it belongs to so
 // a single channel can multiplex several windows' event pumps.
@@ -263,7 +295,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 				continue
 			}
 			if w.FrameFn() {
-				b.renderFrame(w)
+				b.presentX11(w)
 				rendered = true
 			}
 			b.plat.setCursor(w.MouseCursorState())

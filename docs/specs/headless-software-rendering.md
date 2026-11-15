@@ -2,6 +2,11 @@
 
 Issue #333 (phase 1), issue #360 (phase 2). Status: complete.
 
+Since #1265 the package also draws live windows (`soft.Renderer`, selected with
+`GOGUI_RENDERER=soft` on Linux). This spec covers the headless entry points and
+the renderer they share; the live present path is
+`docs/specs/live-software-renderer.md`.
+
 ## Problem
 
 go-gui had no way to produce a pixel image of a frame without a GPU and a
@@ -55,6 +60,11 @@ Preparation is idempotent and keeps the warm glyph atlas, so driving state
 between captures — `TestClick`, `SetFocus`, render again — costs only the frame.
 `Release` frees the text system for callers that render many windows in one
 process.
+
+The soft glyph backend is a `glyph.RectTextureUpdater` (#1265), so go-glyph
+uploads new glyphs before it emits the quads that sample them. A single pass is
+therefore correct on a cold atlas. `RenderToImage` keeps its warm pass anyway,
+so its output and cost did not change; `soft.Renderer` draws one pass.
 
 ## How a frame is rendered
 

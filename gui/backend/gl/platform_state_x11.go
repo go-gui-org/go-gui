@@ -31,6 +31,13 @@ type platformState struct {
 	// presented: swap ran, so the window's surface has a buffer.
 	presented bool
 
+	// softMode: GOGUI_RENDERER=soft chose the CPU renderer (#1265), so this
+	// window has no EGL display, surface or context and no GL function
+	// table. Set before anything can fail, so Destroy knows not to touch GL.
+	// soft is the present state, nil until initSoftX11 succeeds.
+	softMode bool
+	soft     *softPresent
+
 	// lockedTid is the OS thread New locked its goroutine to, handed to
 	// Destroy so it can release that lock (#827). Zero once released, or
 	// when New failed and released it itself.

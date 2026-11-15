@@ -105,13 +105,18 @@ func TestPickDPIScale(t *testing.T) {
 		wantCrtc  randr.Crtc
 		wantRRUse bool
 	}{
-		{"xft-wins-over-randr", 2, true, true, false, 2.62, 7, true, 2, 0, false},
+		// Xft.dpi sets the scale, but RandR still names the CRTC: the soft
+		// renderer paces to that monitor's refresh rate (#1265).
+		{"xft-wins-over-randr", 2, true, true, false, 2.62, 7, true, 2, 7, true},
 		// Xft.dpi: 96 on a 2x panel is kept on purpose. GNOME publishes 96 when
 		// the user picks 100%, and GTK/Qt then draw at 1.0, so reading 96 as
 		// "unset" and asking RandR would bring back the #871 mismatch.
-		{"xft-96-hidpi-randr", 1, true, true, false, 2, 7, true, 1, 0, false},
+		{"xft-96-hidpi-randr", 1, true, true, false, 2, 7, true, 1, 7, true},
 		{"randr-when-xft-unset", 0, false, true, false, 1.5, 7, true, 1.5, 7, true},
 		{"one-when-nothing", 0, false, true, false, 0, 0, false, 1, 0, true},
+		// A bogus EDID size rejects the DPI, not the monitor the window is on.
+		{"bad-dpi-keeps-crtc", 0, false, true, false, 0, 7, false, 1, 7, true},
+		{"xft-bad-dpi-keeps-crtc", 1.5, true, true, false, 0, 7, false, 1.5, 7, true},
 		{"no-randr-extension", 0, false, false, false, 1.5, 7, true, 1, 0, false},
 		{"xft-without-randr", 1.25, true, false, false, 0, 0, false, 1.25, 0, false},
 		{"xwayland-no-xft-skips-randr", 0, false, true, true, 1.81, 7, true, 1, 0, false},

@@ -5,6 +5,7 @@ package gl
 import (
 	"errors"
 	"fmt"
+	"runtime"
 )
 
 // ErrNoGPUContext marks a backend init failure caused by a missing
@@ -24,9 +25,16 @@ type gpuContextError struct {
 }
 
 func (e *gpuContextError) Error() string {
+	// On Linux the CPU renderer needs no GPU context at all (#1265), so it
+	// is the one fix that works without a driver or a package install.
+	// Windows has no soft present path yet.
+	soft := ""
+	if runtime.GOOS == "linux" {
+		soft = ", or set GOGUI_RENDERER=soft"
+	}
 	return fmt.Sprintf("gl: %s: %v — no GPU context "+
-		"(update the GPU driver, leave RDP/VM, or install Mesa on Linux)",
-		e.op, e.cause)
+		"(update the GPU driver, leave RDP/VM, or install Mesa on Linux%s)",
+		e.op, e.cause, soft)
 }
 
 func (e *gpuContextError) Unwrap() error { return e.cause }

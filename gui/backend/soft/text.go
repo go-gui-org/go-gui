@@ -21,6 +21,26 @@ type textMeasurer struct {
 	scale   float32
 }
 
+// setScale moves the text system to a new device scale in place, as the GL
+// backend's applyDPIScale does: glyph.TextSystem.SetDPIScale purges the
+// layout cache, the glyph cache and the atlas, and the glyph backend places
+// quads at the new density. The measurer and its text system stay the
+// window's, so text blocks the window persisted are never left holding
+// layouts from a freed system. It reports false when go-glyph refuses the
+// scale (above its density limit), leaving everything as it was.
+func (tm *textMeasurer) setScale(s float32) bool {
+	if s == tm.scale {
+		return true
+	}
+	tm.textSys.SetDPIScale(s)
+	if tm.textSys.DPIScale() != s {
+		return false
+	}
+	tm.back.scale = s
+	tm.scale = s
+	return true
+}
+
 func (tm *textMeasurer) TextWidth(text string, style gui.TextStyle) float32 {
 	w, err := tm.textSys.TextWidth(text, guiStyleToGlyphConfig(style))
 	if err != nil {
