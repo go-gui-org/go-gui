@@ -14,6 +14,8 @@ import (
 
 // newUnmappedXWindow creates a plain, unmapped window on a live X
 // server, as New does before its first map. It skips without a server.
+// The window is override-redirect, so a running window manager does not
+// hold its map request back and the map state can be read at once.
 func newUnmappedXWindow(t *testing.T) (*xgb.Conn, xproto.Window) {
 	t.Helper()
 	if os.Getenv("DISPLAY") == "" {
@@ -31,7 +33,7 @@ func newUnmappedXWindow(t *testing.T) (*xgb.Conn, xproto.Window) {
 	}
 	if err = xproto.CreateWindowChecked(conn, screen.RootDepth, win, screen.Root,
 		0, 0, 200, 100, 0, xproto.WindowClassInputOutput, screen.RootVisual,
-		0, nil).Check(); err != nil {
+		xproto.CwOverrideRedirect, []uint32{1}).Check(); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { xproto.DestroyWindow(conn, win) })
