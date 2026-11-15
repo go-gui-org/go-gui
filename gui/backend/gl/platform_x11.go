@@ -5,7 +5,9 @@ package gl
 import (
 	"errors"
 	"fmt"
+	"log"
 	"runtime"
+	"sync"
 	"syscall"
 
 	"github.com/jezek/xgb"
@@ -52,10 +54,45 @@ func New(w *gui.Window) (*Backend, error) {
 	return newX11(w)
 }
 
+// softInitError marks a failure of the CPU renderer's own setup, after the
+// window exists. newX11 retries those on GL when auto-pick chose soft.
+type softInitError struct{ err error }
+
+func (e *softInitError) Error() string { return e.err.Error() }
+func (e *softInitError) Unwrap() error { return e.err }
+
 // newX11 is New without the Wayland branch. The X11 RunApp loop calls it
 // directly: once it runs, Wayland was already declined, and a Wayland
 // window must never reach the X11 event pump.
 func newX11(w *gui.Window) (*Backend, error) {
+	b, pick, err := newX11Pick(w, nil)
+	var sie *softInitError
+	if err == nil || !pick.auto || !errors.As(err, &sie) {
+		return b, err
+	}
+	// Auto-pick chose soft and soft failed to start. After an EGL failure
+	// neither renderer can run: report the GPU cause first, so the error
+	// still matches ErrNoGPUContext. After a GL_RENDERER choice GL works,
+	// only slowly, and drew here before auto-pick existed.
+	if pick.eglErr != nil {
+		return nil, fmt.Errorf("%w (CPU renderer fallback: %v)",
+			newGPUContextErrorNoSoft("init EGL display", pick.eglErr), sie.err)
+	}
+	softInitOnce.Do(func() {
+		log.Printf("gl: CPU renderer failed to start (%v); using GL", sie.err)
+	})
+	b, _, err = newX11Pick(w, &rendererChoice{})
+	return b, err
+}
+
+// softInitOnce keeps the GL fallback notice to one line per process.
+var softInitOnce sync.Once
+
+// newX11Pick opens the window. A nil forced asks pickRenderer, which probes
+// on this locked thread after the X connect; the pick used is returned. A
+// non-nil forced is used as is.
+func newX11Pick(w *gui.Window, forced *rendererChoice) (*Backend, rendererChoice, error) {
+	var pick rendererChoice
 	runtime.LockOSThread()
 	// Every error return below releases the lock again, so a caller whose
 	// goroutine then exits does not take its OS thread down with it (#827,
@@ -70,26 +107,53 @@ func newX11(w *gui.Window) (*Backend, error) {
 
 	conn, err := xgb.NewConn()
 	if err != nil {
-		return nil, fmt.Errorf("gl: x11 connect: %w", err)
+		return nil, pick, fmt.Errorf("gl: x11 connect: %w", err)
 	}
 	setup := xproto.Setup(conn)
 	screen := setup.DefaultScreen(conn)
 
-	// GOGUI_RENDERER=soft (#1265) opens no EGL display at all: the frame is
+	// The CPU renderer (#1265) opens no EGL display at all: the frame is
 	// drawn on the CPU and uploaded with PutImage, so the window needs only
-	// an X visual soft can write into.
-	soft := softRequested()
+	// an X visual soft can write into. GOGUI_RENDERER=soft asks for it; with
+	// the variable unset, pickRenderer's probe chooses it on a software
+	// rasterizer or when EGL fails. The probe runs here, after the thread
+	// lock above, because its context is current on this thread.
+	if forced != nil {
+		pick = *forced
+	} else {
+		pick = pickRenderer()
+	}
+	cfg := w.Config
+	// The soft visual is checked before EGL is touched, so an auto-pick that
+	// finds no visual soft can write into can still fall back to GL.
+	var softVis xproto.Visualid
+	var softDepth byte
+	var softARGB bool
+	soft := pick.soft
+	if soft {
+		var ok bool
+		softVis, softDepth, softARGB, ok = pickSoftVisual(screen.AllowedDepths,
+			screen.RootVisual, cfg.Transparent)
+		ok = ok && softImageFormatOK(setup.PixmapFormats, setup.ImageByteOrder, softDepth)
+		if !ok {
+			useGL, verr := softVisualRejected(pick)
+			if !useGL {
+				conn.Close()
+				return nil, pick, verr
+			}
+			soft = false
+		}
+	}
 	var dpy uintptr
 	var cands []eglConfigVisual
 	if !soft {
 		dpy, cands, err = eglInitDisplayNFunc()
 		if err != nil {
 			conn.Close()
-			return nil, newGPUContextError("init EGL display", err)
+			return nil, pick, newGPUContextError("init EGL display", err)
 		}
 	}
 
-	cfg := w.Config
 	title := cfg.Title
 	if title == "" {
 		title = "go-gui"
@@ -119,14 +183,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	var depth byte
 	var gotARGB bool
 	if soft {
-		vis, d, argb, ok := pickSoftVisual(screen.AllowedDepths,
-			screen.RootVisual, cfg.Transparent)
-		if !ok || !softImageFormatOK(setup.PixmapFormats, setup.ImageByteOrder, d) {
-			conn.Close()
-			return nil, errors.New("gl: GOGUI_RENDERER=soft: the X server " +
-				"offers no 32 bpp little-endian TrueColor visual")
-		}
-		visualID, depth, gotARGB = uint32(vis), d, argb
+		visualID, depth, gotARGB = uint32(softVis), softDepth, softARGB
 	} else {
 		chosen, d, ok := pickVisual(cands,
 			visualDepths(screen.AllowedDepths), cfg.Transparent)
@@ -142,7 +199,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	cmID, err := conn.NewId()
 	if err != nil {
 		conn.Close()
-		return nil, fmt.Errorf("gl: x11 new id: %w", err)
+		return nil, pick, fmt.Errorf("gl: x11 new id: %w", err)
 	}
 	xproto.CreateColormap(conn, xproto.ColormapAllocNone,
 		xproto.Colormap(cmID), screen.Root, xproto.Visualid(visualID))
@@ -150,7 +207,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	wid, err := conn.NewId()
 	if err != nil {
 		conn.Close()
-		return nil, fmt.Errorf("gl: x11 new id: %w", err)
+		return nil, pick, fmt.Errorf("gl: x11 new id: %w", err)
 	}
 	win := xproto.Window(wid)
 	xproto.CreateWindow(conn, depth, win, screen.Root,
@@ -216,7 +273,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 		surface, context, cerr := eglCreateSurfaceContextFunc(dpy, config, uintptr(wid))
 		if cerr != nil {
 			b.plat.destroy()
-			return nil, newGPUContextError("create EGL surface/context", cerr)
+			return nil, pick, newGPUContextError("create EGL surface/context", cerr)
 		}
 		b.plat.eglSurface = surface
 		b.plat.eglContext = context
@@ -228,14 +285,14 @@ func newX11(w *gui.Window) (*Backend, error) {
 
 		if gerr := gogl.InitWithProcAddrFunc(eglProc); gerr != nil {
 			b.plat.destroy()
-			return nil, fmt.Errorf("gl: glbind init: %w", gerr)
+			return nil, pick, fmt.Errorf("gl: glbind init: %w", gerr)
 		}
 	}
 
 	wakeConn, err := xgb.NewConn()
 	if err != nil {
 		b.plat.destroy()
-		return nil, fmt.Errorf("gl: x11 wake connect: %w", err)
+		return nil, pick, fmt.Errorf("gl: x11 wake connect: %w", err)
 	}
 	b.plat.wakeConn = wakeConn
 
@@ -251,11 +308,11 @@ func newX11(w *gui.Window) (*Backend, error) {
 	if soft {
 		if serr := b.initSoftX11(w, depth, crtc); serr != nil {
 			b.Destroy()
-			return nil, serr
+			return nil, pick, &softInitError{err: serr}
 		}
 	} else if gerr := b.initGLResources(w); gerr != nil {
 		b.Destroy()
-		return nil, fmt.Errorf("gl: initGLResources: %w", gerr)
+		return nil, pick, fmt.Errorf("gl: initGLResources: %w", gerr)
 	}
 
 	w.SetTitleFn(func(t string) { setWindowTitle(conn, win, &b.plat, t) })
@@ -269,7 +326,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	// the deferred unlock above is about to release.
 	b.plat.lockedTid = syscall.Gettid()
 	handedOff = true
-	return b, nil
+	return b, pick, nil
 }
 
 // SetWindowOpacity fades the whole window through the window manager's

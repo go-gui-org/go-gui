@@ -19,13 +19,14 @@ and this project adheres to
   clipboard and DPI handling are the same code as with GL. On a Wayland desktop
   the window runs on XWayland until the Wayland path lands. The frame is redrawn
   in full on each change, so this is aimed at 1× displays, and a custom shader
-  draws its children but not its shader fill. `gl` or no value keeps GL, and on
-  Linux the no-GPU error now names the variable. The new `soft.Renderer` is the
-  live counterpart of `soft.RenderToImage`. It draws one pass into one reused
-  buffer: the soft glyph backend now uploads new glyphs in the middle of a
-  frame, so a cold glyph atlas needs no warm-up pass. `soft.RenderToImage` of an
-  already-rendered window at a new scale now moves its text system to the new
-  density instead of freeing it under the window's cached text layouts. See
+  draws its children but not its shader fill. `gl` keeps GL (for no value, see
+  the auto-pick entry under Changed), and on Linux the no-GPU error now names
+  the variable. The new `soft.Renderer` is the live counterpart of
+  `soft.RenderToImage`. It draws one pass into one reused buffer: the soft glyph
+  backend now uploads new glyphs in the middle of a frame, so a cold glyph atlas
+  needs no warm-up pass. `soft.RenderToImage` of an already-rendered window at a
+  new scale now moves its text system to the new density instead of freeing it
+  under the window's cached text layouts. See
   `docs/specs/live-software-renderer.md`.
 - **Texture caches are bounded by bytes, and `WindowCfg.MaxTextureBytes` sets
   the cap (#1239).** Before, each window kept up to 128 decoded images on the
@@ -86,6 +87,20 @@ and this project adheres to
   `examples/visibility` shows it. See `docs/specs/window-visibility-event.md`.
 
 ### Changed
+
+- **Linux X11 picks the CPU renderer by itself when GL would run on the CPU
+  anyway (#1265).** With `GOGUI_RENDERER` unset, the X11 backend now probes GL
+  once at start. When `GL_RENDERER` names a software rasterizer (llvmpipe,
+  softpipe, lavapipe, SwiftShader), or EGL cannot give a GL context, the window
+  is drawn by `gui/backend/soft` instead, with one log line that says why. On
+  llvmpipe that measured about a third of the CPU and half the memory. Before,
+  no value meant GL, and a machine without a GPU context failed with
+  `ErrNoGPUContext`; now only `GOGUI_RENDERER=gl` gives that error, and `gl`
+  also skips the probe. A machine with a hardware GPU keeps GL, at the cost of
+  one extra context create and destroy at start. The native Wayland backend
+  keeps GL until its own software path lands. Values other than `gl` and `soft`
+  keep GL and log a warning. An app that needs custom shaders on a machine
+  without a GPU sets `GOGUI_RENDERER=gl`.
 
 - **A full state map evicts state that is not in use, not the oldest state
   (#1263).** Before, a full `StateMap` namespace, or the scroll, overflow and

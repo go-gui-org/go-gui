@@ -15,6 +15,9 @@ import (
 // Xvfb). Without any display the test skips, like the render smoke
 // test.
 func TestNewWrapsGPUDisplayError(t *testing.T) {
+	// Named GL: unset, auto-pick would answer the EGL failure with the
+	// CPU renderer instead of the error (#1265).
+	t.Setenv("GOGUI_RENDERER", "gl")
 	cause := errors.New("eglInitialize failed (egl error 0x3001)")
 	old := eglInitDisplayNFunc
 	eglInitDisplayNFunc = func() (uintptr, []eglConfigVisual, error) {
@@ -48,6 +51,9 @@ func TestNewWrapsGPUDisplayError(t *testing.T) {
 // and EGL are. Anything short of the injected seam skips — a plain X
 // login without EGL must not fail.
 func TestNewWrapsGPUSurfaceError(t *testing.T) {
+	// Named GL: unset, auto-pick would answer the EGL failure with the
+	// CPU renderer instead of the error (#1265).
+	t.Setenv("GOGUI_RENDERER", "gl")
 	cause := errors.New("eglCreateWindowSurface failed (egl error 0x3001)")
 	old := eglCreateSurfaceContextFunc
 	eglCreateSurfaceContextFunc = func(dpy, config, win uintptr) (uintptr, uintptr, error) {

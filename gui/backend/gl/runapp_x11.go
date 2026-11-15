@@ -156,10 +156,11 @@ func waylandForced() bool { return os.Getenv("GOGUI_WAYLAND") == "1" }
 var softWaylandOnce sync.Once
 
 // softRequested reports whether GOGUI_RENDERER=soft asks for the CPU renderer
-// (gui/backend/soft) in place of EGL/GL (#1265). Only the exact value "soft"
-// counts; "gl", empty and unknown values keep GL, and matching is
-// case-sensitive like GOGUI_WAYLAND. Step 3 of #1265 adds auto-pick for the
-// unset case.
+// (gui/backend/soft) by name (#1265). Only the exact value "soft" counts, and
+// matching is case-sensitive like GOGUI_WAYLAND. waylandRequested uses it:
+// only a named soft declines native Wayland. Auto-pick (pickRenderer, for the
+// unset case) runs on the X11 path only, so a Wayland session keeps GL until
+// the Wayland soft path lands.
 func softRequested() bool { return os.Getenv("GOGUI_RENDERER") == "soft" }
 
 // taggedEvent carries an X event alongside the backend it belongs to so

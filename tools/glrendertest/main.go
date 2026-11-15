@@ -76,6 +76,12 @@ var x11Tests = []string{
 	// GOGUI_RENDERER=soft present path (#1265): needs an X server, not GL.
 	"TestSoftX11NeverTouchesEGL",
 	"TestSoftX11PixelsMatchRenderToImage",
+	// Auto-pick with GOGUI_RENDERER unset (#1265 step 3): the runner's
+	// llvmpipe must choose soft, and so must an EGL failure.
+	"TestAutoPickSoftOnSoftwareRasterizer",
+	"TestAutoPickSoftOnEGLFailure",
+	"TestAutoPickSoftInitFailureFallsBackToGL",
+	"TestAutoPickSoftInitFailureAfterEGLFailure",
 }
 
 // verdict classifies one test process's output.
@@ -166,7 +172,10 @@ func compilePkg(pkg, bin string) error {
 // real gl test binary.
 var startTest = func(bin, test string) *exec.Cmd {
 	cmd := exec.Command(bin, "-test.run", "^"+test+"$", "-test.v") // #nosec G204 -- binary this tool just built; test names come from testList
-	cmd.Env = append(os.Environ(), "GOGUI_REQUIRE_GL=1")
+	// GOGUI_RENDERER=gl keeps the GL tests on GL: the runner's GL is
+	// llvmpipe, which auto-pick would replace with the CPU renderer (#1265).
+	// The soft and auto-pick tests set the variable themselves.
+	cmd.Env = append(os.Environ(), "GOGUI_REQUIRE_GL=1", "GOGUI_RENDERER=gl")
 	return cmd
 }
 

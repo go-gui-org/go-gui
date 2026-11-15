@@ -20,6 +20,9 @@ const probeSize = 16
 // Mesa set it, so a broken context there fails instead of passing silently.
 func newProbeBackend(t *testing.T) *Backend {
 	t.Helper()
+	// These tests draw with GL. Named, because auto-pick would put a
+	// software rasterizer (CI's llvmpipe) on the CPU renderer (#1265).
+	t.Setenv("GOGUI_RENDERER", "gl")
 	w := gui.NewWindow(gui.WindowCfg{State: new(int), Width: 64, Height: 64})
 	w.SetView(func(_ *gui.Window) gui.View { return gui.Column(gui.ContainerCfg{}) })
 	b, err := New(w)

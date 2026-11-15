@@ -9,6 +9,9 @@ import (
 )
 
 func TestBackendRenderSmoke(t *testing.T) {
+	// These tests draw with GL. Named, because auto-pick would put a
+	// software rasterizer (CI's llvmpipe) on the CPU renderer (#1265).
+	t.Setenv("GOGUI_RENDERER", "gl")
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  new(int),
 		Width:  200,
