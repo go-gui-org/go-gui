@@ -91,16 +91,18 @@ and this project adheres to
 - **Linux X11 picks the CPU renderer by itself when GL would run on the CPU
   anyway (#1265).** With `GOGUI_RENDERER` unset, the X11 backend now probes GL
   once at start. When `GL_RENDERER` names a software rasterizer (llvmpipe,
-  softpipe, lavapipe, SwiftShader), or EGL cannot give a GL context, the window
-  is drawn by `gui/backend/soft` instead, with one log line that says why. On
+  softpipe, lavapipe, SwiftShader), or EGL cannot open a display, the window is
+  drawn by `gui/backend/soft` instead, with one log line that says why. On
   llvmpipe that measured about a third of the CPU and half the memory. Before,
   no value meant GL, and a machine without a GPU context failed with
-  `ErrNoGPUContext`; now only `GOGUI_RENDERER=gl` gives that error, and `gl`
-  also skips the probe. A machine with a hardware GPU keeps GL, at the cost of
-  one extra context create and destroy at start. The native Wayland backend
-  keeps GL until its own software path lands. Values other than `gl` and `soft`
-  keep GL and log a warning. An app that needs custom shaders on a machine
-  without a GPU sets `GOGUI_RENDERER=gl`.
+  `ErrNoGPUContext`; now `GOGUI_RENDERER=gl` gives that error and skips the
+  probe. With no value, the error comes only when EGL opens but the window's own
+  GL context fails (the probe kept GL), or when neither renderer can run. A
+  machine with a hardware GPU keeps GL, at the cost of one extra context create
+  and destroy at start. The native Wayland backend keeps GL until its own
+  software path lands. Values other than `gl` and `soft` keep GL and log a
+  warning. An app that needs custom shaders on a machine without a GPU sets
+  `GOGUI_RENDERER=gl`.
 
 - **A full state map evicts state that is not in use, not the oldest state
   (#1263).** Before, a full `StateMap` namespace, or the scroll, overflow and

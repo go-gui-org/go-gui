@@ -77,11 +77,15 @@ on the CPU at two to three times the CPU of go-gui's own software renderer while
 animating, and about twice the memory (#1265). So when `GOGUI_RENDERER` is not
 set, the X11 backend checks at start which GL it would get. If `GL_RENDERER`
 names a software rasterizer (llvmpipe, softpipe, lavapipe, SwiftShader), or EGL
-cannot give a GL context at all, it draws with go-gui's software renderer
-instead, and writes one log line that says so. The native Wayland backend keeps
-GL for now. The software renderer needs no EGL or GL library. It draws the full
-frame on each redraw and draws custom shaders' children but not their shader
-fill.
+cannot open a display, it draws with go-gui's software renderer instead, and
+writes one log line that says so. The native Wayland backend keeps GL for now.
+The software renderer needs no EGL or GL library. It draws the full frame on
+each redraw and draws custom shaders' children but not their shader fill.
+
+If EGL opens a display but the check cannot create a GL context, the backend
+keeps GL: the window uses its own EGL config, which can still work. If the
+window's own context then fails, startup returns `ErrNoGPUContext`; set
+`GOGUI_RENDERER=soft` to use the software renderer.
 
 `GOGUI_RENDERER=soft` uses the software renderer on any machine, without the
 check. It presents through X11, so on a Wayland desktop it runs on XWayland for
