@@ -765,10 +765,6 @@ func (w *Window) PlatformID() uint32 {
 	return w.platformID.Load()
 }
 
-// Close requests the window be closed on the next frame.
-// Safe to call from any goroutine.
-func (w *Window) Close() { w.closeReq.Store(true) }
-
 // Now returns the window's current time. When live, this is
 // time.Now(); after TestStep it is the test's manual clock. When time-travel scrub has pinned a virtual
 // instant, Now returns that instant so views relying on

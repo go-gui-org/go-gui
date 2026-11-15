@@ -144,6 +144,22 @@ and this project adheres to
 
 ### Fixed
 
+- **`Window.Close` takes effect at once on an idle window (#1273).** `Close`
+  only set a flag, and the backend reads that flag when its event loop runs. An
+  idle loop sleeps until the next OS message, so a `Close` from a tray menu, a
+  timer or another goroutine waited for the next mouse move, and never happened
+  on a hidden window. `Close` now wakes the loop. The system-tray example's
+  "Quit" also ended nothing: it sent a quit request, which ran the window's
+  hide-on-close hook, and the app stayed alive with no window and no tray. It
+  now removes the tray and calls `Close` on every window. The example's close
+  button also did nothing where the window could not go to the tray: on a
+  desktop without a tray, and on native Wayland, where a window cannot be
+  hidden. There it now closes the window.
+- **A click in a Windows tray menu fires the item that was clicked (#1273).**
+  The menu's item IDs were one lower than the tray code expected. A click fired
+  the action of the item above it, the first item fired nothing, and an item
+  after a separator, such as "Quit" in the system-tray example, fired nothing
+  either. The menu is now built from the same list the click is looked up in.
 - **`Window.Hide` before the backend starts keeps the window off the screen
   (#1270).** An app that called `w.Hide()` before `backend.Run`, to start with
   no window showing, still got its window on screen, while `IsVisible` reported

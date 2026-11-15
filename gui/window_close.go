@@ -1,5 +1,13 @@
 package gui
 
+// Close requests the window be closed on the next frame. It wakes an
+// idle event loop, so the close does not wait for the next input event
+// (issue #1273). Safe to call from any goroutine.
+func (w *Window) Close() {
+	w.closeReq.Store(true)
+	w.wakeMain()
+}
+
 // DispatchCloseRequest routes an OS window-close event. If the
 // window has a non-nil OnCloseRequest hook, it is invoked and the
 // hook owns calling Window.Close() to proceed. Otherwise the window
