@@ -48,8 +48,11 @@ const (
 	nifMessage    = 0x00000001
 	nifIcon       = 0x00000002
 	nifTip        = 0x00000004
-	nisHidden     = 0x00000001
-	notifyIconV4  = 4
+	// nifShowTip asks for the standard tooltip. With
+	// NOTIFYICON_VERSION_4 the shell hides it unless this is set.
+	nifShowTip   = 0x00000080
+	nisHidden    = 0x00000001
+	notifyIconV4 = 4
 )
 
 // Window message constants.
@@ -461,7 +464,8 @@ func (t *Tray) Create(
 	}
 
 	// Build popup menu.
-	hMenu := buildPopupMenu(cfg.Menu, id)
+	menuNodes := buildMenuNodes(cfg.Menu)
+	hMenu := buildPopupMenu(menuNodes, id)
 
 	// Build tooltip as UTF-16.
 	tip, _ := syscall.UTF16FromString(cfg.Tooltip)
@@ -476,7 +480,7 @@ func (t *Tray) Create(
 		cbSize:           uint32(unsafe.Sizeof(notifyIconDataW{})),
 		hWnd:             t.hwnd,
 		uID:              uint32(id),
-		uFlags:           nifMessage | nifTip,
+		uFlags:           nifMessage | nifTip | nifShowTip,
 		uCallbackMessage: wmAppTray,
 		hIcon:            hIcon,
 	}
@@ -522,7 +526,7 @@ func (t *Tray) Create(
 		id:        id,
 		tooltip:   cfg.Tooltip,
 		iconPNG:   cfg.IconPNG,
-		menuNodes: buildMenuNodes(cfg.Menu),
+		menuNodes: menuNodes,
 		actionCb:  actionCb,
 		hIcon:     hIcon,
 		hMenu:     hMenu,
@@ -558,7 +562,7 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 
 	e.menuNodes = buildMenuNodes(cfg.Menu)
 	oldMenu := e.hMenu
-	e.hMenu = buildPopupMenu(cfg.Menu, id)
+	e.hMenu = buildPopupMenu(e.menuNodes, id)
 
 	tip, _ := syscall.UTF16FromString(cfg.Tooltip)
 
@@ -566,7 +570,7 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 		cbSize: uint32(unsafe.Sizeof(notifyIconDataW{})),
 		hWnd:   t.hwnd,
 		uID:    uint32(id),
-		uFlags: nifTip,
+		uFlags: nifTip | nifShowTip,
 	}
 	copy(nid.szTip[:], tip)
 
@@ -637,49 +641,51 @@ func (t *Tray) Remove(id int) {
 
 // --- Popup menu construction ---
 
-func buildPopupMenu(items []gui.NativeMenuItemCfg, entryID int) uintptr {
-	if len(items) == 0 {
+// buildPopupMenu makes the Win32 menu from the flat node list. A menu
+// item's ID is baseID plus its index in nodes, which is how
+// fireMenuAction finds the node of a clicked item. Building the menu
+// from the nodes keeps the two in step: built from the items with a
+// counter of its own, every ID was one too low, so a click fired the
+// item above it, or nothing (issue #1273).
+func buildPopupMenu(nodes []menuNode, entryID int) uintptr {
+	if len(nodes) == 0 || nodes[0].childCount == 0 {
 		return 0
 	}
 	hMenu, _, _ := procCreatePopupMenu.Call()
 	if hMenu == 0 {
 		return 0
 	}
-	base := uint32(entryID * 1000)
-	appendMenuItems(hMenu, items, base, 0)
+	appendMenuItems(hMenu, nodes, 0, uint32(entryID*1000))
 	return hMenu
 }
 
+// appendMenuItems adds the children of nodes[parent] to hMenu.
 func appendMenuItems(
-	hMenu uintptr,
-	items []gui.NativeMenuItemCfg,
-	baseID uint32,
-	idx int,
-) int {
-	for _, item := range items {
-		id := baseID + uint32(idx)
-		idx++
-
-		if item.Separator {
+	hMenu uintptr, nodes []menuNode, parent int, baseID uint32,
+) {
+	first := nodes[parent].childStart
+	for idx := first; idx < first+nodes[parent].childCount; idx++ {
+		n := nodes[idx]
+		if n.separator {
 			procAppendMenuW.Call(hMenu,
 				uintptr(mfSeparator), 0, 0)
 			continue
 		}
 
 		var flags uintptr = mfString
-		if item.Disabled {
+		if n.disabled {
 			flags |= mfDisabled
 		}
-		if item.Checked {
+		if n.checked {
 			flags |= mfChecked
 		}
 
-		labelW, _ := syscall.UTF16PtrFromString(item.Text)
+		labelW, _ := syscall.UTF16PtrFromString(n.label)
 
-		if len(item.Submenu) > 0 {
+		if n.childCount > 0 {
 			subMenu, _, _ := procCreatePopupMenu.Call()
 			if subMenu != 0 {
-				appendMenuItems(subMenu, item.Submenu, baseID, idx)
+				appendMenuItems(subMenu, nodes, idx, baseID)
 				procAppendMenuW.Call(hMenu,
 					uintptr(mfPopup|flags),
 					subMenu,
@@ -688,11 +694,10 @@ func appendMenuItems(
 		} else {
 			procAppendMenuW.Call(hMenu,
 				flags,
-				uintptr(id),
+				uintptr(baseID+uint32(idx)),
 				uintptr(unsafe.Pointer(labelW)))
 		}
 	}
-	return idx
 }
 
 // buildMenuNodes converts NativeMenuItemCfg to flat menuNode slice

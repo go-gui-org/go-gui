@@ -21,6 +21,9 @@ var trayIcon []byte
 
 type App struct {
 	Status string
+	// Tray is the tray icon, or nil when the desktop has none. Without
+	// one, nothing could bring a hidden window back.
+	Tray *gui.SystemTrayHandle
 }
 
 func main() {
@@ -32,16 +35,11 @@ func main() {
 	app.ExitMode = gui.ExitOnTrayRemoved
 
 	w := gui.NewWindow(gui.WindowCfg{
-		State:  &App{Status: "Running. Close window — tray keeps app alive."},
-		Title:  "System Tray Demo",
-		Width:  500,
-		Height: 300,
-		// Closing hides instead of destroying: the window stays
-		// registered, so the tray menu can bring it back with
-		// Show and ExitOnTrayRemoved keeps the app alive.
-		OnCloseRequest: func(w *gui.Window) {
-			w.Hide()
-		},
+		State:          &App{Status: "Running. Close window — tray keeps app alive."},
+		Title:          "System Tray Demo",
+		Width:          500,
+		Height:         300,
+		OnCloseRequest: hideToTrayOrClose,
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
 
@@ -58,11 +56,7 @@ func main() {
 				OnAction: func(id string) {
 					switch id {
 					case "quit":
-						// Quit means removing the tray too:
-						// ExitOnTrayRemoved exits only when no
-						// window and no tray remain.
-						app.RemoveSystemTray(tray)
-						gui.DispatchQuitRequest(app)
+						quitFromTray(app, tray)
 						return
 					case "show":
 						w.QueueCommand(func(w *gui.Window) {
@@ -83,7 +77,9 @@ func main() {
 					})
 				},
 			})
-			if err != nil {
+			if err == nil {
+				gui.State[App](w).Tray = tray
+			} else {
 				log.Printf("tray: %v", err)
 				// The status line promises the tray keeps the
 				// app alive; without a tray that is false, so
@@ -103,6 +99,38 @@ func main() {
 		os.Exit(0)
 	}
 	backend.RunApp(app, w)
+}
+
+// hideToTrayOrClose answers a click on the window's close button.
+// Closing hides instead of destroying: the window stays registered, so
+// the tray menu can bring it back with Show, and ExitOnTrayRemoved
+// keeps the app alive. Where that cannot work, closing quits the app,
+// so the close button never does nothing: with no tray (a desktop
+// without one, such as stock GNOME), and where a window cannot be
+// hidden (native Wayland), which Hide shows by leaving IsVisible true.
+// The tray goes too, so no icon stays behind whose "Show Window" has
+// no window to show.
+func hideToTrayOrClose(w *gui.Window) {
+	tray := gui.State[App](w).Tray
+	if tray != nil {
+		w.Hide()
+		if !w.IsVisible() {
+			return
+		}
+	}
+	quitFromTray(w.App(), tray)
+	w.Close() // also when the window is not registered with an app
+}
+
+// quitFromTray ends the app. ExitOnTrayRemoved exits only when no
+// window and no tray remain, so the tray and every window go. The
+// windows are closed with Close, not with a quit request: a quit
+// request asks OnCloseRequest, which may only hide the window.
+func quitFromTray(app *gui.App, tray *gui.SystemTrayHandle) {
+	app.RemoveSystemTray(tray)
+	for _, w := range app.Windows() {
+		w.Close()
+	}
 }
 
 func mainView(w *gui.Window) gui.View {
