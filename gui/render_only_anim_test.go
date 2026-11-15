@@ -157,7 +157,7 @@ func TestRenderOnlyAnimKeepsAnimationAlive(t *testing.T) {
 	for _, c := range renderOnlyAnimCases() {
 		t.Run(c.name, func(t *testing.T) {
 			w := newRenderOnlyAnimWindow(t, c.build)
-			stale := viewBoundNow().Add(-animViewBoundStale + 100*time.Millisecond)
+			stale := time.Now().Add(-animViewBoundStale + 100*time.Millisecond)
 			w.animMu.Lock()
 			if len(w.animViewBound) == 0 {
 				w.animMu.Unlock()
@@ -194,7 +194,7 @@ func TestRenderOnlyAnimHeartbeatNeedsTheWidget(t *testing.T) {
 	})
 	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
-	stale := viewBoundNow().Add(-time.Second)
+	stale := time.Now().Add(-time.Second)
 	w.animMu.Lock()
 	for id := range w.animViewBound {
 		w.animViewBound[id] = stale

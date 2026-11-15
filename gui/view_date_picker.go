@@ -229,7 +229,9 @@ func datePickerGetState(w *Window, cfg *DatePickerCfg) datePickerState {
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
 	s, ok := sm.Get(cfg.ID)
 	if !ok {
-		now := time.Now()
+		// The window clock, as the calendar's today mark reads it:
+		// follows the scrub pin and the TestStep manual clock.
+		now := w.Now()
 		if len(cfg.Dates) > 0 {
 			now = cfg.Dates[0]
 		}

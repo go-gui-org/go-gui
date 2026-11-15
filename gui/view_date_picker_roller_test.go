@@ -184,9 +184,8 @@ func TestRollerDefaults(t *testing.T) {
 	if !cfg.ColorBorderFocus.IsSet() {
 		t.Error("ColorBorderFocus should have a default value")
 	}
-	if cfg.SelectedDate.IsZero() {
-		t.Error("SelectedDate should default to now")
-	}
+	// The SelectedDate default needs the window clock, so it is set at
+	// generation: TestStepDatePickerRollerOpensOnClockDate.
 }
 
 func TestRollerDefaultsEvenVisible(t *testing.T) {

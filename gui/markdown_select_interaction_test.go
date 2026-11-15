@@ -837,7 +837,7 @@ func TestMarkdownClickIsolatedByDoubleClickThreshold(t *testing.T) {
 	imap := StateMap[string, mdSelState](h.w, nsMdSel, capMany)
 	imap.Set("md", mdSelState{
 		SelBeg: p.StartRune + 2, SelEnd: p.StartRune + 2,
-		LastClickTime: doubleClickNowMs() -
+		LastClickTime: doubleClickNowMs(nil) -
 			doubleClickThresholdMs - 1,
 	})
 

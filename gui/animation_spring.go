@@ -89,7 +89,7 @@ func (s *SpringAnimation) SetStart(now time.Time) {
 // given; a step from the zero time.Time would be 2000 years long and snap
 // the spring to its target.
 func (s *SpringAnimation) Update(_ *Window, dt float32, ac *AnimationCommands) bool {
-	now := time.Now()
+	now := ac.clock()
 	if !s.sampled.IsZero() {
 		dt = float32(now.Sub(s.sampled).Seconds())
 	}

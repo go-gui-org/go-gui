@@ -114,7 +114,7 @@ func inputOnClick(
 		is := imap.GetOr(focusID, inputState{})
 
 		// Double-click selects word.
-		now := doubleClickNowMs()
+		now := doubleClickNowMs(ctx.Window)
 		doubleClick := is.LastClickTime > 0 &&
 			now-is.LastClickTime <= doubleClickThresholdMs
 		is.LastClickTime = now

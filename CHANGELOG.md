@@ -10,6 +10,25 @@ and this project adheres to
 
 ### Added
 
+- **`Window.TestStep` moves a test window's clock and runs one frame (#1262).**
+  Before, animation time in a test came from a goroutine on the wall clock. A
+  test that needed a tween to end, a caret to blink or a tooltip to show had to
+  sleep, and the result changed with machine load. Now `w.TestStep(dt)` switches
+  the window to a manual clock on its first call and stops the animation
+  goroutine. Each call adds `dt` to the clock, ticks every animation once and
+  runs one frame. Tweens, springs, keyframes, `Animate` delays, the caret blink,
+  tooltip delays, double-click timing and SVG animations all read that clock.
+  `w.Now()` follows it too, and a time-travel pin still wins over it. The switch
+  is one-way and is for headless tests only.
+- **Soak harness for long sessions (#1262).** The new `tools/soak` package acts
+  as a user on a headless window for a simulated time. It clicks, types accented
+  text, emoji and Arabic, presses keys, scrolls, resizes and switches the theme.
+  It reports allocations per frame (mean and p99) and the growth of the live
+  heap. A second mode sends fully random raw events to find panics.
+  `examples/showcase/soak_test.go` runs it: 5 s on every PR, and nightly 60
+  simulated minutes (about 90 s of wall time) with hard gates on allocations and
+  heap growth. See `tools/soak/README.md`.
+
 - **A form checks its fields by itself (#1257).** Before, the app reported every
   edit and blur by calling `FormOnFieldEvent` from each widget's callbacks. The
   call from `OnBlur` did nothing: Input runs `OnBlur` after the frame, without a

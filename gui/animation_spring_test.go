@@ -265,16 +265,16 @@ func TestAnimationAddSpringOverFinishedTweenUsesFrom(t *testing.T) {
 func TestTweenMotionRejectsDegenerate(t *testing.T) {
 	tw := &TweenAnimation{From: 0, To: 1, Duration: time.Second,
 		Easing: linearEase, start: time.Now()}
-	if _, _, ok := tweenMotion(tw); !ok {
+	if _, _, ok := tweenMotion(tw, time.Now()); !ok {
 		t.Fatal("setup: running tween should sample")
 	}
 	tw.stopped = true
-	if _, _, ok := tweenMotion(tw); ok {
+	if _, _, ok := tweenMotion(tw, time.Now()); ok {
 		t.Error("stopped tween sampled")
 	}
 	tw.stopped = false
 	tw.Easing = func(float32) float32 { return float32(math.NaN()) }
-	if _, _, ok := tweenMotion(tw); ok {
+	if _, _, ok := tweenMotion(tw, time.Now()); ok {
 		t.Error("NaN easing sampled")
 	}
 }
@@ -300,7 +300,7 @@ func TestAnimationAddSpringOverNaNSpringUsesFrom(t *testing.T) {
 // motion to give and no division by its duration happens.
 func TestTweenMotionZeroDurationRejected(t *testing.T) {
 	tw := &TweenAnimation{From: 0, To: 1, start: time.Now()}
-	if _, _, ok := tweenMotion(tw); ok {
+	if _, _, ok := tweenMotion(tw, time.Now()); ok {
 		t.Error("zero-duration tween sampled")
 	}
 }

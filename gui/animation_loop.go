@@ -1,6 +1,9 @@
 package gui
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 // animationCycle is the watchdog period of the animation loop. The loop
 // ticks on frame pulses, at the refresh rate of the display (#1018). When
@@ -18,7 +21,7 @@ const animationMinTick = 2 * time.Millisecond
 const animViewBoundStale = 2 * time.Second
 
 // viewBoundNow is the clock for view-bound heartbeats. It is deliberately
-// time.Now() and not w.Now(): w.Now() follows the time-travel scrub pin,
+// the base clock (clockNow) and not w.Now(): w.Now() follows the time-travel scrub pin,
 // which jumps backwards on restore and forwards again on resume. A
 // heartbeat stamped while the clock was pinned to a past instant, then
 // compared against live time after the resume, looks arbitrarily stale —
@@ -29,7 +32,7 @@ const animViewBoundStale = 2 * time.Second
 // The stamp is a time.Time rather than a UnixNano so the comparison uses
 // the monotonic reading: a wall-clock step (NTP, sleep/wake) must not
 // mass-cancel every visible widget's animation.
-func viewBoundNow() time.Time { return time.Now() }
+func (w *Window) viewBoundNow() time.Time { return w.clockNow() }
 
 // AnimationAdd registers a new animation. If an animation with the
 // same ID exists, it is replaced.
@@ -75,13 +78,14 @@ func (w *Window) animationAddLocked(a Animation) {
 	if a.ID() == "" {
 		panic("gui: AnimationAdd requires a non-empty ID")
 	}
-	a.SetStart(time.Now())
+	now := w.clockNow()
+	a.SetStart(now)
 	if w.animations == nil {
 		w.animations = make(map[string]Animation)
 	}
 	wasEmpty := len(w.animations) == 0
 	if sp, ok := a.(*SpringAnimation); ok {
-		springCarryMotion(sp, w.animations[a.ID()])
+		springCarryMotion(sp, w.animations[a.ID()], now)
 	}
 	w.animations[a.ID()] = a
 	if wasEmpty {
@@ -99,8 +103,8 @@ func (w *Window) animationAddLocked(a Animation) {
 // state, so the copy does not race a tick. When next is the spring
 // already registered, the copy writes its own state back to it: a no-op,
 // so no identity check.
-func springCarryMotion(next *SpringAnimation, prev Animation) {
-	if pos, vel, ok := animationMotion(prev); ok {
+func springCarryMotion(next *SpringAnimation, prev Animation, now time.Time) {
+	if pos, vel, ok := animationMotion(prev, now); ok {
 		next.state.position = pos
 		next.state.velocity = vel
 	}
@@ -113,7 +117,7 @@ func springCarryMotion(next *SpringAnimation, prev Animation) {
 // settled spring, a finished tween or any other kind has no motion to
 // give (ok is false), so the new spring's own from is the better start.
 // Callers hold animMu.
-func animationMotion(prev Animation) (pos, vel float32, ok bool) {
+func animationMotion(prev Animation, now time.Time) (pos, vel float32, ok bool) {
 	switch running := prev.(type) {
 	case *SpringAnimation:
 		// A non-finite state (SpringTo(NaN, …) before its first tick) has
@@ -124,7 +128,7 @@ func animationMotion(prev Animation) (pos, vel float32, ok bool) {
 		}
 		return running.state.position, running.state.velocity, true
 	case *TweenAnimation:
-		return tweenMotion(running)
+		return tweenMotion(running, now)
 	}
 	return 0, 0, false
 }
@@ -142,7 +146,7 @@ func animationMotion(prev Animation) (pos, vel float32, ok bool) {
 func (w *Window) animationAddMoving(spring *SpringAnimation, fallback Animation) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
-	pos, vel, ok := animationMotion(w.animations[spring.ID()])
+	pos, vel, ok := animationMotion(w.animations[spring.ID()], w.clockNow())
 	if !ok {
 		w.animationAddLocked(fallback)
 		return
@@ -155,7 +159,9 @@ func (w *Window) animationAddMoving(spring *SpringAnimation, fallback Animation)
 // ensureAnimationLoop starts the animation goroutine on first use.
 // No-op for windows without lifecycle channels (unit-test stubs).
 func (w *Window) ensureAnimationLoop() {
-	if w.animationStop == nil {
+	// Under TestStep the test ticks the animations itself (#1262); a
+	// goroutine on the wall clock would race the manual clock.
+	if w.animationStop == nil || w.manualClock.Load() {
 		return
 	}
 	w.animationStartOnce.Do(func() {
@@ -183,7 +189,7 @@ func (w *Window) animationAddViewBound(a Animation) {
 	if w.animViewBound == nil {
 		w.animViewBound = make(map[string]time.Time)
 	}
-	w.animViewBound[a.ID()] = viewBoundNow()
+	w.animViewBound[a.ID()] = w.viewBoundNow()
 }
 
 // touchViewBoundAnimation updates the heartbeat for a view-bound animation
@@ -196,7 +202,7 @@ func (w *Window) touchViewBoundAnimation(id string) bool {
 		return false
 	}
 	if _, ok := w.animViewBound[id]; ok {
-		w.animViewBound[id] = viewBoundNow()
+		w.animViewBound[id] = w.viewBoundNow()
 	}
 	return true
 }
@@ -370,9 +376,22 @@ func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string, dt f
 	refreshKind := AnimationRefreshNone
 	*deferred = (*deferred)[:0]
 	*stoppedIDs = (*stoppedIDs)[:0]
-
 	w.animMu.Lock()
-	for _, a := range w.animations {
+	// One clock read per tick: every Update in it sees the same instant.
+	// It is read under animMu, after any AnimationAdd ordered before the
+	// tick, so no animation sees an instant before its own start.
+	ac.now = w.clockNow()
+	// Update in ID order, not map order: callbacks that finish on the same
+	// tick then queue in the same order every run, which a TestStep replay
+	// needs (#1262). The ID slice is scratch reused across ticks, guarded
+	// by animMu like the map, so a tick allocates nothing once it is grown.
+	w.animTickIDs = w.animTickIDs[:0]
+	for id := range w.animations {
+		w.animTickIDs = append(w.animTickIDs, id)
+	}
+	slices.Sort(w.animTickIDs)
+	for _, id := range w.animTickIDs {
+		a := w.animations[id]
 		updated := a.Update(w, dt, ac)
 		if updated {
 			refreshKind = maxAnimationRefreshKind(
@@ -389,7 +408,7 @@ func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string, dt f
 	// 0 on show. Renewing (not skipping) also covers the ticks between
 	// show and the first frame, which would read a heartbeat as old as
 	// the hide.
-	now := viewBoundNow()
+	now := ac.now
 	for id, seen := range w.animViewBound {
 		if occluded {
 			w.animViewBound[id] = now
@@ -477,7 +496,7 @@ func updateAnimate(a *Animate, ac *AnimationCommands) bool {
 		a.stopped = true
 		return false
 	}
-	now := time.Now()
+	now := ac.clock()
 	if now.Sub(a.start) <= a.Delay {
 		return false
 	}
@@ -513,7 +532,7 @@ func updateBlinkCursor(b *blinkCursorAnimation, w *Window, ac *AnimationCommands
 	if b.stopped {
 		return false
 	}
-	now := time.Now()
+	now := ac.clock()
 	// Park after the idle timeout (issue #929): caret solid, animation
 	// stopped so animationLoop drops it and, with nothing else
 	// running, parks its ticker. caretBlinkParked keeps applyBlinkCursor

@@ -74,7 +74,7 @@ func (f *shaderFrameState) advance(now time.Time, key uint64) {
 func (w *Window) shaderFrame() *shaderFrameState {
 	f := &w.shaderBuiltinState
 	if !f.started || f.key != w.frameCount {
-		f.advance(time.Now(), w.frameCount)
+		f.advance(w.clockNow(), w.frameCount)
 	}
 	return f
 }

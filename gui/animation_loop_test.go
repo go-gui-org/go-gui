@@ -348,7 +348,7 @@ func TestViewBoundHeartbeatIgnoresScrubClock(t *testing.T) {
 
 	w.setVirtualNow(nil) // resume(): virtual pin cleared, live time back
 	seen = w.animViewBound["vb-scrub"]
-	if age := viewBoundNow().Sub(seen); age > animViewBoundStale {
+	if age := time.Since(seen); age > animViewBoundStale {
 		t.Errorf("heartbeat looks stale after resume (age = %v)", age)
 	}
 }
@@ -372,7 +372,7 @@ func TestViewBoundStaleStillEvictsWhilePinned(t *testing.T) {
 	w.animMu.Lock()
 	seen := w.animViewBound["vb-pinned"]
 	w.animMu.Unlock()
-	if viewBoundNow().Sub(seen) <= animViewBoundStale {
+	if time.Since(seen) <= animViewBoundStale {
 		t.Error("stale heartbeat should still read stale while scrub-pinned")
 	}
 }

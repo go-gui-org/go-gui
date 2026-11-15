@@ -1,0 +1,71 @@
+name: Soak
+
+# Headless soak of examples/showcase (#1262). A run acts as a user for
+# simulated time, with TestStep moving the window clock 1/60 s per
+# frame, and gates on allocations per frame and heap growth. Nightly
+# only: a PR runs the 5 s smoke inside the CI workflow instead.
+# tools/soak/README.md explains the report.
+
+on:
+  schedule:
+    - cron: '37 7 * * *'   # daily at 07:37 UTC, after the fuzz run
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'Seed (empty picks one; the report prints it)'
+        required: false
+        default: ''
+        type: string
+      duration:
+        description: 'Simulated duration of the scripted run'
+        required: false
+        default: '60m'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  soak:
+    name: Soak (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # scripted gates allocations and heap growth; random sends raw
+        # events and fails only on a panic.
+        mode: [scripted, random]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-go-glyph
+        with:
+          # No system packages: the showcase builds cgo-free on Linux,
+          # and the audio demo the soak skips needs -tags otoaudio to
+          # reach a sound device at all.
+          install-linux-deps: 'false'
+
+      - name: Run soak
+        shell: bash
+        env:
+          SEED: ${{ inputs.seed }}
+          DURATION: ${{ inputs.duration || '60m' }}
+          MODE: ${{ matrix.mode }}
+        run: |
+          # Random mode looks for panics; 10 simulated minutes is enough
+          # events (about 12 000) for that.
+          if [ "$MODE" = "random" ]; then DURATION=10m; fi
+          set +e
+          go test -count=1 -timeout=25m -run '^TestSoak$' -v ./examples/showcase/ \
+            -soak.mode="$MODE" -soak.duration="$DURATION" \
+            ${SEED:+-soak.seed="$SEED"} 2>&1 | tee soak.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          {
+            echo "## Soak ($MODE, $DURATION simulated)"
+            echo '```'
+            grep -A6 'soak .* seed=' soak.log | grep -v '^--$' || echo "no report (see log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"

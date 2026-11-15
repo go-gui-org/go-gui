@@ -27,7 +27,7 @@ func updateTransition(tb *transitionBase, ac *AnimationCommands) bool {
 	if tb.stopped {
 		return false
 	}
-	progress, done := durationProgress(tb.start, tb.duration)
+	progress, done := durationProgress(tb.start, ac.clock(), tb.duration)
 	if done {
 		tb.progress = 1.0
 		tb.stopped = true
@@ -50,10 +50,15 @@ func updateTransition(tb *transitionBase, ac *AnimationCommands) bool {
 
 // durationProgress returns progress [0,1] and whether the animation
 // is complete.
-func durationProgress(start time.Time, duration time.Duration) (float32, bool) {
-	elapsed := time.Since(start)
+func durationProgress(start, now time.Time, duration time.Duration) (float32, bool) {
+	elapsed := now.Sub(start)
 	if duration <= 0 || elapsed >= duration {
 		return 1.0, true
+	}
+	// An instant before the start (a clock read that raced the add) is
+	// progress 0; a negative value would make the easing extrapolate.
+	if elapsed < 0 {
+		return 0, false
 	}
 	return float32(elapsed) / float32(duration), false
 }

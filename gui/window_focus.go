@@ -1,7 +1,5 @@
 package gui
 
-import "time"
-
 // window_focus.go — keyboard focus management.
 
 // FocusID returns the current focus ID. The value is an effective ID,
@@ -73,7 +71,7 @@ func (w *Window) setFocusLocked(effectiveID string) {
 		w.animMu.Lock()
 		w.caretBlinkParked = false
 		if a, ok := w.animations[blinkCursorAnimationID]; ok {
-			a.SetStart(time.Now())
+			a.SetStart(w.clockNow())
 		}
 		w.animMu.Unlock()
 	}
@@ -163,7 +161,7 @@ func resetBlinkCursorVisible(w *Window) {
 	// applyBlinkCursor registers the animation with a fresh phase.
 	w.caretBlinkParked = false
 	if a, ok := w.animations[blinkCursorAnimationID]; ok {
-		a.SetStart(time.Now())
+		a.SetStart(w.clockNow())
 	}
 }
 

@@ -123,7 +123,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 	// Default InputState{}: zero value seeds initial selection/cursor state.
 	is := imap.GetOr(focusID, inputState{})
 
-	now := doubleClickNowMs()
+	now := doubleClickNowMs(ctx.Window)
 	doubleClick := is.LastClickTime > 0 &&
 		now-is.LastClickTime <= doubleClickThresholdMs
 	is.LastClickTime = now
