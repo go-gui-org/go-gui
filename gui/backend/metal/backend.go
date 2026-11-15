@@ -605,7 +605,7 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		dpiScale: dpiScale,
 		physW:    int32(fbW),
 		physH:    int32(fbH),
-		textures: newMetalTexCacheLRU(ctx, 128),
+		textures: newMetalTexCacheLRU(ctx, 128, cfg.MaxTextureBytes),
 		customCache: texcache.New[uint64, C.int](
 			maxCustomPipelines,
 			func(idx C.int) {

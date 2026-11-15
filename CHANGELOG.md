@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **Texture caches are bounded by bytes, and `WindowCfg.MaxTextureBytes` sets
+  the cap (#1239).** Before, each window kept up to 128 decoded images on the
+  GPU (256 on web), whatever their size. With large photos that is gigabytes,
+  and on iOS and Android the OS kills the app. Now each window also caps the
+  bytes it keeps: 256 MiB on desktop and web, 128 MiB on iOS and Android, or the
+  value of `MaxTextureBytes`. When a new image takes the window over the cap,
+  the images not drawn for two frames are deleted, oldest first. Images on
+  screen are never deleted: if they alone need more than the cap, the window
+  goes over it rather than uploading them again every frame. On web the
+  random-batch eviction of loaded images is replaced by the same rule. See
+  `docs/specs/texture-byte-budget.md`.
 - **`Window.TestStep` moves a test window's clock and runs one frame (#1262).**
   Before, animation time in a test came from a goroutine on the wall clock. A
   test that needed a tween to end, a caret to blink or a tooltip to show had to

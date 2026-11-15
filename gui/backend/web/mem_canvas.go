@@ -62,3 +62,25 @@ func (b *Backend) memImageCanvas(
 	ctx.Call("putImageData", data, 0, 0)
 	return canvas
 }
+
+// webImage is an Image element for a path, URL or data URL, with its
+// decoded size: naturalWidth × naturalHeight × 4. The size is 0 while the
+// image loads.
+type webImage struct {
+	img   js.Value
+	bytes int64
+}
+
+func webImageBytes(wi webImage) int64 { return wi.bytes }
+
+// newImageCache bounds the Image elements by count and by decoded bytes
+// (#1239). An evicted element needs no release: dropping the reference
+// lets the browser free its bitmap.
+//
+// The mem: canvases are not counted here. Each one copies a buffer of
+// gui's registry, which SetMemImageBudget bounds already.
+func newImageCache(maxBytes int64) texcache.Cache[string, webImage] {
+	return texcache.NewSized[string, webImage](maxImageCacheSize,
+		texcache.Budget(maxBytes, texcache.DesktopTextureBudget),
+		webImageBytes, nil)
+}

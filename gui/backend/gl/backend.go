@@ -135,7 +135,7 @@ func (b *Backend) mouseDelta(x, y float32) (dx, dy float32) {
 // initCaches initializes the platform-neutral caches and image
 // limits from the window config.
 func (b *Backend) initCaches(cfg gui.WindowCfg) {
-	b.textures = newGLTexCacheLRU(128)
+	b.textures = newGLTexCacheLRU(128, cfg.MaxTextureBytes)
 	b.imagePathCache = texcache.New[string, string](1024, nil)
 	b.maxImageBytes = cfg.MaxImageBytes
 	b.maxImagePixels = cfg.MaxImagePixels

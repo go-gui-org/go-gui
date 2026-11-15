@@ -28,10 +28,20 @@ func keepTexture(key string, tex glTexture) bool {
 	return memtex.Current(key, tex.serial)
 }
 
+// glTextureBytes is the texture cache's size function: RGBA8, 4 bytes a pixel.
+// A failed load caches a zero texture, which costs nothing.
+func glTextureBytes(tex glTexture) int64 {
+	return int64(tex.w) * int64(tex.h) * 4
+}
+
+// newGLTexCacheLRU bounds the textures by count and by bytes (#1239).
+// A non-positive maxBytes (WindowCfg.MaxTextureBytes unset) takes the desktop
+// default.
 func newGLTexCacheLRU(
-	maxSize int,
+	maxSize int, maxBytes int64,
 ) texcache.Cache[string, glTexture] {
-	return texcache.New[string, glTexture](maxSize,
+	return texcache.NewSized[string, glTexture](maxSize,
+		texcache.Budget(maxBytes, texcache.DesktopTextureBudget), glTextureBytes,
 		func(tex glTexture) {
 			if tex.id != 0 {
 				gogl.DeleteTextures(1, &tex.id)

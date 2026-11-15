@@ -30,10 +30,20 @@ func keepTexture(key string, tex glesTexture) bool {
 	return memtex.Current(key, tex.serial)
 }
 
+// glesTextureBytes is the texture cache's size function: RGBA8, 4 bytes a
+// pixel. A failed load caches a zero texture, which costs nothing.
+func glesTextureBytes(tex glesTexture) int64 {
+	return int64(tex.w) * int64(tex.h) * 4
+}
+
+// newGLESTexCacheLRU bounds the textures by count and by bytes (#1239).
+// A non-positive maxBytes (WindowCfg.MaxTextureBytes unset) takes the mobile
+// default.
 func newGLESTexCacheLRU(
-	maxSize int,
+	maxSize int, maxBytes int64,
 ) texcache.Cache[string, glesTexture] {
-	return texcache.New[string, glesTexture](maxSize,
+	return texcache.NewSized[string, glesTexture](maxSize,
+		texcache.Budget(maxBytes, texcache.MobileTextureBudget), glesTextureBytes,
 		func(tex glesTexture) {
 			if tex.id != 0 {
 				C.glesDeleteTexture(C.int(tex.id))

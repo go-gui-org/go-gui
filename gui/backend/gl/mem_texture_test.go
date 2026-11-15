@@ -94,3 +94,71 @@ func TestMemImageTextureFollowsRegistry(t *testing.T) {
 		t.Errorf("deleted %d textures, want 3 (red, blue, green)", len(deleted))
 	}
 }
+
+// The texture cache is bounded by bytes as well as count (#1239). A frame
+// that draws more than the budget keeps every texture it draws, so later
+// frames upload nothing; a texture not drawn for two frames is deleted
+// when a new upload takes the cache over its budget.
+func TestTextureByteBudget(t *testing.T) {
+	b := newBatchProbeBackend(t)
+	target := newReadbackTarget(t, b)
+	const side = 16
+	const texBytes = side * side * 4
+	var deleted int
+	// A budget of two textures; each frame below draws three.
+	b.textures = texcache.NewSized[string, glTexture](128, 2*texBytes,
+		glTextureBytes, func(tex glTexture) {
+			deleted++
+			gogl.DeleteTextures(1, &tex.id)
+		})
+	keys := []string{"gltest/1239a", "gltest/1239b", "gltest/1239c", "gltest/1239d"}
+	srcs := make([]string, len(keys))
+	for i, k := range keys {
+		srcs[i] = gui.UseImage(k, side, side, solidPixels(side, side, red))
+	}
+	t.Cleanup(func() {
+		for _, k := range keys {
+			gui.DropImage(k)
+		}
+	})
+	// frame does what renderersDraw does: begin the frame, then draw.
+	frame := func(draw ...string) {
+		target.render(b, func() {
+			b.sweepMemTextures()
+			b.textures.BeginFrame()
+			for _, src := range draw {
+				cmd := gui.RenderCmd{Kind: gui.RenderImage, Resource: src,
+					W: side, H: side, Opacity: 1}
+				b.drawImage(&cmd)
+			}
+		})
+	}
+
+	ids := map[uint32]bool{}
+	for range 5 {
+		frame(srcs[0], srcs[1], srcs[2])
+		for _, src := range srcs[:3] {
+			tex, _ := b.textures.Get(src)
+			ids[tex.id] = true
+		}
+	}
+	if len(ids) != 3 || deleted != 0 {
+		t.Fatalf("over-budget frames used %d texture ids and deleted %d, "+
+			"want 3 and 0 (no upload thrash)", len(ids), deleted)
+	}
+
+	// b and c leave the screen. Two frames later a new image d is drawn:
+	// the cache is over budget, so b and c are deleted, oldest first.
+	frame(srcs[0])
+	frame(srcs[0])
+	frame(srcs[0], srcs[3])
+	if deleted != 2 {
+		t.Errorf("deleted %d textures, want 2 (b and c)", deleted)
+	}
+	if got, want := b.textures.Bytes(), int64(2*texBytes); got != want {
+		t.Errorf("cache holds %d bytes, want %d", got, want)
+	}
+	if _, ok := b.textures.Get(srcs[0]); !ok {
+		t.Error("a, drawn every frame, was evicted")
+	}
+}

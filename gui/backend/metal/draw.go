@@ -26,6 +26,8 @@ import (
 func (b *windowState) renderersDraw(w *gui.Window) {
 	b.surfaces.prune(w.Renderers())
 	b.sweepMemTextures()
+	// Textures drawn last frame stay safe from the byte budget (#1239).
+	b.textures.BeginFrame()
 	// A truncated command list must not leak a rotated MVP into the
 	// next frame. Filter/stencil targets are per-frame encoder state
 	// owned by metalBeginFrame/metalEndFrame; only the Go-side MVP
