@@ -107,9 +107,9 @@ without the generation bump fails it.
   Content keying stays the contract: a changed buffer gets a new key, or the key
   is dropped and then registered again. Registering a live key again at the same
   size keeps its first buffer and serial.
-- **Images that stay registered** keep their textures, bounded only by count. A
-  byte budget for the texture caches, which also covers file and URL images, is
-  #1239.
+- **Images that stay registered** keep their textures. The byte budget of the
+  texture caches bounds them, and file and URL images too
+  ([texture-byte-budget.md](texture-byte-budget.md), #1239).
 - **The soft backend** needs nothing: its renderer lives for one `RenderToImage`
   call and caches nothing across frames.
 

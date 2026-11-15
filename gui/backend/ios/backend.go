@@ -128,7 +128,7 @@ func initBackend(layerPtr unsafe.Pointer,
 	b := &Backend{
 		FrameState: *framestate.New(
 			int(pipeSolid), int(pipeGlyphTex), metalBridge{}),
-		textures: newMetalTexCacheLRU(128),
+		textures: newMetalTexCacheLRU(128, cfg.MaxTextureBytes),
 		customCache: texcache.New[uint64, C.int](
 			maxCustomPipelines,
 			func(idx C.int) {

@@ -77,6 +77,16 @@ type WindowCfg struct {
 	// MaxImagePixels caps decoded image dimensions (width*height).
 	// Zero or negative selects backend defaults.
 	MaxImagePixels int64
+	// MaxTextureBytes caps the GPU memory this window keeps for decoded
+	// images, in bytes (width × height × 4 for each image). When the total
+	// goes over the cap, the backend deletes the images that it has not
+	// drawn for two frames, oldest first. It never deletes an image that
+	// is on screen: if the visible images alone need more than the cap,
+	// the window keeps them and goes over the cap, rather than uploading
+	// them again each frame. Zero or negative selects the default: 256 MiB
+	// on desktop and web, 128 MiB on iOS and Android.
+	// exportaudit:keep — caller-facing config (issue #1239)
+	MaxTextureBytes int64
 	// MaxImageDownloads caps concurrent in-flight image downloads
 	// across the process. Zero or negative selects a default of 6,
 	// matching OSM's guidance for well-behaved map clients. The

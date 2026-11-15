@@ -319,7 +319,7 @@ func initBackend(w, h int32, scale float32) {
 	b := &Backend{
 		FrameState: *framestate.New(
 			int(pipeSolid), int(pipeGlyphTex), glesBridge{}),
-		textures: newGLESTexCacheLRU(128),
+		textures: newGLESTexCacheLRU(128, cfg.MaxTextureBytes),
 		customCache: texcache.New[uint64, C.int](
 			maxCustomPipelines,
 			func(idx C.int) {

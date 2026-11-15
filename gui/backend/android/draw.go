@@ -25,6 +25,8 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 	b.surfaces.Prune(w.Renderers())
 	b.channels.PruneShaders(w.Renderers())
 	b.sweepMemTextures()
+	// Textures drawn last frame stay safe from the byte budget (#1239).
+	b.textures.BeginFrame()
 	cmds := w.Renderers()
 	for i := range cmds {
 		r := &cmds[i]

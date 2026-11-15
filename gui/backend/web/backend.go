@@ -43,8 +43,10 @@ type Backend struct {
 	textErrLogged bool
 	height        int
 
-	normBuf  []gui.GradientStop
-	imgCache map[string]js.Value
+	normBuf []gui.GradientStop
+	// imgCache holds the Image element per path, URL or data URL, bounded
+	// by count and by decoded bytes (#1239).
+	imgCache texcache.Cache[string, webImage]
 	// memCanvases holds a canvas per drawn mem: image, apart from the
 	// Image elements in imgCache; memSweep says when to check them
 	// against gui's registry (#1230).
@@ -247,7 +249,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 		dpiScale:     dpiScale,
 		width:        cssW,
 		height:       cssH,
-		imgCache:     make(map[string]js.Value),
+		imgCache:     newImageCache(w.Config.MaxTextureBytes),
 		memCanvases:  newMemCanvasCache(),
 		failedImages: make(map[string]struct{}),
 		hasRoundRect: hasRR,

@@ -30,10 +30,20 @@ func keepTexture(key string, tex metalTexture) bool {
 	return memtex.Current(key, tex.serial)
 }
 
+// metalTextureBytes is the texture cache's size function: RGBA8, 4 bytes a
+// pixel. A failed load caches a zero texture, which costs nothing.
+func metalTextureBytes(tex metalTexture) int64 {
+	return int64(tex.w) * int64(tex.h) * 4
+}
+
+// newMetalTexCacheLRU bounds the textures by count and by bytes (#1239).
+// A non-positive maxBytes (WindowCfg.MaxTextureBytes unset) takes the mobile
+// default.
 func newMetalTexCacheLRU(
-	maxSize int,
+	maxSize int, maxBytes int64,
 ) texcache.Cache[string, metalTexture] {
-	return texcache.New[string, metalTexture](maxSize,
+	return texcache.NewSized[string, metalTexture](maxSize,
+		texcache.Budget(maxBytes, texcache.MobileTextureBudget), metalTextureBytes,
 		func(tex metalTexture) {
 			if tex.id != 0 {
 				C.metalDeleteTexture(C.int(tex.id))

@@ -18,7 +18,6 @@ import (
 
 const (
 	maxImageCacheSize       = 256
-	imageCacheEvictN        = 16
 	maxFailedImageCacheSize = 256
 	failedImageCacheEvictN  = 16
 	colorCacheSize          = 8
@@ -53,6 +52,8 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
 	b.surfaces.Prune(cmds)
 	b.sweepMemCanvases()
+	// Images drawn last frame stay safe from the byte budget (#1239).
+	b.imgCache.BeginFrame()
 	if b.shaders != nil {
 		b.shaders.channels.PruneShaders(cmds)
 	}
@@ -604,7 +605,7 @@ func (b *Backend) resolveImageSource(res string) (js.Value, bool) {
 	if _, failed := b.failedImages[res]; failed {
 		return js.Value{}, false
 	}
-	img, ok := b.imgCache[res]
+	wi, ok := b.imgCache.Get(res)
 	if !ok {
 		if !isAllowedImageSrc(res) {
 			scheme := res
@@ -615,24 +616,32 @@ func (b *Backend) resolveImageSource(res string) (js.Value, bool) {
 				scheme)
 			return js.Value{}, false
 		}
-		b.evictImageCache()
-		img = js.Global().Get("Image").New()
+		img := js.Global().Get("Image").New()
 		// The render loop skips idle frames, so a finished download
 		// must ask for a repaint itself. The handlers go on before
 		// src so no load can finish unobserved.
 		img.Set("onload", b.imgSettled)
 		img.Set("onerror", b.imgSettled)
 		img.Set("src", res)
-		b.imgCache[res] = img
+		// Size 0 until the load finishes: only then are the natural
+		// dimensions known.
+		wi = webImage{img: img}
+		b.imgCache.Set(res, wi)
 	}
-	if !img.Get("complete").Bool() {
+	// A known size means the image loaded and decoded in an earlier
+	// frame, which also spares the two property reads below.
+	if wi.bytes > 0 {
+		return wi.img, true
+	}
+	if !wi.img.Get("complete").Bool() {
 		return js.Value{}, false
 	}
 	// Loaded but broken (e.g. 404) — track in failedImages
 	// to prevent eternal retry. Keep the negative cache bounded
 	// so a stream of unique bad URLs cannot grow session memory
 	// without limit.
-	if img.Get("naturalWidth").Int() == 0 {
+	nw := wi.img.Get("naturalWidth").Int()
+	if nw == 0 {
 		if len(b.failedImages) >= maxFailedImageCacheSize {
 			n := 0
 			for k := range b.failedImages {
@@ -644,27 +653,14 @@ func (b *Backend) resolveImageSource(res string) (js.Value, bool) {
 			}
 		}
 		b.failedImages[res] = struct{}{}
-		delete(b.imgCache, res)
+		b.imgCache.Remove(res)
 		return js.Value{}, false
 	}
-	return img, true
-}
-
-// evictImageCache drops a batch of random entries when the cache is
-// full. Random eviction is O(1) with no bookkeeping; batch eviction
-// amortizes the overhead for image-heavy UIs.
-func (b *Backend) evictImageCache() {
-	if len(b.imgCache) < maxImageCacheSize {
-		return
-	}
-	n := 0
-	for k := range b.imgCache {
-		delete(b.imgCache, k)
-		n++
-		if n >= imageCacheEvictN {
-			break
-		}
-	}
+	// The first complete draw: record the decoded size, which can push
+	// the cache over its byte budget and evict images not drawn lately.
+	wi.bytes = int64(nw) * int64(wi.img.Get("naturalHeight").Int()) * 4
+	b.imgCache.Set(res, wi)
+	return wi.img, true
 }
 
 // maxSvgTriangleFloats caps a RenderSvg triangle list in floats,

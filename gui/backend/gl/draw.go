@@ -22,6 +22,8 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 	b.surfaces.Prune(w.Renderers())
 	b.channels.PruneShaders(w.Renderers())
 	b.sweepMemTextures()
+	// Textures drawn last frame stay safe from the byte budget (#1239).
+	b.textures.BeginFrame()
 	// A truncated command list must not leak backend state into the
 	// next frame: a bound filter FBO, a rotated MVP, or an enabled
 	// stencil test all persist on the GL context. A balanced stream
