@@ -208,11 +208,12 @@ func (b *Backend) maybeRescaleDPI() bool {
 	scale, crtc := dpiScaleForWindow(b.plat.conn, b.plat.root, true, false,
 		int32(t.DstX), int32(t.DstY))
 	b.plat.curCrtc = crtc
+	b.monitorChangedX11(crtc)
 	if scale == b.plat.scale {
 		return false
 	}
 	b.plat.scale = scale
-	b.applyDPIScale(scale)
+	b.applyScaleX11(scale)
 	// The hints were written in physical pixels for the old scale, so a
 	// monitor move would otherwise leave the floor enforcing the wrong
 	// logical size.

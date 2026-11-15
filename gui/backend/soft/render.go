@@ -46,13 +46,7 @@ func RenderToImage(w *gui.Window, scale float32) (*image.RGBA, error) {
 	if w == nil {
 		return nil, errors.New("soft: nil window")
 	}
-	// NaN and +Inf both pass a <= 0 check (NaN compares false,
-	// +Inf is positive) and would poison the pixel math below
-	// into an implementation-defined int conversion.
-	if math.IsNaN(float64(scale)) || math.IsInf(float64(scale), 0) ||
-		scale <= 0 {
-		scale = 1
-	}
+	scale = sanitizeScale(scale)
 	tm, err := prepare(w, scale)
 	if err != nil {
 		return nil, err
@@ -76,15 +70,8 @@ func renderFrame(
 		return nil, fmt.Errorf("soft: window has no size (%dx%d)",
 			logicalW, logicalH)
 	}
-	if pw > maxDimension || ph > maxDimension {
-		return nil, fmt.Errorf(
-			"soft: render %dx%d exceeds the %d px limit",
-			pw, ph, maxDimension)
-	}
-	if int64(pw)*int64(ph) > maxRenderPixels {
-		return nil, fmt.Errorf(
-			"soft: render %dx%d exceeds the %d pixel limit",
-			pw, ph, maxRenderPixels)
+	if err := checkRenderSize(pw, ph); err != nil {
+		return nil, err
 	}
 
 	w.BackingScale = scale
@@ -93,18 +80,8 @@ func renderFrame(
 	cmds := w.Renderers()
 
 	root := newBuffer(pw, ph)
-	r := &renderer{
-		buf:               root,
-		rootBuf:           root,
-		scale:             scale,
-		textSys:           tm.textSys,
-		glyphBack:         tm.back,
-		allowedImageRoots: w.Config.AllowedImageRoots,
-		maxImageBytes: imageLimit(w.Config.MaxImageBytes,
-			imgload.DefaultMaxImageBytes),
-		maxImagePixels: imageLimit(w.Config.MaxImagePixels,
-			imgload.DefaultMaxImagePixels),
-	}
+	r := newFrameRenderer(w, tm, scale)
+	r.bind(root)
 
 	// Pass 1 warms the glyph atlas. go-glyph rasterizes a glyph into a
 	// staging buffer when it is first drawn but only hands the page to
@@ -114,22 +91,68 @@ func renderFrame(
 	// draw here — their quads land on the nil glyph target and are
 	// discarded — because nothing else needs warming: shapes, gradients
 	// and images are drawn once, in pass 2.
+	//
+	// Since #1265 the glyph backend is a glyph.RectTextureUpdater, so
+	// go-glyph uploads mid-frame and pass 2 alone would already be
+	// correct (Renderer.Draw relies on that). The warm pass is kept so
+	// RenderToImage's output and cost stay exactly what they were.
 	r.glyphBack.buf = nil
 	r.warm = true
 	r.drawAll(cmds)
 	r.textSys.Commit()
 
 	// Pass 2 draws for real.
+	r.drawPass(cmds, backgroundColor(w))
+	return root.img, nil
+}
+
+// newFrameRenderer builds a renderer for w's image limits over tm's text
+// system. It has no target yet: bind gives it one per frame. Shared by
+// RenderToImage, which builds one per capture, and Renderer, which keeps
+// one for the life of a live window so its decoded-image and surface
+// caches carry across frames.
+func newFrameRenderer(w *gui.Window, tm *textMeasurer, scale float32) *renderer {
+	return &renderer{
+		scale:             scale,
+		textSys:           tm.textSys,
+		glyphBack:         tm.back,
+		allowedImageRoots: w.Config.AllowedImageRoots,
+		maxImageBytes: imageLimit(w.Config.MaxImageBytes,
+			imgload.DefaultMaxImageBytes),
+		maxImagePixels: imageLimit(w.Config.MaxImagePixels,
+			imgload.DefaultMaxImagePixels),
+		imageCache: newImageCache(w.Config.MaxTextureBytes),
+	}
+}
+
+// bind makes root the window buffer for the next frame and resets the
+// state a previous frame may have left: an open bracket (finishBrackets
+// closes them, but a panic mid-frame would not), the window clip, and the
+// root's own clip rect. Pooled layers are full-size copies of the root, so
+// a root of another size drops them.
+func (r *renderer) bind(root *buffer) {
+	if r.rootBuf != nil && r.rootBuf.img.Rect != root.img.Rect {
+		r.layerPool = nil
+	}
+	r.rootBuf = root
+	r.buf = root
+	r.brackets = r.brackets[:0]
+	r.winClipSet = false
+	root.clip = root.img.Bounds()
+}
+
+// drawPass clears the bound root to bg and replays cmds once, for real:
+// shapes, images and text all land. Commit runs before the brackets close
+// so any glyph left pending is on its page before a layer composites.
+func (r *renderer) drawPass(cmds []gui.RenderCmd, bg gui.Color) {
 	r.warm = false
-	r.setTarget(root)
-	root.clear(backgroundColor(w))
+	r.setTarget(r.rootBuf)
+	r.rootBuf.clear(bg)
 	r.drawAll(cmds)
 	r.textSys.Commit()
 	// A stream that ended inside a begin/end bracket still has its
 	// content sitting in a layer; land it rather than drop it.
 	r.finishBrackets()
-
-	return root.img, nil
 }
 
 // RenderToPNG renders w and writes the result to path as a PNG,
@@ -177,11 +200,14 @@ func Release(w *gui.Window) {
 // no-op on a window already prepared at this scale.
 func prepare(w *gui.Window, scale float32) (*textMeasurer, error) {
 	if tm, ok := w.TextMeasurer().(*textMeasurer); ok {
-		if tm.scale == scale {
+		// A changed scale moves the same text system to the new density
+		// (#1265): freeing it would leave the window's persisted text
+		// blocks holding layouts from a freed system.
+		if tm.setScale(scale) {
 			return tm, nil
 		}
-		// The glyph context is built around one DPI scale; a changed
-		// scale needs a new one, and the old atlas is dead weight.
+		// go-glyph refused the scale (past its density limit): only a
+		// new system built at that scale can render it.
 		tm.textSys.Free()
 	} else if w.Config.OnInit != nil && len(w.Renderers()) == 0 {
 		// First render of this window: do what a backend does before
@@ -190,6 +216,19 @@ func prepare(w *gui.Window, scale float32) (*textMeasurer, error) {
 		w.Config.OnInit(w)
 	}
 
+	tm, err := newTextMeasurer(scale)
+	if err != nil {
+		return nil, err
+	}
+	w.SetTextMeasurer(tm)
+	w.SetSvgParser(svg.New())
+	return tm, nil
+}
+
+// newTextMeasurer builds a go-glyph text system over a software glyph
+// backend at scale, with the icon font and the app's fonts loaded. It is
+// what both prepare and NewRenderer install as the window's measurer.
+func newTextMeasurer(scale float32) (*textMeasurer, error) {
 	back := newGlyphBackend(scale)
 	textSys, err := glyph.NewTextSystem(back)
 	if err != nil {
@@ -197,15 +236,41 @@ func prepare(w *gui.Window, scale float32) (*textMeasurer, error) {
 	}
 	if data := gui.IconFontData; len(data) > 0 {
 		if aerr := textSys.AddFontBytes(data); aerr != nil {
+			textSys.Free()
 			return nil, fmt.Errorf("soft: icon font: %w", aerr)
 		}
 	}
 	gui.LoadAppFonts(textSys, "soft")
+	return &textMeasurer{textSys: textSys, back: back, scale: scale}, nil
+}
 
-	tm := &textMeasurer{textSys: textSys, back: back, scale: scale}
-	w.SetTextMeasurer(tm)
-	w.SetSvgParser(svg.New())
-	return tm, nil
+// checkRenderSize rejects a device-pixel size past the per-side or total
+// pixel cap, so a bad scale or window size cannot ask for a
+// multi-gigabyte buffer.
+func checkRenderSize(pw, ph int) error {
+	if pw > maxDimension || ph > maxDimension {
+		return fmt.Errorf(
+			"soft: render %dx%d exceeds the %d px limit",
+			pw, ph, maxDimension)
+	}
+	if int64(pw)*int64(ph) > maxRenderPixels {
+		return fmt.Errorf(
+			"soft: render %dx%d exceeds the %d pixel limit",
+			pw, ph, maxRenderPixels)
+	}
+	return nil
+}
+
+// sanitizeScale maps a NaN, infinite or non-positive scale to 1. NaN and
+// +Inf both pass a <= 0 check (NaN compares false, +Inf is positive) and
+// would poison the pixel math into an implementation-defined int
+// conversion.
+func sanitizeScale(scale float32) float32 {
+	if math.IsNaN(float64(scale)) || math.IsInf(float64(scale), 0) ||
+		scale <= 0 {
+		return 1
+	}
+	return scale
 }
 
 // backgroundColor is the window's clear color, matching what the GPU

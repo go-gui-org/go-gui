@@ -10,6 +10,8 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgload"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
 // imageSrc scales a decoded source into a destination rect, sampling
@@ -184,41 +186,82 @@ func (r *renderer) drawImage(cmd *gui.RenderCmd) {
 		})
 }
 
-// resolveImage decodes and caches the source named by a RenderCmd's
-// Resource.
+// cachedImage is one entry of the renderer's image cache. img is nil for a
+// failed decode, cached so one bad path is logged once. serial is the gui
+// registry serial a mem: entry was wrapped from; 0 for every other entry.
+type cachedImage struct {
+	img    *image.NRGBA
+	serial uint64
+}
+
+// imageCacheEntries bounds the image cache's entry count, as the GL
+// backend's texture cache is bounded (newGLTexCacheLRU).
+const imageCacheEntries = 128
+
+// newImageCache returns the bounded image cache for a window whose
+// WindowCfg.MaxTextureBytes is maxBytes (zero or negative: the desktop
+// default). No destroy function: an evicted image is garbage collected.
+func newImageCache(maxBytes int64) texcache.Cache[string, cachedImage] {
+	return texcache.NewSized[string, cachedImage](imageCacheEntries,
+		texcache.Budget(maxBytes, texcache.DesktopTextureBudget),
+		cachedImageBytes, nil)
+}
+
+// cachedImageBytes is the image cache's size function. A plain function,
+// not a closure, so Set allocates nothing for it.
+func cachedImageBytes(c cachedImage) int64 {
+	if c.img == nil {
+		return 0
+	}
+	return int64(c.img.Rect.Dx()) * int64(c.img.Rect.Dy()) * 4
+}
+
+// keepCachedImage is the image cache's sweep predicate: a mem: entry stays
+// only while its key is registered under the serial it was wrapped from.
+func keepCachedImage(key string, c cachedImage) bool {
+	return memtex.Current(key, c.serial)
+}
+
+// resolveImage returns the decoded source a RenderCmd's Resource names,
+// from the cache or by decoding it.
 //
 // A mem: source names a buffer in gui's in-memory registry: it has no
 // path, so it skips path resolution and the AllowedImageRoots sandbox,
 // exactly as the GPU backends do (see gui.LookupImage on why that is
-// safe).
+// safe). It is looked up on every draw, as the GL backend does: the
+// cached wrapper is reused only while the registration's serial matches,
+// so a key dropped and registered again with new pixels draws the new
+// ones. A dropped key draws nothing rather than being opened as a file
+// path.
 func (r *renderer) resolveImage(res string) (*image.NRGBA, bool) {
-	if img, ok := r.images[res]; ok {
-		return img, img != nil
-	}
-	img := r.decodeImage(res)
-	if r.images == nil {
-		r.images = make(map[string]*image.NRGBA)
-	}
-	// A failed decode is cached as nil so one bad path is logged once.
-	r.images[res] = img
-	return img, img != nil
-}
-
-func (r *renderer) decodeImage(res string) *image.NRGBA {
 	if gui.IsMemImage(res) {
-		// A frame's renderer lives for one RenderToImage call, so there
-		// is no cross-frame cache to go stale; a dropped key draws
-		// nothing rather than being opened as a file path.
 		mi, ok := gui.LookupImage(res)
 		if !ok || mi.W <= 0 || mi.H <= 0 || len(mi.Pix) < mi.W*mi.H*4 {
-			return nil
+			return nil, false
 		}
-		return &image.NRGBA{
+		if c, hit := r.imageCache.Get(res); hit && c.serial == mi.Serial {
+			return c.img, true
+		}
+		img := &image.NRGBA{
 			Pix:    mi.Pix,
 			Stride: mi.W * 4,
 			Rect:   image.Rect(0, 0, mi.W, mi.H),
 		}
+		r.imageCache.Set(res, cachedImage{img: img, serial: mi.Serial})
+		return img, true
 	}
+	if c, hit := r.imageCache.Get(res); hit {
+		return c.img, c.img != nil
+	}
+	img := r.decodeImage(res)
+	r.imageCache.Set(res, cachedImage{img: img})
+	return img, img != nil
+}
+
+// decodeImage opens and decodes a file source inside the window's
+// AllowedImageRoots and image limits. nil means it failed; the error is
+// logged.
+func (r *renderer) decodeImage(res string) *image.NRGBA {
 	path, err := imgload.ResolveValidatedPath(res, r.allowedImageRoots)
 	if err != nil {
 		log.Printf("soft: drawImage: %v", err)

@@ -72,6 +72,14 @@ time, so the binary does not link them:
 KDE and wlroots compositors (sway) draw the frame themselves and need no
 libdecor. See `docs/specs/wayland-backend.md`.
 
+On a Linux machine without a GPU, EGL falls back to Mesa's llvmpipe, which draws
+on the CPU at two to three times the CPU of go-gui's own software renderer while
+animating, and about twice the memory (#1265). Set `GOGUI_RENDERER=soft` to draw
+with the software renderer instead: the app then needs no EGL or GL library at
+all. It presents through X11, so on a Wayland desktop it runs on XWayland for
+now. It draws the full frame on each redraw and runs custom shaders' children
+but not their shader fill. `GOGUI_RENDERER=gl`, or no value, keeps GL.
+
 On X11 libxkbcommon is optional. Keys, shortcuts and switching between keyboard
 layouts work without it; with it, the X11 backend also types letters of scripts
 with legacy keysyms (Cyrillic, Greek, Hebrew) and capitalizes them under Caps

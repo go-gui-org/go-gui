@@ -70,6 +70,49 @@ func (gb *glyphBackend) UpdateTexture(id glyph.TextureID, data []byte) {
 	copy(tex.pix, data)
 }
 
+// UpdateTextureRect implements glyph.RectTextureUpdater: it copies the
+// (x, y, w, h) region of a full-page source into the page.
+//
+// Being a RectTextureUpdater is what makes go-glyph upload new glyphs
+// mid-frame, right after it resolves a layout and before it emits the quads
+// that sample it (#1265). This backend samples the page at draw time, so
+// without the mid-frame upload a glyph's first appearance draws blank until
+// Commit — which is why RenderToImage runs an atlas warm pass, and why a live
+// window can draw each frame in one pass.
+//
+// data is the whole page: source pixels start at y*srcStride + x*4 and rows
+// advance by srcStride. Glyph promises an in-bounds, non-empty rect, but this
+// is the last stop before a slice panic, so anything outside the texture or
+// the source is ignored whole rather than clamped: a partial glyph is worse
+// than none, and Commit's full-page UpdateTexture still covers the page.
+func (gb *glyphBackend) UpdateTextureRect(id glyph.TextureID, data []byte,
+	srcStride, x, y, w, h int) {
+
+	tex, ok := gb.textures[id]
+	// Each bound is written as a subtraction from a known-small value
+	// (the texture size, the source length) so no sum of caller ints can
+	// wrap negative and slip past: x+w > tex.w would, for x near MaxInt.
+	if !ok || w <= 0 || h <= 0 || x < 0 || y < 0 ||
+		w > tex.w-x || h > tex.h-y || srcStride < w*4 {
+		return
+	}
+	// Last source byte read: the final row's end, (y+h-1)*srcStride +
+	// (x+w)*4. x+w <= tex.w here, so rowEnd is small; the row count is
+	// checked by division, so a huge stride cannot overflow the product.
+	// Checked once up front so the loop below needs no per-row test.
+	rowEnd := (x + w) * 4
+	if rowEnd > len(data) || y+h-1 > (len(data)-rowEnd)/srcStride {
+		return
+	}
+	rowBytes := w * 4
+	dstStride := tex.w * 4
+	for row := y; row < y+h; row++ {
+		so := row*srcStride + x*4
+		do := row*dstStride + x*4
+		copy(tex.pix[do:do+rowBytes], data[so:so+rowBytes])
+	}
+}
+
 func (gb *glyphBackend) DeleteTexture(id glyph.TextureID) {
 	delete(gb.textures, id)
 }

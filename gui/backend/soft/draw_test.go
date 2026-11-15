@@ -28,7 +28,8 @@ func closeTo(got, want, tol uint8) bool {
 // system: these tests exercise the shape and clip paths only.
 func newRenderer(w, h int, scale float32) *renderer {
 	root := newBuffer(w, h)
-	r := &renderer{buf: root, rootBuf: root, scale: scale}
+	r := &renderer{buf: root, rootBuf: root, scale: scale,
+		imageCache: newImageCache(0)}
 	root.clear(gui.RGB(0, 0, 0))
 	return r
 }

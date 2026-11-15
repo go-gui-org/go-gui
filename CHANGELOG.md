@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- **`GOGUI_RENDERER=soft` draws a Linux window on the CPU, without GL (#1265).**
+  On a machine without a GPU, EGL falls back to Mesa's llvmpipe, which measured
+  two to four times the CPU of go-gui's own software renderer while animating
+  and about twice the memory. With `GOGUI_RENDERER=soft` the X11 backend opens
+  no EGL display: each frame is drawn by `gui/backend/soft` and uploaded with
+  `PutImage`, paced to the monitor's refresh rate. Events, input methods, the
+  clipboard and DPI handling are the same code as with GL. On a Wayland desktop
+  the window runs on XWayland until the Wayland path lands. The frame is redrawn
+  in full on each change, so this is aimed at 1× displays, and a custom shader
+  draws its children but not its shader fill. `gl` or no value keeps GL, and on
+  Linux the no-GPU error now names the variable. The new `soft.Renderer` is the
+  live counterpart of `soft.RenderToImage`. It draws one pass into one reused
+  buffer: the soft glyph backend now uploads new glyphs in the middle of a
+  frame, so a cold glyph atlas needs no warm-up pass. `soft.RenderToImage` of an
+  already-rendered window at a new scale now moves its text system to the new
+  density instead of freeing it under the window's cached text layouts. See
+  `docs/specs/live-software-renderer.md`.
 - **Texture caches are bounded by bytes, and `WindowCfg.MaxTextureBytes` sets
   the cap (#1239).** Before, each window kept up to 128 decoded images on the
   GPU (256 on web), whatever their size. With large photos that is gigabytes,

@@ -249,6 +249,8 @@ Metal backend is Objective-C. Linux and Windows build fully cgo-free
 macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text shaping and
 rasterization are pure Go via go-glyph. On a Wayland desktop, Linux apps use a
 native Wayland backend; `GOGUI_WAYLAND=0` keeps X11 (see `docs/deployment.md`).
+On a Linux machine without a GPU, `GOGUI_RENDERER=soft` draws on the CPU with
+go-gui's own renderer instead of Mesa's llvmpipe, and needs no GL library.
 
 ```bash
 go get github.com/go-gui-org/go-gui

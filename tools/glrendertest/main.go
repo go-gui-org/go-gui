@@ -73,6 +73,9 @@ var commonTests = []string{
 var x11Tests = []string{
 	"TestNewErrorReleasesThread",
 	"TestDestroyReleasesThread",
+	// GOGUI_RENDERER=soft present path (#1265): needs an X server, not GL.
+	"TestSoftX11NeverTouchesEGL",
+	"TestSoftX11PixelsMatchRenderToImage",
 }
 
 // verdict classifies one test process's output.

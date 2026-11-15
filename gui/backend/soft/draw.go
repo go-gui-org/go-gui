@@ -8,7 +8,9 @@ import (
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
 // renderer replays a []gui.RenderCmd stream into a buffer. It is the CPU
@@ -32,8 +34,15 @@ type renderer struct {
 	// grown, never freed, so a per-frame gradient does not allocate.
 	meshScoreBuf []float32
 
-	// images caches decoded sources by the RenderCmd.Resource string.
-	images map[string]*image.NRGBA
+	// imageCache holds decoded sources by the RenderCmd.Resource string.
+	// RenderToImage's renderer lives for one capture, but a live
+	// Renderer's lives as long as its window (#1265), so the cache is the
+	// same bounded LRU as the GL texture cache: by count, and by
+	// WindowCfg.MaxTextureBytes (#1239). memSweep drops mem: entries whose
+	// registration left gui's registry, which the entries would otherwise
+	// keep alive (#1230).
+	imageCache texcache.Cache[string, cachedImage]
+	memSweep   memtex.Sweeper
 	// surfaces holds one image per PixelSurface drawn, refreshed when
 	// the surface publishes a new frame.
 	surfaces surfacecache.Cache[*image.NRGBA]
@@ -77,6 +86,10 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 	// prunes once for the frame.
 	if !r.warm {
 		r.surfaces.Prune(cmds)
+		r.imageCache.BeginFrame()
+		if r.memSweep.Due() {
+			r.imageCache.Sweep(keepCachedImage)
+		}
 	}
 	for i := range cmds {
 		cmd := &cmds[i]

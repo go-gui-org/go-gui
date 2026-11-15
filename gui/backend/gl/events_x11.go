@@ -245,7 +245,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		}
 		b.plat.physW = nw
 		b.plat.physH = nh
-		b.handleResize()
+		b.resizeX11()
 		lw, lh := b.logicalXY(b.physW, b.physH)
 		b.emit(gui.Event{
 			Type:         gui.EventResized,
@@ -253,7 +253,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			WindowHeight: int(lh),
 		})
 		w.FrameFn()
-		b.renderFrame(w)
+		b.presentX11(w)
 
 	case xproto.UnmapNotifyEvent:
 		// ICCCM iconify unmaps the top-level window: stop asking for
@@ -334,7 +334,10 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		}
 
 	case xproto.ExposeEvent:
-		// Damage is repainted by the next frame; nothing to do.
+		// GL: damage is repainted by the next frame; nothing to do. A soft
+		// window (#1265) on a server without backing store would stay
+		// damaged until something redraws, so it puts its last frame back.
+		b.exposeX11(e.Count)
 	}
 }
 

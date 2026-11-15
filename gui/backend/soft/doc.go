@@ -1,9 +1,14 @@
-// Package soft renders a go-gui frame to an image on the CPU: no GPU, no
-// window, no event loop.
+// Package soft renders a go-gui frame to an image on the CPU, with no GPU.
 //
 // It is a third consumer of the same flat []gui.RenderCmd stream the GPU
-// backends and the PDF printer replay, so it is purely additive — no other
-// backend changes and none of them consult it.
+// backends and the PDF printer replay. Two entry points share one renderer:
+//
+//   - RenderToImage and RenderToPNG are headless: no window and no event
+//     loop. They settle a frame themselves and return its pixels.
+//   - Renderer draws a live window's frames for a backend that presents the
+//     pixels itself. The Linux backend uses it when GOGUI_RENDERER=soft is
+//     set (#1265): the frame is drawn here and uploaded with X11 PutImage, so
+//     a machine without a GPU does not need Mesa's llvmpipe.
 //
 // Typical use is a screenshot or a pixel-level regression test:
 //
