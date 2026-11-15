@@ -17,10 +17,11 @@ const (
 var clickEpoch = time.Now()
 
 // doubleClickNowMs returns milliseconds since clickEpoch on the
-// monotonic clock. Stored in LastClickTime, compared against
+// window clock (clockNow): monotonic when live, the manual clock under
+// TestStep (#1262), so a soak run's click timing is simulated too. Stored in LastClickTime, compared against
 // doubleClickThresholdMs.
-func doubleClickNowMs() int64 {
-	return int64(time.Since(clickEpoch) / time.Millisecond)
+func doubleClickNowMs(w *Window) int64 {
+	return int64(w.clockNow().Sub(clickEpoch) / time.Millisecond)
 }
 
 // textDragEdgeScrollFactor scales the edge-scroll step to the
@@ -123,7 +124,7 @@ func textOnClick(ctx EventCtx) {
 	is := imap.GetOr(focusID, inputState{})
 
 	// Double-click detection.
-	now := doubleClickNowMs()
+	now := doubleClickNowMs(ctx.Window)
 	doubleClick := is.LastClickTime > 0 &&
 		now-is.LastClickTime <= doubleClickThresholdMs
 	is.LastClickTime = now

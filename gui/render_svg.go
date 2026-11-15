@@ -105,7 +105,7 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 	if cached.hasAnimations && cached.animStartNs != 0 {
 		animState = w.scratch.svgAnimStates.take(len(cached.Animations))
 		defer w.scratch.svgAnimStates.put(animState)
-		nowNs := time.Now().UnixNano()
+		nowNs := w.clockNow().UnixNano()
 		// Keep animation alive while SVG is being rendered.
 		if cached.animHash != "" {
 			animSeen := StateMap[string, int64](

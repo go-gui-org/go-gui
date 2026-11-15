@@ -124,7 +124,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 		animHash := cached.animHash
 		animSeen := StateMap[string, int64](
 			w, nsSvgAnimSeen, capImageCache)
-		animSeen.Set(animHash, time.Now().UnixNano())
+		animSeen.Set(animHash, w.clockNow().UnixNano())
 		animID := ScopeID("svg_anim", animHash)
 		if !w.HasAnimation(animID) {
 			w.AnimationAdd(&Animate{
@@ -140,7 +140,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 						an.stopped = true
 						return
 					}
-					if time.Now().UnixNano()-seen > svgAnimStaleNs {
+					if w.clockNow().UnixNano()-seen > svgAnimStaleNs {
 						an.stopped = true
 						return
 					}

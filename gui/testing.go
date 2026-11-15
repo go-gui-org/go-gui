@@ -3,6 +3,7 @@ package gui
 import (
 	"errors"
 	"fmt"
+	"time"
 )
 
 // This file is the app-testing API (developer-ergonomics spec §4.6).
@@ -168,7 +169,8 @@ func NewTestWindow(tb Cleanuper, cfg WindowCfg) *Window {
 // test. Animation time does not advance. Animation ticks come from a
 // goroutine on the wall clock; a tick already queued when the action
 // settles is applied, as in a real frame, but no Test* call waits for
-// an animation to end.
+// an animation to end. To move animation time, call [Window.TestStep]:
+// it replaces the goroutine with a manual clock the test advances.
 func (w *Window) TestRender(view func(*Window) View) *Layout {
 	if view != nil {
 		w.SetView(view)
@@ -183,6 +185,71 @@ func (w *Window) TestRender(view func(*Window) View) *Layout {
 		w.Update()
 	}
 	return &w.layout
+}
+
+// TestStep advances the window's clock by dt, ticks every animation
+// once with that dt, and runs one frame (FrameFn). It reports whether
+// the frame rebuilt, the value FrameFn returns to a backend.
+//
+// The first call switches the window to a manual clock and stops the
+// animation goroutine. From then on, time in the window moves only
+// when TestStep is called: tweens, springs, keyframes, Animate delays,
+// the caret blink, tooltip delays, double-click timing, SVG
+// animations and the accessibility sync throttle all read it. Ten minutes of a session therefore run in
+// as much wall time as the frames cost, and the same inputs give the
+// same frames. tools/soak drives a whole app this way (#1262).
+//
+// The switch is one-way. TestStep is for headless tests only: on a
+// window a backend runs, it stops the animations from playing.
+// TestStep(0) switches the clock without moving it. dt must not be
+// negative; TestStep panics on a negative dt, as AnimationAdd does on
+// an empty ID. Call it on the goroutine that drives the window, as for
+// every other Test* method.
+//
+// The time-travel pin still wins in w.Now(): a scrubbed window shows
+// its snapshot instant whatever the manual clock reads. Profiling
+// timers keep wall time, because they measure real cost.
+func (w *Window) TestStep(dt time.Duration) bool {
+	if dt < 0 {
+		panic("gui: TestStep requires a non-negative dt")
+	}
+	if !w.manualClock.Load() {
+		w.startManualClock()
+	}
+	w.manualOffset.Add(int64(dt))
+	w.animMu.Lock()
+	idle := len(w.animations) == 0
+	w.animMu.Unlock()
+	if !idle {
+		w.animationTick(&w.stepAC, &w.stepStopped, float32(dt.Seconds()))
+	}
+	return w.FrameFn()
+}
+
+// startManualClock is the first TestStep's switch to the manual clock.
+// The base is written before the flag, so a reader that sees the flag
+// also sees the base. An AnimationAdd on another goroutine can read the
+// flag as false just before the Store and reach animationStartOnce
+// after it, so the flag alone does not block a start. Using up the
+// Once here closes that gap: Do waits for a start already inside it,
+// and any later start runs nothing. stopAnimationLoop then stops a
+// goroutine that did start. The tick scratch is built here, once, so a
+// step allocates nothing.
+func (w *Window) startManualClock() {
+	w.manualBase = time.Now()
+	w.manualClock.Store(true)
+	w.animationStartOnce.Do(func() {})
+	w.stopAnimationLoop()
+	w.stepDeferred = make([]queuedCommand, 0, 8)
+	w.stepStopped = make([]string, 0, 4)
+	w.stepAC = newAnimationCommands(&w.stepDeferred)
+	// Touch gestures keep their own injectable clock. Point it at the
+	// window clock unless a test already set one.
+	if w.viewState.gesture.nowFn == nil {
+		w.viewState.gesture.nowFn = func() int64 {
+			return w.clockNow().UnixNano()
+		}
+	}
 }
 
 // settle does the work FrameFn would do after the event just

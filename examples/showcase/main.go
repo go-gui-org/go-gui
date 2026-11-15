@@ -35,7 +35,23 @@ func main() {
 	app := gui.NewApp()
 	app.ExitMode = gui.ExitOnMainClose
 
-	w := gui.NewWindow(gui.WindowCfg{
+	w := gui.NewWindow(showcaseWindowCfg())
+
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
+	defer cleanupEmbeddedAssets()
+	backend.RunApp(app, w)
+}
+
+// showcaseWindowCfg is the showcase's window: its state, size and the
+// OnInit that loads locales, registers commands and installs the view.
+// main and the soak test (soak_test.go) build the same window from it.
+func showcaseWindowCfg() gui.WindowCfg {
+	return gui.WindowCfg{
 		State:  newShowcaseApp(),
 		Title:  "Gui Showcase " + gui.Version,
 		Width:  950,
@@ -70,14 +86,5 @@ func main() {
 			)
 			w.SetView(mainView)
 		},
-	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
 	}
-	defer cleanupEmbeddedAssets()
-	backend.RunApp(app, w)
 }

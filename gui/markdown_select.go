@@ -190,7 +190,7 @@ func markdownBlockOnClick(ctx EventCtx) {
 	// Default mdSelState{}: zero value means no prior selection.
 	st := imap.GetOr(mdID, mdSelState{})
 
-	now := doubleClickNowMs()
+	now := doubleClickNowMs(ctx.Window)
 	doubleClick := st.LastClickTime > 0 &&
 		now-st.LastClickTime <= doubleClickThresholdMs
 	st.LastClickTime = now

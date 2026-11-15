@@ -73,6 +73,20 @@ type windowAnimation struct {
 	// covered (DispatchWindowOccluded, issue #943). The animation loop reads
 	// it from its own goroutine, so it is atomic, not guarded by animMu.
 	occluded atomic.Bool
+	// Manual clock (TestStep, #1262). Once manualClock is set, clockNow
+	// returns manualBase plus manualOffset nanoseconds instead of
+	// time.Now(), and the animation goroutine no longer runs: TestStep
+	// ticks the animations itself. One-way: nothing clears the flag.
+	// manualBase is written once, before manualClock is stored, and is
+	// read only after the flag reads true.
+	manualClock  atomic.Bool
+	manualOffset atomic.Int64
+	manualBase   time.Time
+	// TestStep's reusable tick scratch, the same three values the loop
+	// goroutine keeps on its stack. Built on the first step.
+	stepDeferred []queuedCommand
+	stepStopped  []string
+	stepAC       AnimationCommands
 	// Per-frame pipeline timings.
 	frameTimings FrameTimings
 }

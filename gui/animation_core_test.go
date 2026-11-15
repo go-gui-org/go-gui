@@ -6,7 +6,7 @@ import (
 )
 
 func TestDurationProgressZero(t *testing.T) {
-	p, done := durationProgress(time.Now(), 0)
+	p, done := durationProgress(time.Now(), time.Now(), 0)
 	if p != 1.0 || !done {
 		t.Errorf("got (%f,%v), want (1.0,true)", p, done)
 	}
@@ -14,7 +14,7 @@ func TestDurationProgressZero(t *testing.T) {
 
 func TestDurationProgressComplete(t *testing.T) {
 	start := time.Now().Add(-2 * time.Second)
-	p, done := durationProgress(start, 1*time.Second)
+	p, done := durationProgress(start, time.Now(), 1*time.Second)
 	if p != 1.0 || !done {
 		t.Errorf("got (%f,%v), want (1.0,true)", p, done)
 	}
@@ -22,7 +22,7 @@ func TestDurationProgressComplete(t *testing.T) {
 
 func TestDurationProgressMidway(t *testing.T) {
 	start := time.Now().Add(-50 * time.Millisecond)
-	p, done := durationProgress(start, 1*time.Second)
+	p, done := durationProgress(start, time.Now(), 1*time.Second)
 	if done {
 		t.Error("should not be done")
 	}

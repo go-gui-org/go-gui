@@ -770,7 +770,7 @@ func (w *Window) PlatformID() uint32 {
 func (w *Window) Close() { w.closeReq.Store(true) }
 
 // Now returns the window's current time. When live, this is
-// time.Now(). When time-travel scrub has pinned a virtual
+// time.Now(); after TestStep it is the test's manual clock. When time-travel scrub has pinned a virtual
 // instant, Now returns that instant so views relying on
 // clock-driven rendering (elapsed counters, "N seconds ago"
 // labels) match the scrubbed snapshot. Views that need the
@@ -783,7 +783,7 @@ func (w *Window) Now() time.Time {
 	if t := w.virtualNow.Load(); t != nil {
 		return *t
 	}
-	return time.Now()
+	return w.clockNow()
 }
 
 // setVirtualNow pins the window's virtual clock to t. Passing

@@ -413,7 +413,7 @@ func TestRtfSelectDoubleClickStaleThresholdIsolated(t *testing.T) {
 	StateMap[string, inputState](h.w, nsInput, capMany).Set("rtf",
 		inputState{
 			CursorPos: 2, selectBeg: 2, selectEnd: 2,
-			LastClickTime: doubleClickNowMs() -
+			LastClickTime: doubleClickNowMs(nil) -
 				doubleClickThresholdMs - 1,
 		})
 

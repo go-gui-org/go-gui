@@ -122,7 +122,8 @@ func (w *Window) syncA11y() {
 	if !w.a11y.dirty {
 		return
 	}
-	now := time.Now()
+	// The window clock, so TestStep paces the throttle (#1262).
+	now := w.clockNow()
 	if now.Sub(w.a11y.lastSync) < a11ySyncInterval {
 		return
 	}

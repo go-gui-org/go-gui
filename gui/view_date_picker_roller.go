@@ -99,6 +99,12 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 
 	// One resolved identity for every key below; see (*Window).EffID.
 	cfg.ID = w.EffID(cfg.ID)
+	// No date given: open on today by the window clock, so TestStep and
+	// the time-travel pin move it as they move the date picker (#1262).
+	// The factory has no window, so this default lives here.
+	if cfg.SelectedDate.IsZero() {
+		cfg.SelectedDate = w.Now()
+	}
 	sel := cfg.SelectedDate
 
 	specs := rollerDrumSpecs(cfg, sel)
@@ -523,8 +529,5 @@ func applyRollerDefaults(cfg *DatePickerRollerCfg) {
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = DefaultTextStyle
-	}
-	if cfg.SelectedDate.IsZero() {
-		cfg.SelectedDate = time.Now()
 	}
 }

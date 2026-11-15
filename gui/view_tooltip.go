@@ -320,7 +320,7 @@ func (w *Window) resolveTooltipHover(layers []Layout) {
 		// A new hover, or the pointer went straight from one wrapper
 		// to another: the old one's tooltip ends here.
 		ts.hoverID = a.tipID
-		ts.hoverStart = time.Now()
+		ts.hoverStart = w.clockNow()
 		if ts.id != a.tipID {
 			ts.id = ""
 			ts.popupID = ""
@@ -337,7 +337,7 @@ func (w *Window) resolveTooltipHover(layers []Layout) {
 			},
 		})
 
-	case ts.id == "" && time.Since(ts.hoverStart) >= a.delay:
+	case ts.id == "" && w.clockNow().Sub(ts.hoverStart) >= a.delay:
 		ts.id = a.tipID
 		ts.popupID = a.popupID
 	}

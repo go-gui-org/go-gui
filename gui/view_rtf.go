@@ -7,7 +7,6 @@ package gui
 import (
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-gui-org/go-glyph"
 
@@ -363,7 +362,7 @@ func rtfMouseMove(ctx EventCtx) {
 				ts.setRun(ctx.Layout, rtfRunRect(run))
 				ts.blockKey = rtfRunsKey(
 					ctx.Layout.Shape.TC.rtf.rTFRuns)
-				ts.hoverStart = time.Now()
+				ts.hoverStart = ctx.Window.clockNow()
 				ctx.Window.AnimationAdd(rtfTooltipAnimation(tipID))
 				ctx.Consume()
 				return

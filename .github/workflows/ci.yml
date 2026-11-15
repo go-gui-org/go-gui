@@ -95,6 +95,13 @@ jobs:
               go test -count=2 -race -timeout=10m ./gui/...
           fi
 
+      # A 5 s soak of the showcase (#1262) so the harness cannot rot
+      # between nightly runs. No gates apply this short; a panic fails.
+      # The full run is .github/workflows/soak.yml.
+      - name: Soak smoke
+        if: runner.os == 'Linux'
+        run: go test -count=1 -timeout=5m ./tools/soak/ && go test -count=1 -timeout=5m -run '^TestSoak$' ./examples/showcase/
+
       # A failing pixel golden is undebuggable from a log: the actual,
       # expected and diff PNGs are what tell whether the renderer
       # moved or the tolerance needs widening. TestPixelGolden writes

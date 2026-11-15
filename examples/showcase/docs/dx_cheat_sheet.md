@@ -743,6 +743,26 @@ func TestGoldenExample(t *testing.T) {
   `MousePressed` for appearances `TestClick` cannot reach: a held Space, a hover
   with no click.
 
+## Animation time in tests
+
+`Test*` actions do not move animation time. To play an animation, call
+`(*Window).TestStep(dt)`: it moves the window clock by `dt`, ticks every
+animation once and runs one frame. The first call switches the window to this
+manual clock for good, so a test needs no sleep and gives the same result on any
+machine.
+
+```go
+w.TestStep(0) // switch to the manual clock
+w.AnimationAdd(tween)
+for range 20 {
+	w.TestStep(time.Second / 60)
+}
+```
+
+- A caret blinks only in a window the OS has focused. Send
+  `w.EventFn(&gui.Event{Type: gui.EventFocused})` first.
+- `tools/soak` drives a whole app this way for simulated minutes.
+
 ## Find it early
 
 `gui.Debug(true)`, or `GOGUI_DEBUG=1`, checks the layout every frame. It reports

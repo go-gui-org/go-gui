@@ -73,7 +73,7 @@ func updateKeyframe(kf *KeyframeAnimation, ac *AnimationCommands) bool {
 		kf.stopped = true
 		return false
 	}
-	progress, done := durationProgress(kf.start, kf.Duration)
+	progress, done := durationProgress(kf.start, ac.clock(), kf.Duration)
 	if done {
 		if len(kf.Keyframes) > 0 {
 			if v := kf.Keyframes[len(kf.Keyframes)-1].Value; f32IsFinite(v) {
@@ -89,7 +89,7 @@ func updateKeyframe(kf *KeyframeAnimation, ac *AnimationCommands) bool {
 				kf.stopped = true
 				return true
 			}
-			now := time.Now()
+			now := ac.clock()
 			kf.start = kf.start.Add(kf.Duration)
 			// Drop the backlog a stall accumulated, the same rule
 			// Animate and the caret blink follow: without it a

@@ -1,5 +1,7 @@
 package gui
 
+import "time"
+
 type queuedCommandKind uint8
 
 const (
@@ -30,6 +32,22 @@ type queuedCommand struct {
 // queuedCommand type.
 type AnimationCommands struct {
 	inner *[]queuedCommand
+	// now is the time of the tick this batch belongs to, read once from
+	// the window clock (clockNow) before any Update runs. Every animation
+	// in a tick sees the same instant, and under TestStep that instant
+	// is the manual clock (#1262). Zero when Update is called outside
+	// the loop (a unit test, a custom driver); clock() then falls back
+	// to time.Now().
+	now time.Time
+}
+
+// clock returns the time of the current tick. Nil-safe: a nil receiver
+// or a batch built outside the loop reads time.Now().
+func (ac *AnimationCommands) clock() time.Time {
+	if ac == nil || ac.now.IsZero() {
+		return time.Now()
+	}
+	return ac.now
 }
 
 // newAnimationCommands wraps a raw deferred slice. Package-internal;

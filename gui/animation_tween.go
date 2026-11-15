@@ -64,7 +64,7 @@ func updateTween(tw *TweenAnimation, ac *AnimationCommands) bool {
 		tw.stopped = true
 		return false
 	}
-	progress, done := durationProgress(tw.start, tw.Duration)
+	progress, done := durationProgress(tw.start, ac.clock(), tw.Duration)
 	if done {
 		// A non-finite To would poison layout geometry: skip the
 		// value but still run OnDone so the caller can clean up.
@@ -104,11 +104,11 @@ const tweenMotionStep = 1e-3
 // second) at the current wall time, so a spring that replaces it can
 // continue the motion (#1015). ok is false when there is no motion to
 // hand over: the tween stopped or finished, or a value is not finite.
-func tweenMotion(tw *TweenAnimation) (pos, vel float32, ok bool) {
+func tweenMotion(tw *TweenAnimation, now time.Time) (pos, vel float32, ok bool) {
 	if tw.stopped {
 		return 0, 0, false
 	}
-	progress, done := durationProgress(tw.start, tw.Duration)
+	progress, done := durationProgress(tw.start, now, tw.Duration)
 	if done {
 		return 0, 0, false
 	}

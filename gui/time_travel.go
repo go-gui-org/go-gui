@@ -316,7 +316,7 @@ func (w *Window) captureSnapshot(e *Event) {
 	w.history.pushEntry(snapshotEntry{
 		snap:       s.Snapshot(),
 		namespaces: ns,
-		when:       time.Now(),
+		when:       w.clockNow(),
 		cause:      eventCause(e),
 	})
 }

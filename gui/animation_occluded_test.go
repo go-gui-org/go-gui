@@ -104,8 +104,8 @@ func TestAnimationTickOccludedHoldsStaleTimer(t *testing.T) {
 	w.animMu.Lock()
 	seen := w.animViewBound["spin"]
 	w.animMu.Unlock()
-	if viewBoundNow().Sub(seen) > time.Second {
-		t.Errorf("heartbeat not renewed while hidden: %v old", viewBoundNow().Sub(seen))
+	if time.Since(seen) > time.Second {
+		t.Errorf("heartbeat not renewed while hidden: %v old", time.Since(seen))
 	}
 
 	// Once shown, the stale check applies again.
