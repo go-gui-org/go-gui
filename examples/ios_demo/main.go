@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/ios"
@@ -21,6 +22,10 @@ type App struct {
 	// a windowed iPad grants it only once the window fills the
 	// screen.
 	Fullscreen bool
+	// Set by onEvent from EventVisibilityChanged.
+	hiddenAt time.Time
+	returns  int
+	away     string
 }
 
 // iosWindow holds the window Init created; a repeat Init call reuses
@@ -37,6 +42,7 @@ func Init() {
 	w := gui.NewWindow(gui.WindowCfg{
 		State: &App{},
 		OnInit: func(w *gui.Window) {
+			w.OnEvent = onEvent
 			w.SetView(view)
 		},
 	})
@@ -44,8 +50,34 @@ func Init() {
 	iosWindow = w
 }
 
+// onEvent shows that the app learns when it leaves the screen (issue
+// #1170): it counts the returns and how long the last absence was. A
+// player would stop decoding and pause its audio on the way out.
+func onEvent(e *gui.Event, w *gui.Window) {
+	if e.Type != gui.EventVisibilityChanged {
+		return
+	}
+	app := gui.State[App](w)
+	if w.IsOccluded() {
+		app.hiddenAt = time.Now()
+		return
+	}
+	app.returns++
+	app.away = fmt.Sprintf("Left the screen %d times, last for %s",
+		app.returns, time.Since(app.hiddenAt).Round(100*time.Millisecond))
+}
+
 func init() {
 	Init()
+}
+
+// awayText is the readout onEvent fills, or a hint before the first
+// return.
+func awayText(app *App) string {
+	if app.away == "" {
+		return "Leave the app and come back."
+	}
+	return app.away
 }
 
 func view(w *gui.Window) gui.View {
@@ -72,6 +104,10 @@ func view(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text: "Tap the button to increment.",
+			}),
+			gui.Text(gui.TextCfg{
+				Text:      awayText(app),
+				TextStyle: gui.CurrentTheme().TextStyleSecondary,
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID: gui.ScopeID("ios-demo", "click"),

@@ -66,6 +66,29 @@ class MainActivity : Activity() {
         glSurfaceView.queueEvent { Androidapp.appearanceChanged(dark) }
     }
 
+    // onStart / onStop tell Go whether the app is on screen (go-gui
+    // #1170). Not onResume / onPause: in multi-window mode a paused
+    // activity is still visible. The GL thread runs a queued event
+    // while it is paused, so the report from onStop arrives at once.
+    //
+    // A stop for a configuration change is not reported: Android
+    // replaces the activity within milliseconds (leaving split screen
+    // does this), so the app never leaves the screen. Reporting it
+    // would also race: the old activity's "hidden" runs on the old GL
+    // thread and the new activity's "shown" on the new one, and a
+    // "hidden" that came last would leave the app marked hidden.
+    override fun onStart() {
+        super.onStart()
+        glSurfaceView.queueEvent { Androidapp.visibilityChanged(true) }
+    }
+
+    override fun onStop() {
+        if (!isChangingConfigurations) {
+            glSurfaceView.queueEvent { Androidapp.visibilityChanged(false) }
+        }
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         glSurfaceView.onResume()

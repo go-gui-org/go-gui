@@ -292,6 +292,7 @@ func shouldSnapshot(t EventType) bool {
 		EventIMEComposition,
 		EventFocused,
 		EventUnfocused,
+		EventVisibilityChanged,
 		EventResized:
 		return false
 	}
@@ -468,6 +469,9 @@ func (w *Window) resume() {
 	}
 	w.frozen.Store(false)
 	w.virtualNow.Store(nil)
+	// A visibility change while frozen was not reported (issue #1170).
+	// Queued, not called: resume may run on any goroutine.
+	w.QueueCommand(func(win *Window) { win.reportVisibility() })
 	w.InvalidateLayout()
 }
 

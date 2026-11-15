@@ -156,6 +156,10 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   Windows, macOS and X11. Wayland cannot place a window or bring back a
   minimized one. The getters follow changes the user makes through the OS
   ([`examples/window_state/`](examples/window_state/))
+- **Window visibility** — `EventVisibilityChanged` tells an app when nobody sees
+  its window: it is minimized, hidden, or the app is in the background on
+  Android, iOS or the web. A player stops decoding and pauses audio there
+  ([`examples/visibility/`](examples/visibility/))
 - **Light and dark** — `Window.FollowSystemAppearance` switches the theme with
   the desktop's light/dark setting. On Windows, and on GNOME under Wayland, the
   window frame switches with it

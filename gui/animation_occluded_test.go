@@ -85,9 +85,11 @@ func TestAnimationTickVisibleQueuesFrame(t *testing.T) {
 // TestAnimationTickOccludedHoldsStaleTimer: a hidden window builds no
 // view, so no widget touches its heartbeat. The tick must hold the
 // stale-cancel timer, or every spinner is cancelled after 2s hidden and
-// restarts at phase 0 on show.
+// restarts at phase 0 on show. This is the desktop contract: the window
+// has a wake function, so the loop keeps ticking while hidden.
 func TestAnimationTickOccludedHoldsStaleTimer(t *testing.T) {
 	w := &Window{}
+	w.SetWakeMainFn(func() {})
 	w.animationAddViewBound(&stubRenderAnim{id: "spin"})
 	w.animMu.Lock()
 	w.animViewBound["spin"] = time.Now().Add(-time.Hour)

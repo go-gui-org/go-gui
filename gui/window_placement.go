@@ -16,6 +16,10 @@ type windowPlacement struct {
 	// lock-free from any goroutine while Hide/Show write on the
 	// frame thread. The zero value reads as visible.
 	hidden atomic.Bool
+	// notShown is the combined state the app was last told through
+	// EventVisibilityChanged: hidden or occluded (reportVisibility,
+	// issue #1170). The zero value reads as shown.
+	notShown atomic.Bool
 	// maximized and fullscreen are what the OS last confirmed, through
 	// DispatchWindowState. Atomic for IsMaximized and IsFullscreen, as
 	// hidden is for IsVisible.

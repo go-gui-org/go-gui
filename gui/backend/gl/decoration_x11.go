@@ -107,6 +107,14 @@ func (n *nativePlatform) HideWindow() {
 	xproto.UnmapWindow(n.b.plat.conn, n.b.plat.window)
 }
 
+// CanHideWindow tells gui whether Hide can take the window off the
+// screen. On Wayland it cannot yet (docs/specs/wayland-backend.md), so
+// Window.Hide does nothing there and IsVisible stays true (issue
+// #1170). X11 unmaps the window.
+func (n *nativePlatform) CanHideWindow() bool {
+	return n.b == nil || n.b.plat.wl == nil
+}
+
 // startMoveResize sends _NET_WM_MOVERESIZE for the last button press.
 // The press left an implicit pointer grab on the app, so the grab is
 // released first or the window manager never sees the drag.

@@ -60,6 +60,9 @@ const (
 	// debugCheckWindowVSync fires from a backend's window creation
 	// when WindowCfg.VSyncOff could not be honoured.
 	debugCheckWindowVSync
+	// debugCheckWindowHide fires from Window.Hide on a platform that
+	// cannot hide a window (web, iOS, Android, Wayland).
+	debugCheckWindowHide
 	// debugCheckUnresolvedKey fires from the state-key audit when a
 	// StateMap key is a bare leaf that the resolve pass scoped; see
 	// debug_state_keys.go.
@@ -158,7 +161,7 @@ func checkCategory(check debugCheck) DebugCategory {
 	case debugCheckDeferredLoop, debugCheckLinkNotOpened:
 		return DebugCallbacks
 	case debugCheckWindowTransparency, debugCheckWindowOpacity,
-		debugCheckWindowVSync:
+		debugCheckWindowVSync, debugCheckWindowHide:
 		return DebugWindowDegraded
 	case debugCheckUnresolvedKey, debugCheckEffIDPhase:
 		return DebugUnresolvedKeys

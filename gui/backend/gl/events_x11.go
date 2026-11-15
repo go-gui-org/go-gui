@@ -261,10 +261,12 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		// minimize counts; VisibilityNotify is unreliable under a
 		// compositing WM, which reports every window unobscured. The
 		// window check guards against a child's unmap, should one ever
-		// select SubstructureNotify.
+		// select SubstructureNotify. A window manager that keeps a
+		// minimized window mapped (mutter) reports it through
+		// _NET_WM_STATE instead; see syncWindowState.
 		if e.Window == b.plat.window {
 			b.plat.unmapped = true
-			gui.DispatchWindowOccluded(w, true)
+			b.syncOccluded()
 		}
 
 	case xproto.MapNotifyEvent:
@@ -274,7 +276,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		// a no-op.
 		if e.Window == b.plat.window {
 			b.plat.unmapped = false
-			gui.DispatchWindowOccluded(w, false)
+			b.syncOccluded()
 		}
 
 	case xproto.PropertyNotifyEvent:

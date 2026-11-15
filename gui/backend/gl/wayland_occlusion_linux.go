@@ -27,9 +27,14 @@ import (
 // syncOccluded tells gui whether the compositor shows the window at all.
 // The show marks a full refresh and wakes the loop once.
 // DispatchWindowOccluded ignores a repeat of the current state, so this
-// needs no last-sent copy, and unlike focus it needs no ready gate: it
-// only flips a flag on the gui window.
+// needs no last-sent copy. Like focus it waits until the window is
+// ready: the report sends EventVisibilityChanged to the app (issue
+// #1170), and a window that opens on another workspace gets its first
+// configure before OnInit has run. The run loop calls it again then.
 func (ww *wlWindow) syncOccluded() {
+	if !ww.ready {
+		return
+	}
 	gui.DispatchWindowOccluded(ww.b.plat.w, ww.pendSuspended || ww.stalled)
 }
 

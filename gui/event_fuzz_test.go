@@ -82,6 +82,11 @@ func clampEventCoord(v float32, maxVal float32) float32 {
 // FuzzEventDispatch fuzzes the event dispatch system with random event
 // types and coordinates against randomly-generated layout trees. Verifies
 // no panics occur during dispatch.
+// eventTypeCount is the number of EventType values, for a fuzzer to
+// pick one from. It follows the last constant, so a new event type is
+// fuzzed as soon as it is appended there.
+const eventTypeCount = uint32(EventVisibilityChanged) + 1
+
 func FuzzEventDispatch(f *testing.F) {
 	f.Add(uint8(2), uint8(5), uint32(0x01), float32(400), float32(300))
 	f.Add(uint8(0), uint8(1), uint32(0x02), float32(0), float32(0))
@@ -92,7 +97,7 @@ func FuzzEventDispatch(f *testing.F) {
 	f.Fuzz(func(t *testing.T, depth, childCount uint8, eventType uint32, mouseX, mouseY float32) {
 		d := int(depth % 5)
 		n := int(childCount % 15)
-		et := EventType(eventType % 26) // covers all defined EventType values
+		et := EventType(eventType % eventTypeCount) // covers all defined EventType values
 
 		mx := clampEventCoord(mouseX, 4096)
 		my := clampEventCoord(mouseY, 4096)
@@ -140,7 +145,7 @@ func FuzzEventDispatchWithDialog(f *testing.F) {
 	f.Fuzz(func(t *testing.T, depth, childCount uint8, eventType uint32, mouseX, mouseY float32) {
 		d := int(depth % 3)
 		n := int(childCount%10) + 1
-		et := EventType(eventType % 26)
+		et := EventType(eventType % eventTypeCount)
 
 		mx := clampEventCoord(mouseX, 1024)
 		my := clampEventCoord(mouseY, 768)
@@ -192,7 +197,7 @@ func FuzzEventDispatchUnfocused(f *testing.F) {
 	f.Fuzz(func(t *testing.T, depth, childCount uint8, eventType uint32, mouseX, mouseY float32) {
 		d := int(depth % 4)
 		n := int(childCount % 12)
-		et := EventType(eventType % 26)
+		et := EventType(eventType % eventTypeCount)
 
 		mx := clampEventCoord(mouseX, 1024)
 		my := clampEventCoord(mouseY, 768)

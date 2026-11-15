@@ -42,6 +42,9 @@ const (
 	EventTouchesEnded
 	EventTouchesCancelled
 	EventResized
+	// EventIconified, EventRestored, EventSuspended and EventResumed
+	// are reserved: no backend sends them. For a minimized window or
+	// an app in the background, use EventVisibilityChanged.
 	EventIconified
 	EventRestored
 	EventFocused
@@ -58,6 +61,13 @@ const (
 	// new height of the window: Event.SoftKeyboardInset carries it,
 	// 0 when the keyboard went down (issue #770).
 	EventSoftKeyboard
+	// EventVisibilityChanged reports that the window went from shown
+	// to not shown, or back (issue #1170). Shown means
+	// Window.IsVisible() && !Window.IsOccluded(); read the two getters
+	// for the new state. One event per change: a Hide that the OS also
+	// reports as an occlusion still sends one. It reaches
+	// Window.OnEvent, also while the window has no focus.
+	EventVisibilityChanged
 )
 
 // MouseButton identifies which mouse button was pressed/released.

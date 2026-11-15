@@ -184,6 +184,7 @@ func (l *wlLoop) run() error {
 			ww := b.plat.wl
 			ww.flushTitle()
 			ww.syncFocus()
+			ww.syncOccluded()
 			if seat := l.d.seat; seat != nil && seat.ptrFocus == b {
 				// The shape the last frame asked for; sends nothing
 				// when it did not change.

@@ -80,7 +80,12 @@ type nativeSystemTray interface {
 // NativeWindowVisibility shows and hides the OS window without
 // destroying it. Hide keeps the window registered and framing; Show
 // unhides and raises it (issue #779). No-op where there is no window
-// manager to ask (web, iOS, Android).
+// manager to ask (web, iOS, Android), and not yet done on Wayland.
+// Such a platform also has a
+// method CanHideWindow() bool that returns false. Window.Hide then
+// leaves the window marked visible, so IsVisible and
+// EventVisibilityChanged do not report a hide that did not happen
+// (issue #1170).
 type nativeWindowVisibility interface {
 	ShowWindow()
 	HideWindow()
@@ -228,6 +233,7 @@ func (w *Window) SetNativePlatform(np NativePlatform) {
 		np.TitlebarDark(w.titlebarDark)
 	}
 	w.replayPlacement()
+	w.reconcileHidden()
 }
 
 // NativePlatformBackend returns the native platform backend (nil in tests).
