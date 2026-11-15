@@ -1,6 +1,6 @@
 # Live software renderer
 
-Issue #1265. Status: **in progress** (step 2 of 5 landed).
+Issue #1265. Status: **in progress** (step 3 of 5 landed).
 
 ## Problem
 
@@ -62,7 +62,7 @@ whether a GPU exists.
 | ---- | ------------------------------------------------------------------ | ------- |
 | 1    | Measure llvmpipe against soft                                      | done    |
 | 2    | X11 present path, `GOGUI_RENDERER=gl\|soft`                        | done    |
-| 3    | Auto-pick: `GL_RENDERER` names a software rasterizer, or EGL fails | planned |
+| 3    | Auto-pick: `GL_RENDERER` names a software rasterizer, or EGL fails | done    |
 | 4    | Wayland present path with `wl_shm`                                 | planned |
 | 5    | Zero allocations per frame on the present path                     | planned |
 
@@ -139,6 +139,64 @@ it puts its last frame back when the last Expose of a series arrives.
 **No-GPU advice.** On Linux the no-GPU-context error now ends with "or set
 `GOGUI_RENDERER=soft`".
 
+## Design (step 3)
+
+**One probe per process, before the first X11 window.** With `GOGUI_RENDERER`
+unset, `pickRenderer` (`gui/backend/gl/renderer_pick_linux.go`) runs
+`probeGLRenderer` once and caches the choice. The probe opens the EGL display
+the window would use, makes a GL 3.3 core context current with no surface
+(`EGL_KHR_surfaceless_context`, which Mesa offers on every driver), reads
+`GL_RENDERER` with `glGetString`, and destroys the context. `newX11` calls it
+after its X connect and after the thread lock: the context is current on the
+calling thread, and under Xvfb an EGL connect with no X client open can race the
+server reset that the previous client's exit started.
+
+**The decision.**
+
+| Probe result                                                       | Choice | Why                                                            |
+| ------------------------------------------------------------------ | ------ | -------------------------------------------------------------- |
+| `GL_RENDERER` contains llvmpipe, softpipe, lavapipe or swiftshader | soft   | GL would draw on the CPU anyway, at 2.5–3× soft's CPU          |
+| EGL display fails                                                  | soft   | The window would fail at the same call; soft needs no EGL      |
+| The probe's own step fails (context create, make-current, string)  | GL     | The window has a surface and its own config; the default stays |
+| Anything else                                                      | GL     | Hardware GL                                                    |
+
+Matching is a case-insensitive substring test, because the strings carry
+versions (`llvmpipe (LLVM 15.0.7, 256 bits)`, `zink (lavapipe)`). A soft choice
+logs one line that names the reason and `GOGUI_RENDERER=gl`, and that custom
+shaders are not drawn.
+
+**The variable.** `soft` and `gl` skip the probe. `gl` keeps the step 2
+behaviour: an EGL failure is `ErrNoGPUContext`. Any other non-empty value keeps
+GL with one warning, so a typo (`Soft`) neither costs a probe nor picks a
+renderer the user did not name.
+
+**Cost on a GPU start.** One context create and destroy. A hardware result
+leaves the display initialized; `newX11` initializes the same display again,
+which EGL treats as a no-op. A soft result or an EGL failure terminates the
+display, so the CPU renderer does not keep the driver's memory.
+
+**Wayland keeps GL.** Auto-pick runs on the X11 path only. A Wayland session on
+llvmpipe (the Cinnamon case above) stays on native Wayland GL until step 4.
+Moving users off native Wayland is a separate decision from picking a renderer.
+A Wayland session whose Wayland setup fails reaches X11 and probes there.
+
+**An X server with no soft visual.** `newX11` checks the soft visual before it
+touches EGL, and `softVisualRejected` decides what a rejection means. After an
+auto-pick from `GL_RENDERER`, GL draws, with one log line: GL worked on that
+server (16-bit depth, big-endian) before auto-pick existed. After an auto-pick
+from an EGL failure, neither renderer can run; the error is the GPU error first,
+so it still matches `ErrNoGPUContext`, with the soft cause after it. A named
+`GOGUI_RENDERER=soft` returns the soft cause.
+
+**A soft window that fails to start.** `newX11` wraps a failure of the CPU
+renderer's own setup in `softInitError`. After an auto-pick from `GL_RENDERER`,
+it reopens the window on GL with one log line. After an auto-pick from an EGL
+failure, the error is the GPU error first (it matches `ErrNoGPUContext`, without
+the advice to set `GOGUI_RENDERER=soft`) with the soft cause after it. The probe
+creates its context on the first EGL config, but the window uses the config that
+`pickVisual` chooses (ARGB when `Transparent`), so a context failure in the
+probe keeps GL instead of choosing soft for the whole process.
+
 ## Tests
 
 - `gui/backend/soft`: `TestRendererMatchesPixelGoldens` (byte-identical to
@@ -150,15 +208,33 @@ it puts its last frame back when the last Expose of a series arrives.
   `TestRendererMemImageReregistered`, `TestUpdateTextureRect*`.
 - `gui/backend/gl`, pure: `TestSoftRequested`, `TestSoftDeclinesWayland`,
   `TestPickSoftVisual`, `TestSoftImageFormatOK`, `TestBandRows`,
-  `TestSwizzleBGRA`, `TestModeRefresh`, `TestGPUContextErrorNamesSoftOnLinux`.
+  `TestSwizzleBGRA`, `TestModeRefresh`, `TestGPUContextErrorNamesSoftOnLinux`,
+  and for step 3 `TestPickRendererEnv`, `TestAutoPick`,
+  `TestIsSoftwareRasterizer`, `TestSoftVisualRejected`.
 - `gui/backend/gl`, against an X server (`tools/glrendertest` runs them in CI
   under Xvfb, one process each): `TestSoftX11NeverTouchesEGL` drives frames, a
   resize, a scale change, Expose and destroy with no EGL state created;
   `TestSoftX11PixelsMatchRenderToImage` reads the window back with `GetImage`
   and compares it with `RenderToImage`, which covers the band split and the
-  swizzle.
+  swizzle. `TestAutoPickSoftOnSoftwareRasterizer` runs the real probe on the
+  runner's llvmpipe and requires a soft window with no EGL state;
+  `TestAutoPickSoftOnEGLFailure` requires a soft window when EGL fails;
+  `TestAutoPickSoftInitFailureFallsBackToGL` and
+  `TestAutoPickSoftInitFailureAfterEGLFailure` fail the soft setup on purpose.
+  glrendertest sets `GOGUI_RENDERER=gl` for every other test, so the GL tests
+  stay on GL.
 
 ## Rejected approaches
+
+- **Auto-pick per window, after the real context exists** (step 3). The window
+  is already mapped with a visual EGL chose; switching it to soft needs a second
+  teardown path and a recreated window, and the check repeats per window.
+- **Auto-pick from the hardware** (`/dev/dri` render nodes,
+  `LIBGL_ALWAYS_SOFTWARE`) with no GL probe (step 3). Wrong on the Cinnamon
+  Wayland case: the GPU exists and EGL still hands out llvmpipe.
+- **Auto-pick moving a Wayland session to XWayland soft** (step 3). It would cut
+  CPU and memory on llvmpipe, but it changes the windowing backend, not only the
+  renderer. Wayland waits for its own soft path (step 4).
 
 - **A `presenter` interface that GL and soft implement.** It would move the GL
   frame, resize and teardown code behind the interface on Windows too, for one

@@ -67,6 +67,10 @@ type softPresent struct {
 	errLogged bool
 }
 
+// newSoftPresentFunc is the seam a test replaces to make the soft present
+// fail.
+var newSoftPresentFunc = newSoftPresent
+
 // newSoftPresent creates the GC and the renderer for win. The window's
 // visual must already have passed pickSoftVisual and softImageFormatOK.
 func newSoftPresent(conn *xgb.Conn, win xproto.Window, depth byte,
@@ -338,7 +342,7 @@ func crtcFrameInterval(conn *xgb.Conn, root xproto.Window, haveRandr bool,
 // run custom shaders (soft has no GLSL; a shader container draws its children
 // and no fill, as in soft screenshots).
 func (b *Backend) initSoftX11(w *gui.Window, depth byte, crtc randr.Crtc) error {
-	sp, err := newSoftPresent(b.plat.conn, b.plat.window, depth, w, b.dpiScale)
+	sp, err := newSoftPresentFunc(b.plat.conn, b.plat.window, depth, w, b.dpiScale)
 	if err != nil {
 		return err
 	}

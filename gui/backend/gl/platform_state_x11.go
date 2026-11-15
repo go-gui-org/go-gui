@@ -31,7 +31,8 @@ type platformState struct {
 	// presented: swap ran, so the window's surface has a buffer.
 	presented bool
 
-	// softMode: GOGUI_RENDERER=soft chose the CPU renderer (#1265), so this
+	// softMode: the CPU renderer was chosen (#1265), by GOGUI_RENDERER=soft
+	// or by pickRenderer's probe with the variable unset, so this
 	// window has no EGL display, surface or context and no GL function
 	// table. Set before anything can fail, so Destroy knows not to touch GL.
 	// soft is the present state, nil until initSoftX11 succeeds.

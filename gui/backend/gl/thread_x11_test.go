@@ -62,6 +62,9 @@ func TestNewErrorReleasesThread(t *testing.T) {
 }
 
 func TestDestroyReleasesThread(t *testing.T) {
+	// These tests draw with GL. Named, because auto-pick would put a
+	// software rasterizer (CI's llvmpipe) on the CPU renderer (#1265).
+	t.Setenv("GOGUI_RENDERER", "gl")
 	var newErr error
 	alive := threadSurvives(t, func() {
 		w := gui.NewWindow(gui.WindowCfg{State: new(int), Width: 64, Height: 64})

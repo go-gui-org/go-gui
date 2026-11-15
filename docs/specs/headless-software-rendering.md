@@ -2,10 +2,10 @@
 
 Issue #333 (phase 1), issue #360 (phase 2). Status: complete.
 
-Since #1265 the package also draws live windows (`soft.Renderer`, selected with
-`GOGUI_RENDERER=soft` on Linux). This spec covers the headless entry points and
-the renderer they share; the live present path is
-`docs/specs/live-software-renderer.md`.
+Since #1265 the package also draws live windows (`soft.Renderer`, on Linux X11
+when `GOGUI_RENDERER=soft` is set or when GL would be a software rasterizer).
+This spec covers the headless entry points and the renderer they share; the live
+present path is `docs/specs/live-software-renderer.md`.
 
 ## Problem
 
