@@ -220,6 +220,9 @@ func TestSoftVisualRejected(t *testing.T) {
 	if err != nil && strings.Contains(err.Error(), "GOGUI_RENDERER=soft") {
 		t.Errorf("auto after EGL failure: %q advises soft, which just failed", err)
 	}
+	if !errors.Is(err, errNoSoftVisual) {
+		t.Errorf("auto after EGL failure: %v does not wrap errNoSoftVisual", err)
+	}
 	if err != nil && !strings.Contains(err.Error(), errNoSoftVisual.Error()) {
 		t.Errorf("auto after EGL failure: %q does not name the soft cause", err)
 	}

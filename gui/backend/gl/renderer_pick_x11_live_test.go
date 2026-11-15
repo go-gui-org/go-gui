@@ -149,8 +149,9 @@ func TestAutoPickSoftInitFailureAfterEGLFailure(t *testing.T) {
 	eglErr := errors.New("eglInitialize failed (egl error 0x3001)")
 	resetAutoProbe(t, func() probeResult { return probeResult{eglErr: eglErr} })
 	old := newSoftPresentFunc
+	softErr := errors.New("injected soft present failure")
 	newSoftPresentFunc = func(*xgb.Conn, xproto.Window, byte, *gui.Window, float32) (*softPresent, error) {
-		return nil, errors.New("injected soft present failure")
+		return nil, softErr
 	}
 	t.Cleanup(func() { newSoftPresentFunc = old })
 	w := gui.NewWindow(gui.WindowCfg{State: new(int), Width: 64, Height: 64})
@@ -162,6 +163,9 @@ func TestAutoPickSoftInitFailureAfterEGLFailure(t *testing.T) {
 	}
 	if !errors.Is(err, ErrNoGPUContext) || !errors.Is(err, eglErr) {
 		t.Errorf("err %v: want ErrNoGPUContext with the EGL cause", err)
+	}
+	if !errors.Is(err, softErr) {
+		t.Errorf("err %v does not wrap the soft cause", err)
 	}
 	if strings.Contains(err.Error(), "GOGUI_RENDERER=soft") {
 		t.Errorf("err %q advises soft, which just failed", err)

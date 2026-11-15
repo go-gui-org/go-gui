@@ -75,7 +75,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	// still matches ErrNoGPUContext. After a GL_RENDERER choice GL works,
 	// only slowly, and drew here before auto-pick existed.
 	if pick.eglErr != nil {
-		return nil, fmt.Errorf("%w (CPU renderer fallback: %v)",
+		return nil, fmt.Errorf("%w (CPU renderer fallback: %w)",
 			newGPUContextErrorNoSoft("init EGL display", pick.eglErr), sie.err)
 	}
 	softInitOnce.Do(func() {

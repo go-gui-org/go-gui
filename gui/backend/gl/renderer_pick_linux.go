@@ -166,7 +166,7 @@ var errNoSoftVisual = errors.New("gl: CPU renderer: the X server " +
 func softVisualRejected(pick rendererChoice) (useGL bool, err error) {
 	switch {
 	case pick.eglErr != nil:
-		return false, fmt.Errorf("%w (CPU renderer fallback: %v)",
+		return false, fmt.Errorf("%w (CPU renderer fallback: %w)",
 			newGPUContextErrorNoSoft("init EGL display", pick.eglErr), errNoSoftVisual)
 	case pick.auto:
 		softVisualOnce.Do(func() {
