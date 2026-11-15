@@ -329,6 +329,17 @@ func TestRendererAfterRelease(t *testing.T) {
 		t.Fatalf("NewRenderer: %v", err)
 	}
 	lr.Release()
+	// The window must not keep the freed text system as its measurer: a
+	// later RenderToImage at the same scale would reuse it (prepare skips an
+	// already-prepared window), shaping through freed go-glyph state.
+	if w.TextMeasurer() != nil {
+		t.Error("window still holds the released text measurer")
+	}
+	// A released renderer that the caller keeps must not pin the frame
+	// buffer, the image cache or the layer pool.
+	if lr.r != nil {
+		t.Error("Release kept the frame renderer and its buffers reachable")
+	}
 	lr.Release() // idempotent
 	if _, err = lr.Draw(w, 20, 20); err == nil {
 		t.Error("Draw after Release did not fail")

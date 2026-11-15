@@ -127,8 +127,10 @@ so after each frame it makes a `GetInputFocus` round trip, which gives the same
 backpressure as a swap, and then sleeps out the rest of the monitor's frame
 interval. The interval comes from the RandR mode of the window's CRTC (dot clock
 / (htotal × vtotal)), with 60 Hz as the fallback. It is re-read when the DPI
-tracking sees the window move to another CRTC. `WindowCfg.VSyncOff` skips the
-sleep.
+tracking sees the window move to another CRTC. The CRTC is resolved from the
+window's position even when `Xft.dpi` sets the scale or the monitor's EDID size
+is implausible: either would otherwise report no CRTC and pace every monitor at
+the first one's rate. `WindowCfg.VSyncOff` skips the sleep.
 
 **Expose.** The GL path ignores Expose. A soft window on a server without
 backing store (Xvfb, an X session without a compositor) would stay damaged, so

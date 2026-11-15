@@ -34,6 +34,9 @@ import (
 //
 // exportaudit:keep — the Linux backend's soft present path (gui/backend/gl)
 type Renderer struct {
+	// w is the window NewRenderer installed tm on; Release detaches tm from
+	// it so the window never keeps a freed text system as its measurer.
+	w     *gui.Window
 	tm    *textMeasurer
 	r     *renderer
 	root  *buffer
@@ -59,6 +62,7 @@ func NewRenderer(w *gui.Window, scale float32) (*Renderer, error) {
 	w.SetTextMeasurer(tm)
 	w.SetSvgParser(svg.New())
 	return &Renderer{
+		w:     w,
 		tm:    tm,
 		r:     newFrameRenderer(w, tm, scale),
 		scale: scale,
@@ -122,14 +126,28 @@ func (lr *Renderer) SetScale(scale float32) error {
 // errRendererReleased is what Draw and SetScale return after Release.
 var errRendererReleased = errors.New("soft: renderer released")
 
-// Release frees the text system and drops the frame buffer. Draw and
-// SetScale fail afterwards; a backend calls it when the window is
-// destroyed. A second Release, or one on a nil Renderer, does nothing.
+// Release frees the text system and drops the frame buffer, the image cache
+// and the layer pool. Draw and SetScale fail afterwards; a backend calls it
+// when the window is destroyed. A second Release, or one on a nil Renderer,
+// does nothing.
+//
+// The window's measurer is cleared when it is still this renderer's text
+// system, as the package-level Release does. Left in place, a later
+// RenderToImage of the window at the same scale would take the window as
+// already prepared and shape through the freed system. A measurer the app
+// installed since NewRenderer is not touched.
 func (lr *Renderer) Release() {
 	if lr == nil || lr.tm == nil {
 		return
 	}
+	if lr.w.TextMeasurer() == lr.tm {
+		lr.w.SetTextMeasurer(nil)
+	}
 	lr.tm.textSys.Free()
 	lr.tm = nil
+	// Drop every per-frame allocation, so a caller that keeps the released
+	// Renderer does not keep the buffers alive. Draw and SetScale check tm
+	// first and never reach r.
+	lr.r = nil
 	lr.root = nil
 }
