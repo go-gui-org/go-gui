@@ -48,8 +48,11 @@ const (
 	nifMessage    = 0x00000001
 	nifIcon       = 0x00000002
 	nifTip        = 0x00000004
-	nisHidden     = 0x00000001
-	notifyIconV4  = 4
+	// nifShowTip asks for the standard tooltip. With
+	// NOTIFYICON_VERSION_4 the shell hides it unless this is set.
+	nifShowTip   = 0x00000080
+	nisHidden    = 0x00000001
+	notifyIconV4 = 4
 )
 
 // Window message constants.
@@ -477,7 +480,7 @@ func (t *Tray) Create(
 		cbSize:           uint32(unsafe.Sizeof(notifyIconDataW{})),
 		hWnd:             t.hwnd,
 		uID:              uint32(id),
-		uFlags:           nifMessage | nifTip,
+		uFlags:           nifMessage | nifTip | nifShowTip,
 		uCallbackMessage: wmAppTray,
 		hIcon:            hIcon,
 	}
@@ -567,7 +570,7 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 		cbSize: uint32(unsafe.Sizeof(notifyIconDataW{})),
 		hWnd:   t.hwnd,
 		uID:    uint32(id),
-		uFlags: nifTip,
+		uFlags: nifTip | nifShowTip,
 	}
 	copy(nid.szTip[:], tip)
 

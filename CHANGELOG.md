@@ -160,6 +160,10 @@ and this project adheres to
   the action of the item above it, the first item fired nothing, and an item
   after a separator, such as "Quit" in the system-tray example, fired nothing
   either. The menu is now built from the same list the click is looked up in.
+- **The tray tooltip shows on Windows (#1274).** `SystemTrayCfg.Tooltip` was
+  sent to the shell but never shown: the tray uses the newer icon protocol, and
+  with it Windows hides the standard tooltip unless it is asked for. The tray
+  now asks for it.
 - **`Window.Hide` before the backend starts keeps the window off the screen
   (#1270).** An app that called `w.Hide()` before `backend.Run`, to start with
   no window showing, still got its window on screen, while `IsVisible` reported
