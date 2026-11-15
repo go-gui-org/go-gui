@@ -144,6 +144,14 @@ and this project adheres to
 
 ### Fixed
 
+- **`Window.Hide` before the backend starts keeps the window off the screen
+  (#1270).** An app that called `w.Hide()` before `backend.Run`, to start with
+  no window showing, still got its window on screen, while `IsVisible` reported
+  false. Windows, X11 and macOS now create such a window without showing it, and
+  `Show` brings it up. A tray app can start hidden this way. A `Hide` in
+  `OnInit` works as before: the window is on screen by then and is taken away
+  again. On native Wayland a window cannot be hidden yet, so it still shows.
+
 - **A minimized window under GNOME on X11 counts as hidden (#1170).** GNOME's
   window manager keeps a minimized window mapped and marks it in
   `_NET_WM_STATE`. go-gui only watched for the unmap that other window managers

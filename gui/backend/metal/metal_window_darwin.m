@@ -843,7 +843,7 @@ static NSEvent *_lastMouseDown = nil;
 // ─── Lifecycle ─────────────────────────────────────────────────
 
 GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
-                                int fixedSize, int decorations) {
+                                int fixedSize, int decorations, int hidden) {
     id<MTLDevice> device = MTLCreateSystemDefaultDevice();
     if (!device) return NULL;
 
@@ -917,7 +917,15 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
     [win setInitialFirstResponder:contentView];
 
     [win setCollectionBehavior:NSWindowCollectionBehaviorMoveToActiveSpace];
-    [win makeKeyAndOrderFront:nil];
+    // A window the app hid before the backend started stays off the
+    // screen (issue #1270). metalWindowShow orders it front later. The
+    // flag is set as metalWindowHide sets it, so a state change asked
+    // for while hidden is held back the same way.
+    if (hidden) {
+        win.fsHidden = YES;
+    } else {
+        [win makeKeyAndOrderFront:nil];
+    }
 
     // Tell AppKit to update window state — required for cursor
     // tracking and frame management to initialize on windows
