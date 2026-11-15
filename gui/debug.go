@@ -96,8 +96,9 @@ const (
 	// DebugWindowDegraded reports a window-level feature the platform
 	// could not deliver: a WindowCfg.Transparent window with no ARGB
 	// visual or no compositing manager; a Window.SetWindowOpacity the
-	// platform refused (a Transparent window on Windows); or a
-	// WindowCfg.VSyncOff the backend could not honor.
+	// platform refused (a Transparent window on Windows); a
+	// WindowCfg.VSyncOff the backend could not honor; or a Window.Hide
+	// where no window can be hidden (web, iOS, Android, Wayland).
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugWindowDegraded
 

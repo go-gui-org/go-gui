@@ -90,6 +90,45 @@ does nothing. A host copied from an earlier demo called it from `onDestroy`.
 That destroyed the window while the app kept running, and the next activity
 showed only the background (#1246). Such a host can delete that call.
 
+### In the background
+
+The host tells Go when the app leaves the screen and when it comes back:
+
+```kotlin
+override fun onStart() {
+    super.onStart()
+    glSurfaceView.queueEvent { Androidapp.visibilityChanged(true) }
+}
+
+override fun onStop() {
+    if (!isChangingConfigurations) {
+        glSurfaceView.queueEvent { Androidapp.visibilityChanged(false) }
+    }
+    super.onStop()
+}
+```
+
+go-gui then sends `EventVisibilityChanged` to `Window.OnEvent`, and
+`Window.IsOccluded` is true while the app is hidden. A player stops decoding and
+pauses its audio there. go-gui also stops its animation loop while hidden, so
+animations queue no work that nothing would run.
+
+Use `onStart` / `onStop`, not `onResume` / `onPause`: in multi-window mode a
+paused activity is still on screen. The existing `glSurfaceView.onPause()` call
+stays in `onPause`.
+
+Keep the `isChangingConfigurations` check. For a configuration change the
+manifest does not handle, Android replaces the activity within milliseconds;
+leaving split screen does this. The app never leaves the screen then. Without
+the check the app would see "hidden, then shown", and the two reports would come
+from two GL threads, the old activity's and the new one's, in no fixed order.
+
+An app's host needs `VisibilityChanged` in its Go bridge and these two
+overrides. Without them `IsOccluded` stays false and no event is sent.
+
+The demo shows it: leave the app and come back, and the line under the title
+says how often it left the screen and for how long.
+
 ## Secret storage bridge
 
 The Android backend cannot put application-owned Kotlin into an AAR generated

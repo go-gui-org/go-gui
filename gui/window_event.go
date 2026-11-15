@@ -77,6 +77,12 @@ func (w *Window) EventFn(e *Event) {
 		w.OnEvent(e, w)
 	}
 	w.captureSnapshot(e)
+	// A visibility change asks for no frame here (issue #1170). A window
+	// going out of sight draws none, and the path that shows it again
+	// marks the shown refresh and wakes the loop once itself.
+	if e.Type == EventVisibilityChanged {
+		return
+	}
 	// An idle pointer move changed nothing the arranged frame encodes
 	// (window_idle_move.go, #973): no rebuild, and no wake to run one.
 	if w.takeIdleMove() {
@@ -401,6 +407,9 @@ func (w *Window) eventAllowed(e *Event) bool {
 		// The soft keyboard closes as the app loses focus; a
 		// dropped report would leave a stale inset behind.
 		e.Type == EventSoftKeyboard ||
+		// A minimized window has lost focus before it is hidden, and
+		// on web blur comes before visibilitychange (issue #1170).
+		e.Type == EventVisibilityChanged ||
 		(e.Type == EventMouseDown && e.MouseButton == MouseRight)
 }
 

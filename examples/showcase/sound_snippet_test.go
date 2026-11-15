@@ -46,6 +46,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../visibility/main.go",
+		beginMark:  "// doc:snippet-begin visibility-event",
+		endMark:    "// doc:snippet-end visibility-event",
+		anchor:     "e.Type != gui.EventVisibilityChanged",
+		heading:    "## How it works",
+		guides: []string{
+			"../visibility/README.md",
+		},
+	},
+	{
 		sourceFile: "sound_player.go",
 		beginMark:  "// doc:snippet-begin player",
 		endMark:    "// doc:snippet-end player",

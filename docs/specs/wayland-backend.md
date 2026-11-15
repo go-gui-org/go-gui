@@ -115,7 +115,7 @@ and `destroy` frees Wayland objects.
   `scaling-factor`), which is specific to one desktop and does not follow the
   window between outputs.
 - **Not yet.** Show/hide, opacity, the window icon and drag and drop are no-ops
-  on Wayland.
+  on Wayland. `Window.Hide` therefore leaves `IsVisible` true there (#1170).
 
 ### Input goes through one seat and the X11 key path
 

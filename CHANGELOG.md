@@ -44,6 +44,19 @@ and this project adheres to
   value the app sets itself while the widget has no focus is validated on
   submit, not before.
 
+- **An app learns when nobody sees its window (#1170).** The new
+  `EventVisibilityChanged` reaches `Window.OnEvent` when the window stops being
+  shown or is shown again: it is minimized, the app called `Hide`, or the app
+  went to the background on Android, iOS or the web. The new `Window.IsOccluded`
+  reports the OS side, `IsVisible` still reports the app's own `Hide`, and the
+  window is shown when `IsVisible() && !IsOccluded()`. A media player uses this
+  to stop decoding and pause audio. There is one event per change on every
+  platform, also where the OS reports a `Hide` as an occlusion. Android apps
+  must add `VisibilityChanged` to their Go bridge and call it from `onStart` /
+  `onStop` (see `examples/android_demo`); without it nothing is reported there.
+  Windows and X11 report minimize only, not a covered window. The new
+  `examples/visibility` shows it. See `docs/specs/window-visibility-event.md`.
+
 ### Changed
 
 - **A full state map evicts state that is not in use, not the oldest state
@@ -57,6 +70,31 @@ and this project adheres to
   the map is full, as before. Capacities do not change, eviction stays about as
   fast as before, and `Keys` and `Range` keep insertion order. A map built with
   `NewBoundedMap` alone still removes the oldest inserted key.
+
+- **Android, iOS and web stop animating while the app is hidden (#1170).** These
+  platforms draw no frames in the background, so nothing ran the callbacks that
+  running animations kept queuing. Until now go-gui cancelled a spinner two
+  seconds after its last frame, and it restarted from the beginning on return.
+  Now the animation loop stops while the app is hidden and goes on at the right
+  phase when it returns. Animation callbacks (`OnValue`, `Animate`) do not run
+  while hidden on these platforms. The desktop is unchanged: a minimized window
+  still runs them on time.
+
+- **iOS keeps drawing under Control Center (#1170).** The display link paused
+  whenever the scene became inactive, which also happens under Control Center,
+  the notification pull-down and a system alert. It now pauses only when the app
+  enters the background.
+
+- **`Window.Hide` does nothing on web, iOS, Android and native Wayland
+  (#1170).** No window can be hidden there, but `Hide` still turned `IsVisible`
+  false while the user kept seeing the app. Now `IsVisible` stays true, no
+  `EventVisibilityChanged` is sent, and `DebugWindowDegraded` reports the call.
+  A custom backend that cannot hide a window gets the same by adding
+  `CanHideWindow() bool` to its platform, returning false.
+
+- **`gui.DispatchWindowOccluded` must be called on the UI thread (#1170).** It
+  now runs the app's event handler. Every backend in go-gui already does. Only a
+  custom backend is affected.
 
 - **Enter submits a form (#1257).** Enter in a single-line Input inside a Form
   now requests submit, as in an HTML form. Before, Enter did nothing there, and
@@ -101,6 +139,12 @@ and this project adheres to
   digits or hex values keep their own centring.
 
 ### Fixed
+
+- **A minimized window under GNOME on X11 counts as hidden (#1170).** GNOME's
+  window manager keeps a minimized window mapped and marks it in
+  `_NET_WM_STATE`. go-gui only watched for the unmap that other window managers
+  send (#954), so under GNOME a minimized window kept asking for animation
+  frames, and `Window.IsOccluded` would have stayed false. Both now count.
 
 - **`OnSubmit` and `OnReset` may call `SetFocus` and `SetView` (#1257).** The
   form called them from its layout pass, which holds the frame lock. An

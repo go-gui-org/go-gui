@@ -103,7 +103,7 @@ func (b *Backend) syncWindowState() {
 	a := p.stateAtoms
 	maximized := netWMStateHas(r.Value, a.maxVert) && netWMStateHas(r.Value, a.maxHorz)
 	fullscreen := netWMStateHas(r.Value, a.fullscreen)
-	p.stateHidden = netWMStateHas(r.Value, a.hidden)
+	b.setStateHidden(netWMStateHas(r.Value, a.hidden))
 	if fullscreen != p.fullscreen {
 		p.fullscreen = fullscreen
 		p.writeSizeHints()
@@ -112,6 +112,22 @@ func (b *Backend) syncWindowState() {
 		p.maximized = maximized
 	}
 	gui.DispatchWindowState(p.w, p.maximized, fullscreen)
+}
+
+// setStateHidden records what _NET_WM_STATE says about
+// _NET_WM_STATE_HIDDEN and tells gui when that changes whether the
+// window is minimized. mutter minimizes this way, without an unmap, so
+// UnmapNotify alone left a minimized window reported as shown under
+// GNOME (issue #1170).
+func (b *Backend) setStateHidden(hidden bool) {
+	b.plat.stateHidden = hidden
+	b.syncOccluded()
+}
+
+// syncOccluded tells gui whether the window is minimized or unmapped.
+// gui ignores a repeat of the current state.
+func (b *Backend) syncOccluded() {
+	gui.DispatchWindowOccluded(b.plat.w, b.plat.iconified())
 }
 
 // iconified reports whether the window manager minimized the window.

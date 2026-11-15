@@ -31,7 +31,10 @@ Two rules keep the loop correct where no frames come or frames come too fast:
 
 1. **Watchdog.** A timer fires `animationCycle` (16 ms) after the last tick when
    no pulse came. A hidden window (#943) presents nothing, so it ticks on the
-   watchdog alone. Its clocks and callbacks keep their timing.
+   watchdog alone. Its clocks and callbacks keep their timing. This holds on the
+   desktop. On Android, iOS and web nothing runs the callbacks while the app is
+   hidden, so the loop parks there and resumes on show (#1170,
+   `docs/specs/window-visibility-event.md`).
 2. **Floor.** A pulse sooner than `animationMinTick` (2 ms) after the last tick
    sets the timer to the end of the floor. A backend that presents without vsync
    ticks at most 500 times each second.

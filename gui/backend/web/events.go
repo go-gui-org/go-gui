@@ -249,6 +249,8 @@ func (b *Backend) registerEvents(w *gui.Window) {
 		return nil
 	})
 
+	b.registerVisibility(w, doc)
+
 	reg(doc, "paste", func(_ js.Value, args []js.Value) any {
 		e := args[0]
 		cd := e.Get("clipboardData")

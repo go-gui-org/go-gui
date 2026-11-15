@@ -154,6 +154,10 @@ func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 func (n *nativePlatform) ShowWindow() {}
 func (n *nativePlatform) HideWindow() {}
 
+// CanHideWindow tells gui that Hide cannot take the window off the
+// screen, so Window.IsVisible stays true (issue #1170).
+func (n *nativePlatform) CanHideWindow() bool { return false }
+
 // No window to place on Android, only fullscreen (fullscreen.go).
 func (n *nativePlatform) MinimizeWindow()                  {}
 func (n *nativePlatform) MaximizeWindow()                  {}

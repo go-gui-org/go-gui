@@ -24,7 +24,13 @@ func newWlOcclusionTestWindow(t *testing.T) *wlWindow {
 	w.FrameFn()
 	b := &Backend{}
 	b.plat.w = w
-	return &wlWindow{d: &wlDisplay{}, b: b}
+	ww := &wlWindow{d: &wlDisplay{}, b: b}
+	// Ready, as after New: syncOccluded reports nothing before that. The
+	// size is adopted first, so the later applyPending(1, 1) calls change
+	// nothing and never reach the EGL window this test window lacks.
+	ww.applyPending(1, 1)
+	ww.ready = true
+	return ww
 }
 
 // wlStates packs xdg_toplevel states the way the wire carries them: a
@@ -60,6 +66,8 @@ func TestWlSuspendedTogglesOcclusion(t *testing.T) {
 	}
 
 	ww.toplevelConfigure(0, 0, wlStates(wl.XdgToplevelStateActivated))
+	// Focus is not under test: a focus event would wake the loop too.
+	ww.active = ww.pendActive
 	ww.applyPending(1, 1)
 	if wakes != 1 {
 		t.Errorf("show after suspend woke main %d times, want 1", wakes)
@@ -80,6 +88,8 @@ func TestWlNoSuspendedStaysVisible(t *testing.T) {
 
 	ww.toplevelConfigure(0, 0, wlStates(wl.XdgToplevelStateActivated,
 		wl.XdgToplevelStateResizing))
+	// Focus is not under test: a focus event would wake the loop too.
+	ww.active = ww.pendActive
 	ww.applyPending(1, 1)
 	if wakes != 0 {
 		t.Errorf("configure without suspended woke main %d times, want 0", wakes)
@@ -121,6 +131,8 @@ func TestWlDecorSuspendedTogglesOcclusion(t *testing.T) {
 	if !ww.pendActive {
 		t.Error("active bit not read")
 	}
+	// Focus is not under test: a focus event would wake the loop too.
+	ww.active = ww.pendActive
 	ww.applyPending(1, 1)
 	if w.FrameFn() {
 		t.Error("FrameFn rendered while libdecor reports suspended")
@@ -227,5 +239,47 @@ func TestWlNoCallbackNeverStalls(t *testing.T) {
 	ww.checkStall(time.Now().Add(time.Hour))
 	if ww.stalled {
 		t.Error("stalled with no frame callback outstanding")
+	}
+}
+
+// Issue #1170: the occlusion report now sends EventVisibilityChanged to
+// the app. A window that opens on another workspace is suspended by its
+// first configure, before New has finished and OnInit has run. Nothing
+// is reported then; the run loop's syncOccluded sends it once ready.
+func TestWlOcclusionWaitsForReady(t *testing.T) {
+	ww := newWlOcclusionTestWindow(t)
+	ww.ready = false
+	w := ww.b.plat.w
+	events := 0
+	w.OnEvent = func(e *gui.Event, _ *gui.Window) {
+		if e.Type == gui.EventVisibilityChanged {
+			events++
+		}
+	}
+
+	ww.toplevelConfigure(0, 0, wlStates(wl.XdgToplevelStateSuspended))
+	ww.applyPending(1, 1)
+	if w.IsOccluded() || events != 0 {
+		t.Fatalf("before ready: occluded=%v events=%d, want false 0", w.IsOccluded(), events)
+	}
+
+	ww.ready = true
+	ww.syncOccluded()
+	if !w.IsOccluded() || events != 1 {
+		t.Errorf("once ready: occluded=%v events=%d, want true 1", w.IsOccluded(), events)
+	}
+}
+
+// Issue #1170: Wayland cannot hide a window yet, so the platform says
+// so and Window.Hide leaves IsVisible true. X11 unmaps the window.
+func TestCanHideWindowFollowsBackend(t *testing.T) {
+	x11 := &nativePlatform{b: &Backend{}}
+	if !x11.CanHideWindow() {
+		t.Error("X11 platform reports it cannot hide a window")
+	}
+	wayland := &nativePlatform{b: &Backend{}}
+	wayland.b.plat.wl = &wlWindow{}
+	if wayland.CanHideWindow() {
+		t.Error("Wayland platform reports it can hide a window")
 	}
 }

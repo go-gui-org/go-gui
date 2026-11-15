@@ -84,3 +84,44 @@ func TestUnmapOtherWindowIgnored(t *testing.T) {
 		t.Error("unmap of another window hid this one")
 	}
 }
+
+// Issue #1170: mutter keeps a minimized window mapped and reports it in
+// _NET_WM_STATE as _NET_WM_STATE_HIDDEN. That counts as occluded too,
+// with one EventVisibilityChanged each way. A window that is unmapped
+// and hidden at once is shown again only when both have ended.
+func TestNetWMStateHiddenTogglesOcclusion(t *testing.T) {
+	const win xproto.Window = 7
+	b := newOcclusionTestBackend(t, win)
+	w := b.plat.w
+	events := 0
+	w.OnEvent = func(e *gui.Event, _ *gui.Window) {
+		if e.Type == gui.EventVisibilityChanged {
+			events++
+		}
+	}
+
+	b.setStateHidden(true)
+	if !w.IsOccluded() || events != 1 {
+		t.Fatalf("minimized: occluded=%v events=%d, want true 1", w.IsOccluded(), events)
+	}
+	b.setStateHidden(true) // another state change while minimized
+	if events != 1 {
+		t.Errorf("repeat: %d events, want 1", events)
+	}
+	b.setStateHidden(false)
+	if w.IsOccluded() || events != 2 {
+		t.Fatalf("restored: occluded=%v events=%d, want false 2", w.IsOccluded(), events)
+	}
+
+	b.setStateHidden(true)
+	b.handleXEvent(xproto.UnmapNotifyEvent{Event: win, Window: win})
+	b.handleXEvent(xproto.MapNotifyEvent{Event: win, Window: win})
+	if !w.IsOccluded() || events != 3 {
+		t.Errorf("mapped but still hidden: occluded=%v events=%d, want true 3",
+			w.IsOccluded(), events)
+	}
+	b.setStateHidden(false)
+	if w.IsOccluded() || events != 4 {
+		t.Errorf("both ended: occluded=%v events=%d, want false 4", w.IsOccluded(), events)
+	}
+}

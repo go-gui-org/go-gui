@@ -9,6 +9,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/appinfo"
@@ -29,6 +30,10 @@ type App struct {
 	// Fullscreen is what the app asked for. IsFullscreen can differ:
 	// in multi-window mode the activity cannot be fullscreen.
 	Fullscreen bool
+	// Set by onEvent from EventVisibilityChanged.
+	hiddenAt time.Time
+	returns  int
+	away     string
 }
 
 const tokenKey = "api-token"
@@ -48,11 +53,29 @@ func Init() {
 		OnInit: func(w *gui.Window) {
 			gui.State[App](w).SecretStatus = "Reading the secret store..."
 			runSecret(w, func() string { return secretStatus(w) })
+			w.OnEvent = onEvent
 			w.SetView(view)
 		},
 	})
 	demoWindow = w
 	android.SetWindow(w)
+}
+
+// onEvent shows that the app learns when it leaves the screen (issue
+// #1170): it counts the returns and how long the last absence was. A
+// player would stop decoding and pause its audio on the way out.
+func onEvent(e *gui.Event, w *gui.Window) {
+	if e.Type != gui.EventVisibilityChanged {
+		return
+	}
+	app := gui.State[App](w)
+	if w.IsOccluded() {
+		app.hiddenAt = time.Now()
+		return
+	}
+	app.returns++
+	app.away = fmt.Sprintf("Left the screen %d times, last for %s",
+		app.returns, time.Since(app.hiddenAt).Round(100*time.Millisecond))
 }
 
 // SetFilesDir passes Context.getFilesDir() to the backend, where
@@ -187,6 +210,11 @@ func IMEDeleteSurrounding(before, after int64, inCodePoints bool) {
 // every onConfigurationChanged.
 func AppearanceChanged(dark bool) { android.AppearanceChanged(dark) }
 
+// VisibilityChanged is called from Kotlin when the activity starts
+// (true) or stops (false) (issue #1170). gui sends
+// EventVisibilityChanged and stops its animation loop while hidden.
+func VisibilityChanged(visible bool) { android.VisibilityChanged(visible) }
+
 // --- Notification bridge ---
 
 // PendingNotificationTitle returns the pending notification title.
@@ -317,6 +345,15 @@ func A11yPerformAction(index, action int32) { android.A11yPerformAction(index, a
 // PendingA11yAnnouncement returns pending announcement text.
 func PendingA11yAnnouncement() string { return android.PendingA11yAnnouncement() }
 
+// awayText is the readout onEvent fills, or a hint before the first
+// return.
+func awayText(app *App) string {
+	if app.away == "" {
+		return "Leave the app and come back."
+	}
+	return app.away
+}
+
 func view(w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
 	app := gui.State[App](w)
@@ -334,6 +371,10 @@ func view(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{
 				Text:      "Go-Gui on Android",
 				TextStyle: theme.TextStyleDisplay,
+			}),
+			gui.Text(gui.TextCfg{
+				Text:      awayText(app),
+				TextStyle: theme.TextStyleSecondary,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Android Keystore secret",

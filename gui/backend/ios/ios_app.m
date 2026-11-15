@@ -335,13 +335,13 @@ static BOOL gWantFullscreen = NO;
 
         [[NSNotificationCenter defaultCenter]
             addObserver:self
-            selector:@selector(sceneWillDeactivate:)
-            name:UISceneWillDeactivateNotification
+            selector:@selector(sceneDidEnterBackground:)
+            name:UISceneDidEnterBackgroundNotification
             object:nil];
         [[NSNotificationCenter defaultCenter]
             addObserver:self
-            selector:@selector(sceneDidActivate:)
-            name:UISceneDidActivateNotification
+            selector:@selector(sceneWillEnterForeground:)
+            name:UISceneWillEnterForegroundNotification
             object:nil];
         [[NSNotificationCenter defaultCenter]
             addObserver:self
@@ -536,12 +536,31 @@ static BOOL gWantFullscreen = NO;
     }
 }
 
-- (void)sceneWillDeactivate:(NSNotification *)n {
+// Frames stop when the scene enters the background, and gui is told at
+// the same moment (issue #1170). Not on deactivate: Control Center, the
+// notification pull-down and a system alert deactivate the scene while
+// the app stays on screen, and it must keep drawing there. Go is told
+// before the link pauses, so the app's handler runs while the app may
+// still use the GPU.
+//
+// The notifications come for every scene of the app, so each is checked
+// against the scene this view is in. An external-display scene going to
+// the background must not stop a window that is still on screen.
+- (BOOL)isOwnScene:(NSNotification *)n {
+    UIScene *own = self.view.window.windowScene;
+    return own == nil || n.object == nil || n.object == own;
+}
+
+- (void)sceneDidEnterBackground:(NSNotification *)n {
+    if (![self isOwnScene:n]) return;
+    goIOSVisibility(0);
     self.displayLink.paused = YES;
 }
 
-- (void)sceneDidActivate:(NSNotification *)n {
+- (void)sceneWillEnterForeground:(NSNotification *)n {
+    if (![self isOwnScene:n]) return;
     self.displayLink.paused = NO;
+    goIOSVisibility(1);
 }
 
 // ─── Appearance (issue #752) ────────────────────────────────

@@ -361,7 +361,8 @@ func (w *Window) pulseAnimationFrame() {
 // scratch, passed by pointer so a tick allocates nothing and the slices
 // keep the capacity they grow to; both are truncated here. dt is the
 // time since the last tick in seconds, passed on to every Update.
-// It reports whether no animation is left, so the loop can park.
+// It reports whether the loop can park: no animation is left, or the
+// window is hidden and cannot be woken (see below).
 //
 // While the window is hidden (issue #943), the tick still runs Update,
 // so animation clocks advance and the window shows the right phase on
@@ -370,9 +371,22 @@ func (w *Window) pulseAnimationFrame() {
 // callbacks keep their timing and an unwoken queue would grow without
 // bound for as long as the window stays hidden. FrameFn runs them and
 // draws nothing.
+//
+// That holds only where the main thread can be woken. A window with no
+// wake function (Android, iOS, web) has a frame loop that stops while
+// the app is hidden, so nothing would run the queued callbacks: each
+// animation that queues one per tick would grow the queue for the whole
+// time hidden (issue #1170). There the tick does nothing and reports
+// idle, which parks the loop with its animations still registered.
+// DispatchWindowOccluded resumes it on show. Every Update but spring
+// and smooth scroll reads the clock, not dt, and spring samples its
+// own clock, so the phases are right on the first tick after the park.
 func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string, dt float32) bool {
 	deferred := ac.inner
 	occluded := w.occluded.Load()
+	if occluded && !w.canWakeMain() {
+		return true
+	}
 	refreshKind := AnimationRefreshNone
 	*deferred = (*deferred)[:0]
 	*stoppedIDs = (*stoppedIDs)[:0]
@@ -455,15 +469,48 @@ func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string, dt f
 // first visible frame shows every animation at its current phase.
 // Repeated reports of the same state are no-ops.
 //
-// Intended for backend use. Safe for a nil window (no-op).
+// A backend whose frame loop stops while the app is hidden (Android,
+// iOS, web) reports that here too (issue #1170). Such a window has no
+// wake function, so its animation loop parks instead of queuing
+// callbacks nobody runs (see animationTick). Its animation callbacks
+// do not run while hidden; they go on with the first frame after show.
+//
+// A change also sends EventVisibilityChanged, unless the app's own Hide
+// already reported the window as not shown. The event is delivered
+// inside this call.
+//
+// Intended for backend use. Call it on the UI thread only: it runs the
+// app's event handler. Safe for a nil window (no-op).
 func DispatchWindowOccluded(w *Window, occluded bool) {
-	if w == nil || w.occluded.Swap(occluded) == occluded {
+	if w == nil || w.occluded.Load() == occluded {
 		return
 	}
-	if !occluded {
+	if occluded {
+		w.occluded.Store(true)
+	} else {
+		// Before the flag clears: a tick that reads it as clear checks
+		// the heartbeats, and a parked loop left them as old as the
+		// hide. Renewed here, they hold until the first frame touches
+		// them again.
+		w.renewViewBoundHeartbeats()
+		w.occluded.Store(false)
 		w.markLayoutRefresh(refreshShown)
+		w.animationResume()
 		w.wakeMain()
 	}
+	w.reportVisibility()
+}
+
+// renewViewBoundHeartbeats stamps every view-bound animation as seen
+// now, so the stale check does not cancel what a hidden window could
+// not touch.
+func (w *Window) renewViewBoundHeartbeats() {
+	now := w.viewBoundNow()
+	w.animMu.Lock()
+	for id := range w.animViewBound {
+		w.animViewBound[id] = now
+	}
+	w.animMu.Unlock()
 }
 
 // wakeMain calls the backend's wake function to unblock the
@@ -474,6 +521,14 @@ func (w *Window) wakeMain() {
 	if fn := w.wakeMainFn.Load(); fn != nil && *fn != nil {
 		(*fn)()
 	}
+}
+
+// canWakeMain reports whether the backend gave the window a wake
+// function. Without one the main thread runs only when the backend's
+// own frame loop does.
+func (w *Window) canWakeMain() bool {
+	fn := w.wakeMainFn.Load()
+	return fn != nil && *fn != nil
 }
 
 func (w *Window) stopAnimationLoop() {

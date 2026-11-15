@@ -75,4 +75,7 @@ void iosSetFullscreen(int on);
 // window fills the screen.
 extern void goIOSFullscreen(int on);
 
+// The scene left the background (1) or entered it (0) (issue #1170).
+extern void goIOSVisibility(int visible);
+
 #endif
