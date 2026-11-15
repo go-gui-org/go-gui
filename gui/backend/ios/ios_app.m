@@ -545,10 +545,15 @@ static BOOL gWantFullscreen = NO;
 //
 // The notifications come for every scene of the app, so each is checked
 // against the scene this view is in. An external-display scene going to
-// the background must not stop a window that is still on screen.
+// the background must not stop a window that is still on screen. A view
+// in no window has no scene of its own and takes none of them: after
+// sceneDidDisconnect another scene must not start the display link for
+// a view nobody shows. The view is back in a window before its own
+// scene's notification comes (scene:willConnectToSession: makes the
+// window key and visible first).
 - (BOOL)isOwnScene:(NSNotification *)n {
     UIScene *own = self.view.window.windowScene;
-    return own == nil || n.object == nil || n.object == own;
+    return n.object == nil || n.object == own;
 }
 
 - (void)sceneDidEnterBackground:(NSNotification *)n {

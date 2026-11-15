@@ -189,6 +189,9 @@ func TestIsOccludedNilSafe(t *testing.T) {
 // show (issue #1170).
 func TestAnimationParksWhileOccludedWithoutWake(t *testing.T) {
 	w := &Window{}
+	// A manual clock (#1262): the phase after show then depends on the
+	// four seconds added below, not on how long the test was scheduled.
+	w.startManualClock()
 	w.animationResumeCh = make(chan struct{}, 1)
 	var got float32 = -1
 	kf := &KeyframeAnimation{
@@ -219,8 +222,8 @@ func TestAnimationParksWhileOccludedWithoutWake(t *testing.T) {
 	}
 
 	// Four seconds pass while hidden. No frame touched the heartbeat.
+	w.manualOffset.Add(int64(4 * time.Second))
 	w.animMu.Lock()
-	kf.start = kf.start.Add(-4 * time.Second)
 	w.animViewBound["spin"] = w.viewBoundNow().Add(-time.Hour)
 	w.animMu.Unlock()
 
@@ -237,8 +240,8 @@ func TestAnimationParksWhileOccludedWithoutWake(t *testing.T) {
 		t.Fatal("animation cancelled as stale on the first tick after show")
 	}
 	w.flushCommands()
-	if got < 0.39 || got > 0.45 {
-		t.Errorf("value after show = %v, want about 0.4 (4s of 10s)", got)
+	if got < 0.399 || got > 0.401 {
+		t.Errorf("value after show = %v, want 0.4 (4s of 10s)", got)
 	}
 }
 
@@ -353,5 +356,38 @@ func TestHideWhereNoWindowCanBeHidden(t *testing.T) {
 	DispatchWindowOccluded(w, true)
 	if r.events != 1 {
 		t.Errorf("occlusion: %d events, want 1", r.events)
+	}
+}
+
+// TestHideBeforeBackendWhereNoWindowCanBeHidden: a Hide made before the
+// backend attached found no platform to ask and marked the window
+// hidden. When a platform that cannot hide attaches, the mark is
+// cleared and the app is told, so IsVisible does not stay false for a
+// window the user sees.
+func TestHideBeforeBackendWhereNoWindowCanBeHidden(t *testing.T) {
+	w := &Window{}
+	r := recordVisibility(w)
+
+	w.Hide()
+	if w.IsVisible() || r.events != 1 {
+		t.Fatalf("before attach: visible=%v events=%d, want false 1", w.IsVisible(), r.events)
+	}
+	w.SetNativePlatform(&noHidePlatform{})
+	if !w.IsVisible() || r.events != 2 || !r.visible {
+		t.Errorf("after attach: visible=%v events=%d handler saw visible=%v, want true 2 true",
+			w.IsVisible(), r.events, r.visible)
+	}
+}
+
+// TestHideBeforeBackendWhereWindowCanBeHidden is the control: a platform
+// that can hide leaves the mark as it was, and sends nothing.
+func TestHideBeforeBackendWhereWindowCanBeHidden(t *testing.T) {
+	w := &Window{}
+	r := recordVisibility(w)
+
+	w.Hide()
+	w.SetNativePlatform(&recordingVisibilityPlatform{})
+	if w.IsVisible() || r.events != 1 {
+		t.Errorf("after attach: visible=%v events=%d, want false 1", w.IsVisible(), r.events)
 	}
 }

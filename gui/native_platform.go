@@ -233,6 +233,7 @@ func (w *Window) SetNativePlatform(np NativePlatform) {
 		np.TitlebarDark(w.titlebarDark)
 	}
 	w.replayPlacement()
+	w.reconcileHidden()
 }
 
 // NativePlatformBackend returns the native platform backend (nil in tests).

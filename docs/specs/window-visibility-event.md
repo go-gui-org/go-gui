@@ -62,6 +62,14 @@ exported and no other backend changes. `Hide` then does nothing, `IsVisible`
 stays true, no event is sent, and `DebugWindowDegraded` reports the call. A
 platform without the method can hide.
 
+A `Hide` made before the backend attached finds no platform to ask and marks the
+window hidden. When a platform that cannot hide then attaches, the mark is
+cleared and the app gets the event, so `IsVisible` does not stay false for a
+window the user sees. Only the mark is put right: a `Minimize`, `Maximize` or
+`SetFullscreen` made while the window was marked hidden was a no-op, as on any
+hidden window, and is not made up for. On a platform that can hide, such an
+early `Hide` still does not reach the OS window, as before this change.
+
 ### Delivery
 
 - The event is sent inside the call that changed the state, on the UI thread. It

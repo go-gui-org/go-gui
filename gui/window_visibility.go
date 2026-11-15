@@ -117,6 +117,27 @@ func (w *Window) canHide() bool {
 	return !ok || h.CanHideWindow()
 }
 
+// reconcileHidden runs when the backend attaches. A Hide made before
+// that found no platform to ask, so it marked the window hidden. On a
+// platform that cannot hide a window the mark is wrong: the user sees
+// the app. It is cleared, so IsVisible is true again, and the app is
+// told through EventVisibilityChanged.
+//
+// Only the mark is put right. A Minimize, Maximize or SetFullscreen
+// made while the window was marked hidden was a no-op, as it is on any
+// hidden window, and stays one. On a platform that can hide, a Hide
+// made before the backend attached still does not reach the OS window;
+// that is as it was before issue #1170.
+func (w *Window) reconcileHidden() {
+	if w.nativePlatform == nil || !w.hidden.Load() || w.canHide() {
+		return
+	}
+	w.debugWarn(debugCheckWindowHide, "hide",
+		"window: Hide requested but the platform cannot hide a window")
+	w.hidden.Store(false)
+	w.reportVisibility()
+}
+
 // Show brings the window back on screen after Hide, raising it above
 // its siblings and activating it. Calling Show on an already visible
 // window still raises it, so a tray "Show Window" item doubles as

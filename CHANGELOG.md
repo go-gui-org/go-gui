@@ -92,9 +92,13 @@ and this project adheres to
   A custom backend that cannot hide a window gets the same by adding
   `CanHideWindow() bool` to its platform, returning false.
 
-- **`gui.DispatchWindowOccluded` must be called on the UI thread (#1170).** It
-  now runs the app's event handler. Every backend in go-gui already does. Only a
-  custom backend is affected.
+- **BREAKING: `gui.DispatchWindowOccluded` must be called on the UI thread
+  (#1170).** It now runs the app's event handler. Before, it only set flags and
+  was safe on any goroutine. Every backend in go-gui already calls it on the UI
+  thread, so apps are not affected. Migration, for a custom backend that calls
+  it from another goroutine: move the call to the UI thread, for example with
+  `w.QueueCommand(func(w *gui.Window) { gui.DispatchWindowOccluded(w, hidden) })`
+  where a frame still runs, or from the platform's own main-thread callback.
 
 - **Enter submits a form (#1257).** Enter in a single-line Input inside a Form
   now requests submit, as in an HTML form. Before, Enter did nothing there, and
