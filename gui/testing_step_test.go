@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"slices"
 	"testing"
 	"time"
 )
@@ -307,5 +308,38 @@ func TestStepDatePickerRollerOpensOnClockDate(t *testing.T) {
 	if got.Year() != want.Year() || got.YearDay() != want.YearDay() {
 		t.Fatalf("selected = %s, want %s",
 			got.Format(time.DateOnly), want.Format(time.DateOnly))
+	}
+}
+
+// Animations that finish on the same tick queue their callbacks in ID
+// order, not in map order, so a TestStep replay is the same every run
+// (PR #1267 review).
+func TestStepSameTickCallbacksInIDOrder(t *testing.T) {
+	ids := []string{"a", "b", "c", "d", "e", "f", "g", "h"}
+	for run := range 20 {
+		w := NewTestWindow(t, WindowCfg{})
+		w.TestRender(func(*Window) View { return Column(ContainerCfg{}) })
+		w.TestStep(0)
+		var order []string
+		for _, id := range ids {
+			tw := NewTweenAnimation(id, 0, 1, func(float32, *Window) {})
+			tw.Duration = 100 * time.Millisecond
+			tw.OnDone = func(*Window) { order = append(order, id) }
+			w.AnimationAdd(tw)
+		}
+		w.TestStep(200 * time.Millisecond)
+		if !slices.Equal(order, ids) {
+			t.Fatalf("run %d: callback order %v, want %v", run, order, ids)
+		}
+	}
+}
+
+// A tick instant before an animation's start gives progress 0, not a
+// negative value the easing would extrapolate (PR #1267 review).
+func TestDurationProgressBeforeStartIsZero(t *testing.T) {
+	start := time.Now()
+	p, done := durationProgress(start, start.Add(-time.Millisecond), time.Second)
+	if p != 0 || done {
+		t.Fatalf("progress = %v, done = %v; want 0, false", p, done)
 	}
 }

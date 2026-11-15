@@ -45,6 +45,8 @@ type windowAnimation struct {
 	animMu sync.Mutex // guards animations, animViewBound, caretBlinkParked
 	// Active animations keyed by ID.
 	animations map[string]Animation
+	// animTickIDs is animationTick's sorted ID scratch, guarded by animMu.
+	animTickIDs []string
 	// caretBlinkParked is set when the caret blink hit its idle timeout
 	// (blinkCursorIdleTimeout, issue #929). While set, applyBlinkCursor
 	// leaves the animation unregistered and the caret draws solid.

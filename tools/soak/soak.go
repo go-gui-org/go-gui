@@ -97,9 +97,10 @@ type Config struct {
 	// allocates its own image each call, which a GPU backend does not,
 	// so render frames are not in the allocation counts.
 	RenderEvery int
-	// SkipID reports IDs the run must not click, type into or scroll:
-	// widgets that open the network, play audio or open native
-	// dialogs. Nil skips nothing.
+	// SkipID reports IDs the scripted actions must not click, type into
+	// or scroll: widgets that open the network, play audio or open
+	// native dialogs. Nil skips nothing. Random mode does not use it: it
+	// sends raw events at random coordinates and can reach any widget.
 	SkipID func(id string) bool
 	// Logf receives progress lines. Nil discards them.
 	Logf func(format string, args ...any)

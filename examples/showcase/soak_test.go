@@ -61,9 +61,9 @@ const (
 	soakMaxSessionAllocs = 500
 )
 
-// soakSkipID keeps the run out of the audio demo: its controls open the
-// host sound device, which a CI runner does not have and a developer
-// does not want to hear.
+// soakSkipID keeps the scripted run out of the audio demo: its controls
+// open the host sound device, which a CI runner does not have and a
+// developer does not want to hear. Random mode does not use it.
 func soakSkipID(id string) bool {
 	id = strings.ToLower(id)
 	for _, s := range []string{"audio", "sound", "music", "synth", "halt"} {

@@ -55,6 +55,11 @@ func durationProgress(start, now time.Time, duration time.Duration) (float32, bo
 	if duration <= 0 || elapsed >= duration {
 		return 1.0, true
 	}
+	// An instant before the start (a clock read that raced the add) is
+	// progress 0; a negative value would make the easing extrapolate.
+	if elapsed < 0 {
+		return 0, false
+	}
 	return float32(elapsed) / float32(duration), false
 }
 

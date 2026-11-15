@@ -112,5 +112,6 @@ if err := rep.Check(soak.Gates{MaxSessionAllocsPerFrame: 500}); err != nil {
 }
 ```
 
-Set `Config.SkipID` to keep the run away from widgets that act on the host, such
-as audio, network or native dialogs.
+Set `Config.SkipID` to keep the scripted actions away from widgets that act on
+the host, such as audio, network or native dialogs. Random mode does not use it:
+its raw events land at random coordinates and can reach any widget.

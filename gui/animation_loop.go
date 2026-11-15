@@ -1,6 +1,9 @@
 package gui
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 // animationCycle is the watchdog period of the animation loop. The loop
 // ticks on frame pulses, at the refresh rate of the display (#1018). When
@@ -373,11 +376,22 @@ func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string, dt f
 	refreshKind := AnimationRefreshNone
 	*deferred = (*deferred)[:0]
 	*stoppedIDs = (*stoppedIDs)[:0]
-	// One clock read per tick: every Update in it sees the same instant.
-	ac.now = w.clockNow()
-
 	w.animMu.Lock()
-	for _, a := range w.animations {
+	// One clock read per tick: every Update in it sees the same instant.
+	// It is read under animMu, after any AnimationAdd ordered before the
+	// tick, so no animation sees an instant before its own start.
+	ac.now = w.clockNow()
+	// Update in ID order, not map order: callbacks that finish on the same
+	// tick then queue in the same order every run, which a TestStep replay
+	// needs (#1262). The ID slice is scratch reused across ticks, guarded
+	// by animMu like the map, so a tick allocates nothing once it is grown.
+	w.animTickIDs = w.animTickIDs[:0]
+	for id := range w.animations {
+		w.animTickIDs = append(w.animTickIDs, id)
+	}
+	slices.Sort(w.animTickIDs)
+	for _, id := range w.animTickIDs {
+		a := w.animations[id]
 		updated := a.Update(w, dt, ac)
 		if updated {
 			refreshKind = maxAnimationRefreshKind(
