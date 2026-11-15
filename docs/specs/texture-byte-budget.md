@@ -38,10 +38,11 @@ cached at size 0.
 
 The backend calls `BeginFrame` once per frame. A `Get` or `Set` marks the entry
 with the current frame. **An entry used in the current frame or the previous one
-is never evicted.** Eviction runs only in `Set`, after the insert. It removes
-the oldest entries until the cache is within both bounds, and stops at the first
-entry in use. The LRU order is also the order of last use, so all entries after
-that one are in use too.
+is never evicted.** Eviction runs in `Set`, after the insert, and in
+`BeginFrame`, so the textures of an over-budget frame go once they leave the
+screen even when no new image follows. It removes the oldest entries until the
+cache is within both bounds, and stops at the first entry in use. The LRU order
+is also the order of last use, so all entries after that one are in use too.
 
 This gives two results:
 
@@ -73,7 +74,12 @@ registry buffer, and `SetMemImageBudget` bounds those already.
   cap, and a small kiosk app cannot lower it.
 - **A strict byte LRU.** It thrashes as described above whenever the visible
   images need more than the cap.
-- **Trimming to the cap at the start of each frame.** It deletes textures that
-  the frame is about to draw, so it thrashes the same way.
+- **Trimming to the cap at the start of each frame, with no protection.** It
+  deletes textures that the frame is about to draw, so it thrashes the same way.
+  `BeginFrame` trims too, but skips the entries used in the previous frame.
+- **Recording a web image's size in its `onload` handler.** A browser decodes an
+  `Image` when it is first drawn, not when it loads, so an image that leaves the
+  screen while it loads holds no decoded bitmap. The size is recorded at that
+  first draw, when the bitmap exists.
 - **A budget that can change at run time.** No use case yet. A setter can be
   added later without breaking the field.

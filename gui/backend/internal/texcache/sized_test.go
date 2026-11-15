@@ -258,3 +258,20 @@ func TestSizedNonPositiveMaxSizeClamped(t *testing.T) {
 		t.Fatalf("Len = %d destroyed = %v", c.Len(), destroyed)
 	}
 }
+
+func TestSizedBeginFrameTrims(t *testing.T) {
+	// An over-budget frame, then frames that draw nothing new: the textures
+	// go once they stop being in use, with no Set to trigger the trim.
+	var destroyed []int
+	c := newSizedInts(100, 100, &destroyed)
+	c.Set("a", 60)
+	c.Set("b", 60)
+	c.BeginFrame() // a and b were used last frame: kept
+	if len(destroyed) != 0 {
+		t.Fatalf("destroyed = %v, want none", destroyed)
+	}
+	c.BeginFrame() // two frames old: trimmed back to the budget
+	if len(destroyed) != 1 || destroyed[0] != 60 || c.Bytes() != 60 {
+		t.Fatalf("destroyed = %v Bytes = %d", destroyed, c.Bytes())
+	}
+}

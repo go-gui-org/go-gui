@@ -97,11 +97,17 @@ func NewSized[K comparable, V any](
 }
 
 // BeginFrame starts a new frame. Entries that the frame before last used
-// stop being protected from eviction. It does not evict: eviction happens
-// only in Set, so a frame that adds nothing frees nothing and uploads
-// nothing. It does nothing visible on a cache made by New.
+// stop being protected from eviction, and a sized cache that is over a
+// bound evicts them now. Without this, the textures of an over-budget frame
+// stay on the GPU after they leave the screen until a later Set, which a view
+// with no new images never makes. Entries used in the previous frame stay
+// protected, so this cannot delete what the new frame draws again. It does
+// nothing visible on a cache made by New.
 func (c *Cache[K, V]) BeginFrame() {
 	c.frame++
+	if c.sizeOf != nil {
+		c.trim()
+	}
 }
 
 // Bytes returns the total byte size of the cached entries; 0 for a cache
