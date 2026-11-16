@@ -124,6 +124,39 @@ func TestBandRows(t *testing.T) {
 	}
 }
 
+// TestPutImageRequestHeader pins the core PutImage header putCore writes in
+// place of xproto.PutImage (#1265 step 5), byte for byte against the X11
+// protocol's request 72: opcode, format, length in 4-byte units, drawable,
+// gc, width, height, dst-x, dst-y, left-pad, depth, two unused bytes, all
+// little-endian as xgb sends them. The live pixel tests cover the server
+// accepting it.
+func TestPutImageRequestHeader(t *testing.T) {
+	const w, h = 3, 2
+	req := make([]byte, putImageHeader+w*h*4)
+	for i := range req {
+		req[i] = 0xee // the header must overwrite every byte it owns
+	}
+	putImageRequestHeader(req, 0x01020304, 0x0a0b0c0d, w, h, 0x0506, 24)
+	want := []byte{
+		72, xproto.ImageFormatZPixmap, // opcode, format
+		byte(len(req) / 4), 0, // length: 12 units
+		0x04, 0x03, 0x02, 0x01, // drawable
+		0x0d, 0x0c, 0x0b, 0x0a, // gc
+		w, 0, h, 0, // width, height
+		0, 0, // dst-x
+		0x06, 0x05, // dst-y
+		0, 24, 0, 0, // left-pad, depth, unused
+	}
+	if got := req[:putImageHeader]; string(got) != string(want) {
+		t.Fatalf("header\n got % x\nwant % x", got, want)
+	}
+	for i, c := range req[putImageHeader:] {
+		if c != 0xee {
+			t.Fatalf("header wrote into the pixel data at byte %d", putImageHeader+i)
+		}
+	}
+}
+
 // TestSwizzleBGRA: premultiplied RGBA in, B G R A out. For a depth-24 visual
 // the fourth byte is padding the server ignores; for depth 32 it is the
 // premultiplied alpha the compositor reads, so it is kept either way.

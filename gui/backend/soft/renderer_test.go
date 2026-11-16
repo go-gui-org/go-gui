@@ -164,12 +164,43 @@ func TestRendererReusesBuffer(t *testing.T) {
 	runtime.ReadMemStats(&m1)
 	perFrame := (m1.TotalAlloc - m0.TotalAlloc) / frames
 	// A tenth of a frame buffer: a buffer allocation per frame (1.2 MB
-	// here) fails it by an order of magnitude, while the renderer's
-	// remaining per-frame garbage (step 5 of #1265 removes it) passes.
+	// here) fails it by an order of magnitude. The count is pinned at 0
+	// by TestRendererDrawAllocs; this checks the bytes.
 	const limit = ww * wh * 4 / 10
 	if perFrame > limit {
 		t.Errorf("Draw allocates %d B/frame, want <= %d (buffer not reused?)",
 			perFrame, limit)
+	}
+}
+
+// TestRendererDrawAllocs pins a steady-state frame of text, rounded
+// rectangles and an icon at 0 allocations (#1265 step 5): the buffer, the
+// rasterizer and the solid-color source are reused, and solid no longer
+// boxes its color.NRGBA into color.Color (1 allocation per rectangle).
+// Gradients, scaled images and blends still allocate per pixel; that is
+// #1282, so this view has none of them.
+func TestRendererDrawAllocs(t *testing.T) {
+	if inputRaceEnabled {
+		t.Skip("AllocsPerRun is process-wide and unstable under race instrumentation")
+	}
+	const ww, wh = 640, 480
+	w := gui.NewWindow(gui.WindowCfg{Width: ww, Height: wh,
+		OnInit: func(w *gui.Window) { w.SetView(textView) }})
+	w.Config.OnInit(w)
+	lr, err := NewRenderer(w, 1)
+	if err != nil {
+		t.Fatalf("NewRenderer: %v", err)
+	}
+	t.Cleanup(lr.Release)
+	settle(w)
+	// Warm frames: the atlas rasterizes every glyph, the layer pool fills.
+	for range 3 {
+		if _, err = lr.Draw(w, ww, wh); err != nil {
+			t.Fatalf("Draw: %v", err)
+		}
+	}
+	if got := testing.AllocsPerRun(20, func() { _, _ = lr.Draw(w, ww, wh) }); got > 0 {
+		t.Errorf("a steady-state Draw allocates %.1f times, want 0", got)
 	}
 }
 

@@ -1,6 +1,6 @@
 # Live software renderer
 
-Issue #1265. Status: **in progress** (step 4 of 5 landed).
+Issue #1265. Status: **done** (step 5 of 5 landed).
 
 ## Problem
 
@@ -58,13 +58,13 @@ whether a GPU exists.
 
 ## Phases
 
-| Step | What                                                               | Status  |
-| ---- | ------------------------------------------------------------------ | ------- |
-| 1    | Measure llvmpipe against soft                                      | done    |
-| 2    | X11 present path, `GOGUI_RENDERER=gl\|soft`                        | done    |
-| 3    | Auto-pick: `GL_RENDERER` names a software rasterizer, or EGL fails | done    |
-| 4    | Wayland present path with `wl_shm`                                 | done    |
-| 5    | Zero allocations per frame on the present path                     | planned |
+| Step | What                                                               | Status |
+| ---- | ------------------------------------------------------------------ | ------ |
+| 1    | Measure llvmpipe against soft                                      | done   |
+| 2    | X11 present path, `GOGUI_RENDERER=gl\|soft`                        | done   |
+| 3    | Auto-pick: `GL_RENDERER` names a software rasterizer, or EGL fails | done   |
+| 4    | Wayland present path with `wl_shm`                                 | done   |
+| 5    | Zero allocations per frame on the present path                     | done   |
 
 Scope decision: **1× first.** The renderer draws the full frame on every redraw
 on one thread. At 2× the showcase spinner page takes about 52 ms per frame
@@ -121,7 +121,8 @@ scale go-glyph refuses (above 10) still rebuilds there.
 reused band buffer and sent with core `PutImage` in row bands. xgb's `PutImage`
 writes a 16-bit request length, so a request cannot exceed the server's
 `MaximumRequestLength` (usually 256 KB). BIG-REQUESTS is out of reach without a
-request writer of our own.
+request writer of our own. Step 5 replaced this upload with MIT-SHM and a reused
+request buffer; see Design (step 5).
 
 **Pacing.** GL is held to the display by `eglSwapInterval`. Soft has no vsync,
 so after each frame it makes a `GetInputFocus` round trip, which gives the same
@@ -261,6 +262,85 @@ MB more than the named ones: the probe loads the GL driver, and Mesa keeps it
 mapped after `eglTerminate` (`eglReleaseThread` frees none of it). The X11
 auto-pick has the same cost (showcase 147 MB against about 85 MB named).
 
+## Design (step 5)
+
+**Acceptance, revised.** The issue asked for 0 allocations per frame on the
+present path. That is reachable on Wayland and not on X11: xgb allocates a
+cookie, a channel and a request record for every request it sends, and it owns
+the sequence numbers, so no caller can send without them. The acceptance became
+**no allocation that grows with the frame, and a fixed count that a test pins**.
+The renderer's per-pixel allocations (gradients, scaled images, blends: up to
+154k per frame) went to their own issue, #1282: they cost CPU as much as heap,
+and they hit headless `RenderToImage` too.
+
+Measured before, steady state, 320×200:
+
+| Path                        | Allocations/frame | Bytes/frame        | Source                                                |
+| --------------------------- | ----------------- | ------------------ | ----------------------------------------------------- |
+| X11 upload                  | 4                 | 262 KB (one frame) | xgb's `PutImage` copies each band into a new request  |
+| X11 pacing                  | 10                | small              | the `GetInputFocus` round trip through xgb            |
+| Wayland `present`           | 5                 | small              | `purego.SyscallN`'s variadic slice, one per request   |
+| Wayland dispatch (GL too)   | about 4           | small              | the same, in `Dispatch`, `DispatchPending`, `Flush`   |
+| Wayland events (GL too)     | about 6           | small              | purego callbacks go through `reflect`                 |
+| `Draw`, text and rectangles | 1–4               | small              | `buffer.solid` boxes `color.NRGBA` into `color.Color` |
+
+**Wayland: one call helper in `internal/wl`.** `purego.SyscallN` carries
+`//go:uintptrescapes`, which is why its variadic slice escapes to the heap on
+every call. `wl.call` copies its arguments into a package array and passes a
+slice of it, which does not allocate (the #1160 spike's measurement). Every
+`SyscallN` in the package goes through it, except the two that pass the address
+of a Go local (`Connect`, `Conn.Err`): `call` has no `uintptrescapes`, so a
+stack address could go stale during the call. Both run once, not per frame. The
+package was already single-threaded (`marshalBuf` is a package array for the
+same reason). The soft `present` is now at 0 allocations, an idle `Dispatch` at
+0 (was 4), and the GL Wayland frame at 7–8 (was 19), which also put
+`TestWaylandFrameAllocs` back under its limit under `-race` (#1281).
+
+**X11: MIT-SHM, with core `PutImage` from a reused buffer as the fallback**
+(`gui/backend/gl/softpresent_x11_upload.go`).
+
+| Design                                                                                    | Allocations/frame left    | Pixels over the socket | Remote X   |
+| ----------------------------------------------------------------------------------------- | ------------------------- | ---------------------- | ---------- |
+| A. Core `PutImage`, request written into a reused buffer and sent with xgb's `NewRequest` | about 3 per band + pacing | a full frame           | works      |
+| **B. MIT-SHM, one segment per window, A as the fallback**                                 | about 4 + pacing          | none                   | falls to A |
+| C. B with two segments and completion events instead of the round trip                    | as B, plus event decoding | none                   | as B       |
+
+Picked B. A has to exist anyway, for a server without the extension, remote X
+and a container with its own IPC namespace, and A alone keeps the socket copy.
+One segment is enough: `pace` already makes a round trip after every put, and
+the server has finished every earlier request, the segment read included, before
+it answers. `repaint`, which does not pace, makes the round trip itself. The
+segment is attached read-only and checked (`AttachChecked`), so a server that
+cannot see it says so at once. It is marked `IPC_RMID` as soon as the server has
+attached it, so it cannot outlive the process. Any failure (no extension, no
+SysV IPC, a refused attach, a failed segment on resize) moves the window to core
+`PutImage` for good, with one log line.
+
+Measured after, 320×200: MIT-SHM 14 allocations and about 790 B per frame, core
+`PutImage` 13 and about 730 B (was 14 and 262 KB). At 1280×800 an upload plus
+its round trip takes 2.7 ms with MIT-SHM against 3.7 ms with core `PutImage`
+under Xvfb, and 3.9 against 4.4 ms under XWayland; the swizzle and the round
+trip are most of what is left.
+
+**`Draw`:** `buffer.solid` points the reused `image.Uniform` at a `color.NRGBA`
+field instead of storing the value in the interface. A frame of text, rounded
+rectangles and an icon is now at 0 allocations.
+
+**Rejected (step 5):**
+
+- **C (two segments, completion events).** xgb allocates for each event too, so
+  dropping the round trip does not lower the count, and it adds a second segment
+  and completion bookkeeping.
+- **A alone.** No frame-sized garbage, but the pixels still cross the socket.
+- **A request writer of our own beside xgb's.** xgb owns the sequence numbers
+  and the reply matching; two writers on one connection break both.
+- **A fork of xgb that pools cookies.** A fork of the whole X11 layer to save
+  about 13 allocations per frame.
+- **`//go:uintptrescapes` on `wl.call`.** It makes the argument slice escape
+  again, which is the allocation being removed.
+- **The renderer's per-pixel allocations in this step.** Moved to #1282.
+- **purego's callback allocations.** Upstream, ebitengine/purego#567.
+
 ## Tests
 
 - `gui/backend/soft`: `TestRendererMatchesPixelGoldens` (byte-identical to
@@ -298,6 +378,17 @@ auto-pick has the same cost (showcase 147 MB against about 85 MB named).
   requires soft with no EGL display where the compositor's EGL is a software
   rasterizer. `requireWayland` pins `GOGUI_RENDERER=gl` when unset, so the GL
   Wayland tests stay on GL on an llvmpipe compositor.
+- Step 5: `soft.TestRendererDrawAllocs` (0 per `Draw`), `wl.TestRequestAllocs`
+  and `wl.TestDispatchIdleAllocs` (0 per request and per idle `Dispatch`),
+  `TestSoftWaylandPresentAllocs` (0 per `present`), `TestWaylandFrameAllocs`
+  (GL, at most 8), and `TestPutImageRequestHeader` (pure: the core `PutImage`
+  header byte for byte). Against an X server, in glrendertest:
+  `TestSoftX11PixelsMatchRenderToImage` now also requires the frame to go
+  through MIT-SHM where the server has it; `TestSoftX11CorePutImagePixels`
+  checks the fallback in several bands; `TestSoftX11ShmAttachFailureFallsBack`
+  fails the attach on purpose; `TestSoftX11PresentAllocs` pins both paths' count
+  and requires the bytes per frame to stay far below one frame. The allocation
+  tests skip under `-race`, which adds allocations of its own.
 
 ## Rejected approaches
 
@@ -340,8 +431,8 @@ auto-pick has the same cost (showcase 147 MB against about 85 MB named).
   the `soft` package.
 - **Redraw when glyphs were uploaded** (a second pass on frames that add
   glyphs). Superseded by the mid-frame upload above, which needs no extra pass.
-- **MIT-SHM now.** It needs SysV `shmget`/`shmat` syscalls and a fallback for
-  remote X. It belongs in step 5, where the zero-allocation goal pays for it.
+- **MIT-SHM in step 2.** It needs SysV `shmget`/`shmat` syscalls and a fallback
+  for remote X. It went into step 5, with the zero-allocation goal.
 - **Soft drawing straight into BGRA** to skip the swizzle. It touches every draw
   routine to save about 1.3 ms per frame at 1×. Revisit with numbers.
 - **`WindowCfg.Renderer`** (from the issue). The renderer is a property of the
@@ -355,8 +446,10 @@ auto-pick has the same cost (showcase 147 MB against about 85 MB named).
 - `RenderCustomShader` is GLSL; soft draws a shader container's children and no
   shader fill, as in soft screenshots. `GOGUI_RENDERER=gl` forces GL for an app
   that needs it.
-- xgb's `PutImage` allocates a request buffer per band, about one frame's size
-  per frame. Step 5 removes it.
+- An X11 soft frame still makes about 13–14 small allocations, all xgb's own
+  per-request cost (step 5). A Wayland frame makes about 6 in purego's callback
+  path while dispatching events, GL and soft alike (ebitengine/purego#567).
+- Gradients, scaled images and blends allocate per pixel in `Draw` (#1282).
 - Windows has no soft path (out of the first round, per the issue).
 - An auto-picked soft window keeps the GL driver the probe loaded, about 70 MB
   with llvmpipe, on X11 and Wayland. `GOGUI_RENDERER=soft` loads none.

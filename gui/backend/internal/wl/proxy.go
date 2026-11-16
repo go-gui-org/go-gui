@@ -5,8 +5,6 @@ package wl
 import (
 	"fmt"
 	"unsafe"
-
-	"github.com/ebitengine/purego"
 )
 
 // maxArgs is WL_CLOSURE_MAX_ARGS: no message carries more arguments.
@@ -41,7 +39,7 @@ func (p Proxy) Valid() bool { return p.ptr != 0 }
 
 // ID returns the protocol object id.
 func (p Proxy) ID() uint32 {
-	r, _, _ := purego.SyscallN(fnProxyGetID, p.ptr)
+	r := call(fnProxyGetID, p.ptr)
 	return uint32(r)
 }
 
@@ -50,7 +48,7 @@ func (p Proxy) Version() uint32 {
 	if p.ver != 0 {
 		return p.ver
 	}
-	r, _, _ := purego.SyscallN(fnProxyGetVersion, p.ptr)
+	r := call(fnProxyGetVersion, p.ptr)
 	return uint32(r)
 }
 
@@ -59,12 +57,13 @@ func (p Proxy) Version() uint32 {
 // wl_callback after its done event, or wl_registry.
 func (p Proxy) DestroyProxy() {
 	delete(handlers, p.ptr)
-	_, _, _ = purego.SyscallN(fnProxyDestroy, p.ptr)
+	call(fnProxyDestroy, p.ptr)
 }
 
 // marshalBuf holds the request arguments for the duration of one marshal
 // call. A package array instead of a local one: a local passed by address
-// through purego.SyscallN would escape to the heap on every request.
+// through purego.SyscallN would escape to the heap on every request, and
+// through call it is not allowed at all (see call).
 // Safe because the package is single-threaded (see doc.go) and libwayland
 // copies the arguments out before the call returns.
 var marshalBuf argSlots
@@ -77,7 +76,7 @@ func (p Proxy) marshal(opcode uint32, iface *Interface, version, flags uint32, a
 		panic(fmt.Sprintf("wl: %d arguments, libwayland takes at most %d", len(args), maxArgs))
 	}
 	copy(marshalBuf[:], args)
-	r, _, _ := purego.SyscallN(fnProxyMarshalArrayFlags, p.ptr, uintptr(opcode),
+	r := call(fnProxyMarshalArrayFlags, p.ptr, uintptr(opcode),
 		uintptr(unsafe.Pointer(iface)), uintptr(version), uintptr(flags),
 		uintptr(unsafe.Pointer(&marshalBuf[0])))
 	if flags&marshalFlagDestroy != 0 {
@@ -103,9 +102,9 @@ func dispatcherTagPtr() uintptr { return uintptr(unsafe.Pointer(&dispatcherTag))
 
 // setDispatch routes p's events to f.
 func (p Proxy) setDispatch(f func(opcode uint32, a *argSlots)) {
-	cur, _, _ := purego.SyscallN(fnProxyGetListener, p.ptr)
+	cur := call(fnProxyGetListener, p.ptr)
 	if cur != dispatcherTagPtr() {
-		r, _, _ := purego.SyscallN(fnProxyAddDispatcher, p.ptr, dispatcherFn, dispatcherTagPtr(), 0)
+		r := call(fnProxyAddDispatcher, p.ptr, dispatcherFn, dispatcherTagPtr(), 0)
 		if int32(r) != 0 {
 			// The proxy has a C listener already: some other library owns
 			// its events. Taking it over would break that library.

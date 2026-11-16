@@ -6,14 +6,14 @@ package gl
 //
 // A window on this path has no EGL display, surface or context and no GL
 // function table. Each frame is drawn on the CPU by soft.Renderer into one
-// reused premultiplied-RGBA buffer, swizzled to BGRA band by band, and sent
-// with core PutImage. Everything else — events, IME, clipboard, DPI, cursors,
-// window state — is the ordinary X11 platform code, shared with GL.
+// reused premultiplied-RGBA buffer, swizzled to BGRA and uploaded through
+// MIT-SHM, or with core PutImage where the server cannot map our memory
+// (softpresent_x11_upload.go). Everything else — events, IME, clipboard,
+// DPI, cursors, window state — is the ordinary X11 platform code, shared
+// with GL.
 //
 // Full frame on every redraw, 1x first: step 1 measured 7–15 ms per frame at
-// 1x against llvmpipe's 2–3x CPU. Zero allocations per frame (MIT-SHM, or a
-// PutImage writer of our own) is step 5; xgb's PutImage copies each band into
-// a fresh request buffer.
+// 1x against llvmpipe's 2–3x CPU.
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ import (
 
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/randr"
+	"github.com/jezek/xgb/shm"
 	"github.com/jezek/xgb/xproto"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -44,14 +45,21 @@ type softPresent struct {
 	depth byte
 	r     *soft.Renderer
 
-	// band is the reused BGRA staging buffer for one PutImage request;
 	// last is the frame most recently drawn, kept to repaint on Expose. It
 	// is the renderer's own buffer, so it is valid until the next Draw.
-	band         []byte
 	last         []byte
 	lastW, lastH int
 	// maxReq is the server's maximum request size in bytes.
 	maxReq int
+
+	// shmOK says the window uploads through MIT-SHM: the server has the
+	// extension, and no segment has failed yet. shm is the current
+	// segment, made by the first put and remade when the frame size
+	// changes. req is the reused core PutImage request, header and one
+	// band of pixels, for the fallback.
+	shmOK bool
+	shm   *x11ShmSeg
+	req   []byte
 
 	// Frame pacing stands in for eglSwapInterval(1): without it, a view that
 	// invalidates every frame would redraw as fast as the CPU allows.
@@ -89,7 +97,11 @@ func newSoftPresent(conn *xgb.Conn, win xproto.Window, depth byte,
 		xproto.FreeGC(conn, gc)
 		return nil, fmt.Errorf("gl: soft: %w", err)
 	}
+	// The extension query is a round trip, once per window. No extension
+	// (a minimal server) means core PutImage from the start.
+	shmOK := shm.Init(conn) == nil
 	return &softPresent{
+		shmOK:    shmOK,
 		conn:     conn,
 		win:      win,
 		gc:       gc,
@@ -136,33 +148,22 @@ func (sp *softPresent) present(w *gui.Window, physW, physH int32) bool {
 func (sp *softPresent) repaint() {
 	if sp.last != nil {
 		sp.put()
-	}
-}
-
-// put uploads sp.last in row bands that each fit one request.
-func (sp *softPresent) put() {
-	rows := bandRows(sp.lastW, sp.maxReq)
-	rowBytes := sp.lastW * 4
-	if need := rows * rowBytes; cap(sp.band) < need {
-		sp.band = make([]byte, need)
-	}
-	for y := 0; y < sp.lastH; y += rows {
-		n := min(rows, sp.lastH-y)
-		band := sp.band[:n*rowBytes]
-		swizzleBGRA(band, sp.last[y*rowBytes:(y+n)*rowBytes])
-		xproto.PutImage(sp.conn, xproto.ImageFormatZPixmap,
-			xproto.Drawable(sp.win), sp.gc, uint16(sp.lastW), uint16(n),
-			0, int16(y), 0, sp.depth, band)
+		// No pace after a repaint, so wait here instead: the next frame
+		// rewrites the shm segment this put is read from.
+		if sp.shm != nil {
+			sp.sync()
+		}
 	}
 }
 
 // pace waits for the server to take the frame, then sleeps out the rest of
 // the monitor's frame interval. The round trip is the backpressure GL gets
 // from SwapBuffers: without it a fast loop queues frames in the socket
-// faster than the server can draw them. The interval is the monitor's, set
-// by setMonitor.
+// faster than the server can draw them, and it is what lets the next frame
+// reuse the shm segment (softpresent_x11_upload.go). The interval is the
+// monitor's, set by setMonitor.
 func (sp *softPresent) pace() {
-	_, _ = xproto.GetInputFocus(sp.conn).Reply()
+	sp.sync()
 	if sp.vsyncOff {
 		return
 	}
@@ -194,6 +195,8 @@ func (sp *softPresent) destroy() {
 	}
 	sp.r.Release()
 	if sp.conn != nil {
+		sp.shm.free(sp.conn)
+		sp.shm = nil
 		xproto.FreeGC(sp.conn, sp.gc)
 	}
 	sp.last = nil

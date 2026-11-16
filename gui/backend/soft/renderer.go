@@ -11,8 +11,8 @@ import (
 
 // Renderer draws a live window's frames on the CPU (#1265). A backend that
 // presents pixels itself — the Linux backend's GOGUI_RENDERER=soft path,
-// which uploads with X11 PutImage or commits a wl_shm buffer on Wayland —
-// keeps one per window.
+// which uploads through X11 MIT-SHM or PutImage, or commits a wl_shm buffer
+// on Wayland — keeps one per window.
 //
 // It differs from RenderToImage in what it leaves to the caller:
 //
