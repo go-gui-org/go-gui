@@ -98,6 +98,12 @@ func TestSoftWaylandNeverTouchesEGL(t *testing.T) {
 		t.Fatalf("%d commits in 1.1 s of animation; the frame callbacks or the "+
 			"buffer releases never came", commits)
 	}
+	// A release in softFrames' last dispatch frees an old-size slot that
+	// no acquire has dropped yet; one more acquire, as the next frame
+	// would make, does that before the check.
+	if _, err := ww.soft.ring.acquire(b.physW, b.physH); err != nil {
+		t.Fatal(err)
+	}
 	live := 0
 	for _, s := range ww.soft.ring.slots {
 		if s != nil {

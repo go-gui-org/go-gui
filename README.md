@@ -250,8 +250,10 @@ macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text shaping and
 rasterization are pure Go via go-glyph. On a Wayland desktop, Linux apps use a
 native Wayland backend; `GOGUI_WAYLAND=0` keeps X11 (see `docs/deployment.md`).
 On a Linux machine without a GPU, the X11 and Wayland backends draw on the CPU
-with go-gui's own renderer instead of Mesa's llvmpipe, and need no GL library;
-`GOGUI_RENDERER=gl` or `soft` overrides the choice.
+with go-gui's own renderer instead of Mesa's llvmpipe; `GOGUI_RENDERER=gl` or
+`soft` overrides the choice. On native Wayland only `GOGUI_RENDERER=soft` runs
+with no GL library installed: with the variable unset the backend loads EGL to
+make the choice, and an EGL that fails to load falls back to X11.
 
 ```bash
 go get github.com/go-gui-org/go-gui
