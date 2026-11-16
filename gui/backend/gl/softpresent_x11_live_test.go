@@ -145,15 +145,27 @@ func TestSoftX11PixelsMatchRenderToImage(t *testing.T) {
 		OnInit: func(w *gui.Window) { w.SetView(softTextView) }}
 	b, w := newSoftX11(t, cfg)
 	sp := b.plat.soft
-	hadShm := sp.shmOK
+	// MIT-SHM is required only where it can work end to end: the extension
+	// (shmOK) and a segment this process can create and the server can
+	// attach. A sandbox without SysV IPC has the first and not the second,
+	// and there core PutImage is the right path, not a regression.
+	wantShm := sp.shmOK
+	if wantShm {
+		probe, err := newShmSeg(sp.conn, 1, 1)
+		if err != nil {
+			wantShm = false
+			t.Logf("MIT-SHM present but unusable here (%v): checked core PutImage only", err)
+		}
+		probe.free(sp.conn) // nil-safe
+	}
 
 	w.FrameFn()
 	b.presentX11(w)
 
-	if hadShm && (!sp.shmOK || sp.shm == nil) {
-		t.Fatal("the server has MIT-SHM but the frame went through core PutImage")
+	if wantShm && (!sp.shmOK || sp.shm == nil) {
+		t.Fatal("MIT-SHM works on this server but the frame went through core PutImage")
 	}
-	if !hadShm {
+	if !sp.shmOK {
 		t.Log("no MIT-SHM on this server: checked core PutImage only")
 	}
 	assertSoftX11Pixels(t, b, cfg)
@@ -264,16 +276,24 @@ func TestSoftX11PresentAllocs(t *testing.T) {
 	sp.shmOK = false
 	sp.shm.free(sp.conn)
 	sp.shm = nil
-	measure("core PutImage", x11CoreFrameAllocs)
+	// The physical frame follows the host's DPI scale (640x400 on a 2x
+	// display), so the band count is not fixed: each band past the first is
+	// one more request, at xgb's per-request cost.
+	rows := bandRows(int(b.physW), sp.maxReq)
+	bands := (int(b.physH) + rows - 1) / rows
+	measure("core PutImage", x11CoreFrameAllocs+x11AllocsPerBand*float64(bands-1))
 }
 
 // x11ShmFrameAllocs and x11CoreFrameAllocs are the per-frame counts of
-// TestSoftX11PresentAllocs at 320x200, all of them xgb's: measured 14.1 and
-// 13.0 under XWayland (linux/amd64, xgb v1.3.1). The core count grows by
-// about 3 per band; 320x200 is one band at the usual 256 KB request limit.
+// TestSoftX11PresentAllocs for a one-band frame, all of them xgb's: measured
+// 14.1 and 13.0 at 320x200 under XWayland (linux/amd64, xgb v1.3.1). The
+// core count grows by x11AllocsPerBand per extra band (xgb's cookie, seq
+// channel and request record); 320x200 at scale 1 is one band at the usual
+// 256 KB request limit.
 const (
 	x11ShmFrameAllocs  = 15
 	x11CoreFrameAllocs = 14
+	x11AllocsPerBand   = 3
 )
 
 // assertSoftX11Pixels reads b's window back with GetImage and compares it

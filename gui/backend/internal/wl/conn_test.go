@@ -250,9 +250,16 @@ func TestRequestAllocs(t *testing.T) {
 	comp := Compositor{bind(t, reg, gs, &CompositorInterface, 4)}
 	s := comp.CreateSurface()
 	t.Cleanup(s.Destroy)
+	// DamageBuffer is wl_surface v4; a v3 compositor binds a v3 surface, and
+	// the soft present then sends Damage instead. Do the same here, so the
+	// test never sends a request the surface's version does not have.
+	damage := s.DamageBuffer
+	if s.Version() < 4 {
+		damage = s.Damage
+	}
 	allocs := testing.AllocsPerRun(50, func() {
 		s.Attach(Buffer{}, 0, 0)
-		s.DamageBuffer(0, 0, 1, 1)
+		damage(0, 0, 1, 1)
 		s.Commit()
 		_ = s.Version()
 		_ = c.Flush()
