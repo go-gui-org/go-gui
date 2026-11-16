@@ -1,6 +1,6 @@
 # Live software renderer
 
-Issue #1265. Status: **in progress** (step 3 of 5 landed).
+Issue #1265. Status: **in progress** (step 4 of 5 landed).
 
 ## Problem
 
@@ -63,7 +63,7 @@ whether a GPU exists.
 | 1    | Measure llvmpipe against soft                                      | done    |
 | 2    | X11 present path, `GOGUI_RENDERER=gl\|soft`                        | done    |
 | 3    | Auto-pick: `GL_RENDERER` names a software rasterizer, or EGL fails | done    |
-| 4    | Wayland present path with `wl_shm`                                 | planned |
+| 4    | Wayland present path with `wl_shm`                                 | done    |
 | 5    | Zero allocations per frame on the present path                     | planned |
 
 Scope decision: **1× first.** The renderer draws the full frame on every redraw
@@ -77,7 +77,8 @@ issue.
 anything else keeps GL; matching is exact and case-sensitive, like
 `GOGUI_WAYLAND`. Step 3 changes only the unset case. On a Wayland session soft
 declines the native Wayland backend (`waylandRequested`) and runs on XWayland,
-with one log line, until step 4.
+with one log line, until step 4. Step 4 removed the decline: soft now runs on
+native Wayland.
 
 **A mode on the existing backend.** `platformState.softMode` is set before
 anything can fail, so `Destroy` never reaches GL teardown on a soft window.
@@ -173,12 +174,14 @@ renderer the user did not name.
 **Cost on a GPU start.** One context create and destroy. A hardware result
 leaves the display initialized; `newX11` initializes the same display again,
 which EGL treats as a no-op. A soft result or an EGL failure terminates the
-display, so the CPU renderer does not keep the driver's memory.
+display. That frees the display's objects but not the driver: Mesa keeps it
+mapped, about 70 MB with llvmpipe (measured at step 4; see Known limits).
 
-**Wayland keeps GL.** Auto-pick runs on the X11 path only. A Wayland session on
-llvmpipe (the Cinnamon case above) stays on native Wayland GL until step 4.
-Moving users off native Wayland is a separate decision from picking a renderer.
-A Wayland session whose Wayland setup fails reaches X11 and probes there.
+**Wayland keeps GL** (superseded by step 4). Auto-pick runs on the X11 path
+only. A Wayland session on llvmpipe (the Cinnamon case above) stays on native
+Wayland GL until step 4. Moving users off native Wayland is a separate decision
+from picking a renderer. A Wayland session whose Wayland setup fails reaches X11
+and probes there.
 
 **An X server with no soft visual.** `newX11` checks the soft visual before it
 touches EGL, and `softVisualRejected` decides what a rejection means. After an
@@ -197,6 +200,67 @@ creates its context on the first EGL config, but the window uses the config that
 `pickVisual` chooses (ARGB when `Transparent`), so a context failure in the
 probe keeps GL instead of choosing soft for the whole process.
 
+## Design (step 4)
+
+**Mode branches, as on X11.** A soft Wayland window has a non-nil
+`wlWindow.soft` (`wlSoftPresent`, `gui/backend/gl/softpresent_wayland_linux.go`)
+and no EGL window, surface or context. The Wayland code branches at five sites:
+`openWaylandDisplay` (no EGL on a named soft, the probe on an auto one),
+`newWaylandBackend` (`initSoftWayland` or `initGLWayland`), `wlWindow.resize`
+(`resizeWayland`), the loop's frame call (`presentWayland`) and
+`destroyWayland`. With the X11 wrappers that is about 13 call sites, past the
+"about a dozen" at which this spec said to reconsider a `presenter` interface.
+It was reconsidered and kept as branches; see Rejected approaches.
+
+**What Wayland does not need.** Pacing comes from the frame callbacks the loop
+already waits for, as for GL. The compositor keeps the last buffer, so there is
+no Expose repaint. There is no visual to pick: `wl_shm` always offers ARGB8888
+and XRGB8888, whose little-endian memory order is the B, G, R, A that
+`swizzleBGRA` writes (the `wl` package builds only for amd64 and arm64).
+
+**Buffers.** `wlSlotRing` keeps up to three `wl_shm` buffers, made on demand,
+each in its own memfd and mapping; the pool is destroyed at once and the fd
+closed. A slot is busy from its commit until `wl_buffer.release`. A frame takes
+a free slot of the frame's size; with all three held it is skipped, the window
+stays dirty, and the loop blocks until the next event, which the release is.
+Free slots of another size are freed on the next acquire, so a resize does not
+keep the old frames' memory. The frame is swizzled straight into the mapped
+memory: one copy, no band buffer and no allocation once the slots exist. An
+opaque window takes XRGB8888, so the compositor ignores alpha, which soft does
+not force to 1 as GL's `finishFrameAlpha` does. A transparent window takes
+ARGB8888, premultiplied as Wayland expects. Damage is `DamageBuffer` over the
+whole buffer on `wl_surface` v4 and later, `Damage` in logical pixels before.
+Scale handling (viewport or integer buffer scale) is the GL path's code;
+`resizeWayland` moves the renderer to the new scale.
+
+**The choice on Wayland.**
+
+| `GOGUI_RENDERER` | Wayland display                                                                                                                                                |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `soft`           | No `libwayland-egl`, no EGL. Native Wayland, no longer XWayland. No `wl_shm` fails the Wayland setup, and X11 soft takes over                                  |
+| `gl`, other      | GL, no probe                                                                                                                                                   |
+| unset            | `probeContext` on the Wayland EGL display. A software rasterizer picks soft and terminates the display; no `wl_shm` keeps GL. An EGL failure falls back to X11 |
+
+The probe is per display, not shared with the X11 probe's process cache: on
+Cinnamon Wayland the Wayland EGL display reports llvmpipe while the X11 one
+reports the GPU, and a Wayland result must not decide for an X11 window that the
+Wayland backend fell back to. `readRendererEnv` is the one reader of the
+variable for both paths. `waylandRequested` no longer looks at `GOGUI_RENDERER`:
+the windowing backend and the renderer are chosen separately.
+
+**Measured** on the step 1 laptop, Cinnamon (muffin) Wayland session, native
+Wayland, 1×, 3 runs, median. The compositor hands clients llvmpipe there.
+
+| Case                                  | llvmpipe       | soft, auto-picked | soft, `GOGUI_RENDERER=soft` |
+| ------------------------------------- | -------------- | ----------------- | --------------------------- |
+| showcase idle                         | 0 % / 222 MB   | 0 % / 181 MB      | 0 % / 112 MB                |
+| benchmark, 100 buttons, forced frames | 201 % / 237 MB | 64 % / 187 MB     | 64 % / 117 MB               |
+
+Soft runs 14–15 threads to llvmpipe's 23–24. The auto-picked rows keep about 70
+MB more than the named ones: the probe loads the GL driver, and Mesa keeps it
+mapped after `eglTerminate` (`eglReleaseThread` frees none of it). The X11
+auto-pick has the same cost (showcase 147 MB against about 85 MB named).
+
 ## Tests
 
 - `gui/backend/soft`: `TestRendererMatchesPixelGoldens` (byte-identical to
@@ -206,11 +270,10 @@ probe keeps GL instead of choosing soft for the whole process.
   `TestRenderToImageRescaleKeepsMeasurer`, `TestRendererRejectsBadInput`,
   `TestRendererAfterRelease`, `TestRendererImageCacheBounded`,
   `TestRendererMemImageReregistered`, `TestUpdateTextureRect*`.
-- `gui/backend/gl`, pure: `TestSoftRequested`, `TestSoftDeclinesWayland`,
-  `TestPickSoftVisual`, `TestSoftImageFormatOK`, `TestBandRows`,
-  `TestSwizzleBGRA`, `TestModeRefresh`, `TestGPUContextErrorNamesSoftOnLinux`,
-  and for step 3 `TestPickRendererEnv`, `TestAutoPick`,
-  `TestIsSoftwareRasterizer`, `TestSoftVisualRejected`.
+- `gui/backend/gl`, pure: `TestPickSoftVisual`, `TestSoftImageFormatOK`,
+  `TestBandRows`, `TestSwizzleBGRA`, `TestModeRefresh`,
+  `TestGPUContextErrorNamesSoftOnLinux`, and for step 3 `TestPickRendererEnv`,
+  `TestAutoPick`, `TestIsSoftwareRasterizer`, `TestSoftVisualRejected`.
 - `gui/backend/gl`, against an X server (`tools/glrendertest` runs them in CI
   under Xvfb, one process each): `TestSoftX11NeverTouchesEGL` drives frames, a
   resize, a scale change, Expose and destroy with no EGL state created;
@@ -223,6 +286,18 @@ probe keeps GL instead of choosing soft for the whole process.
   `TestAutoPickSoftInitFailureAfterEGLFailure` fail the soft setup on purpose.
   glrendertest sets `GOGUI_RENDERER=gl` for every other test, so the GL tests
   stay on GL.
+- Step 4, pure: `TestSlotRing*` (reuse after release, growth to the cap and the
+  skipped frame, resize, alloc failure, destroy), `TestWlShmSize`,
+  `TestWlShmFormat`, `TestCopyBGRA`, `TestWaylandAutoSoft`,
+  `TestReadRendererEnv`, `TestSoftKeepsWayland`.
+- Step 4, against a compositor (`scripts/wayland/test.sh`, or a Wayland
+  desktop): `TestSoftWaylandNeverTouchesEGL` drives frames, a resize and two
+  scale changes with no EGL state and requires buffers to come back through
+  their releases; `TestSoftWaylandPixelsMatchRenderToImage` compares the
+  committed shared memory with `RenderToImage`; `TestSoftWaylandAutoPick`
+  requires soft with no EGL display where the compositor's EGL is a software
+  rasterizer. `requireWayland` pins `GOGUI_RENDERER=gl` when unset, so the GL
+  Wayland tests stay on GL on an llvmpipe compositor.
 
 ## Rejected approaches
 
@@ -238,8 +313,23 @@ probe keeps GL instead of choosing soft for the whole process.
 
 - **A `presenter` interface that GL and soft implement.** It would move the GL
   frame, resize and teardown code behind the interface on Windows too, for one
-  second implementation. Revisit at step 4, if the Wayland soft path spreads the
-  mode checks past about a dozen sites.
+  second implementation. Revisited at step 4, at about 13 call sites: kept as
+  branches. Each site is a one-line delegation, the two soft paths share little
+  (pacing, repaint and upload all differ), and the interface would move every
+  Linux GPU user's frame path for no change in behaviour. Revisit if a third
+  present path (Windows `SetDIBitsToDevice`) arrives.
+- **A shared soft core with an upload interface** (step 4): the renderer, the
+  error logging and the last frame shared, X11 `PutImage` and `wl_shm` behind
+  one interface. The shared part is about 30 lines; the indirection costs more
+  to read than it saves.
+- **One `wl_shm` buffer, drawn after its release** (step 4). It stalls, or
+  tears, on a compositor that holds a buffer until the next commit.
+- **One growing pool with buffers carved from it** (step 4).
+  `wl_shm_pool.resize` can only grow, so a window that shrinks needs a new pool
+  anyway.
+- **Soft on native Wayland when the Wayland EGL display fails** (step 4).
+  Decided against: the Wayland setup fails and falls back to X11 as before,
+  where the X11 probe decides.
 - **A separate `x11soft` backend package.** It duplicates or exports the X11
   platform layer (about 3k lines), and two event layers drift apart.
 - **Moving the soft renderer core to an internal package** so `gl` can use it
@@ -268,3 +358,5 @@ probe keeps GL instead of choosing soft for the whole process.
 - xgb's `PutImage` allocates a request buffer per band, about one frame's size
   per frame. Step 5 removes it.
 - Windows has no soft path (out of the first round, per the issue).
+- An auto-picked soft window keeps the GL driver the probe loaded, about 70 MB
+  with llvmpipe, on X11 and Wayland. `GOGUI_RENDERER=soft` loads none.

@@ -15,18 +15,19 @@ and this project adheres to
   two to four times the CPU of go-gui's own software renderer while animating
   and about twice the memory. With `GOGUI_RENDERER=soft` the X11 backend opens
   no EGL display: each frame is drawn by `gui/backend/soft` and uploaded with
-  `PutImage`, paced to the monitor's refresh rate. Events, input methods, the
-  clipboard and DPI handling are the same code as with GL. On a Wayland desktop
-  the window runs on XWayland until the Wayland path lands. The frame is redrawn
-  in full on each change, so this is aimed at 1× displays, and a custom shader
-  draws its children but not its shader fill. `gl` keeps GL (for no value, see
-  the auto-pick entry under Changed), and on Linux the no-GPU error now names
-  the variable. The new `soft.Renderer` is the live counterpart of
-  `soft.RenderToImage`. It draws one pass into one reused buffer: the soft glyph
-  backend now uploads new glyphs in the middle of a frame, so a cold glyph atlas
-  needs no warm-up pass. `soft.RenderToImage` of an already-rendered window at a
-  new scale now moves its text system to the new density instead of freeing it
-  under the window's cached text layouts. See
+  `PutImage`, paced to the monitor's refresh rate. On native Wayland the frame
+  is written into a `wl_shm` buffer the compositor maps and committed, paced by
+  frame callbacks, with no EGL or `libwayland-egl` loaded. Events, input
+  methods, the clipboard and DPI handling are the same code as with GL. The
+  frame is redrawn in full on each change, so this is aimed at 1× displays, and
+  a custom shader draws its children but not its shader fill. `gl` keeps GL (for
+  no value, see the auto-pick entry under Changed), and on Linux the no-GPU
+  error now names the variable. The new `soft.Renderer` is the live counterpart
+  of `soft.RenderToImage`. It draws one pass into one reused buffer: the soft
+  glyph backend now uploads new glyphs in the middle of a frame, so a cold glyph
+  atlas needs no warm-up pass. `soft.RenderToImage` of an already-rendered
+  window at a new scale now moves its text system to the new density instead of
+  freeing it under the window's cached text layouts. See
   `docs/specs/live-software-renderer.md`.
 - **Texture caches are bounded by bytes, and `WindowCfg.MaxTextureBytes` sets
   the cap (#1239).** Before, each window kept up to 128 decoded images on the
@@ -99,10 +100,13 @@ and this project adheres to
   probe. With no value, the error comes only when EGL opens but the window's own
   GL context fails (the probe kept GL), or when neither renderer can run. A
   machine with a hardware GPU keeps GL, at the cost of one extra context create
-  and destroy at start. The native Wayland backend keeps GL until its own
-  software path lands. Values other than `gl` and `soft` keep GL and log a
-  warning. An app that needs custom shaders on a machine without a GPU sets
-  `GOGUI_RENDERER=gl`.
+  and destroy at start. The native Wayland backend makes the same check on its
+  own connection, because a Wayland desktop can hand clients llvmpipe on a
+  machine whose GPU works under X11 (Cinnamon does): there the CPU renderer
+  measured about a third of llvmpipe's CPU on the benchmark (64 % against 200
+  %). An EGL failure on Wayland still falls back to X11. Values other than `gl`
+  and `soft` keep GL and log a warning. An app that needs custom shaders on a
+  machine without a GPU sets `GOGUI_RENDERER=gl`.
 
 - **A full state map evicts state that is not in use, not the oldest state
   (#1263).** Before, a full `StateMap` namespace, or the scroll, overflow and

@@ -21,9 +21,18 @@ import (
 // turns a missing compositor, or a silent fall back to X11, into a failure.
 // Run them with: scripts/wayland/test.sh ./gui/backend/gl -test.run Wayland
 
+// requireWayland skips (or fails) without a compositor. The window tests
+// draw with GL: they read GL state and call renderFrame. A compositor on
+// llvmpipe (the harness, a Cinnamon Wayland session) would auto-pick the CPU
+// renderer (#1265 step 4), so an unset GOGUI_RENDERER is pinned to gl, as
+// tools/glrendertest does for the X11 tests. The soft tests set
+// GOGUI_RENDERER themselves after this call.
 func requireWayland(t *testing.T) {
 	t.Helper()
 	if os.Getenv("WAYLAND_DISPLAY") != "" {
+		if os.Getenv("GOGUI_RENDERER") == "" {
+			t.Setenv("GOGUI_RENDERER", "gl")
+		}
 		return
 	}
 	if os.Getenv("GOGUI_REQUIRE_WAYLAND") == "1" {

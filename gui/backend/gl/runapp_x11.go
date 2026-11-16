@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"sync"
 
 	"github.com/jezek/xgb"
 
@@ -124,19 +123,10 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 // "wayland-0", which can be a stray socket in an X11 session, so the default
 // does not try.
 //
-// GOGUI_RENDERER=soft declines Wayland outright (#1265): the CPU renderer
-// presents through X11 PutImage only, so until the wl_shm path lands it runs
-// on XWayland. The decision is logged once, since a user who set both
-// GOGUI_RENDERER=soft and GOGUI_WAYLAND=1 gets a backend they did not name.
+// GOGUI_RENDERER does not enter into it: the CPU renderer presents on native
+// Wayland through wl_shm (#1265 step 4), so the windowing backend and the
+// renderer are chosen independently.
 func waylandRequested() bool {
-	if softRequested() {
-		softWaylandOnce.Do(func() {
-			if os.Getenv("WAYLAND_DISPLAY") != "" || waylandForced() {
-				log.Printf("gl: GOGUI_RENDERER=soft presents through X11; using XWayland")
-			}
-		})
-		return false
-	}
 	switch os.Getenv("GOGUI_WAYLAND") {
 	case "0":
 		return false
@@ -150,18 +140,6 @@ func waylandRequested() bool {
 // Wayland backend that cannot be used on this CPU worth a warning: on the
 // default path, X11 is the expected result there.
 func waylandForced() bool { return os.Getenv("GOGUI_WAYLAND") == "1" }
-
-// softWaylandOnce keeps waylandRequested's XWayland notice to one line per
-// process: New and RunApp both ask, and RunApp may open many windows.
-var softWaylandOnce sync.Once
-
-// softRequested reports whether GOGUI_RENDERER=soft asks for the CPU renderer
-// (gui/backend/soft) by name (#1265). Only the exact value "soft" counts, and
-// matching is case-sensitive like GOGUI_WAYLAND. waylandRequested uses it:
-// only a named soft declines native Wayland. Auto-pick (pickRenderer, for the
-// unset case) runs on the X11 path only, so a Wayland session keeps GL until
-// the Wayland soft path lands.
-func softRequested() bool { return os.Getenv("GOGUI_RENDERER") == "soft" }
 
 // taggedEvent carries an X event alongside the backend it belongs to so
 // a single channel can multiplex several windows' event pumps.

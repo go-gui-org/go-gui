@@ -29,8 +29,11 @@ import (
 // Cinnamon Wayland session the compositor gives clients no GPU device, so EGL
 // hands out llvmpipe on hardware whose GPU works under X11 (#1265, step 1).
 //
-// The native Wayland backend is not affected: it keeps GL until the Wayland
-// soft path lands (step 4). Only a window that reaches the X11 path probes.
+// The native Wayland backend makes the same choice on its own EGL display
+// (step 4, waylandAutoSoft in softpresent_wayland_linux.go). The two are not
+// shared: on a Cinnamon Wayland session the Wayland display reports llvmpipe
+// while the X11 one reports the GPU, so a Wayland result must not decide for
+// an X11 window the Wayland backend fell back to.
 
 // rendererChoice is what newX11 draws with.
 type rendererChoice struct {
@@ -56,22 +59,50 @@ type rendererChoice struct {
 //   - anything else: GL, with one warning. A typo such as "Soft" must not
 //     silently cost a probe or pick a renderer the user did not name.
 func pickRenderer() rendererChoice {
+	switch readRendererEnv() {
+	case rendererEnvSoft:
+		return rendererChoice{soft: true}
+	case rendererEnvAuto:
+		return autoPickCached()
+	}
+	return rendererChoice{}
+}
+
+// rendererEnv is what GOGUI_RENDERER asks for. The X11 path (pickRenderer)
+// and the Wayland path (openWaylandDisplay) read it through one function, so
+// the two cannot disagree on spelling.
+type rendererEnv uint8
+
+const (
+	// rendererEnvAuto: unset or empty; a probe decides.
+	rendererEnvAuto rendererEnv = iota
+	// rendererEnvGL: "gl", or any value that is neither gl nor soft.
+	rendererEnvGL
+	// rendererEnvSoft: "soft".
+	rendererEnvSoft
+)
+
+// readRendererEnv reads GOGUI_RENDERER. Matching is exact and case-sensitive,
+// like GOGUI_WAYLAND. A value that is neither gl nor soft reads as gl, with
+// one warning per process: a typo such as "Soft" must not silently cost a
+// probe or pick a renderer the user did not name.
+func readRendererEnv() rendererEnv {
 	switch v := os.Getenv("GOGUI_RENDERER"); v {
 	case "soft":
-		return rendererChoice{soft: true}
+		return rendererEnvSoft
 	case "gl":
-		return rendererChoice{}
+		return rendererEnvGL
 	case "":
-		return autoPickCached()
+		return rendererEnvAuto
 	default:
 		unknownRendererOnce.Do(func() {
 			log.Printf("gl: GOGUI_RENDERER=%q is not gl or soft; using GL", v)
 		})
-		return rendererChoice{}
+		return rendererEnvGL
 	}
 }
 
-// unknownRendererOnce keeps pickRenderer's warning to one line per process.
+// unknownRendererOnce keeps readRendererEnv's warning to one line per process.
 var unknownRendererOnce sync.Once
 
 // autoProbe caches the probe and the choice made from it. A test that needs
@@ -210,8 +241,10 @@ const glRenderer = 0x1F01
 // When it finds a hardware GL, the display stays initialized: newX11
 // initializes the same display again, which EGL treats as a no-op, so the
 // probe adds only one context create and destroy to a GPU start. When it
-// finds a software rasterizer, or EGL fails, the display is terminated so the
-// CPU renderer does not keep the driver's memory.
+// finds a software rasterizer, or EGL fails, the display is terminated. That
+// frees the display's objects, not the driver: Mesa keeps the driver library
+// mapped (about 70 MB for llvmpipe, measured at #1265 step 4), which
+// GOGUI_RENDERER=soft avoids by loading no EGL at all.
 func probeGLRenderer() (res probeResult) {
 	dpy, cands, err := eglInitDisplayNFunc()
 	if err != nil {
@@ -224,13 +257,21 @@ func probeGLRenderer() (res probeResult) {
 			eglTerminate(dpy)
 		}
 	}()
+	return probeContext(dpy, cands[0].config)
+}
+
+// probeContext makes a GL 3.3 core context current on dpy with no surface,
+// reads GL_RENDERER and tears the context down. It never sets eglErr: the
+// display is already open. The X11 probe (probeGLRenderer) and the Wayland
+// one (openWaylandDisplay) share it; each owns its display.
+func probeContext(dpy, config uintptr) probeResult {
 	ctxAttribs := []int32{
 		eglContextMajorVersion, 3,
 		eglContextMinorVersion, 3,
 		eglContextOpenGLProfileMask, eglContextOpenGLCoreProfileBit,
 		eglNone,
 	}
-	ctx := eglCreateContext(dpy, cands[0].config, eglNoContext, unsafe.Pointer(&ctxAttribs[0]))
+	ctx := eglCreateContext(dpy, config, eglNoContext, unsafe.Pointer(&ctxAttribs[0]))
 	if ctx == 0 {
 		// Not an eglErr: newX11 creates its context on the config pickVisual
 		// chooses (an ARGB one for a transparent window), which can differ
