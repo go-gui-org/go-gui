@@ -188,6 +188,9 @@ func (r *renderer) drawImage(cmd *gui.RenderCmd) {
 		func(z *vector.Rasterizer, ox, oy float32) {
 			pathRoundRect(z, ox, oy, x, y, w, h, rad, false)
 		})
+	// The scratch sampler outlives the draw; drop its image so an entry
+	// the bounded image cache evicts (#1239, #1230) is not kept alive here.
+	is.src = nil
 }
 
 // cachedImage is one entry of the renderer's image cache. img is nil for a
