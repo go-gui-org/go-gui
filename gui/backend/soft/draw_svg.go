@@ -153,8 +153,8 @@ func (r *renderer) fillTriangleMesh(verts []float32, cols []gui.Color,
 func shadeTriangle(dst *buffer, region image.Rectangle, score []float32,
 	p []float32, c0, c1, c2 gui.Color) {
 
-	src := newTriSrc(p, c0, c1, c2)
-	if src == nil {
+	src, ok := newTriSrc(p, c0, c1, c2)
+	if !ok {
 		return
 	}
 	minX, minY, maxX, maxY := vertsBounds(p)
@@ -309,22 +309,25 @@ type triSrc struct {
 	invDen     float32
 }
 
-// newTriSrc returns nil for a degenerate (zero-area) triangle, which
+// newTriSrc reports false for a degenerate (zero-area) triangle, which
 // covers no pixels anyway.
-func newTriSrc(p []float32, c0, c1, c2 gui.Color) *triSrc {
+//
+// It returns the sampler by value: a returned pointer escaped to the
+// heap, one allocation per mesh triangle per frame (#1282).
+func newTriSrc(p []float32, c0, c1, c2 gui.Color) (triSrc, bool) {
 	abx, aby := p[2]-p[0], p[3]-p[1]
 	acx, acy := p[4]-p[0], p[5]-p[1]
 	den := abx*acy - acx*aby
 	if den == 0 {
-		return nil
+		return triSrc{}, false
 	}
-	return &triSrc{
+	return triSrc{
 		ax: p[0], ay: p[1],
 		abx: abx, aby: aby,
 		acx: acx, acy: acy,
 		c0: c0, c1: c1, c2: c2,
 		invDen: 1 / den,
-	}
+	}, true
 }
 
 // weights returns the barycentric coordinates of the centre of pixel

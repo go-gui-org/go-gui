@@ -72,10 +72,15 @@ type renderer struct {
 	placements []glyph.GlyphPlacement
 	normStops  []gui.GradientStop
 	maskRast   vector.Rasterizer
-	maskPix    []uint8
-	maskPix2   []uint8
-	blurTmp    []uint8
-	svgBatch   []float32
+	maskPix    maskScratch
+	maskPix2   maskScratch
+	// gradSrc and imgSrc are the per-command samplers drawGradient and
+	// drawImage fill in place. A fresh &gradientSrc{} handed to fillPath
+	// as an image.Image escapes, one allocation per draw (#1282).
+	gradSrc  gradientSrc
+	imgSrc   imageSrc
+	blurTmp  []uint8
+	svgBatch []float32
 }
 
 // drawAll replays every command in cmds. With warm set it draws only the

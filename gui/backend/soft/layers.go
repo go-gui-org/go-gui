@@ -203,11 +203,11 @@ func composite(dst, src *buffer, rect image.Rectangle, mask *image.Alpha) {
 }
 
 // coverageRoundRect rasterizes a rounded rect into an alpha mask
-// covering region, backed by the caller's scratch slice so repeated
+// covering region, backed by the caller's scratch mask so repeated
 // brackets do not allocate. The mask is antialiased, where the GPU
 // stencil pipeline thresholds at half coverage — a CPU mask
 // multiplies, so it can keep the smooth edge.
-func (r *renderer) coverageRoundRect(scratch *[]uint8,
+func (r *renderer) coverageRoundRect(scratch *maskScratch,
 	region image.Rectangle, x, y, w, h, rad float32) *image.Alpha {
 
 	return r.coveragePath(scratch, region,
@@ -217,23 +217,16 @@ func (r *renderer) coverageRoundRect(scratch *[]uint8,
 }
 
 // coveragePath rasterizes an arbitrary path into an alpha mask covering
-// region. draw.Src overwrites the scratch slice rather than blending
-// into whatever the last mask left there.
-func (r *renderer) coveragePath(scratch *[]uint8, region image.Rectangle,
+// region. draw.Src overwrites the scratch pixels rather than blending
+// into whatever the last mask left there. The returned mask is
+// scratch's own header, valid until the next call with that scratch.
+func (r *renderer) coveragePath(scratch *maskScratch, region image.Rectangle,
 	emit func(z *vector.Rasterizer, ox, oy float32)) *image.Alpha {
 
 	if region.Empty() {
 		return nil
 	}
-	n := region.Dx() * region.Dy()
-	if cap(*scratch) < n {
-		*scratch = make([]uint8, n)
-	}
-	mask := &image.Alpha{
-		Pix:    (*scratch)[:n],
-		Stride: region.Dx(),
-		Rect:   region,
-	}
+	mask := scratch.reset(region)
 	r.maskRast.Reset(region.Dx(), region.Dy())
 	r.maskRast.DrawOp = draw.Src
 	emit(&r.maskRast, float32(region.Min.X), float32(region.Min.Y))

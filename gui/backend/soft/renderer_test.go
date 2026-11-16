@@ -177,8 +177,8 @@ func TestRendererReusesBuffer(t *testing.T) {
 // rectangles and an icon at 0 allocations (#1265 step 5): the buffer, the
 // rasterizer and the solid-color source are reused, and solid no longer
 // boxes its color.NRGBA into color.Color (1 allocation per rectangle).
-// Gradients, scaled images and blends still allocate per pixel; that is
-// #1282, so this view has none of them.
+// Gradients, scaled images and blends are pinned per pixel-golden case by
+// TestPixelGoldenDrawAllocs (#1282).
 func TestRendererDrawAllocs(t *testing.T) {
 	if inputRaceEnabled {
 		t.Skip("AllocsPerRun is process-wide and unstable under race instrumentation")

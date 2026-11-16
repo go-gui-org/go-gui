@@ -118,8 +118,19 @@ and this project adheres to
   X11 the upload goes through MIT-SHM, or through one reused request buffer when
   the server cannot map shared memory, where before each frame left a whole
   frame of request buffers (4 MB at 1280×800) for the garbage collector; on
-  Wayland the present itself allocates nothing. Gradients, scaled images and
-  blends drawn by the CPU renderer still allocate per pixel (#1282).
+  Wayland the present itself allocates nothing.
+- **The CPU renderer draws gradients, scaled images and SVG meshes without
+  allocating (#1282).** A gradient or image fill went through `x/image/vector`'s
+  generic loop, which boxes a color on every pixel it reads and writes: a
+  full-window gradient made about 154 000 allocations per frame. Those fills now
+  rasterize their coverage into a reused mask and blend it in a typed loop that
+  uses the same 16-bit arithmetic, and SVG mesh triangles and coverage masks no
+  longer allocate either. In every pixel-golden case, a steady-state
+  `soft.Renderer` frame now makes 0 allocations, and a test pins that.
+  `soft.RenderToImage` no longer allocates per pixel. A 320×240 linear gradient
+  takes 7.1 ms instead of 10.2 ms. Fully covered pixels are byte-identical. An
+  antialiased edge pixel may differ by one level, because the mask keeps 8 bits
+  of coverage where the generic loop read 16.
 
 - **A full state map evicts state that is not in use, not the oldest state
   (#1263).** Before, a full `StateMap` namespace, or the scroll, overflow and

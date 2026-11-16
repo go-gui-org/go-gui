@@ -3,6 +3,7 @@ package soft
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 
 	"golang.org/x/image/vector"
@@ -42,6 +43,30 @@ type buffer struct {
 	// (#1265 step 5); a pointer fits the interface word, so solid writes
 	// col and points uni.C at it with no allocation.
 	col color.NRGBA
+
+	// mask is the coverage scratch fillPath rasterizes into for every
+	// source that is not a uniform (#1282); see compositeSampled.
+	mask maskScratch
+}
+
+// maskScratch is a reusable coverage mask: the pixel slice and the
+// image.Alpha header over it. Holding the header here, not building one
+// per call, is what keeps a mask from allocating — a returned
+// &image.Alpha{} escapes to the heap.
+type maskScratch struct {
+	pix []uint8
+	img image.Alpha
+}
+
+// reset sizes the mask to region and returns it. The pixels are not
+// cleared: every caller rasterizes with draw.Src, which overwrites them.
+func (m *maskScratch) reset(region image.Rectangle) *image.Alpha {
+	n := region.Dx() * region.Dy()
+	if cap(m.pix) < n {
+		m.pix = make([]uint8, n)
+	}
+	m.img = image.Alpha{Pix: m.pix[:n], Stride: region.Dx(), Rect: region}
+	return &m.img
 }
 
 func newBuffer(w, h int) *buffer {
@@ -126,8 +151,79 @@ func (b *buffer) fillPath(region image.Rectangle, src image.Image,
 	}
 	b.rast.Reset(region.Dx(), region.Dy())
 	emit(&b.rast, float32(region.Min.X), float32(region.Min.Y))
-	b.rast.Draw(b.img, region, src, region.Min)
+	// A uniform source onto *image.RGBA is the rasterizer's typed fast
+	// path. Any other source would take its generic loop, which allocates
+	// per pixel (dst.At boxes a color.RGBA, dst.Set converts through
+	// RGBAModel) and once per call (its RGBA64 scratch escapes), so those
+	// go through a coverage mask and compositeSampled instead (#1282).
+	if _, uniform := src.(*image.Uniform); uniform {
+		b.rast.Draw(b.img, region, src, region.Min)
+	} else {
+		mask := b.mask.reset(region)
+		// draw.Src onto *image.Alpha with an opaque source is the
+		// rasterizer's other fast path: it writes coverage straight
+		// into the mask. DrawOp is restored for the uniform path, which
+		// must blend (draw.Over is the Rasterizer's zero value).
+		b.rast.DrawOp = draw.Src
+		b.rast.Draw(mask, region, image.Opaque, image.Point{})
+		b.rast.DrawOp = draw.Over
+		b.compositeSampled(region, src, mask)
+	}
 	b.markDirty(region)
+}
+
+// compositeSampled blends src over the buffer through mask, inside
+// region. src is sampled at absolute device coordinates, as fillPath
+// documents.
+//
+// The arithmetic is vector.Rasterizer's generic draw.Over loop
+// (rasterizeOpOver) transcribed onto typed pixels: 16-bit straight
+// channels from src.At, 16-bit destination channels, and the result's
+// high byte stored — what image.RGBA.Set keeps. Keeping that formula,
+// rather than the 8-bit overPremul composite the layers use, is what
+// makes fully covered pixels byte-identical to the generic loop. The
+// one difference is coverage: the generic loop reads 16-bit coverage,
+// and the mask holds only its high byte, widened back here as m*0x101.
+// That moves antialiased edge pixels by at most one level; fully
+// covered (0xff -> 0xffff) and uncovered pixels are exact.
+//
+// The sources reaching here (gradientSrc, imageSrc) return a pointer to
+// a scratch color from At, so a sample does not allocate either.
+func (b *buffer) compositeSampled(region image.Rectangle, src image.Image,
+	mask *image.Alpha) {
+
+	// The rasterizer clips its draw rect to the destination's bounds;
+	// this loop indexes Pix directly, so it must too. Callers pass a
+	// region already inside the clip, which lies inside the buffer, but
+	// an out-of-range region here would wrap rows or panic rather than
+	// clip. The mask still covers all of region, so it indexes by
+	// absolute coordinates either way.
+	rect := region.Intersect(b.img.Bounds())
+	pix := b.img.Pix
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		mi := mask.PixOffset(rect.Min.X, y)
+		di := b.img.PixOffset(rect.Min.X, y)
+		for x := rect.Min.X; x < rect.Max.X; x, mi, di = x+1, mi+1, di+4 {
+			m := uint32(mask.Pix[mi])
+			// Zero coverage leaves the pixel as it was: the generic
+			// formula reduces to d*0xffff/0xffff. Skipping it also skips
+			// the sample, which is most of the cost.
+			if m == 0 {
+				continue
+			}
+			ma := m * 0x101
+			sr, sg, sb, sa := src.At(x, y).RGBA()
+			a := 0xffff - (sa * ma / 0xffff)
+			p := pix[di : di+4 : di+4]
+			// uint32(p)*0x101 is what color.RGBA.RGBA() widens a byte to.
+			// No uint32 overflow: RGBA() is premultiplied (s <= sa), so
+			// d*a + s*ma <= 0xffff*0xffff + 0xfffe, as in vector's loop.
+			p[0] = uint8((uint32(p[0])*0x101*a + sr*ma) / 0xffff >> 8)
+			p[1] = uint8((uint32(p[1])*0x101*a + sg*ma) / 0xffff >> 8)
+			p[2] = uint8((uint32(p[2])*0x101*a + sb*ma) / 0xffff >> 8)
+			p[3] = uint8((uint32(p[3])*0x101*a + sa*ma) / 0xffff >> 8)
+		}
+	}
 }
 
 // solid returns the reusable uniform source for c. Valid until the next
