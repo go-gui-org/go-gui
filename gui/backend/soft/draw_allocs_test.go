@@ -4,12 +4,14 @@ package soft
 
 import (
 	"flag"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
-	"math"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"golang.org/x/image/vector"
@@ -83,22 +85,87 @@ func TestPixelGoldenDrawAllocs(t *testing.T) {
 	forEachPixelCase(t, func(t *testing.T, c pixelCase, th pixelTheme) {
 		lr, w := newPixelCaseRenderer(t, c, th)
 		draw := func() { _, _ = lr.Draw(w, pixelGoldenW, pixelGoldenH) }
-		// AllocsPerRun reads process-wide malloc counters, which an
-		// earlier test's lingering goroutines can pollute (seen once as
-		// 2250 on a case measuring 0). Keep the lowest of a few samples,
-		// as TestInputKeypressAllocBudget does: a real per-frame
-		// allocation shows in every sample, background noise does not.
-		best := math.Inf(1)
-		for range 5 {
-			best = min(best, testing.AllocsPerRun(5, draw))
-			if best == 0 {
+		n, stacks := drawAllocs(draw, 5)
+		if n > 0 {
+			t.Errorf("5 steady-state Draws allocate %d times, want 0:\n%s", n, stacks)
+		}
+	})
+}
+
+// rendererDrawFunc is the function every counted allocation must sit under.
+const rendererDrawFunc = "/gui/backend/soft.(*Renderer).Draw"
+
+// drawAllocs runs draw `runs` times and returns how many heap allocations
+// happened under (*Renderer).Draw, with their stacks.
+//
+// testing.AllocsPerRun reads process-wide malloc counters. On a slow
+// runner a gradient frame takes long enough to be preempted, and
+// goroutines left behind by earlier tests allocate inside the window:
+// Windows CI reported 12-32 per frame on the two slowest cases while
+// their Draw allocated nothing (#1282). Attributing each allocation by
+// stack from the memory profile, sampled at rate 1, counts only Draw's.
+func drawAllocs(draw func(), runs int) (int64, string) {
+	prev := runtime.MemProfileRate
+	runtime.MemProfileRate = 1
+	defer func() { runtime.MemProfileRate = prev }()
+
+	// The profile publishes a GC cycle late; two cycles flush everything
+	// allocated before the snapshot.
+	runtime.GC()
+	runtime.GC()
+	before := drawAllocSites()
+	for range runs {
+		draw()
+	}
+	runtime.GC()
+	runtime.GC()
+	var total int64
+	var sb strings.Builder
+	for stack, n := range drawAllocSites() {
+		if d := n - before[stack]; d > 0 {
+			total += d
+			fmt.Fprintf(&sb, "%d allocs at:\n%s", d, stack)
+		}
+	}
+	return total, sb.String()
+}
+
+// drawAllocSites returns the cumulative allocation count of every
+// memory-profile stack that passes through rendererDrawFunc, keyed by the
+// formatted stack.
+func drawAllocSites() map[string]int64 {
+	var recs []runtime.MemProfileRecord
+	n, _ := runtime.MemProfile(nil, true)
+	for {
+		// Headroom: the profile can grow between the sizing call and
+		// this one.
+		recs = make([]runtime.MemProfileRecord, n+64)
+		var ok bool
+		if n, ok = runtime.MemProfile(recs, true); ok {
+			recs = recs[:n]
+			break
+		}
+	}
+	sites := make(map[string]int64)
+	for i := range recs {
+		var sb strings.Builder
+		under := false
+		frames := runtime.CallersFrames(recs[i].Stack())
+		for {
+			f, more := frames.Next()
+			if strings.HasSuffix(f.Function, rendererDrawFunc) {
+				under = true
+			}
+			fmt.Fprintf(&sb, "\t%s\n", f.Function)
+			if !more {
 				break
 			}
 		}
-		if best > 0 {
-			t.Errorf("a steady-state Draw allocates %.1f times, want 0", best)
+		if under {
+			sites[sb.String()] += recs[i].AllocObjects
 		}
-	})
+	}
+	return sites
 }
 
 // TestPixelGoldenDump writes every case's Draw output under -pixeldump;
