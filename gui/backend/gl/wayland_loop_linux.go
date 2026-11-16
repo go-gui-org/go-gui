@@ -203,10 +203,15 @@ func (l *wlLoop) run() error {
 			// FrameFn runs every pass, as on X11: it also drains queued
 			// commands. A configure needs a frame even when it has none.
 			if w.FrameFn() || ww.dirty {
-				ww.requestFrame(now)
-				b.renderFrame(w)
-				ww.dirty = false
-				rendered = true
+				// A soft window that committed nothing (every buffer
+				// still held) stays dirty and draws after the next
+				// event, which the buffer's release is.
+				if b.presentWayland(w, now) {
+					ww.dirty = false
+					rendered = true
+				} else {
+					ww.dirty = true
+				}
 			}
 		}
 		if rendered {

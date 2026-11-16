@@ -14,7 +14,6 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/decor"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
-	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/wl"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/xkb"
 )
@@ -24,9 +23,10 @@ import (
 // A Wayland window is an ordinary Backend whose platformState has a non-nil
 // wl field. Everything that only reads EGL handles, the drawable size and the
 // scale (makeCurrent, swap, drawableSize, dpiScale, renderFrame) works
-// unchanged, so the renderer has no Wayland branch. The X11 fields stay zero;
-// the X11 entry points the gui layer can reach (ShowWindow, opacity, cursor,
-// IME) already return early on a nil connection.
+// unchanged, so the GL renderer has no Wayland branch. A soft window (#1265)
+// branches at the few sites in softpresent_wayland_linux.go. The X11 fields
+// stay zero; the X11 entry points the gui layer can reach (ShowWindow,
+// opacity, cursor, IME) already return early on a nil connection.
 
 // wlConfigureTimeout bounds the wait for the compositor's first configure.
 // A compositor answers within a round trip, so hitting it means a broken
@@ -63,6 +63,10 @@ type wlDisplay struct {
 	decorTried bool
 	eglDpy     uintptr
 	eglConfig  uintptr
+	// soft: every window on this display draws with the CPU renderer and
+	// presents through wl_shm (#1265 step 4), by GOGUI_RENDERER=soft or
+	// by the probe of eglDpy. eglDpy is then zero.
+	soft bool
 	// seat is the input seat, nil when the compositor offers none.
 	// seatName is its registry global name, to notice its removal.
 	seat     *wlSeat
@@ -189,6 +193,11 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	if err = xkb.Load(); err != nil {
 		return d, err
 	}
+	env := readRendererEnv()
+	if env == rendererEnvSoft {
+		// Named soft loads no EGL at all (softpresent_wayland_linux.go).
+		return d, d.useNamedSoft()
+	}
 	if err = wl.LoadEGL(); err != nil {
 		return d, err
 	}
@@ -213,6 +222,9 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	// driver's first choice is taken. Its 8-bit alpha channel only shows
 	// through where no opaque region is set (see setOpaque).
 	d.eglConfig = cands[0].config
+	if env == rendererEnvAuto {
+		d.autoPickSoft(dpy)
+	}
 	return d, nil
 }
 
@@ -357,6 +369,9 @@ type wlWindow struct {
 	// above stay zero. See wayland_shell_linux.go.
 	deco  wl.ZxdgToplevelDecorationV1
 	frame *decor.Frame
+	// soft is the CPU renderer's present state, set when the display
+	// draws with soft (wlDisplay.soft); eglWin is then zero.
+	soft *wlSoftPresent
 
 	// pendW, pendH, pendActive and pendSuspended hold what the last
 	// xdg_toplevel.configure asked for. A size of 0 leaves the choice to
@@ -476,6 +491,9 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 		transparent: cfg.Transparent}
 	b.plat.wl = ww
 	b.plat.w = w
+	// Set before anything can fail, so Destroy never reaches GL teardown
+	// on a soft window, as on X11.
+	b.plat.softMode = d.soft
 	// At most one frame callback is outstanding (requestFrame), so the
 	// one that fires is always ww.frameCb.
 	ww.frameDone = wl.CallbackHandlers{Done: func(uint32) {
@@ -532,31 +550,16 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 		}
 	}
 
-	ww.eglWin, err = wl.NewEGLWindow(ww.surface, b.plat.physW, b.plat.physH)
-	if err != nil {
-		return fail(err)
-	}
-	b.plat.eglDpy = d.eglDpy
-	b.plat.eglConfig = d.eglConfig
-	surface, context, err := eglCreateSurfaceContextFunc(d.eglDpy, d.eglConfig, ww.eglWin.Ptr())
-	// Kept before the error check, so destroy frees a half-made pair.
-	b.plat.eglSurface, b.plat.eglContext = surface, context
-	if err != nil {
-		return fail(newGPUContextError("create EGL surface/context", err))
-	}
-	// Frame pacing comes from frame callbacks (see throttle).
-	eglSwapInterval(d.eglDpy, 0)
-	if err := gogl.InitWithProcAddrFunc(eglProc); err != nil {
-		return fail(fmt.Errorf("gl: glbind init: %w", err))
-	}
-
 	b.dpiScale = b.plat.scale
 	b.physW = b.plat.physW
 	b.physH = b.plat.physH
 	b.initCaches(cfg)
-	if err := b.initGLResources(w); err != nil {
-		b.destroyGLResources()
-		return fail(fmt.Errorf("gl: initGLResources: %w", err))
+	if d.soft {
+		if err := b.initSoftWayland(w); err != nil {
+			return fail(err)
+		}
+	} else if err := b.initGLWayland(w); err != nil {
+		return fail(err)
 	}
 	ww.setOpaque()
 	ww.ready = true
@@ -665,12 +668,8 @@ func (ww *wlWindow) resize(w, h, scale120 int32) {
 	if !ww.ready {
 		return
 	}
-	ww.eglWin.Resize(b.plat.physW, b.plat.physH)
 	ww.setOpaque()
-	// Several windows share the thread, so the GL calls in handleResize
-	// need this window's context current.
-	b.plat.makeCurrent()
-	b.handleResize()
+	b.resizeWayland()
 	lw, lh := b.logicalXY(b.physW, b.physH)
 	b.emit(gui.Event{
 		Type:         gui.EventResized,
@@ -774,6 +773,9 @@ func (p *platformState) destroyWayland() {
 		p.eglDpy = 0
 	}
 	ww.eglWin.Destroy()
+	// The soft buffers go before the surface they were attached to.
+	ww.soft.destroy()
+	ww.soft = nil
 	if ww.frameCb.Valid() {
 		ww.frameCb.DestroyProxy()
 	}

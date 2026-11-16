@@ -9,41 +9,43 @@ import (
 	"testing"
 )
 
-// TestSoftRequested pins the by-name check (#1265). Only the exact value
-// "soft" asks for the CPU renderer by name; matching is case-sensitive, as
-// GOGUI_WAYLAND's is. The unset case is auto-pick's (TestPickRendererEnv),
-// which softRequested does not run: it decides only whether native Wayland
-// is declined.
-func TestSoftRequested(t *testing.T) {
+// TestReadRendererEnv pins how GOGUI_RENDERER is spelled (#1265). Only the
+// exact values "soft" and "gl" name a renderer; matching is case-sensitive,
+// as GOGUI_WAYLAND's is. Unset is auto-pick; anything else reads as gl.
+func TestReadRendererEnv(t *testing.T) {
 	cases := []struct {
 		env  string
-		want bool
+		want rendererEnv
 	}{
-		{"", false},
-		{"gl", false},
-		{"soft", true},
-		{"SOFT", false},
-		{"soft ", false},
-		{"llvmpipe", false},
+		{"", rendererEnvAuto},
+		{"gl", rendererEnvGL},
+		{"soft", rendererEnvSoft},
+		{"SOFT", rendererEnvGL},
+		{"soft ", rendererEnvGL},
+		{"llvmpipe", rendererEnvGL},
 	}
 	for _, c := range cases {
 		t.Setenv("GOGUI_RENDERER", c.env)
-		if got := softRequested(); got != c.want {
-			t.Errorf("GOGUI_RENDERER=%q: softRequested = %v, want %v", c.env, got, c.want)
+		if got := readRendererEnv(); got != c.want {
+			t.Errorf("GOGUI_RENDERER=%q: readRendererEnv = %v, want %v", c.env, got, c.want)
 		}
 	}
 }
 
-// TestSoftDeclinesWayland: until the Wayland soft path lands (#1265 step 4),
-// GOGUI_RENDERER=soft runs through XWayland, so waylandRequested reports false
-// even on a Wayland session and even when GOGUI_WAYLAND=1 forces a try.
-func TestSoftDeclinesWayland(t *testing.T) {
+// TestSoftKeepsWayland: since the Wayland soft path (#1265 step 4),
+// GOGUI_RENDERER=soft no longer declines native Wayland. The windowing
+// backend follows GOGUI_WAYLAND and WAYLAND_DISPLAY alone.
+func TestSoftKeepsWayland(t *testing.T) {
 	t.Setenv("GOGUI_RENDERER", "soft")
-	for _, env := range []string{"", "1"} {
-		t.Setenv("GOGUI_WAYLAND", env)
-		t.Setenv("WAYLAND_DISPLAY", "wayland-0")
-		if waylandRequested() {
-			t.Errorf("GOGUI_RENDERER=soft GOGUI_WAYLAND=%q: waylandRequested = true, want false", env)
+	t.Setenv("WAYLAND_DISPLAY", "wayland-0")
+	for _, c := range []struct {
+		env  string
+		want bool
+	}{{"", true}, {"1", true}, {"0", false}} {
+		t.Setenv("GOGUI_WAYLAND", c.env)
+		if got := waylandRequested(); got != c.want {
+			t.Errorf("GOGUI_RENDERER=soft GOGUI_WAYLAND=%q: waylandRequested = %v, want %v",
+				c.env, got, c.want)
 		}
 	}
 }
