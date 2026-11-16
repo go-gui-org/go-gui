@@ -69,7 +69,8 @@ func (r *renderer) drawGradient(cmd *gui.RenderCmd) {
 	x, y, w, h := cmd.X*s, cmd.Y*s, cmd.W*s, cmd.H*s
 	rad := cmd.Radius * s
 
-	src := &gradientSrc{
+	src := &r.gradSrc
+	*src = gradientSrc{
 		stops: stops,
 		cx:    x + w/2,
 		cy:    y + h/2,

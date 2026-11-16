@@ -251,6 +251,11 @@ func TestDrawImageMemSource(t *testing.T) {
 	if _, _, blue, _ := at(r.buf.img, 9, 20); blue != 0 {
 		t.Errorf("outside the image blue = %d, want 0", blue)
 	}
+	// The renderer-held sampler must not keep the decoded image alive
+	// past the draw, or the bounded image cache's eviction frees nothing.
+	if r.imgSrc.src != nil {
+		t.Error("r.imgSrc.src still references the drawn image after drawImage")
+	}
 }
 
 // RenderCmd.Opacity scales texel alpha: half opacity on an opaque

@@ -34,9 +34,12 @@ type imageSrc struct {
 	nearest bool
 }
 
+// newImageSrc returns a value: drawImage copies it into the renderer's
+// scratch sampler, because a returned pointer escaped once per draw
+// (#1282).
 func newImageSrc(
 	src *image.NRGBA, x, y, w, h, alpha float32,
-) *imageSrc {
+) imageSrc {
 	// A nil source samples transparent rather than panicking in
 	// Bounds: resolveImage never returns one, but the sampler is
 	// one assignment away from it.
@@ -64,7 +67,7 @@ func newImageSrc(
 	if h <= 0 {
 		h = 1
 	}
-	return &imageSrc{
+	return imageSrc{
 		src:    src,
 		dstX:   x,
 		dstY:   y,
@@ -178,12 +181,16 @@ func (r *renderer) drawImage(cmd *gui.RenderCmd) {
 		return
 	}
 	rad := cmd.ClipRadius * s
-	is := newImageSrc(src, x, y, w, h, cmd.Opacity)
+	is := &r.imgSrc
+	*is = newImageSrc(src, x, y, w, h, cmd.Opacity)
 	is.nearest = cmd.ImageFilter == gui.ImageFilterNearest
 	r.buf.fillPath(region, is,
 		func(z *vector.Rasterizer, ox, oy float32) {
 			pathRoundRect(z, ox, oy, x, y, w, h, rad, false)
 		})
+	// The scratch sampler outlives the draw; drop its image so an entry
+	// the bounded image cache evicts (#1239, #1230) is not kept alive here.
+	is.src = nil
 }
 
 // cachedImage is one entry of the renderer's image cache. img is nil for a

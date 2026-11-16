@@ -449,7 +449,6 @@ rectangles and an icon is now at 0 allocations.
 - An X11 soft frame still makes about 13–14 small allocations, all xgb's own
   per-request cost (step 5). A Wayland frame makes about 6 in purego's callback
   path while dispatching events, GL and soft alike (ebitengine/purego#567).
-- Gradients, scaled images and blends allocate per pixel in `Draw` (#1282).
 - Windows has no soft path (out of the first round, per the issue).
 - An auto-picked soft window keeps the GL driver the probe loaded, about 70 MB
   with llvmpipe, on X11 and Wayland. `GOGUI_RENDERER=soft` loads none.
