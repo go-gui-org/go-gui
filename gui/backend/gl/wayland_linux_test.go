@@ -445,14 +445,24 @@ func TestWaylandRunAppFirstWindowFallsBack(t *testing.T) {
 }
 
 // TestWaylandFrameAllocs pins the cost of one paced frame: ask for a frame
-// callback, present a buffer, and dispatch until the callback is done. What
-// remains is purego's own allocation (see wl.TestDispatchIdleAllocs); the
+// callback, present a buffer, and dispatch until the callback is done. The
+// libwayland calls themselves allocate nothing (wl.TestRequestAllocs); what
+// remains is purego's callback path, which goes through reflect for each
+// event (ebitengine/purego#567), and the frame callback's proxy. The
 // callback's decoder is built once per window, not once per frame.
 //
 // Each pass presents a new buffer (swap), not a bare commit: a compositor
 // that repaints only on damage (wlroots) sends no callback for a commit that
 // changes nothing.
+//
+// Skipped under -race, as the wl package's allocation tests are: the race
+// runtime adds allocations of its own (9-11 against 7-8 plain on Cinnamon's
+// muffin), so the budget would fail every race run on a Wayland desktop,
+// make prepush included (#1281). Plain test runs still pin it.
 func TestWaylandFrameAllocs(t *testing.T) {
+	if raceEnabled {
+		t.Skip("allocation counts include the race runtime's own under -race")
+	}
 	b := newWaylandTestBackend(t, gui.WindowCfg{})
 	defer b.Destroy()
 	ww := b.plat.wl
@@ -487,11 +497,13 @@ func TestWaylandFrameAllocs(t *testing.T) {
 	}
 }
 
-// wlFrameAllocs is the measured cost of one paced frame under sway, weston
-// and mutter (linux/arm64, purego v0.11.1), most of it inside
-// eglSwapBuffers' purego wrapper. A decoder closure built per frame cost 2
-// more (measured with a bare commit in place of the swap).
-const wlFrameAllocs = 19
+// wlFrameAllocs is the measured cost of one paced frame: 7 under headless
+// sway and weston, 7-8 under Cinnamon's muffin (linux/amd64, purego
+// v0.11.1). It was 19 while every libwayland call allocated its purego
+// argument slice; routing them through wl's call took 11-12 off (#1265
+// step 5). A decoder closure built per frame cost 2 more (measured with a
+// bare commit in place of the swap).
+const wlFrameAllocs = 8
 
 // wlFrameAllocRounds bounds the rounds TestWaylandFrameAllocs measures while
 // background work settles. One round of 20 paced frames takes about 0.35 s

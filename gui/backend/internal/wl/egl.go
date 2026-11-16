@@ -61,7 +61,7 @@ func NewEGLWindow(s Surface, width, height int32) (EGLWindow, error) {
 	if width <= 0 || height <= 0 {
 		return EGLWindow{}, fmt.Errorf("wl_egl_window_create: bad size %dx%d", width, height)
 	}
-	r, _, _ := purego.SyscallN(fnEGLWindowCreate, s.ptr, uintptr(width), uintptr(height))
+	r := call(fnEGLWindowCreate, s.ptr, uintptr(width), uintptr(height))
 	if r == 0 {
 		return EGLWindow{}, fmt.Errorf("wl_egl_window_create(%dx%d) failed", width, height)
 	}
@@ -81,7 +81,7 @@ func (e EGLWindow) Resize(width, height int32) {
 	if e.ptr == 0 {
 		return
 	}
-	_, _, _ = purego.SyscallN(fnEGLWindowResize, e.ptr,
+	call(fnEGLWindowResize, e.ptr,
 		uintptr(max(width, 1)), uintptr(max(height, 1)), 0, 0)
 }
 
@@ -91,6 +91,6 @@ func (e *EGLWindow) Destroy() {
 	if e.ptr == 0 {
 		return
 	}
-	_, _, _ = purego.SyscallN(fnEGLWindowDestroy, e.ptr)
+	call(fnEGLWindowDestroy, e.ptr)
 	e.ptr = 0
 }

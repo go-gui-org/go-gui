@@ -113,8 +113,8 @@ func newX11Pick(w *gui.Window, forced *rendererChoice) (*Backend, rendererChoice
 	screen := setup.DefaultScreen(conn)
 
 	// The CPU renderer (#1265) opens no EGL display at all: the frame is
-	// drawn on the CPU and uploaded with PutImage, so the window needs only
-	// an X visual soft can write into. GOGUI_RENDERER=soft asks for it; with
+	// drawn on the CPU and uploaded with MIT-SHM or PutImage, so the window
+	// needs only an X visual soft can write into. GOGUI_RENDERER=soft asks for it; with
 	// the variable unset, pickRenderer's probe chooses it on a software
 	// rasterizer or when EGL fails. The probe runs here, after the thread
 	// lock above, because its context is current on this thread.

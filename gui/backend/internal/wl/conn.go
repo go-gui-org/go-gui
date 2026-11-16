@@ -44,6 +44,8 @@ func Connect(name string) (*Conn, error) {
 		return nil, err
 	}
 	nameC := cString(name, true)
+	// purego.SyscallN, not call: a pointer into Go memory needs
+	// SyscallN's go:uintptrescapes (see call). Once per connection.
 	r, _, _ := purego.SyscallN(fnDisplayConnect, cStringPtr(nameC))
 	runtime.KeepAlive(nameC)
 	if r == 0 {
@@ -54,10 +56,10 @@ func Connect(name string) (*Conn, error) {
 	}
 	wakeFd, err := unix.Eventfd(0, unix.EFD_CLOEXEC|unix.EFD_NONBLOCK)
 	if err != nil {
-		_, _, _ = purego.SyscallN(fnDisplayDisconnect, r)
+		call(fnDisplayDisconnect, r)
 		return nil, fmt.Errorf("eventfd: %w", err)
 	}
-	fd, _, _ := purego.SyscallN(fnDisplayGetFd, r)
+	fd := call(fnDisplayGetFd, r)
 	c := &Conn{Display: Display{Proxy{ptr: r}}, fd: int(int32(fd)), wakeFd: wakeFd}
 	c.pollFds[0] = unix.PollFd{Fd: int32(c.fd), Events: unix.POLLIN}
 	c.pollFds[1] = unix.PollFd{Fd: int32(wakeFd), Events: unix.POLLIN}
@@ -83,7 +85,7 @@ func (c *Conn) Close() {
 	if c.Display.ptr == 0 {
 		return
 	}
-	_, _, _ = purego.SyscallN(fnDisplayDisconnect, c.Display.ptr)
+	call(fnDisplayDisconnect, c.Display.ptr)
 	c.Display.ptr = 0
 	c.wakeMu.Lock()
 	_ = unix.Close(c.wakeFd)
@@ -99,7 +101,7 @@ func (c *Conn) Fd() int { return c.fd }
 // Roundtrip sends all queued requests and blocks until the compositor has
 // handled them, dispatching every event that arrives meanwhile.
 func (c *Conn) Roundtrip() error {
-	r, _, _ := purego.SyscallN(fnDisplayRoundtrip, c.Display.ptr)
+	r := call(fnDisplayRoundtrip, c.Display.ptr)
 	rethrow()
 	if int32(r) < 0 {
 		return c.Err()
@@ -110,7 +112,7 @@ func (c *Conn) Roundtrip() error {
 // DispatchPending runs the handlers for events already read from the
 // socket, without reading more.
 func (c *Conn) DispatchPending() error {
-	r, _, _ := purego.SyscallN(fnDisplayDispatchPending, c.Display.ptr)
+	r := call(fnDisplayDispatchPending, c.Display.ptr)
 	rethrow()
 	if int32(r) < 0 {
 		return c.Err()
@@ -121,7 +123,7 @@ func (c *Conn) DispatchPending() error {
 // Flush sends queued requests. A full socket buffer is not an error: the
 // rest goes out on a later Flush.
 func (c *Conn) Flush() error {
-	r, _, _ := purego.SyscallN(fnDisplayFlush, c.Display.ptr)
+	r := call(fnDisplayFlush, c.Display.ptr)
 	if int32(r) < 0 {
 		// -1 with no connection error is EAGAIN (socket buffer full).
 		return c.Err()
@@ -136,7 +138,7 @@ func (c *Conn) Flush() error {
 // library reading the same connection (EGL) never loses events.
 func (c *Conn) Dispatch(timeout time.Duration) error {
 	for {
-		r, _, _ := purego.SyscallN(fnDisplayPrepareRead, c.Display.ptr)
+		r := call(fnDisplayPrepareRead, c.Display.ptr)
 		if int32(r) == 0 {
 			break
 		}
@@ -146,7 +148,7 @@ func (c *Conn) Dispatch(timeout time.Duration) error {
 		}
 	}
 	if err := c.Flush(); err != nil {
-		_, _, _ = purego.SyscallN(fnDisplayCancelRead, c.Display.ptr)
+		call(fnDisplayCancelRead, c.Display.ptr)
 		return err
 	}
 
@@ -157,7 +159,7 @@ func (c *Conn) Dispatch(timeout time.Duration) error {
 	}
 	n, err := unix.Poll(c.pollFds[:], ms)
 	if err != nil && !errors.Is(err, unix.EINTR) {
-		_, _, _ = purego.SyscallN(fnDisplayCancelRead, c.Display.ptr)
+		call(fnDisplayCancelRead, c.Display.ptr)
 		return fmt.Errorf("poll wayland fd: %w", err)
 	}
 	if n > 0 && c.pollFds[1].Revents != 0 {
@@ -166,13 +168,13 @@ func (c *Conn) Dispatch(timeout time.Duration) error {
 		_, _ = unix.Read(int(c.pollFds[1].Fd), c.drain[:])
 	}
 	if n > 0 && c.pollFds[0].Revents != 0 {
-		r, _, _ := purego.SyscallN(fnDisplayReadEvents, c.Display.ptr)
+		r := call(fnDisplayReadEvents, c.Display.ptr)
 		if int32(r) < 0 {
 			return c.Err()
 		}
 	} else {
 		// Woken, or timed out: nothing to read from the compositor.
-		_, _, _ = purego.SyscallN(fnDisplayCancelRead, c.Display.ptr)
+		call(fnDisplayCancelRead, c.Display.ptr)
 	}
 	return c.DispatchPending()
 }
@@ -191,13 +193,15 @@ func (e *ProtocolError) Error() string {
 
 // Err returns the connection's fatal error, or nil if it is healthy.
 func (c *Conn) Err() error {
-	code, _, _ := purego.SyscallN(fnDisplayGetError, c.Display.ptr)
+	code := call(fnDisplayGetError, c.Display.ptr)
 	if code == 0 {
 		return nil
 	}
 	if syscall.Errno(code) == syscall.EPROTO {
 		var iface uintptr
 		var id uint32
+		// purego.SyscallN, not call: &iface and &id are Go stack
+		// addresses, which need go:uintptrescapes (see call).
 		pcode, _, _ := purego.SyscallN(fnDisplayGetProtocolError, c.Display.ptr,
 			uintptr(unsafe.Pointer(&iface)), uintptr(unsafe.Pointer(&id)))
 		pe := &ProtocolError{ID: id, Code: uint32(pcode)}

@@ -216,21 +216,49 @@ func TestHandlerPanic(t *testing.T) {
 }
 
 // TestDispatchIdleAllocs pins the cost of an idle Dispatch, which the
-// backend calls every frame. The allocations are purego.SyscallN's own (see
-// glbind/raw_other.go), not this package's: measured 4 under sway, weston
-// and mutter (linux/arm64, purego v0.11.1). A rise means new per-call work.
+// backend calls every frame: 0. It was 4, one per libwayland call, from
+// purego.SyscallN's variadic slice (see glbind/raw_other.go), until every
+// call went through call (#1265 step 5). A rise means new per-call work.
 //
-// Skipped under -race: the race runtime adds an allocation of its own (5 under
-// Cinnamon's muffin, where a plain build measures 4), so the budget would
-// fail every race run, make prepush included. Plain test runs still pin it.
+// Skipped under -race: the race runtime adds allocations of its own, so the
+// budget would fail every race run, make prepush included. Plain test runs
+// still pin it.
 func TestDispatchIdleAllocs(t *testing.T) {
 	if raceEnabled {
 		t.Skip("allocation counts include the race runtime's own under -race")
 	}
 	c := connect(t)
 	allocs := testing.AllocsPerRun(50, func() { _ = c.Dispatch(0) })
-	if allocs > 4 {
-		t.Errorf("idle Dispatch allocates %.0f times, want at most 4", allocs)
+	if allocs > 0 {
+		t.Errorf("idle Dispatch allocates %.0f times, want 0", allocs)
+	}
+}
+
+// TestRequestAllocs pins the per-frame requests a soft Wayland window
+// makes (#1265 step 5): attach, damage, commit, a proxy query and a flush.
+// Each goes through call, whose package argument array keeps
+// purego.SyscallN's variadic slice off the heap; a SyscallN with a literal
+// argument list here would show up as one allocation per request. The
+// frame callback is not in the loop: it makes a proxy, and its handler
+// registration is a map write, measured by the backend's frame tests.
+func TestRequestAllocs(t *testing.T) {
+	if raceEnabled {
+		t.Skip("allocation counts include the race runtime's own under -race")
+	}
+	c := connect(t)
+	reg, gs := globals(t, c)
+	comp := Compositor{bind(t, reg, gs, &CompositorInterface, 4)}
+	s := comp.CreateSurface()
+	t.Cleanup(s.Destroy)
+	allocs := testing.AllocsPerRun(50, func() {
+		s.Attach(Buffer{}, 0, 0)
+		s.DamageBuffer(0, 0, 1, 1)
+		s.Commit()
+		_ = s.Version()
+		_ = c.Flush()
+	})
+	if allocs > 0 {
+		t.Errorf("a frame's requests allocate %.0f times, want 0", allocs)
 	}
 }
 

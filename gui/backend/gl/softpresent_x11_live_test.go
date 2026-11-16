@@ -3,11 +3,15 @@
 package gl
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
+	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/xproto"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -132,18 +136,150 @@ func TestSoftX11NeverTouchesEGL(t *testing.T) {
 // TestSoftX11PixelsMatchRenderToImage: what reaches the X server is exactly
 // what soft.RenderToImage draws for the same view (RGB; a depth-24 visual
 // carries no alpha). This is the issue's "starts with soft and draws the same
-// pixels" acceptance, checked on the server side of PutImage, so it covers
-// the band split and the BGRA swizzle as well as the renderer.
+// pixels" acceptance, checked on the server side of the upload, so it covers
+// the BGRA swizzle as well as the renderer. On a server with MIT-SHM (Xvfb,
+// XWayland, Xorg) the frame must have gone through the segment (#1265 step
+// 5); TestSoftX11CorePutImagePixels covers the fallback.
 func TestSoftX11PixelsMatchRenderToImage(t *testing.T) {
-	const ww, wh = 320, 200
-	cfg := gui.WindowCfg{Width: ww, Height: wh,
+	cfg := gui.WindowCfg{Width: 320, Height: 200,
 		OnInit: func(w *gui.Window) { w.SetView(softTextView) }}
 	b, w := newSoftX11(t, cfg)
-	scale := b.dpiScale
+	sp := b.plat.soft
+	hadShm := sp.shmOK
 
 	w.FrameFn()
 	b.presentX11(w)
 
+	if hadShm && (!sp.shmOK || sp.shm == nil) {
+		t.Fatal("the server has MIT-SHM but the frame went through core PutImage")
+	}
+	if !hadShm {
+		t.Log("no MIT-SHM on this server: checked core PutImage only")
+	}
+	assertSoftX11Pixels(t, b, cfg)
+}
+
+// TestSoftX11CorePutImagePixels: the core PutImage fallback, the path for
+// remote X, puts the same pixels as RenderToImage. 320 px rows in bands of
+// the server's maximum request size check the band split and the request
+// header putCore writes in place.
+func TestSoftX11CorePutImagePixels(t *testing.T) {
+	cfg := gui.WindowCfg{Width: 320, Height: 200,
+		OnInit: func(w *gui.Window) { w.SetView(softTextView) }}
+	b, w := newSoftX11(t, cfg)
+	sp := b.plat.soft
+	sp.shmOK = false
+	// A request limit that forces several bands for a 200-row frame.
+	sp.maxReq = putImageHeader + 40*320*4
+
+	w.FrameFn()
+	b.presentX11(w)
+
+	if sp.shm != nil {
+		t.Fatal("core path made a shm segment")
+	}
+	assertSoftX11Pixels(t, b, cfg)
+}
+
+// TestSoftX11ShmAttachFailureFallsBack: a server that cannot attach the
+// segment, which is what a remote X server does, leaves the window on core
+// PutImage for good, with the frame still drawn.
+func TestSoftX11ShmAttachFailureFallsBack(t *testing.T) {
+	cfg := gui.WindowCfg{Width: 320, Height: 200,
+		OnInit: func(w *gui.Window) { w.SetView(softTextView) }}
+	b, w := newSoftX11(t, cfg)
+	sp := b.plat.soft
+	if !sp.shmOK {
+		softSkip(t, "no MIT-SHM on this server: nothing to fall back from")
+	}
+	calls := 0
+	orig := newShmSegFunc
+	newShmSegFunc = func(*xgb.Conn, int, int) (*x11ShmSeg, error) {
+		calls++
+		return nil, errors.New("BadAccess: remote server")
+	}
+	t.Cleanup(func() { newShmSegFunc = orig })
+
+	w.FrameFn()
+	b.presentX11(w)
+	w.FrameFn()
+	b.presentX11(w)
+
+	if sp.shmOK || sp.shm != nil {
+		t.Fatalf("after a failed attach: shmOK=%v shm=%v, want core PutImage", sp.shmOK, sp.shm)
+	}
+	if calls != 1 {
+		t.Fatalf("segment tried %d times, want once: the fallback is for good", calls)
+	}
+	assertSoftX11Pixels(t, b, cfg)
+}
+
+// TestSoftX11PresentAllocs pins what a steady-state X11 soft frame costs
+// the heap (#1265 step 5), on both upload paths. Bytes: far below one
+// frame. Before step 5 each frame left a whole frame of request buffers
+// (256 KB here). Count: a constant, xgb's per-request cost (a cookie, a
+// channel and a request record per request, and the pacing round trip's
+// reply), which no xgb caller can avoid. Draw itself is at 0
+// (soft.TestRendererDrawAllocs).
+func TestSoftX11PresentAllocs(t *testing.T) {
+	if raceEnabled {
+		t.Skip("allocation counts include the race runtime's own under -race")
+	}
+	b, w := newSoftX11(t, gui.WindowCfg{Width: 320, Height: 200,
+		OnInit: func(w *gui.Window) { w.SetView(softTextView) }})
+	sp := b.plat.soft
+	sp.vsyncOff = true // no sleep: the round trip still runs
+	frameBytes := uint64(b.physW) * uint64(b.physH) * 4
+	measure := func(name string, maxAllocs float64) {
+		t.Helper()
+		for range 3 {
+			sp.present(w, b.physW, b.physH)
+		}
+		const frames = 30
+		// Best of a few rounds: the counters are process-wide, and xgb's
+		// reader goroutine and go-glyph's background warm run beside us.
+		bestN, bestB := math.Inf(1), math.Inf(1)
+		for range 5 {
+			var m0, m1 runtime.MemStats
+			runtime.ReadMemStats(&m0)
+			for range frames {
+				sp.present(w, b.physW, b.physH)
+			}
+			runtime.ReadMemStats(&m1)
+			bestN = min(bestN, float64(m1.Mallocs-m0.Mallocs)/frames)
+			bestB = min(bestB, float64(m1.TotalAlloc-m0.TotalAlloc)/frames)
+		}
+		t.Logf("%s: %.1f allocs, %.0f B per frame (frame is %d B)", name, bestN, bestB, frameBytes)
+		if bestB > float64(frameBytes)/64 {
+			t.Errorf("%s: %.0f B per frame, want under %d: the upload allocates per frame size",
+				name, bestB, frameBytes/64)
+		}
+		if bestN > maxAllocs {
+			t.Errorf("%s: %.1f allocations per frame, want at most %.0f", name, bestN, maxAllocs)
+		}
+	}
+	if sp.shmOK {
+		measure("MIT-SHM", x11ShmFrameAllocs)
+	}
+	sp.shmOK = false
+	sp.shm.free(sp.conn)
+	sp.shm = nil
+	measure("core PutImage", x11CoreFrameAllocs)
+}
+
+// x11ShmFrameAllocs and x11CoreFrameAllocs are the per-frame counts of
+// TestSoftX11PresentAllocs at 320x200, all of them xgb's: measured 14.1 and
+// 13.0 under XWayland (linux/amd64, xgb v1.3.1). The core count grows by
+// about 3 per band; 320x200 is one band at the usual 256 KB request limit.
+const (
+	x11ShmFrameAllocs  = 15
+	x11CoreFrameAllocs = 14
+)
+
+// assertSoftX11Pixels reads b's window back with GetImage and compares it
+// with soft.RenderToImage of cfg.
+func assertSoftX11Pixels(t *testing.T, b *Backend, cfg gui.WindowCfg) {
+	t.Helper()
 	pw, ph := int(b.physW), int(b.physH)
 	reply, err := xproto.GetImage(b.plat.conn, xproto.ImageFormatZPixmap,
 		xproto.Drawable(b.plat.window), 0, 0, uint16(pw), uint16(ph),
@@ -153,7 +289,7 @@ func TestSoftX11PixelsMatchRenderToImage(t *testing.T) {
 	}
 
 	ref := gui.NewWindow(cfg)
-	want, err := soft.RenderToImage(ref, scale)
+	want, err := soft.RenderToImage(ref, b.dpiScale)
 	if err != nil {
 		t.Fatalf("RenderToImage: %v", err)
 	}

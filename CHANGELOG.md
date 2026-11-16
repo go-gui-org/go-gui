@@ -14,14 +14,15 @@ and this project adheres to
   On a machine without a GPU, EGL falls back to Mesa's llvmpipe, which measured
   two to four times the CPU of go-gui's own software renderer while animating
   and about twice the memory. With `GOGUI_RENDERER=soft` the X11 backend opens
-  no EGL display: each frame is drawn by `gui/backend/soft` and uploaded with
-  `PutImage`, paced to the monitor's refresh rate. On native Wayland the frame
-  is written into a `wl_shm` buffer the compositor maps and committed, paced by
-  frame callbacks, with no EGL or `libwayland-egl` loaded. Events, input
-  methods, the clipboard and DPI handling are the same code as with GL. The
-  frame is redrawn in full on each change, so this is aimed at 1× displays, and
-  a custom shader draws its children but not its shader fill. `gl` keeps GL (for
-  no value, see the auto-pick entry under Changed), and on Linux the no-GPU
+  no EGL display: each frame is drawn by `gui/backend/soft` and uploaded through
+  MIT-SHM (core `PutImage` on a server that cannot map the shared memory, such
+  as a remote display), paced to the monitor's refresh rate. On native Wayland
+  the frame is written into a `wl_shm` buffer the compositor maps and committed,
+  paced by frame callbacks, with no EGL or `libwayland-egl` loaded. Events,
+  input methods, the clipboard and DPI handling are the same code as with GL.
+  The frame is redrawn in full on each change, so this is aimed at 1× displays,
+  and a custom shader draws its children but not its shader fill. `gl` keeps GL
+  (for no value, see the auto-pick entry under Changed), and on Linux the no-GPU
   error now names the variable. The new `soft.Renderer` is the live counterpart
   of `soft.RenderToImage`. It draws one pass into one reused buffer: the soft
   glyph backend now uploads new glyphs in the middle of a frame, so a cold glyph
@@ -107,6 +108,18 @@ and this project adheres to
   %). An EGL failure on Wayland still falls back to X11. Values other than `gl`
   and `soft` keep GL and log a warning. An app that needs custom shaders on a
   machine without a GPU sets `GOGUI_RENDERER=gl`.
+- **A native Wayland frame allocates 7 times instead of 19 (#1265).** Every
+  libwayland call through purego allocated its argument list on the heap; the
+  Wayland bindings now pass arguments from a reused array, so requests, flushes
+  and an idle dispatch allocate nothing. What is left comes from purego's
+  callback path while events are dispatched (reported upstream as
+  ebitengine/purego#567). This applies to GL windows and CPU-rendered ones
+  alike. A CPU-rendered frame no longer leaves frame-sized garbage either: on
+  X11 the upload goes through MIT-SHM, or through one reused request buffer when
+  the server cannot map shared memory, where before each frame left a whole
+  frame of request buffers (4 MB at 1280×800) for the garbage collector; on
+  Wayland the present itself allocates nothing. Gradients, scaled images and
+  blends drawn by the CPU renderer still allocate per pixel (#1282).
 
 - **A full state map evicts state that is not in use, not the oldest state
   (#1263).** Before, a full `StateMap` namespace, or the scroll, overflow and

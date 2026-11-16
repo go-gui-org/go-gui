@@ -37,7 +37,7 @@ import (
 
 // rendererChoice is what newX11 draws with.
 type rendererChoice struct {
-	// soft: draw with gui/backend/soft and present with PutImage.
+	// soft: draw with gui/backend/soft and present with MIT-SHM or PutImage.
 	soft bool
 	// auto: the probe chose, not GOGUI_RENDERER by name. An auto choice of
 	// soft may still fall back to GL (softVisualRejected).

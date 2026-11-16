@@ -76,6 +76,11 @@ var x11Tests = []string{
 	// GOGUI_RENDERER=soft present path (#1265): needs an X server, not GL.
 	"TestSoftX11NeverTouchesEGL",
 	"TestSoftX11PixelsMatchRenderToImage",
+	// The X11 soft upload (#1265 step 5): MIT-SHM, the core PutImage
+	// fallback, a failed segment attach, and the per-frame heap cost.
+	"TestSoftX11CorePutImagePixels",
+	"TestSoftX11ShmAttachFailureFallsBack",
+	"TestSoftX11PresentAllocs",
 	// Auto-pick with GOGUI_RENDERER unset (#1265 step 3): the runner's
 	// llvmpipe must choose soft, and so must an EGL failure.
 	"TestAutoPickSoftOnSoftwareRasterizer",

@@ -3,6 +3,8 @@
 package gl
 
 import (
+	"math"
+	"runtime"
 	"testing"
 	"time"
 
@@ -208,4 +210,76 @@ func TestSoftWaylandAutoPick(t *testing.T) {
 	if softFrames(t, b, 200*time.Millisecond) == 0 {
 		t.Fatal("auto-picked soft window committed no frame")
 	}
+}
+
+// TestSoftWaylandPresentAllocs pins a steady-state soft frame's present at 0
+// allocations (#1265 step 5): draw into the renderer's reused buffer, copy
+// into a mapped wl_shm buffer, then frame, attach, damage and commit, each a
+// libwayland call through wl's call. Only present is counted. Dispatching
+// the frame callback and the buffer release in between goes through
+// purego's callback path, which allocates per event (ebitengine/purego#567)
+// and is shared with GL (TestWaylandFrameAllocs).
+func TestSoftWaylandPresentAllocs(t *testing.T) {
+	if raceEnabled {
+		t.Skip("allocation counts include the race runtime's own under -race")
+	}
+	b, w := newSoftWayland(t, gui.WindowCfg{Width: 240, Height: 160,
+		OnInit: func(w *gui.Window) { w.SetView(softTextView) }})
+	// Warm: the slots exist, the atlas holds every glyph, the frame
+	// callback's decoder is built.
+	softFrames(t, b, 300*time.Millisecond)
+
+	// MemStats counts every goroutine's mallocs, and New starts go-glyph's
+	// background font-coverage warm, which can land a stray allocation in
+	// a round; the best of a few rounds is present's own cost, as in
+	// TestWaylandFrameAllocs.
+	best := math.Inf(1)
+	for round := 0; round < wlFrameAllocRounds && best > 0; round++ {
+		best = min(best, softPresentMallocs(t, b, w, 30))
+	}
+	if best > 0 {
+		t.Errorf("a soft Wayland present allocates %.2f times per frame, want 0", best)
+	}
+}
+
+// softPresentMallocs presents frames frames and returns the mallocs per
+// frame counted around presentWayland alone.
+func softPresentMallocs(t *testing.T, b *Backend, w *gui.Window, frames int) float64 {
+	t.Helper()
+	ww := b.plat.wl
+	var before, after runtime.MemStats
+	var mallocs uint64
+	for i := range frames {
+		// Wait, uncounted, for what the loop waits for: the last frame's
+		// callback and a free buffer.
+		deadline := time.Now().Add(3 * time.Second)
+		for ww.frameCb.Valid() || !hasFreeSlot(ww.soft) {
+			if time.Now().After(deadline) {
+				t.Fatalf("frame %d: no frame callback or buffer release within 3s", i)
+			}
+			if err := ww.d.conn.Dispatch(20 * time.Millisecond); err != nil {
+				t.Fatal(err)
+			}
+		}
+		runtime.ReadMemStats(&before)
+		ok := b.presentWayland(w, time.Now())
+		runtime.ReadMemStats(&after)
+		if !ok {
+			t.Fatalf("frame %d: present committed nothing", i)
+		}
+		mallocs += after.Mallocs - before.Mallocs
+	}
+	return float64(mallocs) / float64(frames)
+}
+
+// hasFreeSlot reports whether acquire would return a slot instead of
+// skipping the frame: a free slot, or room for a new one. The size does not
+// matter here: the window does not resize during the test.
+func hasFreeSlot(sp *wlSoftPresent) bool {
+	for _, s := range sp.ring.slots {
+		if s == nil || !s.busy {
+			return true
+		}
+	}
+	return false
 }

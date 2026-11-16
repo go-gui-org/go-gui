@@ -37,6 +37,11 @@ type buffer struct {
 	// allocate once per draw command; the rasterizer only reads it
 	// during the Draw call, so one instance can be re-pointed.
 	uni image.Uniform
+	// col is the color uni.C points at. Storing a color.NRGBA value in
+	// the color.Color interface boxes it, one allocation per solid draw
+	// (#1265 step 5); a pointer fits the interface word, so solid writes
+	// col and points uni.C at it with no allocation.
+	col color.NRGBA
 }
 
 func newBuffer(w, h int) *buffer {
@@ -128,7 +133,10 @@ func (b *buffer) fillPath(region image.Rectangle, src image.Image,
 // solid returns the reusable uniform source for c. Valid until the next
 // call — pass it straight to fillPath.
 func (b *buffer) solid(c gui.Color) image.Image {
-	b.uni.C = color.NRGBA{R: c.R, G: c.G, B: c.B, A: c.A}
+	b.col = color.NRGBA{R: c.R, G: c.G, B: c.B, A: c.A}
+	// Re-pointed every call, not once in newBuffer: cheap, and right even
+	// for a buffer that was copied or built without newBuffer.
+	b.uni.C = &b.col
 	return &b.uni
 }
 

@@ -93,7 +93,8 @@ window's own context then fails, startup returns `ErrNoGPUContext`; set
 `GOGUI_RENDERER=soft` to use the software renderer.
 
 `GOGUI_RENDERER=soft` uses the software renderer on any machine, without the
-check and without loading EGL. On X11 it uploads frames with `PutImage`; on
+check and without loading EGL. On X11 it uploads frames through MIT-SHM, or with
+`PutImage` when the X server cannot map the shared memory (a remote display); on
 native Wayland it commits `wl_shm` buffers, so it needs no `libwayland-egl`.
 `GOGUI_RENDERER=gl` keeps GL without the check, and then a machine with no GPU
 context fails with `ErrNoGPUContext`. Other values keep GL and log a warning.
