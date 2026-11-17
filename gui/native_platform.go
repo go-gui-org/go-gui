@@ -122,6 +122,29 @@ type nativeSound interface {
 	BeepAvailable() bool
 }
 
+// NativeKeepAwake keeps the display on, and the computer out of sleep
+// (issue #1172). gui counts the requests and calls SetKeepAwake only
+// when the state of the whole app changes: on when some window with a
+// request is on screen, off when none is. app and reason are set only
+// when on is true; gui makes them non-empty, valid UTF-8 without NUL,
+// and at most 128 characters long.
+//
+// The OS request belongs to the process, so a backend keeps it at
+// package level: gui may end it through another window's platform than
+// the one that began it, also from WindowCleanup. Called on the UI
+// thread. A returned error is reported once under DebugWindowDegraded;
+// after a failed on, gui asks again at the next change.
+//
+// The web backend is the exception: the browser answers later, through
+// a promise, so a refusal (a power saver, a missing permission) goes to
+// the browser console instead, and gui takes the request as held. It is
+// asked for again after the next off, such as when the page is hidden
+// and shown. A lock the browser drops while the page stays visible, the
+// web backend asks for again itself.
+type nativeKeepAwake interface {
+	SetKeepAwake(on bool, app, reason string) error
+}
+
 // NativeAppearance reports the OS light/dark setting (issue #752).
 // Noop where the OS has no setting; nil in tests reads as no setting.
 type nativeAppearance interface {
@@ -154,6 +177,7 @@ type NativePlatform interface {
 	nativeWindowState
 	nativeSound
 	nativeAppearance
+	nativeKeepAwake
 	OpenURI(uri string) error
 	TitlebarDark(dark bool)
 	SetWindowVibrancy(material VibrancyMaterial)
@@ -234,6 +258,8 @@ func (w *Window) SetNativePlatform(np NativePlatform) {
 	}
 	w.replayPlacement()
 	w.reconcileHidden()
+	// Ask for a keep-awake request made before the backend attached.
+	w.reconcileKeepAwake()
 }
 
 // NativePlatformBackend returns the native platform backend (nil in tests).

@@ -30,6 +30,8 @@ type nativePlatform struct {
 	// fullscreen is the page's fullscreen control, shared with the
 	// touch listeners.
 	fullscreen *pageFullscreen
+	// wakeLock keeps the screen on (issue #1172).
+	wakeLock *pageWakeLock
 }
 
 // --- URI ---

@@ -441,6 +441,7 @@ func (w *Window) WindowCleanup() {
 			w.nativePlatform.A11yDestroy()
 			w.nativePlatform.SetSystemAppearanceCallback(nil)
 		}
+		w.cleanupKeepAwake()
 		w.clearViewStateLocked()
 		w.renderGuardWarned = 0
 		unregisterWindow(w)

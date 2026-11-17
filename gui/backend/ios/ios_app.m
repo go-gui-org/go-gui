@@ -618,6 +618,15 @@ void iosSetFullscreen(int on) {
     });
 }
 
+// The idle timer belongs to the app, not to a controller, so this works
+// under a Swift host too. iOS ignores it while the app is in the
+// background.
+void iosSetKeepAwake(int on) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [UIApplication sharedApplication].idleTimerDisabled = on != 0;
+    });
+}
+
 @interface GoGuiSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (nonatomic, strong) UIWindow *window;
 @end
