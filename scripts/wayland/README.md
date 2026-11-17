@@ -28,6 +28,11 @@ Docker (on macOS, colima works).
 
 The output is 1280×800 in every compositor.
 
+Under mutter the client shares mutter's session bus (`DBUS_SESSION_BUS_ADDRESS`
+is set), so a test can watch what mutter sends there. sway and weston run with
+no session bus. Under sway, `swayidle` reports sway's idle timeouts; the
+keep-awake tests use it (#1287).
+
 ## Examples
 
 Build the showcase and run it for 5 seconds under sway, with a screenshot:

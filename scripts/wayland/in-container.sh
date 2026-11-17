@@ -42,7 +42,12 @@ weston)
   ;;
 mutter)
   # mutter wants a session bus; GNOME draws no server-side decorations.
-  dbus-run-session -- mutter --headless --wayland --no-x11 \
+  # The client shares the bus, so a test can watch what mutter sends there:
+  # it forwards an idle inhibitor to org.freedesktop.ScreenSaver (#1287).
+  DBUS_SESSION_BUS_ADDRESS=$(dbus-daemon --session --fork --print-address) ||
+    { echo "dbus-daemon did not start" >&2; exit 125; }
+  export DBUS_SESSION_BUS_ADDRESS
+  mutter --headless --wayland --no-x11 \
     --virtual-monitor 1280x800 --wayland-display "$WAYLAND_DISPLAY" >"$log" 2>&1 &
   ;;
 *)

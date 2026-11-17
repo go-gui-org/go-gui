@@ -4,7 +4,8 @@
 # backend can be built and run on a Mac (colima) or a CI runner:
 #
 #   sway   (wlroots)  screenshots with grim, input injected with wtype/wlrctl,
-#                     clipboard checked with wl-copy/wl-paste
+#                     clipboard checked with wl-copy/wl-paste, idle timeouts
+#                     watched with swayidle
 #   weston (reference) screenshots with weston-screenshooter
 #   mutter (GNOME)    no server-side decorations, so it tests the libdecor path
 #
@@ -17,7 +18,7 @@ FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates dbus dbus-user-session procps \
-      sway grim wtype wlrctl wl-clipboard \
+      sway grim wtype wlrctl wl-clipboard swayidle \
       weston \
       mutter gnome-settings-daemon-common gsettings-desktop-schemas \
       libwayland-client0 libwayland-egl1 libwayland-cursor0 \
