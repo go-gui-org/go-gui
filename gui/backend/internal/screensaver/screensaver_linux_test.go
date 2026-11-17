@@ -7,6 +7,7 @@ import (
 	"net"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -77,6 +78,14 @@ func (f *fakeScreenSaver) activeCount() int {
 	return len(f.active)
 }
 
+// callList returns a copy of the Inhibit calls. godbus runs the methods
+// on its own goroutines, so the test reads under the lock.
+func (f *fakeScreenSaver) callList() []inhibitCall {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.calls)
+}
+
 // serve puts a fake ScreenSaver service on the bus at addr.
 func serve(t *testing.T, addr string) *fakeScreenSaver {
 	t.Helper()
@@ -114,8 +123,8 @@ func TestSetInhibitsAndEnds(t *testing.T) {
 		t.Fatalf("%d requests held after on, want 1", got)
 	}
 	want := inhibitCall{"org.example.Player", "Playing a video"}
-	if len(f.calls) != 1 || f.calls[0] != want {
-		t.Errorf("Inhibit calls = %+v, want [%+v]", f.calls, want)
+	if calls := f.callList(); len(calls) != 1 || calls[0] != want {
+		t.Errorf("Inhibit calls = %+v, want [%+v]", calls, want)
 	}
 	if err := Set(false, "", ""); err != nil {
 		t.Fatalf("Set(false): %v", err)
@@ -136,8 +145,8 @@ func TestSetRepeatedEdges(t *testing.T) {
 			t.Fatalf("Set(true): %v", err)
 		}
 	}
-	if len(f.calls) != 1 {
-		t.Errorf("%d Inhibit calls for two ons, want 1", len(f.calls))
+	if n := len(f.callList()); n != 1 {
+		t.Errorf("%d Inhibit calls for two ons, want 1", n)
 	}
 	for range 2 {
 		if err := Set(false, "", ""); err != nil {
