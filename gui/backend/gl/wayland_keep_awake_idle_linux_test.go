@@ -4,9 +4,9 @@ package gl
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -27,7 +27,7 @@ const swayIdleTimeout = 2
 func startSwayidle(t *testing.T) <-chan struct{} {
 	t.Helper()
 	cmd := exec.Command("swayidle", "-w",
-		"timeout", fmt.Sprint(swayIdleTimeout), "echo idle")
+		"timeout", strconv.Itoa(swayIdleTimeout), "echo idle")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		t.Fatal(err)

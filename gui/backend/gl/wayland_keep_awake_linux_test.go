@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
+	"slices"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -238,12 +239,7 @@ func swayKeepAwakeState(t *testing.T, appID string) (found bool, application str
 			found, application, inhibited = true, n.IdleInhibitors.Application, n.InhibitIdle
 			return true
 		}
-		for _, c := range append(n.Nodes, n.FloatingNodes...) {
-			if walk(c) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(append(n.Nodes, n.FloatingNodes...), walk)
 	}
 	walk(root)
 	return found, application, inhibited

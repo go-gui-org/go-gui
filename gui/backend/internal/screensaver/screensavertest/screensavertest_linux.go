@@ -26,11 +26,10 @@ const (
 // returns its address. It skips where dbus-daemon is not installed.
 func StartBus(t *testing.T) string {
 	t.Helper()
-	bin, err := exec.LookPath("dbus-daemon")
-	if err != nil {
+	if _, err := exec.LookPath("dbus-daemon"); err != nil {
 		t.Skip("dbus-daemon is not installed")
 	}
-	cmd := exec.Command(bin, "--session", "--nofork", "--print-address")
+	cmd := exec.Command("dbus-daemon", "--session", "--nofork", "--print-address")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		t.Fatal(err)
