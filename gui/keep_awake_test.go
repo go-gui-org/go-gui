@@ -2,6 +2,7 @@ package gui
 
 import (
 	"errors"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -380,6 +381,9 @@ func TestKeepAwakeFromManyGoroutines(t *testing.T) {
 			running = false
 		default:
 			w.flushCommands()
+			// wasm runs every goroutine on one thread and does not
+			// preempt: without a yield the workers never run.
+			runtime.Gosched()
 		}
 	}
 	w.flushCommands()
