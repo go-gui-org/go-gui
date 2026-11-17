@@ -248,6 +248,26 @@ jobs:
           CGO_ENABLED=0 GOOS=${TARGET%/*} GOARCH=${TARGET#*/} \
             go build ./...
 
+  # The Wayland keep-awake tests (#1287) under sway, in the headless
+  # Docker harness (scripts/wayland). sway answers through its IPC, so the
+  # check needs no timers; -test.short leaves out the timed swayidle
+  # cases. weston, mutter and the rest of the Wayland suite run by hand
+  # (scripts/wayland/README.md) until they have proved stable here.
+  wayland-sway:
+    name: Wayland (sway)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-go-glyph
+        with:
+          install-linux-deps: 'false'
+
+      - name: Keep-awake tests under sway
+        env:
+          COMPOSITORS: sway
+        run: scripts/wayland/test.sh ./gui/backend/gl -test.run KeepAwake -test.short -test.v
+
   # Linting is a type-check, not an execution, so every GOOS analyses
   # fine from a Linux runner. One job per GOOS:
   #   - linux: the runner's own build.

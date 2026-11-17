@@ -3,108 +3,14 @@
 package screensaver
 
 import (
-	"bufio"
 	"errors"
 	"net"
-	"os/exec"
 	"path/filepath"
-	"slices"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/godbus/dbus/v5"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/screensaver/screensavertest"
 )
-
-// startBus starts a private session bus and points this test at it.
-// It skips where dbus-daemon is not installed.
-func startBus(t *testing.T) string {
-	t.Helper()
-	bin, err := exec.LookPath("dbus-daemon")
-	if err != nil {
-		t.Skip("dbus-daemon is not installed")
-	}
-	cmd := exec.Command(bin, "--session", "--nofork", "--print-address")
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = cmd.Start(); err != nil {
-		t.Fatalf("start dbus-daemon: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = cmd.Process.Kill()
-		_ = cmd.Wait()
-	})
-	line, err := bufio.NewReader(out).ReadString('\n')
-	if err != nil {
-		t.Fatalf("read the bus address: %v", err)
-	}
-	addr := strings.TrimSpace(line)
-	t.Setenv("DBUS_SESSION_BUS_ADDRESS", addr)
-	return addr
-}
-
-// inhibitCall is one Inhibit the fake service got.
-type inhibitCall struct{ app, reason string }
-
-// fakeScreenSaver is a ScreenSaver service that records its calls.
-type fakeScreenSaver struct {
-	mu     sync.Mutex
-	calls  []inhibitCall
-	active map[uint32]bool
-	next   uint32
-}
-
-func (f *fakeScreenSaver) Inhibit(app, reason string) (uint32, *dbus.Error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.next++
-	f.calls = append(f.calls, inhibitCall{app, reason})
-	f.active[f.next] = true
-	return f.next, nil
-}
-
-func (f *fakeScreenSaver) UnInhibit(cookie uint32) *dbus.Error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	delete(f.active, cookie)
-	return nil
-}
-
-func (f *fakeScreenSaver) activeCount() int {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return len(f.active)
-}
-
-// callList returns a copy of the Inhibit calls. godbus runs the methods
-// on its own goroutines, so the test reads under the lock.
-func (f *fakeScreenSaver) callList() []inhibitCall {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return slices.Clone(f.calls)
-}
-
-// serve puts a fake ScreenSaver service on the bus at addr.
-func serve(t *testing.T, addr string) *fakeScreenSaver {
-	t.Helper()
-	conn, err := dbus.Connect(addr)
-	if err != nil {
-		t.Fatalf("connect the fake service: %v", err)
-	}
-	t.Cleanup(func() { _ = conn.Close() })
-	f := &fakeScreenSaver{active: map[uint32]bool{}}
-	if err = conn.Export(f, path, iface); err != nil {
-		t.Fatal(err)
-	}
-	reply, err := conn.RequestName(dest, dbus.NameFlagDoNotQueue)
-	if err != nil || reply != dbus.RequestNameReplyPrimaryOwner {
-		t.Fatalf("own %s: reply %v, err %v", dest, reply, err)
-	}
-	return f
-}
 
 // endHeld ends a request a failed test left behind.
 func endHeld(t *testing.T) {
@@ -114,23 +20,23 @@ func endHeld(t *testing.T) {
 // The request reaches the service with the app's strings and ends with
 // UnInhibit.
 func TestSetInhibitsAndEnds(t *testing.T) {
-	f := serve(t, startBus(t))
+	f := screensavertest.Serve(t, screensavertest.StartBus(t))
 	endHeld(t)
 
 	if err := Set(true, "org.example.Player", "Playing a video"); err != nil {
 		t.Fatalf("Set(true): %v", err)
 	}
-	if got := f.activeCount(); got != 1 {
+	if got := f.Active(); got != 1 {
 		t.Fatalf("%d requests held after on, want 1", got)
 	}
-	want := inhibitCall{"org.example.Player", "Playing a video"}
-	if calls := f.callList(); len(calls) != 1 || calls[0] != want {
+	want := screensavertest.Call{App: "org.example.Player", Reason: "Playing a video"}
+	if calls := f.Calls(); len(calls) != 1 || calls[0] != want {
 		t.Errorf("Inhibit calls = %+v, want [%+v]", calls, want)
 	}
 	if err := Set(false, "", ""); err != nil {
 		t.Fatalf("Set(false): %v", err)
 	}
-	if got := f.activeCount(); got != 0 {
+	if got := f.Active(); got != 0 {
 		t.Errorf("%d requests held after off, want 0", got)
 	}
 }
@@ -138,7 +44,7 @@ func TestSetInhibitsAndEnds(t *testing.T) {
 // A repeated on does not stack a second request; a repeated off does
 // nothing.
 func TestSetRepeatedEdges(t *testing.T) {
-	f := serve(t, startBus(t))
+	f := screensavertest.Serve(t, screensavertest.StartBus(t))
 	endHeld(t)
 
 	for range 2 {
@@ -146,7 +52,7 @@ func TestSetRepeatedEdges(t *testing.T) {
 			t.Fatalf("Set(true): %v", err)
 		}
 	}
-	if n := len(f.callList()); n != 1 {
+	if n := len(f.Calls()); n != 1 {
 		t.Errorf("%d Inhibit calls for two ons, want 1", n)
 	}
 	for range 2 {
@@ -154,7 +60,7 @@ func TestSetRepeatedEdges(t *testing.T) {
 			t.Fatalf("Set(false): %v", err)
 		}
 	}
-	if got := f.activeCount(); got != 0 {
+	if got := f.Active(); got != 0 {
 		t.Errorf("%d requests held after off, want 0", got)
 	}
 }
@@ -162,7 +68,7 @@ func TestSetRepeatedEdges(t *testing.T) {
 // Without the service (sway, Hyprland), on fails and holds nothing, so
 // a later off does nothing.
 func TestSetWithoutService(t *testing.T) {
-	startBus(t)
+	screensavertest.StartBus(t)
 	endHeld(t)
 
 	if err := Set(true, "app", "reason"); err == nil {
