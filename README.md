@@ -160,6 +160,9 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   its window: it is minimized, hidden, or the app is in the background on
   Android, iOS or the web. A player stops decoding and pauses audio there
   ([`examples/visibility/`](examples/visibility/))
+- **Keep the display awake** — `Window.KeepAwake` keeps the display on while a
+  window is on screen, for example during video playback. Each caller holds its
+  own request ([`examples/keep_awake/`](examples/keep_awake/))
 - **Light and dark** — `Window.FollowSystemAppearance` switches the theme with
   the desktop's light/dark setting. On Windows, and on GNOME under Wayland, the
   window frame switches with it

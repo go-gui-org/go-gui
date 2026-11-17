@@ -337,16 +337,18 @@ policy from code that drifts.
   the background), and `EventVisibilityChanged` each change of the two together.
   Backends report the OS side through `gui.DispatchWindowOccluded`, on the UI
   thread. A platform that cannot hide a window has `CanHideWindow() bool`
-  returning false, and `Hide` does nothing there.
+  returning false, and `Hide` does nothing there. `KeepAwake` keeps the display
+  on while a window with a request is on screen; gui counts the requests and
+  calls `SetKeepAwake` only when the whole app's state changes.
 - **Where to change:** `gui/window_cfg.go` for config, `gui/window_opacity.go`,
   `gui/window_decoration.go`, `gui/window_placement.go` and
-  `gui/window_visibility.go` for runtime, one `NativePlatform` method per
-  capability, implemented per backend.
+  `gui/window_visibility.go` and `gui/keep_awake.go` for runtime, one
+  `NativePlatform` method per capability, implemented per backend.
 - **Catches:** `gui.Debug` (category `DebugWindowDegraded`) reports a refused
   feature. Specs: `docs/specs/transparent-windows.md`,
   `docs/specs/window-opacity.md`, `docs/specs/window-size-limits.md`,
   `docs/specs/frameless-windows.md`, `docs/specs/window-state.md`,
-  `docs/specs/window-visibility-event.md`.
+  `docs/specs/window-visibility-event.md`, `docs/specs/keep-awake.md`.
 
 ### Widget Cfg invariants
 
