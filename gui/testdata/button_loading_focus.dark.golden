@@ -1,0 +1,7 @@
+# go-gui-golden v1
+Shadow xy=15.00,15.00 wh=59.60,31.60 color=#4d82f03f radius=6.00 blur=2.00 offset=0.00,0.00
+Rect xy=15.00,15.00 wh=59.60,31.60 color=#4d82f0ff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=59.60,31.60 color=#4d82f0ff radius=6.00 thickness=1.00
+Clip xy=37.80,23.80 wh=14.00,14.00
+Svg xy=37.80,23.80 wh=0.00,0.00 color=#ffffffff tris=12 bbox=0.00,0.00..10.00,10.00 centroid=6.67,5.00 digest=fe4ce615
+Clip xy=0.00,0.00 wh=320.00,240.00

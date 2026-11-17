@@ -23,6 +23,22 @@ gui.Button(gui.ButtonCfg{
 })
 ```
 
+## Loading Button
+
+Set `Loading` while the work that the button started runs. The button shows a
+spinner in place of its content and keeps its width. A click does nothing. The
+button keeps its colors and its focus, and reports the busy state to assistive
+tech.
+
+```go
+gui.Button(gui.ButtonCfg{
+    ID:      "save",
+    Label:   "Save",
+    Loading: app.Saving,
+    OnClick: startSave,
+})
+```
+
 ## Key Properties
 
 | Property  | Type            | Description                       |
@@ -32,6 +48,7 @@ gui.Button(gui.ButtonCfg{
 | HAlign    | HorizontalAlign | Horizontal content alignment      |
 | VAlign    | VerticalAlign   | Vertical content alignment        |
 | Disabled  | bool            | Disable interaction               |
+| Loading   | bool            | Spinner in place of content, busy |
 | Invisible | bool            | Hide without removing from layout |
 | Sizing    | Sizing          | Combined axis sizing mode         |
 | Width     | float32         | Fixed width                       |

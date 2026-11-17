@@ -43,6 +43,9 @@ type ShowcaseApp struct {
 	DataGridSelection   datagrid.GridSelection
 	DataSourceSelection datagrid.GridSelection
 	ButtonCopyUntil     time.Time
+	// ButtonLoading is true while the Loading demo's simulated save
+	// runs (#1264).
+	ButtonLoading bool
 
 	InputDate  time.Time
 	RollerDate time.Time

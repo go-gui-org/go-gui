@@ -603,6 +603,10 @@ type shapeButtonColors struct {
 	// selected makes pick start from colors.Selected (#741). Set from
 	// the unexported ButtonCfg.selected.
 	selected bool
+	// loading is ButtonCfg.Loading (#1264). The amend pass hides the
+	// content layer, and both passes keep painting focus and hover
+	// although Button dropped the OnClick.
+	loading bool
 }
 
 // BoxShadow defines drop shadow properties.
