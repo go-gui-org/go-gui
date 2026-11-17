@@ -29,6 +29,10 @@ lets the home indicator fade out. The view keeps its size. The button toggles
 the app's own request rather than `IsFullscreen`: a windowed iPad cannot fill
 the screen, so `IsFullscreen` stays false there until the window does.
 
+The "Keep the screen on" switch holds a `w.KeepAwake` request, which turns off
+the idle timer that locks the screen. It is on only while the app is in the
+foreground.
+
 The line under the heading counts how often the app left the screen and how long
 the last absence was. It comes from `EventVisibilityChanged` and
 `w.IsOccluded()`: a player would stop decoding and pause its audio there.

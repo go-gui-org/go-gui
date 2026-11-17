@@ -56,6 +56,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../keep_awake/main.go",
+		beginMark:  "// doc:snippet-begin keep-awake",
+		endMark:    "// doc:snippet-end keep-awake",
+		anchor:     "app.release[i] = w.KeepAwake(",
+		heading:    "## How it works",
+		guides: []string{
+			"../keep_awake/README.md",
+		},
+	},
+	{
 		sourceFile: "sound_player.go",
 		beginMark:  "// doc:snippet-begin player",
 		endMark:    "// doc:snippet-end player",

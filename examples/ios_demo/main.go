@@ -22,6 +22,9 @@ type App struct {
 	// a windowed iPad grants it only once the window fills the
 	// screen.
 	Fullscreen bool
+	// releaseAwake ends the keep-awake request; nil while none is held
+	// (issue #1172).
+	releaseAwake func()
 	// Set by onEvent from EventVisibilityChanged.
 	hiddenAt time.Time
 	returns  int
@@ -123,6 +126,7 @@ func view(w *gui.Window) gui.View {
 				},
 			}),
 			fullscreenButton(w),
+			keepAwakeSwitch(w),
 			// Each field asks for its own soft keyboard (issue #806).
 			gui.Input(gui.InputCfg{
 				ID:          gui.ScopeID("ios-demo", "name"),
@@ -180,6 +184,26 @@ func fullscreenButton(w *gui.Window) gui.View {
 			app := gui.State[App](ctx.Window)
 			app.Fullscreen = !app.Fullscreen
 			ctx.Window.SetFullscreen(app.Fullscreen)
+			ctx.Consume()
+		},
+	})
+}
+
+// keepAwakeSwitch keeps the screen from locking while it is on (issue
+// #1172).
+func keepAwakeSwitch(w *gui.Window) gui.View {
+	return gui.Switch(gui.SwitchCfg{
+		ID:       gui.ScopeID("ios-demo", "keep-awake"),
+		Label:    "Keep the screen on",
+		Selected: gui.State[App](w).releaseAwake != nil,
+		OnClick: func(ctx gui.EventCtx) {
+			app := gui.State[App](ctx.Window)
+			if app.releaseAwake == nil {
+				app.releaseAwake = ctx.Window.KeepAwake("iOS demo")
+			} else {
+				app.releaseAwake()
+				app.releaseAwake = nil
+			}
 			ctx.Consume()
 		},
 	})

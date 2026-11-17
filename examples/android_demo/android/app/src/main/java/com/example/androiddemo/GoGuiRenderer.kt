@@ -8,6 +8,7 @@ import android.opengl.GLSurfaceView
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import androidapp.Androidapp
 import javax.microedition.khronos.egl.EGLConfig
@@ -39,6 +40,7 @@ class GoGuiRenderer(
         Androidapp.render()
         pollPendingURI()
         pollPendingFullscreen()
+        pollKeepAwake()
         pollPendingIMEAction()
         pollPendingNotification()
         glView.pollA11yAnnouncement()
@@ -67,6 +69,21 @@ class GoGuiRenderer(
             2 -> mainHandler.post {
                 (activity as? MainActivity)?.setFullscreen(false)
             }
+        }
+    }
+
+    // Window.KeepAwake (go-gui #1172): the state, polled each frame.
+    // GL thread only; the flag is set on the UI thread.
+    private var keepAwake = false
+
+    private fun pollKeepAwake() {
+        val want = Androidapp.pendingKeepAwake()
+        if (want == keepAwake) return
+        keepAwake = want
+        mainHandler.post {
+            val flag = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            if (want) activity.window.addFlags(flag)
+            else activity.window.clearFlags(flag)
         }
     }
 

@@ -208,6 +208,20 @@ bridge, `GoGuiFullscreen.kt`, the poll in its renderer, and the
 `onWindowFocusChanged` and `onMultiWindowModeChanged` calls in its activity.
 Without them `SetFullscreen` does nothing.
 
+## Keep the screen on
+
+The "Keep the screen on" switch holds a `Window.KeepAwake` request. The backend
+cannot call Java, so the host does the work: `GoGuiRenderer` polls
+`PendingKeepAwake()` each frame and, when the value changes, adds or clears
+`FLAG_KEEP_SCREEN_ON` on the activity's window on the UI thread.
+`PendingKeepAwake` is the state, not an event, so reading it clears nothing.
+
+When the activity stops, go-gui ends the request (Android ignores the flag on a
+stopped activity anyway), and asks for it again when the activity starts.
+
+An app's host needs `PendingKeepAwake` in its Go bridge and the poll in its
+renderer. Without them `KeepAwake` does nothing.
+
 ## Troubleshooting
 
 - **gomobile not found**: Make sure that `$GOPATH/bin` is in `$PATH`
