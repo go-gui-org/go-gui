@@ -10,8 +10,8 @@ and this project adheres to
 
 ### Added
 
-- **`Window.KeepAwake` keeps the display on (#1172).** A video player calls
-  `release := w.KeepAwake("Playing a video")` when playback starts and
+- **`Window.KeepAwake` keeps the display on (#1172, #1287).** A video player
+  calls `release := w.KeepAwake("Playing a video")` when playback starts and
   `release()` when it stops. Each call is its own request, so two players never
   end each other's: the display may sleep only once every request is released.
   The OS gets one request for the whole app, held while some window with a
@@ -19,12 +19,14 @@ and this project adheres to
   background, lets the display sleep, and closing a window ends its requests.
   Both calls are safe from any goroutine. Windows keeps the display and the
   system awake (`powercfg /requests` shows the reason), macOS holds an
-  `NSProcessInfo` activity (`pmset -g assertions`), Linux asks the desktop's
-  `org.freedesktop.ScreenSaver` service over D-Bus, iOS turns off the idle timer
-  and the web takes a Screen Wake Lock (HTTPS or localhost only). On Android the
+  `NSProcessInfo` activity (`pmset -g assertions`), iOS turns off the idle timer
+  and the web takes a Screen Wake Lock (HTTPS or localhost only). On Wayland
+  every window carries an idle inhibitor (the idle-inhibit protocol), so it also
+  works on sway, Hyprland and other compositors without a ScreenSaver service.
+  X11, and a compositor without the protocol (weston, GNOME before 45), ask the
+  desktop's `org.freedesktop.ScreenSaver` service over D-Bus. On Android the
   app's host polls the new `PendingKeepAwake` and sets `FLAG_KEEP_SCREEN_ON`
-  (see `examples/android_demo`). sway and Hyprland have no ScreenSaver service,
-  so the request does nothing there yet; `DebugWindowDegraded` reports a refused
+  (see `examples/android_demo`). `DebugWindowDegraded` reports a refused
   request. A custom backend implements the new `NativePlatform.SetKeepAwake`.
   The new `examples/keep_awake` shows it. See `docs/specs/keep-awake.md`.
 - **`GOGUI_RENDERER=soft` draws a Linux window on the CPU, without GL (#1265).**

@@ -83,14 +83,49 @@ The OS request belongs to the process, so each backend keeps it at package
 level: gui may end it through another window's platform than the one that began
 it.
 
-| Platform | Request                                                                     | Notes                                                                                                                                  |
-| -------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows  | `PowerCreateRequest`, then `PowerSetRequest` for the display and the system | A display request alone lets the system sleep. On Modern Standby on battery, Windows ends it five minutes after the sleep timeout      |
-| macOS    | `NSProcessInfo beginActivityWithOptions:NSActivityIdleDisplaySleepDisabled` | Foundation only                                                                                                                        |
-| Linux    | `org.freedesktop.ScreenSaver.Inhibit` on a private session-bus connection   | X11 and Wayland. The service ends an inhibit whose caller left the bus, so a crash releases it. sway and Hyprland have no such service |
-| Web      | `navigator.wakeLock.request("screen")`                                      | HTTPS or localhost. A refusal comes from the promise and goes to the console                                                           |
-| iOS      | `UIApplication.idleTimerDisabled`, on the main queue                        | Works under a Swift host too                                                                                                           |
-| Android  | the host polls `PendingKeepAwake()` and sets `FLAG_KEEP_SCREEN_ON`          | The backend cannot call Java; see `examples/android_demo`                                                                              |
+| Platform | Request                                                                     | Notes                                                                                                                             |
+| -------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Windows  | `PowerCreateRequest`, then `PowerSetRequest` for the display and the system | A display request alone lets the system sleep. On Modern Standby on battery, Windows ends it five minutes after the sleep timeout |
+| macOS    | `NSProcessInfo beginActivityWithOptions:NSActivityIdleDisplaySleepDisabled` | Foundation only                                                                                                                   |
+| Linux    | Wayland: idle inhibitors; else `org.freedesktop.ScreenSaver.Inhibit`        | See below. The ScreenSaver service ends an inhibit whose caller left the bus, so a crash releases it                              |
+| Web      | `navigator.wakeLock.request("screen")`                                      | HTTPS or localhost. A refusal comes from the promise and goes to the console                                                      |
+| iOS      | `UIApplication.idleTimerDisabled`, on the main queue                        | Works under a Swift host too                                                                                                      |
+| Android  | the host polls `PendingKeepAwake()` and sets `FLAG_KEEP_SCREEN_ON`          | The backend cannot call Java; see `examples/android_demo`                                                                         |
+
+### Linux: Wayland and D-Bus (issue #1287)
+
+On native Wayland the backend uses the `idle-inhibit-unstable-v1` protocol when
+the compositor offers `zwp_idle_inhibit_manager_v1`: KWin, sway and other
+wlroots compositors, Hyprland, Mutter 45 and later, COSMIC, niri. It needs no
+session service, so it works where the ScreenSaver service does not exist (sway,
+Hyprland). X11, and a compositor without the protocol (weston, Mutter before
+45), use the ScreenSaver service.
+
+An inhibitor belongs to one surface, and sway and KWin honour it only while that
+surface is visible. gui calls `SetKeepAwake` only when the app-wide state
+changes, through whichever window ran the check. When the request moves from a
+hidden holder to a visible one, the state does not change and no call comes. So
+while the request is on, every window carries an inhibitor: a window opened then
+gets one, and a closing window drops its own before its surface. The state lives
+on the shared Wayland display, which already lists every window. Off also ends a
+D-Bus request, which does nothing when none is held, so off undoes on whichever
+way on went, also after the display is gone. The choice follows the process, not
+the window: it assumes one window system for every open window, as `RunApp`
+gives. Wayland and X11 windows from separate `gl.New` calls running at once are
+not supported (the Wayland connection belongs to one thread); there an X11
+window holding the request would get no D-Bus request.
+
+What the compositors do with it, as tested in the headless harness:
+
+- sway: `swaymsg -t get_tree` shows `inhibit_idle: true` on the window. A window
+  on another workspace does not count. swayidle's timeouts, a suspend one
+  included, obey it.
+- KWin: the session is not idle, so PowerDevil runs none of its idle actions,
+  suspend included. (Plasma's D-Bus request, by its source, only holds the
+  screen settings and may let idle suspend happen; not tested.)
+- Mutter does not handle idle itself: it passes the inhibitor on as
+  `org.freedesktop.ScreenSaver.Inhibit("mutter", "idle-inhibit")`, so GNOME
+  behaves as with the D-Bus request, but lists it under "mutter", not the app.
 
 ## Testing
 
@@ -105,7 +140,17 @@ it.
 - Windows: the system's execution state, read with `CallNtPowerInformation` (no
   admin rights needed), has the display and system bits while held; a real
   window's minimize ends the request.
-- Linux: a private `dbus-daemon` with a fake ScreenSaver service.
+- Linux: a private `dbus-daemon` with a fake ScreenSaver service
+  (`gui/backend/internal/screensaver/screensavertest`).
+- Wayland, in the headless harness (`scripts/wayland/test.sh`): every window
+  holds an inhibitor while on, also one opened meanwhile, and none after off or
+  after it closes; without the protocol the request reaches the fake service
+  (weston). Under sway, `get_tree` reports the window inhibiting idle after
+  `Window.KeepAwake` and not after the release; swayidle's timer does not fire
+  while the request is held, and fires after the release, with the window on
+  another workspace, and after it closes. Under mutter, the fake service on
+  mutter's bus sees `Inhibit("mutter", "idle-inhibit")` and the `UnInhibit`. CI
+  runs the sway tests without the timed ones.
 - macOS: `pmset -g assertions` lists the reason while held.
 - Web: a fake `navigator.wakeLock` whose promises the test settles.
 - Android: the state getter.
@@ -138,8 +183,19 @@ a visible one keeps it on past the timeout).
 - **`SetKeepAwake(on bool)` without strings**, as first planned. The app name
   and reason must reach the OS, so the method carries them, and returns an error
   that gui reports, so no backend needs a debug method of its own.
+- **On Wayland, D-Bus first and the protocol only when it fails** (#1287). KDE
+  would stay on the weaker request, and a hung bus costs the two-second timeout
+  before the fallback.
+- **The protocol and D-Bus at once** (#1287). Two requests and two ways to fail
+  on GNOME and KDE, only to keep the app's name in a list few people read.
+- **An inhibitor only on the window whose platform got the call** (#1287). It
+  fails when the request moves between holders, as above.
+- **gui calling `SetKeepAwake` on the holding window**, and moving it when the
+  holder changes (#1287). It turns one app-wide switch into a per-window one,
+  for nothing the inhibitor on every window does not already give.
 
 ## Follow-ups
 
-- Wayland's `zwp_idle_inhibit_manager_v1`, for compositors without the
-  ScreenSaver service (sway, Hyprland).
+- Plasma on X11 uses the D-Bus request, which may not stop idle suspend there.
+  To check on a real Plasma machine.
+- KWin in the harness, as an optional lane, once its headless runs prove stable.
