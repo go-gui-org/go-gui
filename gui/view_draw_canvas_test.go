@@ -315,3 +315,46 @@ func TestDrawCanvasEmptyIDNoCollision(t *testing.T) {
 		t.Errorf("canvas 2: RenderSvg count = %d, want 2", svg2)
 	}
 }
+
+// TestDrawCanvasClickButtons pins which mouse buttons reach a canvas's click
+// handlers. OnClick is left-only (a canvas used as a button must not fire on a
+// right press). OnAnyClick takes every button: go-term's grid is a canvas and must
+// forward right and middle presses to the program inside it. Before OnAnyClick
+// existed, a right press on a go-term pane never reached it, so terminal apps
+// that open a menu on right-click (ttt) showed nothing.
+func TestDrawCanvasClickButtons(t *testing.T) {
+	buttons := []MouseButton{MouseLeft, MouseRight, MouseMiddle}
+	cases := []struct {
+		name string
+		any  bool
+		want []bool // fired, per entry in buttons
+	}{
+		{"on_click_left_only", false, []bool{true, false, false}},
+		{"on_any_click_every_button", true, []bool{true, true, true}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for i, b := range buttons {
+				w := NewTestWindow(t, WindowCfg{})
+				var got []MouseButton
+				handler := func(ctx EventCtx) {
+					got = append(got, ctx.Event.MouseButton)
+					ctx.Consume()
+				}
+				cfg := DrawCanvasCfg{ID: "dc", Sizing: FillFill,
+					OnDraw: func(*DrawContext) {}}
+				if tc.any {
+					cfg.OnAnyClick = handler
+				} else {
+					cfg.OnClick = handler
+				}
+				w.TestRender(func(*Window) View { return DrawCanvas(cfg) })
+				w.EventFn(&Event{Type: EventMouseDown, MouseButton: b,
+					MouseX: 100, MouseY: 100})
+				if fired := len(got) == 1 && got[0] == b; fired != tc.want[i] {
+					t.Errorf("button %v: fired = %v, want %v", b, fired, tc.want[i])
+				}
+			}
+		})
+	}
+}
