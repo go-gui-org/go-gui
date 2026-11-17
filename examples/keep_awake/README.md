@@ -59,17 +59,20 @@ func setPlaying(w *gui.Window, i int, playing bool) {
 | -------- | --------------------------------------------------------- | ------------------------------- |
 | Windows  | a power request for the display and the system            | `powercfg /requests` (as admin) |
 | macOS    | an `NSProcessInfo` activity that stops idle display sleep | `pmset -g assertions`           |
-| Linux    | `org.freedesktop.ScreenSaver.Inhibit` over D-Bus          | `gnome-session-inhibit --list`  |
+| Linux    | Wayland: an idle inhibitor; X11: ScreenSaver over D-Bus   | `gnome-session-inhibit --list`  |
 | Web      | a Screen Wake Lock                                        | the browser's dev tools         |
 | iOS      | `UIApplication.idleTimerDisabled`                         |                                 |
 | Android  | `FLAG_KEEP_SCREEN_ON`, set by the app's host              |                                 |
 
 On a Modern Standby PC running on battery, Windows ends the system part five
-minutes after the sleep timeout. sway and Hyprland have no ScreenSaver service,
-so the request does nothing there. The web needs HTTPS or localhost, and the
-browser may refuse, for example in power saver mode; the reason goes to the
-browser console. On Android the request needs the host's help: see
-`examples/android_demo`. Where the request is refused, `GOGUI_DEBUG=1` says so
-once.
+minutes after the sleep timeout. On Wayland every window carries an idle
+inhibitor (the idle-inhibit protocol); sway shows it as `inhibit_idle` in
+`swaymsg -t get_tree`, and GNOME lists it under "mutter". A compositor without
+the protocol (weston, GNOME before 45) gets the D-Bus request instead, and an
+X11 desktop without the ScreenSaver service ignores it. The web needs HTTPS or
+localhost, and the browser may refuse, for example in power saver mode; the
+reason goes to the browser console. On Android the request needs the host's
+help: see `examples/android_demo`. Where the request is refused, `GOGUI_DEBUG=1`
+says so once.
 
 See `main.go` for the implementation.

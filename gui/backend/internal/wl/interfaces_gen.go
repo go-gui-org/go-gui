@@ -16,6 +16,7 @@ func defineInterfaces() {
 	defineWpPrimarySelectionUnstableV1()
 	defineWlrVirtualPointerUnstableV1()
 	defineInputMethodUnstableV2()
+	defineIdleInhibitUnstableV1()
 }
 
 // allInterfaces lists every generated table, for tests.
@@ -67,4 +68,6 @@ var allInterfaces = []*Interface{
 	&ZwpInputPopupSurfaceV2Interface,
 	&ZwpInputMethodKeyboardGrabV2Interface,
 	&ZwpInputMethodManagerV2Interface,
+	&ZwpIdleInhibitManagerV1Interface,
+	&ZwpIdleInhibitorV1Interface,
 }

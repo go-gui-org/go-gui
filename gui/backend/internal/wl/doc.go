@@ -34,4 +34,4 @@
 // wl_argument is read as one 8-byte slot holding its value in the low bytes.
 package wl
 
-//go:generate go run ./internal/wlgen . protocols/wayland.xml protocols/xdg-shell.xml protocols/xdg-decoration-unstable-v1.xml protocols/viewporter.xml protocols/fractional-scale-v1.xml protocols/cursor-shape-v1.xml protocols/text-input-unstable-v3.xml protocols/primary-selection-unstable-v1.xml protocols/wlr-virtual-pointer-unstable-v1.xml protocols/input-method-unstable-v2.xml
+//go:generate go run ./internal/wlgen . protocols/wayland.xml protocols/xdg-shell.xml protocols/xdg-decoration-unstable-v1.xml protocols/viewporter.xml protocols/fractional-scale-v1.xml protocols/cursor-shape-v1.xml protocols/text-input-unstable-v3.xml protocols/primary-selection-unstable-v1.xml protocols/wlr-virtual-pointer-unstable-v1.xml protocols/input-method-unstable-v2.xml protocols/idle-inhibit-unstable-v1.xml

@@ -3,7 +3,9 @@
 // Package screensaver keeps the display on through the freedesktop
 // ScreenSaver D-Bus service (issue #1172). GNOME offers it through
 // gsd-screensaver-proxy, KDE and Xfce offer it themselves. sway and
-// Hyprland do not; Wayland's idle-inhibit protocol is for them.
+// Hyprland do not. On Wayland the GL backend uses the idle-inhibit
+// protocol where the compositor offers it (issue #1287); this package is
+// the X11 path and the fallback.
 //
 // The request lives on a private session-bus connection that stays open
 // while the request is held. The service ends a request whose caller

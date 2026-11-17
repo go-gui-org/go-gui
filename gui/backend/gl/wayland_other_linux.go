@@ -36,6 +36,10 @@ func (b *Backend) runWayland(*gui.Window) {}
 
 func (p *platformState) destroyWayland() {}
 
+// waylandKeepAwake reports that there is no Wayland display, so
+// SetKeepAwake uses D-Bus.
+func waylandKeepAwake(bool) bool { return false }
+
 // The X11 entry points branch to these when p.wl is set, which never
 // happens here.
 func (*wlWindow) minimize()                   {}

@@ -56,6 +56,7 @@ type wlDisplay struct {
 	viewporter   wl.WpViewporter                       // fractional scale
 	fracMgr      wl.WpFractionalScaleManagerV1         // fractional scale
 	textInputMgr wl.ZwpTextInputManagerV3              // input methods
+	keepAwake    wlKeepAwake                           // idle inhibit (wayland_keep_awake_linux.go)
 	// decor is the libdecor instance, made by the first window that
 	// needs a frame drawn (wayland_shell_linux.go); decorTried records
 	// that it was tried, so a failure is not retried per window.
@@ -140,7 +141,8 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 				"wp_cursor_shape_manager_v1", "wl_data_device_manager",
 				"zwp_primary_selection_device_manager_v1",
 				"zxdg_decoration_manager_v1", "wp_viewporter",
-				"wp_fractional_scale_manager_v1", "zwp_text_input_manager_v3":
+				"wp_fractional_scale_manager_v1", "zwp_text_input_manager_v3",
+				"zwp_idle_inhibit_manager_v1":
 				if _, seen := globals[iface]; !seen {
 					globals[strings.Clone(iface)] = wlGlobal{name, version}
 				}
@@ -178,6 +180,8 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 		&wl.WpFractionalScaleManagerV1Interface, "wp_fractional_scale_manager_v1")}
 	d.textInputMgr = wl.ZwpTextInputManagerV3{Proxy: bind(
 		&wl.ZwpTextInputManagerV3Interface, "zwp_text_input_manager_v3")}
+	d.keepAwake.mgr = wl.ZwpIdleInhibitManagerV1{Proxy: bind(
+		&wl.ZwpIdleInhibitManagerV1Interface, "zwp_idle_inhibit_manager_v1")}
 	if d.seat != nil {
 		// The seat was bound during the round trip, before the managers
 		// its selection devices come from.
@@ -352,6 +356,7 @@ func (d *wlDisplay) destroyOptionalGlobals() {
 	if d.textInputMgr.Valid() {
 		d.textInputMgr.Destroy()
 	}
+	d.keepAwake.destroy()
 }
 
 // wlWindow is the Wayland state of one window: the surface, its xdg-shell
@@ -572,6 +577,7 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 	w.SetPrimaryGetFn(func() string { return d.getSelection(b, wlSelPrimary) })
 
 	d.wins[ww.surface.Ptr()] = b
+	d.keepAwake.sync(ww) // opened while the app keeps the display awake
 	b.plat.lockedTid = syscall.Gettid()
 	handedOff = true
 	return b, nil
@@ -785,6 +791,7 @@ func (p *platformState) destroyWayland() {
 	if ww.viewport.Valid() {
 		ww.viewport.Destroy()
 	}
+	ww.d.keepAwake.drop(ww)
 	ww.destroyRole()
 	if ww.surface.Valid() {
 		ww.surface.Destroy()
