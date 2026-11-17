@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Added
 
+- **`DrawCanvasCfg.OnAnyClick` takes a press of any mouse button.** Since
+  v0.81.0 (#844) a canvas's `OnClick` runs on a left press only. A canvas that
+  is its own input surface lost every right and middle press. go-term's grid is
+  such a canvas: right-click menus in terminal apps (ttt) did not open, and
+  middle-click paste did not work. `OnAnyClick` runs on every button and
+  replaces `OnClick` when both are set, as `ContainerCfg.OnAnyClick` does.
+  `OnClick` stays left-only.
 - **`ButtonCfg.Loading` shows a busy spinner (#1264).** A button that starts
   slow work (log in, save, upload) sets `Loading: true` while the work runs. The
   button draws a spinner in the label color in place of its content. The content

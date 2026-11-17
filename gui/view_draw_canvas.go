@@ -2,8 +2,17 @@ package gui
 
 // DrawCanvasCfg configures a draw canvas view.
 type DrawCanvasCfg struct {
-	OnDraw        func(*DrawContext)
-	OnClick       func(EventCtx)
+	OnDraw func(*DrawContext)
+	// OnClick runs on a left press only, as it does on every other widget.
+	OnClick func(EventCtx)
+	// OnAnyClick runs on a press of any mouse button, and replaces OnClick
+	// when both are set. Read ctx.Event.MouseButton to tell the buttons
+	// apart. Use it for a canvas that is its own input surface: go-term's
+	// grid sends right and middle presses to the program in the terminal.
+	//
+	// exportaudit:keep — go-term forwards right and middle presses to the
+	// terminal's child through it
+	OnAnyClick    func(EventCtx)
 	OnHover       func(EventCtx)
 	OnMouseMove   func(EventCtx)
 	OnMouseUp     func(EventCtx)
@@ -88,14 +97,21 @@ func DrawCanvas(cfg DrawCanvasCfg) View {
 func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 	c := &dv.cfg
 
+	// OnAnyClick wins over OnClick and lifts the left-only filter, the same
+	// rule ContainerCfg uses. Without it every non-left press is dropped
+	// before it reaches the canvas.
+	onClick, clickBtn := c.OnClick, clickLeftOnly
+	if c.OnAnyClick != nil {
+		onClick, clickBtn = c.OnAnyClick, clickAnyButton
+	}
 	var events *eventHandlers
-	if c.OnClick != nil || c.OnHover != nil || c.OnMouseMove != nil ||
+	if onClick != nil || c.OnHover != nil || c.OnMouseMove != nil ||
 		c.OnMouseUp != nil || c.OnMouseLeave != nil || c.OnGesture != nil ||
 		c.OnMouseScroll != nil || c.OnFileDrop != nil ||
 		c.OnKeyDown != nil || c.OnDraw != nil {
 		events = w.allocEventHandlers(eventHandlers{
-			OnClick:       c.OnClick,
-			clickButton:   clickLeftOnly,
+			OnClick:       onClick,
+			clickButton:   clickBtn,
 			OnHover:       c.OnHover,
 			OnMouseMove:   c.OnMouseMove,
 			OnMouseUp:     c.OnMouseUp,
