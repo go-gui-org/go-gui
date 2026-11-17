@@ -88,3 +88,4 @@ func (noopNativePlatform) MoveWindow(_, _ int)                     {}
 func (noopNativePlatform) WindowPosition() (int, int, bool)        { return 0, 0, false }
 func (noopNativePlatform) Beep()                                   {}
 func (noopNativePlatform) BeepAvailable() bool                     { return false }
+func (noopNativePlatform) SetKeepAwake(_ bool, _, _ string) error  { return nil }

@@ -30,6 +30,9 @@ type App struct {
 	// Fullscreen is what the app asked for. IsFullscreen can differ:
 	// in multi-window mode the activity cannot be fullscreen.
 	Fullscreen bool
+	// releaseAwake ends the keep-awake request; nil while none is held
+	// (issue #1172).
+	releaseAwake func()
 	// Set by onEvent from EventVisibilityChanged.
 	hiddenAt time.Time
 	returns  int
@@ -154,6 +157,12 @@ func PendingFullscreen() int32 { return android.PendingFullscreen() }
 // FullscreenChanged is called from Kotlin with whether the activity is
 // now fullscreen.
 func FullscreenChanged(on bool) { android.FullscreenChanged(on) }
+
+// --- Keep-awake bridge (issue #1172) ---
+
+// PendingKeepAwake reports whether the app wants the screen kept on.
+// Kotlin polls it each frame and sets FLAG_KEEP_SCREEN_ON to match.
+func PendingKeepAwake() bool { return android.PendingKeepAwake() }
 
 // --- IME bridge ---
 
@@ -438,6 +447,27 @@ func view(w *gui.Window) gui.View {
 				},
 			}),
 			fullscreenButton(w),
+			keepAwakeSwitch(w),
+		},
+	})
+}
+
+// keepAwakeSwitch keeps the screen on while it is on (issue #1172). The
+// host applies the request through PendingKeepAwake.
+func keepAwakeSwitch(w *gui.Window) gui.View {
+	return gui.Switch(gui.SwitchCfg{
+		ID:       "android_keep_awake",
+		Label:    "Keep the screen on",
+		Selected: gui.State[App](w).releaseAwake != nil,
+		OnClick: func(ctx gui.EventCtx) {
+			app := gui.State[App](ctx.Window)
+			if app.releaseAwake == nil {
+				app.releaseAwake = ctx.Window.KeepAwake("Android demo")
+			} else {
+				app.releaseAwake()
+				app.releaseAwake = nil
+			}
+			ctx.Consume()
 		},
 	})
 }

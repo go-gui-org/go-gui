@@ -97,8 +97,9 @@ const (
 	// could not deliver: a WindowCfg.Transparent window with no ARGB
 	// visual or no compositing manager; a Window.SetWindowOpacity the
 	// platform refused (a Transparent window on Windows); a
-	// WindowCfg.VSyncOff the backend could not honor; or a Window.Hide
-	// where no window can be hidden (web, iOS, Android, Wayland).
+	// WindowCfg.VSyncOff the backend could not honor; a Window.Hide
+	// where no window can be hidden (web, iOS, Android, Wayland); or a
+	// Window.KeepAwake request the platform refused.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugWindowDegraded
 

@@ -133,6 +133,10 @@ const (
 	// is empty: no field can register with the form and it cannot
 	// submit (#1257).
 	debugCheckFormNoID
+	// debugCheckKeepAwake fires from reconcileKeepAwake when the
+	// platform could not begin or end the request to keep the display
+	// on (#1172).
+	debugCheckKeepAwake
 )
 
 // checkCategory maps an internal check to the public category that
@@ -161,7 +165,7 @@ func checkCategory(check debugCheck) DebugCategory {
 	case debugCheckDeferredLoop, debugCheckLinkNotOpened:
 		return DebugCallbacks
 	case debugCheckWindowTransparency, debugCheckWindowOpacity,
-		debugCheckWindowVSync, debugCheckWindowHide:
+		debugCheckWindowVSync, debugCheckWindowHide, debugCheckKeepAwake:
 		return DebugWindowDegraded
 	case debugCheckUnresolvedKey, debugCheckEffIDPhase:
 		return DebugUnresolvedKeys

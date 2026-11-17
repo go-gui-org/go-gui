@@ -294,6 +294,8 @@ func newBackend(w *gui.Window) (*Backend, error) {
 		doc:        doc,
 		canvas:     canvas,
 		fullscreen: b.fullscreen,
+		wakeLock: newPageWakeLock(js.Global().Get("navigator"), doc,
+			&b.callbacks),
 	})
 
 	return b, nil

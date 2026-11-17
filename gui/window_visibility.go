@@ -68,7 +68,13 @@ func (w *Window) IsOccluded() bool {
 // It reports whether the window became shown, for Show to ask for the
 // frame that draws what the handler changed.
 func (w *Window) reportVisibility() (shown bool) {
-	if w.destroyed.Load() || w.frozen.Load() {
+	if w.destroyed.Load() {
+		return false
+	}
+	// Before the frozen check: the request to keep the display on
+	// follows what the user sees, even while the event waits (#1172).
+	w.reconcileKeepAwake()
+	if w.frozen.Load() {
 		return false
 	}
 	notShown := w.hidden.Load() || w.occluded.Load()

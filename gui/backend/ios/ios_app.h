@@ -75,6 +75,14 @@ void iosSetFullscreen(int on);
 // window fills the screen.
 extern void goIOSFullscreen(int on);
 
+// ─── Keep awake (issue #1172) ───────────────────────────────
+// Implemented in keep_awake_ios.go.
+
+// Keep the screen on (1) or let it lock again (0), through
+// UIApplication.idleTimerDisabled. The change is applied on the main
+// queue, so this is safe to call from any thread.
+void iosSetKeepAwake(int on);
+
 // The scene left the background (1) or entered it (0) (issue #1170).
 extern void goIOSVisibility(int visible);
 
