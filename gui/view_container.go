@@ -330,6 +330,7 @@ type containerView struct {
 	opticalDigits   bool
 	selected        bool
 	noFocusRing     bool
+	loading         bool
 	// colors is the button's resolved ColorSet, carried whole rather
 	// than fanned into flat fields and packed back into a set at the
 	// shape (#690).
@@ -381,6 +382,7 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 			selected:      cv.selected,
 			focusRing:     ring,
 			labelColor:    cv.labelColor,
+			loading:       cv.loading,
 		}
 		if w != nil {
 			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)

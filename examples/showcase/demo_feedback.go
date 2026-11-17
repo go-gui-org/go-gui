@@ -121,6 +121,27 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 				ctx.Consume()
 			},
 		})),
+		buttonFeatureRow("Loading", gui.Button(gui.ButtonCfg{
+			ID:      "showcase-button-loading",
+			Variant: gui.ButtonPrimary,
+			Label:   "Save",
+			// While Loading is true the button shows a spinner, keeps its
+			// width and focus, and ignores clicks (#1264).
+			Loading: app.ButtonLoading,
+			OnClick: func(ctx gui.EventCtx) {
+				appState(ctx.Window).ButtonLoading = true
+				// Simulated slow work: a real app starts its job here
+				// and sets the flag back to false when the job ends.
+				ctx.Window.AnimationAdd(&gui.Animate{
+					AnimID: "showcase-button-loading-done",
+					Delay:  2 * time.Second,
+					Callback: func(_ *gui.Animate, win *gui.Window) {
+						appState(win).ButtonLoading = false
+					},
+				})
+				ctx.Consume()
+			},
+		})),
 	}
 }
 

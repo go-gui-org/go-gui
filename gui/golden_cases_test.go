@@ -2069,6 +2069,7 @@ func goldenCases() []goldenCase {
 	}
 	cases = append(cases, goldenFlipPanelCases()...)
 	cases = append(cases, goldenDropdownCases()...)
+	cases = append(cases, goldenButtonLoadingCases()...)
 	return append(cases, goldenHTMLCases()...)
 }
 

@@ -279,6 +279,7 @@ func TestAutoLeafSteadyStateDoesNotAllocate(t *testing.T) {
 func TestAutoIDEveryWidgetTwiceHasNoDuplicates(t *testing.T) {
 	widgets := map[string]func(w *Window) View{
 		"Button":             func(_ *Window) View { return Button(ButtonCfg{}) },
+		"ButtonLoading":      func(_ *Window) View { return Button(ButtonCfg{Label: "Go", Loading: true}) },
 		"ColorChannelSlider": func(_ *Window) View { return ColorChannelSlider(ColorChannelSliderCfg{}) },
 		"ColorFields":        func(_ *Window) View { return ColorFields(ColorFieldsCfg{}) },
 		"ColorPicker":        func(_ *Window) View { return ColorPicker(ColorPickerCfg{}) },
