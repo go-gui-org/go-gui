@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- **`ButtonCfg.Loading` shows a busy spinner (#1264).** A button that starts
+  slow work (log in, save, upload) sets `Loading: true` while the work runs. The
+  button draws a spinner in the label color in place of its content. The content
+  is still laid out, so the button keeps its width. Before, an app put an
+  `SvgSpinner` in `Content`, and the button changed width when the spinner
+  appeared. While loading, `OnClick` does not fire and no click sound plays.
+  Unlike `Disabled`, the button keeps its normal colors and stays focusable, so
+  focus does not move while the work runs. The a11y state gets
+  `AccessStateBusy`. The spinner animates only while `Loading` is true. The
+  showcase Button page has a demo. See `docs/specs/button-loading.md`.
 - **`Window.KeepAwake` keeps the display on (#1172, #1287).** A video player
   calls `release := w.KeepAwake("Playing a video")` when playback starts and
   `release()` when it stops. Each call is its own request, so two players never

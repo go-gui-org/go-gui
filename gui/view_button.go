@@ -110,6 +110,16 @@ type ButtonCfg struct {
 	FloatTieOff FloatAttach
 	Disabled    bool
 	Invisible   bool
+	// Loading shows that the work the button started is still running
+	// (#1264). The button draws a spinner, in the label's color, in place
+	// of its content. The content is still laid out, so the button keeps
+	// its size; only content narrower than the spinner (one em, as in a
+	// "+" label) lets the button grow to the spinner's width. OnClick does
+	// not fire and the click sound does not play. Unlike Disabled, the
+	// button keeps its normal colors and stays focusable, so focus does
+	// not jump while the work runs. The a11y state gets AccessStateBusy.
+	// The spinner animates only while Loading is true.
+	Loading bool
 	// opticalDigitLabel centres this button's label on the face's
 	// figure band rather than its cap band. Digits measure shorter than
 	// caps, so a digit-only label centred on the cap band lands as far
@@ -152,6 +162,10 @@ func buttonAmendLayout(ctx EventCtx) {
 		band = opticalBandDigit
 	}
 	opticalCenterChildren(ctx, band)
+	loading := ctx.Layout.Shape.bc != nil && ctx.Layout.Shape.bc.loading
+	if loading {
+		buttonHideLoadingContent(ctx, band)
+	}
 
 	// Filled variants recolor the labels that took the default color
 	// (visual-refresh §6). The color is captured at generation — this
@@ -163,9 +177,11 @@ func buttonAmendLayout(ctx EventCtx) {
 		stampButtonLabelColor(ctx.Layout, bc.labelColor)
 	}
 
+	// A loading button has no OnClick (Button drops it) but is still an
+	// interactive button: it keeps its focus and hover colors (#1264).
 	if ctx.Layout.Shape.Disabled ||
 		!ctx.Layout.Shape.hasEvents() ||
-		ctx.Layout.Shape.events.OnClick == nil {
+		(ctx.Layout.Shape.events.OnClick == nil && !loading) {
 		return
 	}
 	// hovered stays false here: AmendLayout runs with a nil Event and
@@ -213,12 +229,18 @@ func stampButtonLabelColor(l *Layout, c Color) {
 }
 
 func buttonOnHover(ctx EventCtx) {
+	// See buttonAmendLayout: a loading button has no OnClick but keeps
+	// its hover color. It does not show the hand cursor, because a click
+	// does nothing (#1264).
+	loading := ctx.Layout.Shape.bc != nil && ctx.Layout.Shape.bc.loading
 	if ctx.Layout.Shape.Disabled ||
 		!ctx.Layout.Shape.hasEvents() ||
-		ctx.Layout.Shape.events.OnClick == nil {
+		(ctx.Layout.Shape.events.OnClick == nil && !loading) {
 		return
 	}
-	ctx.Window.setMouseCursor(CursorPointingHand)
+	if !loading {
+		ctx.Window.setMouseCursor(CursorPointingHand)
+	}
 	// This pass sees everything the amend pass saw plus the pointer, so
 	// it re-picks both channels outright rather than patching the fill
 	// the amend pass left. Either press counts: a mouse press that began
@@ -317,6 +339,17 @@ func Button(cfg ButtonCfg) View {
 	soundCue := resolveSoundCue(
 		guiTheme.Sounds.Click, cfg.Sound, cfg.SoundDisabled)
 
+	// A loading button refuses the click by having no handler, not by a
+	// guard in a wrapper closure: that would allocate per button per
+	// frame. The amend and hover passes are told through bc.loading, so
+	// they keep painting focus and hover although OnClick is nil (#1264).
+	a11yState := cfg.A11YState
+	if cfg.Loading {
+		onClick = nil
+		soundCue = SoundNone
+		a11yState |= AccessStateBusy
+	}
+
 	a11yRole := cfg.A11YRole
 	if a11yRole == AccessRoleNone {
 		a11yRole = AccessRoleButton
@@ -336,6 +369,9 @@ func Button(cfg ButtonCfg) View {
 			content...,
 		)
 	}
+	if cfg.Loading {
+		content = buttonLoadingContent(content, labelColor, hAlign, vAlign)
+	}
 
 	restFill, _ := cfg.Colors.pick(stateFlags{
 		disabled: cfg.Disabled,
@@ -345,7 +381,7 @@ func Button(cfg ButtonCfg) View {
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
 		A11YRole:  a11yRole,
-		A11YState: cfg.A11YState,
+		A11YState: a11yState,
 		A11YCfg:   cfg.A11YCfg,
 		// The resting fill. Disabled is picked here too, but the
 		// disabled fill that sticks is layoutDisables' job, because a
@@ -403,8 +439,91 @@ func Button(cfg ButtonCfg) View {
 	cv.userOnHover = cfg.OnHover
 	cv.userAmendLayout = cfg.AmendLayout
 	cv.opticalDigits = cfg.opticalDigitLabel
+	cv.loading = cfg.Loading
 
 	return cv
+}
+
+// buttonLoadingContent puts a loading button's content and its spinner
+// in one Stack, one layer over the other (#1264). A Stack is as large as
+// its largest layer, so the button keeps the size its content gives it.
+// A Row would put the spinner beside the content and widen the button,
+// which is the jump Loading exists to remove. A Float would also
+// overlay, but a Float is for content that must leave its container.
+//
+// Layer 0 holds the content in a Row with the button's own alignment,
+// so the content is arranged as it is without Loading.
+// buttonAmendLayout hides that layer (buttonHideLoadingContent). Layer
+// 1 is the spinner: one em square, in the label's color.
+func buttonLoadingContent(content []View, labelColor Color,
+	hAlign HorizontalAlign, vAlign VerticalAlign) []View {
+	color := labelColor
+	if !color.IsSet() {
+		color = guiTheme.TextStyleDef.Color
+	}
+	size := guiTheme.TextStyleDef.Size
+	return []View{Stack(ContainerCfg{
+		Padding: NoPadding,
+		// Scaffolding, not a box: a theme border would add an inset
+		// and grow the button.
+		SizeBorder: NoBorder,
+		HAlign:     HAlignCenter,
+		VAlign:     VAlignMiddle,
+		Content: []View{
+			Row(ContainerCfg{
+				Padding:    NoPadding,
+				SizeBorder: NoBorder,
+				HAlign:     hAlign,
+				VAlign:     vAlign,
+				Content:    content,
+			}),
+			SvgSpinner(SvgSpinnerCfg{
+				Kind:   SvgSpinner90Ring,
+				Width:  size,
+				Height: size,
+				Color:  color,
+			}),
+		},
+	})}
+}
+
+// buttonHideLoadingContent hides layer 0 of a loading button's Stack
+// (see buttonLoadingContent): every shape in it is drawn at opacity 0.
+// The shapes stay in the tree, so they keep their size, and the label
+// text still names the button for assistive tech. The label is one
+// level below the button here, out of reach of the button's own
+// optical correction, so the correction runs on the layer too: without
+// it the label would move by the correction when Loading ends.
+//
+// The spinner (layer 1) loses its a11y role. Svg gives every shape
+// AccessRoleImage, and an unnamed image inside the button is read out
+// as "image"; AccessStateBusy on the button already says what the
+// spinner shows.
+func buttonHideLoadingContent(ctx EventCtx, band opticalBand) {
+	l := ctx.Layout
+	// Children[0] is the Stack and it always has both layers; the guard
+	// covers a caller AmendLayout or a later change that reshapes it.
+	if len(l.Children) == 0 || len(l.Children[0].Children) < 2 {
+		return
+	}
+	layer := &l.Children[0].Children[0]
+	opticalCenterChildren(EventCtx{layer, nil, ctx.Window}, band)
+	hideLayoutSubtree(layer)
+	if spinner := l.Children[0].Children[1].Shape; spinner != nil {
+		spinner.A11YRole = AccessRoleNone
+	}
+}
+
+// hideLayoutSubtree sets opacity 0 on l and every shape below it.
+// Opacity is per shape, not inherited, so each one is set. Shapes are
+// rebuilt each frame, so nothing needs to restore the opacity.
+func hideLayoutSubtree(l *Layout) {
+	if l.Shape != nil {
+		l.Shape.Opacity = 0
+	}
+	for i := range l.Children {
+		hideLayoutSubtree(&l.Children[i])
+	}
 }
 
 // commandButtonIDScope namespaces auto-filled CommandButton IDs.
