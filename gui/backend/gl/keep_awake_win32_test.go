@@ -41,12 +41,13 @@ func endTestPowerRequest(t *testing.T) {
 }
 
 // Issue #1172: the request reaches Windows. While it is held, the
-// system's execution state asks for the display and the system. After
-// the release it does not, unless another program holds a request of
-// its own.
+// system's execution state asks for the display and the system. The
+// release is checked through CloseHandle's result, which
+// SetKeepAwake(false) returns: the execution state is the whole
+// system's, and another program may take a request of its own at any
+// moment. Closing the handle ends the request.
 func TestKeepAwakeSetsExecutionState(t *testing.T) {
 	endTestPowerRequest(t)
-	before := systemExecutionState(t)
 	n := &nativePlatform{}
 	if err := n.SetKeepAwake(true, "go-gui", "go-gui keep-awake test"); err != nil {
 		t.Fatalf("SetKeepAwake(true): %v", err)
@@ -55,15 +56,7 @@ func TestKeepAwakeSetsExecutionState(t *testing.T) {
 		t.Errorf("held: execution state %#x, want display and system bits", got)
 	}
 	if err := n.SetKeepAwake(false, "", ""); err != nil {
-		t.Fatalf("SetKeepAwake(false): %v", err)
-	}
-	if before&esKeepAwake != 0 {
-		t.Logf("another program keeps the system awake (%#x); "+
-			"the release is not checked", before)
-		return
-	}
-	if got := systemExecutionState(t); got&esKeepAwake != 0 {
-		t.Errorf("released: execution state %#x, want no display or system bit", got)
+		t.Fatalf("SetKeepAwake(false), which closes the handle: %v", err)
 	}
 }
 

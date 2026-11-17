@@ -35,6 +35,8 @@ var callTimeout = 2 * time.Second
 var held struct {
 	mu   sync.Mutex
 	conn *dbus.Conn
+	// stop cancels the context the connection is bound to.
+	stop context.CancelFunc
 	// cookie is what Inhibit returned, for UnInhibit.
 	cookie uint32
 }
@@ -51,26 +53,27 @@ func Set(on bool, app, reason string) error {
 			return nil
 		}
 		end(held.conn, held.cookie)
-		held.conn = nil
+		held.stop()
+		held.conn, held.stop = nil, nil
 		return nil
 	}
 	if held.conn != nil {
 		return nil
 	}
-	conn, cookie, err := begin(app, reason)
+	conn, stop, cookie, err := begin(app, reason)
 	if err != nil {
 		return err
 	}
-	held.conn, held.cookie = conn, cookie
+	held.conn, held.stop, held.cookie = conn, stop, cookie
 	return nil
 }
 
 // begin opens a private connection and asks the service to inhibit
 // idle. Nothing stays open when it fails.
-func begin(app, reason string) (*dbus.Conn, uint32, error) {
-	conn, err := connect()
+func begin(app, reason string) (*dbus.Conn, context.CancelFunc, uint32, error) {
+	conn, stop, err := connect()
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), callTimeout)
 	defer cancel()
@@ -78,46 +81,50 @@ func begin(app, reason string) (*dbus.Conn, uint32, error) {
 	err = conn.Object(dest, path).
 		CallWithContext(ctx, iface+".Inhibit", 0, app, reason).Store(&cookie)
 	if err != nil {
-		_ = conn.Close()
-		return nil, 0, fmt.Errorf("%s.Inhibit: %w", iface, err)
+		stop()
+		return nil, nil, 0, fmt.Errorf("%s.Inhibit: %w", iface, err)
 	}
-	return conn, cookie, nil
+	return conn, stop, cookie, nil
 }
 
 // connect opens a private session-bus connection within callTimeout.
-// Dialing, auth and Hello take no context, so they run in a goroutine:
-// a bus that accepts the connection and then says nothing must not
-// hang the UI thread. A connection that comes up after the time is up
-// is closed.
-func connect() (*dbus.Conn, error) {
+// Auth and Hello take no context, so they run in a goroutine: a bus
+// that accepts the connection and then says nothing must not hang the
+// UI thread. The connection is bound to a context that the timeout
+// cancels; godbus then closes it, which ends the blocked Auth, so
+// nothing is left open. stop cancels that context: call it once the
+// connection is no longer needed.
+func connect() (conn *dbus.Conn, stop context.CancelFunc, err error) {
+	ctx, cancel := context.WithCancel(context.Background())
 	type result struct {
 		conn *dbus.Conn
 		err  error
 	}
 	done := make(chan result, 1)
 	go func() {
-		c, dialErr := dial()
+		c, dialErr := dial(ctx)
 		done <- result{c, dialErr}
 	}()
 	timer := time.NewTimer(callTimeout)
 	defer timer.Stop()
 	select {
 	case r := <-done:
-		return r.conn, r.err
+		if r.err != nil {
+			cancel()
+			return nil, nil, r.err
+		}
+		return r.conn, cancel, nil
 	case <-timer.C:
-		go func() {
-			if r := <-done; r.conn != nil {
-				_ = r.conn.Close()
-			}
-		}()
-		return nil, fmt.Errorf("the D-Bus session bus did not answer within %v",
-			callTimeout)
+		cancel()
+		return nil, nil, fmt.Errorf(
+			"the D-Bus session bus did not answer within %v", callTimeout)
 	}
 }
 
-// dial connects to the session bus, authenticates and says Hello.
-func dial() (*dbus.Conn, error) {
-	conn, err := dbus.SessionBusPrivate()
+// dial connects to the session bus, authenticates and says Hello. The
+// connection closes when ctx is cancelled.
+func dial(ctx context.Context) (*dbus.Conn, error) {
+	conn, err := dbus.SessionBusPrivate(dbus.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("no D-Bus session bus: %w", err)
 	}

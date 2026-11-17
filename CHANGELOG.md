@@ -107,6 +107,14 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: `NativePlatform` requires `SetKeepAwake` (#1172).** A custom
+  backend that implements `NativePlatform` must add
+  `SetKeepAwake(on bool, app, reason string) error`, or it no longer compiles.
+  gui calls it only when the app starts or stops keeping the display on. A
+  backend that cannot keep the display on returns an error wrapping
+  `errors.ErrUnsupported`, which `DebugWindowDegraded` reports; returning `nil`
+  instead keeps the old behavior silently. The backends in this repository all
+  implement it.
 - **Linux X11 picks the CPU renderer by itself when GL would run on the CPU
   anyway (#1265).** With `GOGUI_RENDERER` unset, the X11 backend now probes GL
   once at start. When `GL_RENDERER` names a software rasterizer (llvmpipe,

@@ -4,6 +4,7 @@ package screensaver
 
 import (
 	"bufio"
+	"errors"
 	"net"
 	"os/exec"
 	"path/filepath"
@@ -176,7 +177,8 @@ func TestSetWithoutService(t *testing.T) {
 }
 
 // A bus that accepts the connection and then says nothing must not hang
-// the caller: on fails once callTimeout is up.
+// the caller: on fails once callTimeout is up, and the half-open
+// connection is closed rather than left blocked in Auth.
 func TestSetSilentBus(t *testing.T) {
 	endHeld(t)
 	sock := filepath.Join(t.TempDir(), "bus")
@@ -185,14 +187,14 @@ func TestSetSilentBus(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = ln.Close() })
+	accepted := make(chan net.Conn, 1)
 	go func() {
-		for {
-			c, acceptErr := ln.Accept()
-			if acceptErr != nil {
-				return
-			}
-			t.Cleanup(func() { _ = c.Close() }) // read nothing, answer nothing
+		c, acceptErr := ln.Accept()
+		if acceptErr != nil {
+			return
 		}
+		t.Cleanup(func() { _ = c.Close() }) // answer nothing
+		accepted <- c
 	}()
 	t.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path="+sock)
 	prev := callTimeout
@@ -205,6 +207,27 @@ func TestSetSilentBus(t *testing.T) {
 	}
 	if d := time.Since(start); d > 2*time.Second {
 		t.Errorf("Set(true) on a silent bus took %v", d)
+	}
+
+	// The server's end reads what the client sent, then EOF once the
+	// client closed. A read that times out means the client still holds
+	// the connection open.
+	var c net.Conn
+	select {
+	case c = <-accepted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("no client connected to the silent bus")
+	}
+	_ = c.SetReadDeadline(time.Now().Add(2 * time.Second))
+	buf := make([]byte, 256)
+	for {
+		if _, err = c.Read(buf); err != nil {
+			break
+		}
+	}
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		t.Error("the client left the silent connection open after the timeout")
 	}
 }
 
