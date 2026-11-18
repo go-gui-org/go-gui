@@ -86,13 +86,17 @@ func revealStopHidingEases(ly, layout *Layout, visBot float32, w *Window) {
 			s.ScrollMode != ScrollHorizontalOnly && s.idKey() != "" {
 			id := s.idKey()
 			if target, ok := scrollSmoothTarget(w, id, scrollAxisY); ok {
+				// A fling aims past the range and the apply pass stops it
+				// at the edge (scrollFlingEdge): project the field to the
+				// offset the fling can reach, not to its raw target.
+				target = f32Clamp(target, scrollMaxOffsetY(p), 0)
 				// Where the field lands when the ease arrives, by the
 				// distance the ease still has to go.
+				d := target - sy.GetOr(id, 0) // Default 0: never scrolled.
 				// It hides the field when a reveal from the target would
 				// move: the clamp is against the target, not the current
 				// offset, which can sit at a range limit the target does
 				// not (an ease from the end of the content back to 0).
-				d := target - sy.GetOr(id, 0) // Default 0: never scrolled.
 				if f32IsFinite(d) {
 					if dy := revealNeedY(p, top+d, bot+d, visBot); dy != 0 &&
 						f32Clamp(target+dy, scrollMaxOffsetY(p), 0) != target {
@@ -240,7 +244,7 @@ func (w *Window) endRevealFrame(focusID string) {
 }
 
 // revealKeepFloatTop returns the y a top-level float is placed at, given
-// fy from floatAttachLayout. A float taller than the area above the
+// fy from floatAttachLayout. A centred float taller than the area above the
 // keyboard would be centred with its top, where a dialog keeps its title
 // and first field, off the window. It keeps the top at the top of the
 // area instead and lets the bottom run under the keyboard. Only while
@@ -248,12 +252,21 @@ func (w *Window) endRevealFrame(focusID string) {
 // the centring they had before #1109.
 func revealKeepFloatTop(layout *Layout, fy float32, w *Window) float32 {
 	place := w.layoutRect()
+	// Only a vertically centred placement (a dialog): a float tied to a
+	// top or bottom edge sits where its anchor and offset put it.
 	if s := layout.Shape; layout.Parent == nil && s != nil && s.Float &&
+		floatAttachMiddleRow(s.FloatAnchor) && floatAttachMiddleRow(s.FloatTieOff) &&
 		s.Height > place.Height && fy < place.Y &&
 		place.Height < w.windowRect().Height {
 		return place.Y
 	}
 	return fy
+}
+
+// floatAttachMiddleRow reports whether a is in the vertical middle row
+// (FloatMiddleLeft, FloatMiddleCenter, FloatMiddleRight).
+func floatAttachMiddleRow(a FloatAttach) bool {
+	return a >= FloatMiddleLeft && a <= FloatMiddleRight
 }
 
 // layoutRect returns the part of the window that layout places content

@@ -331,16 +331,25 @@ func scrollSmoothStop(w *Window, id string, axis scrollAxis) {
 	}
 }
 
-// scrollSmoothTarget returns the offset the active ease for id+axis is
-// heading to, and false when none runs. Main goroutine only.
+// scrollSmoothTarget returns the offset the ease for id+axis will leave
+// applied, and false when none is left to apply: the target of an
+// active ease, or the final value of a retired one that the apply pass
+// has not flushed yet (dirty). A fling's target is unclamped; the caller
+// clamps it to the range. Main goroutine only.
 func scrollSmoothTarget(w *Window, id string, axis scrollAxis) (float32, bool) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	if w.scrollSmooth == nil {
 		return 0, false
 	}
-	if e := w.scrollSmooth.findEntry(id, axis); e != nil && e.active {
+	e := w.scrollSmooth.findEntry(id, axis)
+	switch {
+	case e == nil:
+		return 0, false
+	case e.active:
 		return e.target, true
+	case e.dirty:
+		return e.current, true
 	}
 	return 0, false
 }

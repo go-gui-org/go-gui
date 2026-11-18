@@ -765,3 +765,93 @@ func TestSoftKeyboardRevealStopsEaseAtRangeEnd(t *testing.T) {
 		t.Fatal("ease to the top still active after the reveal")
 	}
 }
+
+// revealSetEntry puts the vertical smooth-scroll entry for id in the
+// given state, as the animation tick would leave it.
+func revealSetEntry(w *Window, id string, set func(e *scrollSmoothEntry)) {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	if w.scrollSmooth == nil {
+		w.scrollSmooth = &scrollSmoothAnimation{}
+	}
+	set(w.scrollSmooth.entryFor(id, scrollAxisY))
+}
+
+// revealEntryDirty reports whether id's vertical entry holds a final
+// value the apply pass has not flushed.
+func revealEntryDirty(w *Window, id string) bool {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	if w.scrollSmooth == nil {
+		return false
+	}
+	e := w.scrollSmooth.findEntry(id, scrollAxisY)
+	return e != nil && e.dirty
+}
+
+// A fling aims past the end of the range; the apply pass stops it at
+// the edge. Where it can reach, the field still shows, so the reveal
+// lets it run: the check projects the field to the reachable offset.
+func TestSoftKeyboardRevealKeepsFlingPastRange(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, revealTwoFieldContent(10))
+	w.SetFocus(ScopeID("sc", "b"))
+	frame(w)
+	setInset(w, 250) // reveals "b", short of the limit
+	w.SetFocus(ScopeID("sc", "a"))
+	off := w.ScrollVerticalOffset("sc")
+	revealSetEntry(w, "sc", func(e *scrollSmoothEntry) {
+		e.current, e.target, e.tau = off, -10000, 0.3
+		e.active, e.settled, e.dirty = true, false, false
+	})
+	layoutRevealFocused(&w.layout.Children[0], w)
+	if !revealEaseActive(w, "sc") {
+		t.Fatal("reveal stopped a fling whose reachable end keeps the field in view")
+	}
+}
+
+// A retired ease whose final value the apply pass has not flushed yet
+// would still move the container on the next flush. When that value
+// hides the field, the reveal drops it.
+func TestSoftKeyboardRevealDropsPendingFinalValue(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, revealTwoFieldContent(600))
+	w.SetFocus(ScopeID("sc", "b"))
+	frame(w)
+	setInset(w, 250) // reveals "b"; "a" shows above it
+	w.SetFocus(ScopeID("sc", "a"))
+	// Final value 0: "a" back at y 500, under the keyboard.
+	revealSetEntry(w, "sc", func(e *scrollSmoothEntry) {
+		e.current, e.target, e.tau = 0, 0, 0
+		e.active, e.settled, e.dirty = false, false, true
+	})
+	layoutRevealFocused(&w.layout.Children[0], w)
+	if revealEntryDirty(w, "sc") {
+		t.Fatal("unflushed final value that hides the field survived the reveal")
+	}
+}
+
+// Only a vertically centred float keeps its top in the area above the
+// keyboard. A float tied to the top edge keeps the offset it asked for,
+// even when it is taller than the area.
+func TestSoftKeyboardKeepFloatTopOnlyCentred(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, func() []View { return nil })
+	setInset(w, 250)
+	for _, tc := range []struct {
+		name   string
+		attach FloatAttach
+		fy     float32
+		want   float32
+	}{
+		{"top-left keeps its offset", FloatTopLeft, -24, -24},
+		{"centred keeps its top", FloatMiddleCenter, -75, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ly := Layout{Shape: &Shape{
+				Float: true, FloatAnchor: tc.attach, FloatTieOff: tc.attach,
+				Height: 500,
+			}}
+			if got := revealKeepFloatTop(&ly, tc.fy, w); got != tc.want {
+				t.Fatalf("y = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

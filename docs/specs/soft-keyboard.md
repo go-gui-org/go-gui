@@ -58,20 +58,21 @@ fix a built-in dialog.
 - `Window.layoutRect` (`gui/soft_keyboard_reveal.go`) is the window less the
   inset. The `FillFill` root is pinned to its height (`updateLayout`), and
   `floatAttachLayout` places floats against it: a dialog centres above the
-  keyboard (a dialog taller than the area keeps its top at the top), and an
-  auto-flip dropdown opens upward near it. The root clip, pointer tests and the
-  frame clear keep the whole window, so the strip under a sliding keyboard shows
-  the background.
+  keyboard (a centred dialog taller than the area keeps its top at the top), and
+  an auto-flip dropdown opens upward near it. The root clip, pointer tests and
+  the frame clear keep the whole window, so the strip under a sliding keyboard
+  shows the background.
 - The focused field is scrolled into view once per trigger
   (`layoutRevealFocused`): when the inset grows while a field has focus, and
   when focus moves while the keyboard is up. Each vertical scroll ancestor moves
   just enough, inner first, and the walk repeats while an outer move brings a
   skipped inner container into view. It stops any smooth scroll running on those
-  containers, which could carry a shown field under the keyboard. Each move is
-  clamped to that container's scroll range, so a field with too little content
-  around it stays partly covered. The pass runs in `layoutPipeline` after
-  `layoutDisables` and shifts the positioned children in the frame it runs in. A
-  focus the focus repair moved is revealed in a second pass of the same
+  containers, which could carry a shown field under the keyboard (a fling is
+  judged at the offset it can reach, and an unflushed final value counts). Each
+  move is clamped to that container's scroll range, so a field with too little
+  content around it stays partly covered. The pass runs in `layoutPipeline`
+  after `layoutDisables` and shifts the positioned children in the frame it runs
+  in. A focus the focus repair moved is revealed in a second pass of the same
   `FrameFn` (`refreshReveal`). The user can scroll away while typing; a
   shrinking inset reveals nothing.
 - `WindowCfg.SoftKeyboardOverlays` opts out: the keyboard covers the view as
