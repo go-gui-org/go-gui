@@ -8,6 +8,23 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: layout keeps the focused field and dialogs above the soft keyboard
+  (#1109).** Before, the soft keyboard covered the bottom of the window and
+  nothing moved: a field low on the screen was hidden while the user typed, and
+  a centred dialog lost its lower half (the showcase's Dialog → Prompt on a
+  phone had OK / Cancel under the keyboard). An app could not fix a built-in
+  dialog. Now, while the keyboard is up, a `FillFill` root is laid out in the
+  part of the window above it, and dialogs, toasts and dropdowns are placed
+  there too. When a text field takes focus with the keyboard up, or the keyboard
+  grows while a field has focus, its scroll containers scroll it into view once;
+  the user can still scroll away while typing. Desktop has no soft keyboard and
+  does not change. Migration: an app that added `Window.SoftKeyboardInset()` to
+  its padding now gets the space twice; remove that padding. An app that places
+  its content against the inset itself sets the new
+  `WindowCfg.SoftKeyboardOverlays` to keep the old behaviour.
+
 ## [v0.97.0] - 2026-11-17
 
 ### Added

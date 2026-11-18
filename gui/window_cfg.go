@@ -140,6 +140,15 @@ type WindowCfg struct {
 	// FixedSize disables user-driven window resizing when supported
 	// by the active backend.
 	FixedSize bool
+	// SoftKeyboardOverlays lets the OS soft keyboard cover the bottom of
+	// the view, as before issue #1109. By default the FillFill root and
+	// the top-level floats (dialogs, toasts) are laid out in the part of
+	// the window above the keyboard, and the focused field is scrolled
+	// into that part when it takes focus or when the keyboard grows. Set
+	// this when the app places its content against
+	// Window.SoftKeyboardInset itself. Desktop has no soft keyboard, so
+	// it changes nothing there.
+	SoftKeyboardOverlays bool
 	// Decorations selects the native window frame. The zero value
 	// keeps the platform's standard title bar and border. A
 	// DecorationNone window has nothing the user can grab, so it

@@ -398,8 +398,12 @@ func (w *Window) updateLocked() {
 		rootLayout.Shape.MaxWidth = float32(w.windowWidth)
 	}
 	if rootLayout.Shape.Sizing.Height == SizingFill {
-		rootLayout.Shape.MinHeight = float32(w.windowHeight)
-		rootLayout.Shape.MaxHeight = float32(w.windowHeight)
+		// The height above the soft keyboard, not the window height:
+		// a field or button at the bottom of a FillFill view stays
+		// visible while the keyboard is up (issue #1109).
+		h := w.layoutRect().Height
+		rootLayout.Shape.MinHeight = h
+		rootLayout.Shape.MaxHeight = h
 	}
 
 	if t {
@@ -417,11 +421,17 @@ func (w *Window) updateLocked() {
 	// removed since the last frame cannot keep holding it. Runs under
 	// w.mu, ahead of the debug audit and renderer build, so neither
 	// sees the dead ID.
+	//
+	// The reveal pass (issue #1109) saw the focus as it was before the
+	// repair. A repaired focus was never laid out as focused, so it is
+	// recorded as unseen and the next frame reveals it.
+	revealFocusID := w.FocusID()
 	w.fixupFocusLocked()
 	// Repair held pointer state against the same tree: a press on a
 	// widget that just lost eligibility, a popup with no field, a
 	// drag under a new modal (#691).
 	w.fixupInteractionLocked()
+	w.endRevealFrame(revealFocusID)
 	// Dev-mode identity checks. One atomic load when the gate is off.
 	w.debugAudit(&w.layout)
 	w.buildRenderers(w.Config.BgColor, w.windowRect())

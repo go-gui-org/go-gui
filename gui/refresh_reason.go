@@ -53,6 +53,9 @@ const (
 	// refreshSafeArea: the OS changed the safe area, so a view padding
 	// by SafeAreaPadding is stale.
 	refreshSafeArea
+	// refreshReveal: the focus repair moved focus while the soft keyboard
+	// is up, and the next frame scrolls the new field above it (#1109).
+	refreshReveal
 )
 
 // Render-only reasons: the next frame rebuilds render commands only.
@@ -91,6 +94,7 @@ var refreshReasonNames = [...]struct {
 	{refreshTest, "test"},
 	{refreshWindowState, "window-state"},
 	{refreshSafeArea, "safe-area"},
+	{refreshReveal, "reveal"},
 	{refreshRender, "render"},
 	{refreshRenderAnimation, "render-animation"},
 	{refreshRenderSvg, "svg"},

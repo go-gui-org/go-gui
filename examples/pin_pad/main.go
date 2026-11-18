@@ -72,10 +72,10 @@ func mainView(w *gui.Window) gui.View {
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
 		Spacing: gui.SpacingMedium,
-		// Keep the pad above an OS keyboard if one is ever shown (a
-		// physical keyboard attached, another field focused). The
-		// framework reports the inset; the app decides what to move.
-		Padding: gui.NewPadding(16, 16, 16+w.SoftKeyboardInset(), 16),
+		// No keyboard padding: if an OS keyboard is ever shown (another
+		// field focused), the framework lays this FillFill view out
+		// above it (#1109).
+		Padding: theme.PaddingMedium,
 		Content: []gui.View{
 			gui.Label(status, theme.TextStyleSecondary),
 			gui.Input(gui.InputCfg{

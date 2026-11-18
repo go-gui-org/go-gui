@@ -44,8 +44,10 @@ gui.Input(gui.InputCfg{ID: "pin", Keyboard: gui.KeyboardNone}) // app keypad
 - `Keyboard` is a hint, not a filter. Use `Mask` or `PreTextChange` to limit
   what can be typed.
 - `w.HideSoftKeyboard()` keeps focus; `w.ClearFocus()` leaves the field.
-- The framework does not move layout for the keyboard. Read
-  `w.SoftKeyboardInset()` in the View function if content must stay above it.
+- The framework lays the view out above the keyboard: a `FillFill` root and
+  dialogs fit the area above it, and the focused field scrolls into view. Do not
+  also pad by `w.SoftKeyboardInset()`. To place content yourself, set
+  `WindowCfg.SoftKeyboardOverlays`.
 - Nor for a notch, a status bar or a home bar. Pad by `w.SafeAreaPadding()` to
   keep content clear of them. Its bottom edge already gives way to the keyboard,
   so padding by both counts the home bar once. On web it is non-zero only when

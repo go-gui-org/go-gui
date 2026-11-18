@@ -244,6 +244,10 @@ func layoutReattachFloats(w *Window) {
 		return
 	}
 	layoutResolveTransforms(&w.layout, w)
+	// Placement and clips take different rects, as in layoutPipeline:
+	// floats are placed above the soft keyboard (#1109), clips cover the
+	// whole window.
+	place := w.layoutRect()
 	win := w.windowRect()
 	for range 10 {
 		moved := false
@@ -252,7 +256,7 @@ func layoutReattachFloats(w *Window) {
 			if top.Shape == nil || !top.Shape.Float {
 				continue
 			}
-			if reattachFloatSubtree(top, win, 0) {
+			if reattachFloatSubtree(top, place, 0) {
 				layoutSetShapeClips(top, win)
 				moved = true
 			}

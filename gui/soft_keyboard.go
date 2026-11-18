@@ -102,11 +102,15 @@ func (w *Window) HideSoftKeyboard() {
 // window the soft keyboard covers. It is 0 while the keyboard is hidden,
 // and on platforms that cannot report it.
 //
-// The framework does not move layout for the keyboard. Read the inset
-// in the View function (for example as bottom padding, or to scroll the
-// focused field into view) if the app needs its content above the
-// keyboard. The window re-renders when the inset changes, and the
-// change also reaches Window.OnEvent as an EventSoftKeyboard.
+// The framework lays the view out above the keyboard (issue #1109): a
+// FillFill root gets the window height less the inset, top-level floats
+// such as dialogs are placed in that area, and the focused field is
+// scrolled into it when it takes focus or when the keyboard grows. Do
+// not also pad by the inset, or the space is counted twice. An app that
+// places content against the inset itself sets
+// WindowCfg.SoftKeyboardOverlays. The window re-renders when the inset
+// changes, and the change also reaches Window.OnEvent as an
+// EventSoftKeyboard.
 func (w *Window) SoftKeyboardInset() float32 {
 	return w.softKeyboardInset
 }
@@ -132,6 +136,11 @@ func (w *Window) handleSoftKeyboardEvent(e *Event) {
 	}
 	if h := float32(w.windowHeight); h > 0 && inset > h {
 		inset = h
+	}
+	if inset > w.softKeyboardInset {
+		// The keyboard opened or grew: it may now cover the focused
+		// field. The next layout scrolls it into view (issue #1109).
+		w.reveal.pending = true
 	}
 	w.softKeyboardInset = inset
 }
