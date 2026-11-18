@@ -73,7 +73,9 @@ func renderMdMath(
 func renderMdMermaid(
 	block markdownBlock, cfg MarkdownCfg, w *Window,
 ) View {
-	source := richTextPlain(block.Content)
+	// The source as written, with its tabs: Content has them expanded
+	// for display, and the fetcher and the diagram hash need the source.
+	source := mdCodeCopyText(block)
 	codeFallback := Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
 		Padding:    cfg.Style.CodeBlockPadding,
@@ -210,8 +212,7 @@ func renderMdCode(
 	animID := ScopeIDN(cfg.ID, "code", blockIdx)
 	copyBtn := mdCopyButton(animID, w,
 		func(ctx EventCtx) {
-			plain := richTextPlain(block.Content)
-			ctx.Window.SetClipboard(plain)
+			ctx.Window.SetClipboard(mdCodeCopyText(block))
 			ctx.Window.AnimationAdd(&Animate{
 				AnimID:   animID,
 				Delay:    2 * time.Second,
@@ -319,6 +320,11 @@ func applyMdCtx(cfg *RTFCfg, ctx *mdBlockCtx) {
 	}
 }
 
+// mdQuoteInset is the space between the quote bar and the quoted
+// text, inside the tint (GitHub pads quoted text the same way, about
+// 1em, with the bar flush at the left edge).
+const mdQuoteInset float32 = 12 // ergonomics-audit:spacing — structural inset, theme-invariant
+
 // mdWrapQuote draws quote chrome around an already-rendered view
 // when block carries quote depth from a stamped composite (a quoted
 // list, fence, heading, table or image), and returns v untouched
@@ -331,8 +337,12 @@ func mdWrapQuote(block markdownBlock, v View, cfg MarkdownCfg) View {
 	leftMargin := float32(
 		block.BlockquoteDepth-1) * cfg.Style.NestIndent
 	return Row(ContainerCfg{
-		Sizing:     FillFit,
-		Padding:    NewPadding(0, 0, 0, leftMargin),
+		Sizing:  FillFit,
+		Padding: NewPadding(0, 0, 0, leftMargin),
+		// No gap: the tint starts at the bar. The container default
+		// (SpacingMedium) left a transparent strip between the two and
+		// put the text flush on the tint's edge.
+		Spacing:    NoSpacing,
 		SizeBorder: NoBorder,
 		Content: []View{
 			Rectangle(RectangleCfg{
@@ -341,9 +351,12 @@ func mdWrapQuote(block markdownBlock, v View, cfg MarkdownCfg) View {
 				Color:  cfg.Style.BlockquoteBorder,
 			}),
 			Column(ContainerCfg{
-				Color:      cfg.Style.BlockquoteBG,
-				Sizing:     FillFit,
-				Padding:    NoPadding,
+				Color:  cfg.Style.BlockquoteBG,
+				Sizing: FillFit,
+				// Horizontal inset only. A quoted list or fence is
+				// wrapped one block at a time, so vertical padding
+				// would open a gap between every quoted item.
+				Padding:    NewPadding(0, mdQuoteInset, 0, mdQuoteInset),
 				SizeBorder: NoBorder,
 				Content:    []View{v},
 			}),
@@ -520,13 +533,17 @@ func mdRenderListItem(
 	block markdownBlock, cfg MarkdownCfg, mode TextMode,
 	ctx *mdBlockCtx,
 ) View {
-	indentW := float32(block.ListIndent) *
+	// A first-level item is indented one NestIndent too, as browsers
+	// and GitHub indent a top-level list. At level 0 the marker sat
+	// flush with paragraph text and the list did not read as one.
+	indentW := float32(block.ListIndent+1) *
 		cfg.Style.NestIndent
 
 	var prefixW float32
 	var prefixView View
 	if block.IsTaskItem {
-		prefixW = mdTaskBoxEdge(cfg) + 6
+		// The box alone: the row's Spacing is the gap to the text.
+		prefixW = mdTaskBoxEdge(cfg)
 		prefixView = mdTaskCheckbox(block.TaskChecked, cfg)
 		if block.ListIndent > 0 {
 			indentW += 4
@@ -537,13 +554,21 @@ func mdRenderListItem(
 		// be corrected by halving it for that one prefix, which landed
 		// on the right number for the bullet and the wrong one for
 		// every other multi-byte marker.
-		prefixW = float32(utf8RuneCount(block.ListPrefix)) *
+		//
+		// The marker draws without its trailing space; the row's
+		// Spacing is the gap to the text. With both, the gap was a
+		// space plus the container default. The floor counts the
+		// trimmed marker too, or a floor wider than the ink would
+		// keep the space's slot. TrimRight slices, so it does not
+		// allocate.
+		marker := strings.TrimRight(block.ListPrefix, " ")
+		prefixW = float32(utf8RuneCount(marker)) *
 			cfg.Style.PrefixCharWidth
 		if block.ListPrefix != "• " && block.ListIndent > 0 {
 			indentW += 4
 		}
 		prefixView = Text(TextCfg{
-			Text:      block.ListPrefix,
+			Text:      marker,
 			TextStyle: cfg.Style.Text,
 		})
 	}
@@ -555,8 +580,11 @@ func mdRenderListItem(
 	}
 	applyMdCtx(&rtfCfg, ctx)
 	return mdWrapQuote(block, Row(ContainerCfg{
-		Sizing:     FillFit,
-		Padding:    NewPadding(0, 0, 0, indentW),
+		Sizing:  FillFit,
+		Padding: NewPadding(0, 0, 0, indentW),
+		// The marker-to-text gap. Unset, the row took the container
+		// default (SpacingMedium), which read as a hole after a bullet.
+		Spacing:    SpacingSmall,
 		SizeBorder: NoBorder,
 		Content: []View{
 			// The marker column is a floor, not a cap. prefixW is

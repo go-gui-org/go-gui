@@ -28,6 +28,20 @@ and this project adheres to
   that padding. An app that places its content against the inset itself sets the
   new `WindowCfg.SoftKeyboardOverlays` to keep the old behaviour.
 
+### Fixed
+
+- **Markdown lists, block quotes and code blocks are spaced correctly.** A tab
+  in a fenced code block drew one space wide, because glyph sets no tab stops,
+  so indented code (all gofmt'd Go) lost its indentation. Tabs now expand to
+  4-column stops for display; the copy button still copies the tabs. The gap
+  between a list marker and its text was the marker's trailing space plus the
+  container's default gap (14px); it is now one small gap (6px), and a task box
+  lost its extra 6px. A first-level list is now indented one `NestIndent`
+  (16px), as browsers and GitHub indent one; its marker used to sit flush with
+  paragraph text. A block quote had a clear strip between its bar and its tint,
+  with the text flush on the tint's edge; the tint now starts at the bar and the
+  text is inset 12px inside it.
+
 ## [v0.97.0] - 2026-11-17
 
 ### Added

@@ -413,7 +413,8 @@ func TestMarkdownUnsetStyleUsesDefault(t *testing.T) {
 					}
 				}
 			}
-			if tc.Text == "• " && tc.TextStyle != nil {
+			// The marker draws without its trailing space.
+			if tc.Text == "•" && tc.TextStyle != nil {
 				bullets++
 				if tc.TextStyle.Size != want {
 					t.Errorf("bullet size = %v, want %v",
