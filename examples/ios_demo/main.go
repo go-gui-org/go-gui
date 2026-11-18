@@ -85,11 +85,10 @@ func awayText(app *App) string {
 
 func view(w *gui.Window) gui.View {
 	app := gui.State[App](w)
-	// The framework moves no layout for the notch, the home bar or the
-	// soft keyboard. This demo opts in: it pads by the safe area and by
-	// the keyboard height. The safe area's bottom already gives way to
-	// the keyboard, so the two add up without counting the home bar
-	// twice.
+	// The framework moves no layout for the notch or the home bar, so
+	// this demo pads by the safe area. It lays the view out above the
+	// soft keyboard by itself (#1109), and the safe area's bottom gives
+	// way to the keyboard, so the home bar is not counted under it.
 	safe := w.SafeAreaPadding()
 
 	return gui.Column(gui.ContainerCfg{
@@ -97,7 +96,7 @@ func view(w *gui.Window) gui.View {
 		HAlign: gui.HAlignCenter,
 		VAlign: gui.VAlignMiddle,
 		Padding: gui.NewPadding(16+safe.Top, 16+safe.Right,
-			16+safe.Bottom+w.SoftKeyboardInset(), 16+safe.Left),
+			16+safe.Bottom, 16+safe.Left),
 		Content: []gui.View{
 			// Theme intentionally unpinned: the demo follows the host
 			// default (web_demo pins dark for its look).

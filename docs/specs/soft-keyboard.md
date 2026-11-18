@@ -1,7 +1,7 @@
 # Soft keyboard
 
 Issue #770. Status: implemented for Android and web (#770) and iOS (#806).
-Desktop implements the methods as no-ops.
+Keyboard avoidance in layout: #1109. Desktop implements the methods as no-ops.
 
 ## Decision
 
@@ -23,10 +23,9 @@ adds no second show/hide path.
 - `Window.ShowSoftKeyboard` / `Window.HideSoftKeyboard` repeat or dismiss the
   request for the focused field. Both do nothing without an edit target.
 - `Window.SoftKeyboardInset` reports the covered height from
-  `EventSoftKeyboard`, clamped to `[0, window height]`. The framework moves no
-  layout for it. `Window.SafeAreaPadding` shrinks its bottom edge by this inset,
-  so the home bar under the keyboard is not counted twice
-  (`docs/specs/safe-area.md`).
+  `EventSoftKeyboard`, clamped to `[0, window height]`. `Window.SafeAreaPadding`
+  shrinks its bottom edge by this inset, so the home bar under the keyboard is
+  not counted twice (`docs/specs/safe-area.md`).
 - A press that a non-focusable widget consumes keeps focus
   (`blurUnclaimedPress`). Inside a `DragScroll` container the pan claim holds
   every press, so the blur and keyboard decisions wait: a pan blurs when it
@@ -47,7 +46,45 @@ adds no second show/hide path.
 | Desktop  | no-op                                                        | none                                                      |
 
 The Android host sets `windowSoftInputMode="adjustNothing"`, so the GL surface
-keeps its size and the app decides what to move.
+keeps its size and Go-Gui decides what to move (see below).
+
+## Keyboard avoidance (#1109)
+
+Layout runs in the part of the window above the keyboard, by default. Before
+#1109 nothing moved: a field low on the screen and the lower half of a centred
+dialog (showcase Dialog → Prompt) sat under the keyboard, and an app could not
+fix a built-in dialog.
+
+- `Window.layoutRect` (`gui/soft_keyboard_reveal.go`) is the window less the
+  inset. The `FillFill` root is pinned to its height (`updateLayout`), and
+  `floatAttachLayout` places floats against it: a dialog centres above the
+  keyboard (a centred dialog taller than the area keeps its top at the top), and
+  an auto-flip dropdown opens upward near it. The root clip, pointer tests and
+  the frame clear keep the whole window, so the strip under a sliding keyboard
+  shows the background.
+- The focused field is scrolled into view once per trigger
+  (`layoutRevealFocused`): when the inset grows while a field has focus, and
+  when focus moves while the keyboard is up. Each vertical scroll ancestor moves
+  just enough, inner first, and the walk repeats while an outer move brings a
+  skipped inner container into view. A smooth scroll on a container the walk
+  moves is cancelled. On one it does not move, a smooth scroll is stopped only
+  when it would carry the shown field out of view, in that container or an
+  enclosing one: its target is judged at the offset it can reach (a fling aims
+  past the range), and a value a tick computed but has not applied is dropped
+  when it alone would hide the field. A pending index scroll there is kept. The
+  viewport is cut at the window top and at the keyboard. Each move is clamped to
+  that container's scroll range, so a field with too little content around it
+  stays partly covered. The pass runs in `layoutPipeline` after `layoutDisables`
+  and shifts the positioned children in the frame it runs in. A focus the focus
+  repair moved is revealed in a second pass of the same `FrameFn`
+  (`refreshReveal`). The user can scroll away while typing; a shrinking inset
+  reveals nothing.
+- `WindowCfg.SoftKeyboardOverlays` opts out: the keyboard covers the view as
+  before, and the app uses the inset itself.
+- Failure mode: a view taller than the area above the keyboard with no scroll
+  container is squeezed or clipped while the keyboard is up. A root that is not
+  `FillFill` on height is not pinned, and its content can still sit under the
+  keyboard.
 
 ### iOS (#806)
 
@@ -89,8 +126,32 @@ host tests.
 - **A built-in general soft-keyboard widget.** Non-goal of the issue. A
   multilingual keyboard is a product of its own; apps draw specialized keypads
   with ordinary widgets.
-- **Auto-scroll or auto-padding for the keyboard in core layout.** That is
-  mobile layout policy. The framework reports the inset only.
+- **Pan the whole frame up by the field's overlap (#1109 D2).** No relayout, but
+  the top of the UI goes off-screen while typing, and every coordinate consumer
+  (pointer, a11y bounds, IME caret rect, popups) would need the offset.
+- **Opt-in helpers only (#1109 D3):** a keyboard-avoiding container and an
+  exported scroll-into-view. The default stays broken, and built-in dialogs
+  would need it inside anyway. This replaces the #770 rejection of auto-padding
+  in core layout as app policy: with `adjustNothing` Go-Gui owns the whole
+  surface, so no app got avoidance for free.
+- **OS-level resize** (Android `adjustResize`, web
+  `interactive-widget=resizes-content`). Enforced edge-to-edge on Android 15
+  stops `adjustResize` resizing, it resizes the GL surface during the keyboard
+  animation, Safari lacks the web setting, and a reveal step is still needed.
+- **Smooth reveal** (`ScrollVerticalToSmooth`). Android streams inset events
+  while the keyboard slides, so an ease would chase a moving target and lag the
+  keyboard. The jump is shifted into the same frame, and the keyboard's slide
+  animates it.
+- **Reveal every frame while typing.** Pins the field: the user could not scroll
+  to read the rest of a form.
+- **Revealing past a container's scroll range.** A container cannot scroll
+  further than its content runs; an overscroll would show empty space and break
+  every offset clamp. The outer containers in the walk carry the rest when they
+  can (PR #1294 review).
+- **Deferring the reveal's `OnScroll` out of the frame lock in this change.** It
+  fires the way the scroll-anchor and index-scroll passes in the same pipeline
+  already fire it. Moving one site alone would make the three disagree; a move
+  belongs to all three at once (PR #1294 review).
 - **`KeyboardPassword` as a kind.** It would duplicate `IsPassword`; the secure
   flag is derived from it.
 - **`SoftKeyboardVisible()`.** `SoftKeyboardInset() > 0` says the same thing

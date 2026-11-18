@@ -20,9 +20,11 @@ go run ./examples/ios_demo/
 Go-gui on iOS via c-archive and Xcode. Demonstrates platform integration and
 lifecycle.
 
-The view pads by `w.SafeAreaPadding()` and `w.SoftKeyboardInset()`, so its
-content stays clear of the notch, the home bar and the soft keyboard. Go-Gui
-reports both but moves no layout for them: an app opts in like this.
+The view pads by `w.SafeAreaPadding()`, so its content stays clear of the notch
+and the home bar. Go-Gui reports the safe area but moves no layout for it: an
+app opts in like this. A docked soft keyboard needs no code: Go-Gui lays the
+view out above it. A floating or undocked iPad keyboard reports no inset, so
+nothing moves for it.
 
 The Fullscreen button calls `w.SetFullscreen`, which hides the status bar and
 lets the home indicator fade out. The view keeps its size. The button toggles

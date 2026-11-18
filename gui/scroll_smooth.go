@@ -308,6 +308,14 @@ func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 		// virtualScrolls is main-goroutine state.
 		w.dropVirtualScroll(id)
 	}
+	scrollSmoothStop(w, id, axis)
+}
+
+// scrollSmoothStop deactivates the eased scroll for id+axis and leaves
+// any pending index-addressed scroll alone: the part of
+// scrollSmoothCancel for a caller that writes no offset itself.
+// Main goroutine only.
+func scrollSmoothStop(w *Window, id string, axis scrollAxis) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	if w.scrollSmooth == nil {
@@ -320,6 +328,59 @@ func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 		// triggered this cancel must not be overwritten by a stale
 		// apply on the next flush.
 		e.dirty = false
+	}
+}
+
+// scrollSmoothPending is one snapshot of an eased scroll's offsets:
+// where an active ease is heading, and a value a tick computed that the
+// apply pass has not flushed yet. A fling's target is unclamped; the
+// caller clamps it to the range.
+type scrollSmoothPending struct {
+	target, pending       float32
+	hasTarget, hasPending bool
+}
+
+// scrollSmoothPeek returns the offsets the ease for id+axis can still
+// leave applied, read under one lock so both come from the same tick,
+// and false when there are none. A retired entry can still hold an
+// unflushed final value. Main goroutine only.
+func scrollSmoothPeek(w *Window, id string, axis scrollAxis) (scrollSmoothPending, bool) {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	var r scrollSmoothPending
+	if w.scrollSmooth == nil {
+		return r, false
+	}
+	e := w.scrollSmooth.findEntry(id, axis)
+	if e == nil {
+		return r, false
+	}
+	if e.active {
+		r.target, r.hasTarget = e.target, true
+	}
+	if e.dirty {
+		r.pending, r.hasPending = e.current, true
+	}
+	return r, r.hasTarget || r.hasPending
+}
+
+// scrollSmoothDropPending discards the unflushed value pending for
+// id+axis and sets the ease's position back to displayed, the offset
+// layout shows, so an active ease goes on toward its target from there.
+// A tick that ran since the caller's peek has replaced the value, and
+// the call then does nothing. Main goroutine only.
+func scrollSmoothDropPending(w *Window, id string, axis scrollAxis, pending, displayed float32) {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	if w.scrollSmooth == nil {
+		return
+	}
+	if e := w.scrollSmooth.findEntry(id, axis); e != nil && e.dirty && e.current == pending {
+		e.dirty = false
+		e.current = displayed
+		// A settled entry retires on its next tick without moving
+		// current again; it must tick back to its target first.
+		e.settled = false
 	}
 }
 

@@ -215,6 +215,9 @@ type Window struct {
 	// the bottom of the window, in logical pixels; 0 while it is down.
 	// Written by EventFn from EventSoftKeyboard. See SoftKeyboardInset.
 	softKeyboardInset float32
+	// reveal holds the triggers that scroll the focused field above
+	// the soft keyboard (issue #1109, gui/soft_keyboard_reveal.go).
+	reveal revealState
 
 	// windowOpacity is the whole-window fade set by SetWindowOpacity,
 	// in [0, 1]. Seeded to 1 by NewWindow: the zero value would read as

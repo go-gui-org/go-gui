@@ -173,7 +173,8 @@ insets or the view's place in the window change:
 - `SafeAreaInsets(top, right, bottom, left)`: the system bars and the display
   cutout, for `Window.SafeAreaPadding`. The demo pads its content by it.
 - `SoftKeyboardInset(h)`: the keyboard height, for `Window.SoftKeyboardInset`.
-  API 30 and later only; below that it stays 0.
+  Go-Gui lays the view out above the keyboard from it. API 30 and later only;
+  below that it stays 0.
 
 Both are measured against where the view sits in the window, not against the
 screen edge. From Android 15 the view reaches under the system bars; below it

@@ -28,7 +28,7 @@ A custom keypad for a kiosk or a PIN entry screen, built from ordinary widgets
   `EventKeyDown` for Backspace and Enter. It sends it through `QueueCommand` +
   `Window.EventFn`, so `PreTextChange`, the caret and `OnTextChanged` work as
   they do for typing.
-- The view adds `Window.SoftKeyboardInset()` to its bottom padding, so the pad
-  stays above an OS keyboard if one opens.
+- The view needs no keyboard padding: if an OS keyboard opens, Go-Gui lays the
+  `FillFill` view out above it.
 
 See `main.go` for the implementation.
