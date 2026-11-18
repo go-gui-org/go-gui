@@ -264,6 +264,12 @@ func TestSoftKeyboardFlipsAnchoredFloat(t *testing.T) {
 	if got := ly.Shape.Y + ly.Shape.Height; got > 400 {
 		t.Fatalf("float bottom, keyboard up = %v, want <= 400", got)
 	}
+	// Flipped, not only clamped: a clamp alone would leave it over the
+	// box. The bottom meets the box top.
+	box = ly.Parent.Shape
+	if got := ly.Shape.Y + ly.Shape.Height; got > box.Y+0.5 {
+		t.Fatalf("float bottom, keyboard up = %v, want <= box top %v (flipped above)", got, box.Y)
+	}
 }
 
 // A focusable float that is its own layer root holds focus. Its Parent
@@ -451,5 +457,114 @@ func TestSoftKeyboardRevealsThroughNestedScrolls(t *testing.T) {
 	}
 	if b := fieldBottom(t, w, f); b > 350+0.5 {
 		t.Fatalf("field bottom = %v, want <= 350", b)
+	}
+}
+
+// A dialog taller than the area above the keyboard keeps its top in the
+// window: centred, its title and first field would be cut off, and no
+// scroll container could bring them back.
+func TestSoftKeyboardTallDialogKeepsTop(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, func() []View { return nil })
+	w.Dialog(DialogCfg{Title: "Name", Body: "Enter a name", MinHeight: 500})
+	setInset(w, 250)
+	var dlg *Shape
+	for i := range w.layout.Children {
+		if s := w.layout.Children[i].Shape; s != nil && s.idKey() == reservedDialogID {
+			dlg = s
+		}
+	}
+	if dlg == nil {
+		t.Fatal("no dialog layer")
+	}
+	if dlg.Height <= 350 {
+		t.Fatalf("dialog height = %v, want > 350 for this case", dlg.Height)
+	}
+	if dlg.Y < -0.5 {
+		t.Fatalf("tall dialog top = %v, want >= 0", dlg.Y)
+	}
+}
+
+// An inner scroll container wholly under the keyboard is skipped on the
+// first walk. The outer move then brings it into view with the field
+// still below its viewport, and a second walk scrolls it.
+func TestSoftKeyboardRevealsSkippedInnerScroll(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, func() []View {
+		spacer := func(h float32) View {
+			return Column(ContainerCfg{
+				Sizing: FixedFixed, Width: 10, Height: h,
+				Padding: PaddingNone, SizeBorder: NoBorder,
+			})
+		}
+		return []View{Column(ContainerCfg{
+			ID:         "out",
+			Scrollable: true,
+			Sizing:     FillFill,
+			Padding:    PaddingNone,
+			SizeBorder: NoBorder,
+			Content: []View{
+				spacer(450),
+				Column(ContainerCfg{
+					ID:         "in",
+					Scrollable: true,
+					Sizing:     FillFixed,
+					Height:     200,
+					Padding:    PaddingNone,
+					SizeBorder: NoBorder,
+					Content:    []View{spacer(260), Input(InputCfg{ID: "f"})},
+				}),
+				spacer(600),
+			},
+		})}
+	})
+	in := ScopeID("out", "in")
+	f := ScopeID(in, "f")
+	w.SetFocus(f)
+	frame(w)
+	setInset(w, 250)
+	if got := w.ScrollVerticalOffset(in); got >= 0 {
+		t.Fatalf("inner offset = %v, want < 0 (rechecked after the outer move)", got)
+	}
+	inner, ok := findLayoutByFocusID(&w.layout, f)
+	if !ok {
+		t.Fatal("no field")
+	}
+	sc := inner.Parent.Shape
+	if b := inner.Shape.Y + inner.Shape.Height; b > sc.Y+sc.Height+0.5 || b > 350+0.5 {
+		t.Fatalf("field bottom = %v, want inside inner viewport (bottom %v) and <= 350", b, sc.Y+sc.Height)
+	}
+}
+
+// A field disabled in the frame the keyboard opens is not revealed: the
+// focus repair moves focus off it, and its container must not have
+// scrolled for a field that no longer holds focus.
+func TestSoftKeyboardNoRevealForDisabledField(t *testing.T) {
+	disabled := false
+	w := newRevealWindow(t, WindowCfg{}, func() []View {
+		return []View{Column(ContainerCfg{
+			ID:         "sc",
+			Scrollable: true,
+			Sizing:     FillFill,
+			Padding:    PaddingNone,
+			SizeBorder: NoBorder,
+			Content: []View{
+				Column(ContainerCfg{
+					Sizing: FixedFixed, Width: 10, Height: 480,
+					Padding: PaddingNone, SizeBorder: NoBorder,
+				}),
+				Column(ContainerCfg{
+					Disabled:   disabled,
+					Padding:    PaddingNone,
+					SizeBorder: NoBorder,
+					Content:    []View{Input(InputCfg{ID: "f"})},
+				}),
+			},
+		})}
+	})
+	w.SetFocus(ScopeID("sc", "f"))
+	frame(w)
+	disabled = true
+	setInset(w, 250)
+	if got := w.ScrollVerticalOffset("sc"); got != 0 {
+		t.Fatalf("offset = %v, want 0 (field disabled)", got)
 	}
 }

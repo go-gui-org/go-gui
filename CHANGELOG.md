@@ -18,12 +18,15 @@ and this project adheres to
   dialog. Now, while the keyboard is up, a `FillFill` root is laid out in the
   part of the window above it, and dialogs, toasts and dropdowns are placed
   there too. When a text field takes focus with the keyboard up, or the keyboard
-  grows while a field has focus, its scroll containers scroll it into view once;
-  the user can still scroll away while typing. Desktop has no soft keyboard and
-  does not change. Migration: an app that added `Window.SoftKeyboardInset()` to
-  its padding now gets the space twice; remove that padding. An app that places
-  its content against the inset itself sets the new
-  `WindowCfg.SoftKeyboardOverlays` to keep the old behaviour.
+  grows while a field has focus, its scroll containers scroll it into view once,
+  as far as their scroll range allows; the user can still scroll away while
+  typing. A field with no scroll container around it cannot move, so a long form
+  still needs one. A dialog taller than the area keeps its top in view. A
+  floating or undocked iPad keyboard reports no inset and moves nothing. Desktop
+  has no soft keyboard and does not change. Migration: an app that added
+  `Window.SoftKeyboardInset()` to its padding now gets the space twice; remove
+  that padding. An app that places its content against the inset itself sets the
+  new `WindowCfg.SoftKeyboardOverlays` to keep the old behaviour.
 
 ## [v0.97.0] - 2026-11-17
 

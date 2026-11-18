@@ -35,21 +35,24 @@ func layoutPipeline(layout *Layout, w *Window) {
 
 	// Position passes.
 	layoutAdjustScrollOffsets(layout, w)
-	// Floats are placed and clamped against the part of the window
-	// above the soft keyboard (issue #1109): a dialog centres there, and
-	// a dropdown near the keyboard flips up instead of opening under it.
+	// Floats are placed against the part of the window above the soft
+	// keyboard (issue #1109): a dialog centres there (its top kept in
+	// it when it is taller), and an auto-flip dropdown near the keyboard
+	// flips up instead of opening under it.
 	fx, fy := floatAttachLayout(layout, w.layoutRect())
 	layoutPositions(layout, fx, fy, w)
 	layoutApplyScrollAnchors(layout, w)
 	layoutAnchorTextBlocks(w)
 	layoutApplyVirtualScrolls(layout, w)
-	// After the scroll requests above, so a reveal the keyboard asks for
-	// wins over an older programmatic scroll in the same frame (#1109).
-	layoutRevealFocused(layout, w)
 	// A float's Parent still points at the container it was lifted
 	// from, so a float inside a disabled container starts disabled.
 	// For the main tree Parent is nil and this is false.
 	layoutDisables(layout, ancestorDisabled(layout))
+	// After the scroll requests above, so a reveal the keyboard asks for
+	// wins over an older programmatic scroll in the same frame, and after
+	// layoutDisables, so a field disabled this frame is not revealed
+	// (#1109).
+	layoutRevealFocused(layout, w)
 
 	// Post-position passes. Transforms resolve before the AmendLayout
 	// hooks, which may map the pointer through them (tooltips), and

@@ -22,8 +22,9 @@ lifecycle.
 
 The view pads by `w.SafeAreaPadding()`, so its content stays clear of the notch
 and the home bar. Go-Gui reports the safe area but moves no layout for it: an
-app opts in like this. The soft keyboard needs no code: Go-Gui lays the view out
-above it.
+app opts in like this. A docked soft keyboard needs no code: Go-Gui lays the
+view out above it. A floating or undocked iPad keyboard reports no inset, so
+nothing moves for it.
 
 The Fullscreen button calls `w.SetFullscreen`, which hides the status bar and
 lets the home indicator fade out. The view keeps its size. The button toggles

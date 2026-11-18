@@ -57,17 +57,21 @@ fix a built-in dialog.
 
 - `Window.layoutRect` (`gui/soft_keyboard_reveal.go`) is the window less the
   inset. The `FillFill` root is pinned to its height (`updateLayout`), and
-  `floatAttachLayout` places and clamps floats against it: a dialog centres
-  above the keyboard, and an auto-flip dropdown opens upward near it. The root
-  clip, pointer tests and the frame clear keep the whole window, so the strip
-  under a sliding keyboard shows the background.
+  `floatAttachLayout` places floats against it: a dialog centres above the
+  keyboard (a dialog taller than the area keeps its top at the top), and an
+  auto-flip dropdown opens upward near it. The root clip, pointer tests and the
+  frame clear keep the whole window, so the strip under a sliding keyboard shows
+  the background.
 - The focused field is scrolled into view once per trigger
   (`layoutRevealFocused`): when the inset grows while a field has focus, and
   when focus moves while the keyboard is up. Each vertical scroll ancestor moves
-  just enough, inner first. The pass runs in `layoutPipeline` after the position
-  passes and shifts the positioned children in the same frame, so there is no
-  frame with the field covered. The user can scroll away while typing; a
-  shrinking inset reveals nothing.
+  just enough, inner first, and the walk repeats while an outer move brings a
+  skipped inner container into view. Each move is clamped to that container's
+  scroll range, so a field with too little content around it stays partly
+  covered. The pass runs in `layoutPipeline` after `layoutDisables` and shifts
+  the positioned children in the frame it runs in. A focus the focus repair
+  moved is revealed in a second pass of the same `FrameFn` (`refreshReveal`).
+  The user can scroll away while typing; a shrinking inset reveals nothing.
 - `WindowCfg.SoftKeyboardOverlays` opts out: the keyboard covers the view as
   before, and the app uses the inset itself.
 - Failure mode: a view taller than the area above the keyboard with no scroll
@@ -133,6 +137,14 @@ host tests.
   animates it.
 - **Reveal every frame while typing.** Pins the field: the user could not scroll
   to read the rest of a form.
+- **Revealing past a container's scroll range.** A container cannot scroll
+  further than its content runs; an overscroll would show empty space and break
+  every offset clamp. The outer containers in the walk carry the rest when they
+  can (PR #1294 review).
+- **Deferring the reveal's `OnScroll` out of the frame lock in this change.** It
+  fires the way the scroll-anchor and index-scroll passes in the same pipeline
+  already fire it. Moving one site alone would make the three disagree; a move
+  belongs to all three at once (PR #1294 review).
 - **`KeyboardPassword` as a kind.** It would duplicate `IsPassword`; the secure
   flag is derived from it.
 - **`SoftKeyboardVisible()`.** `SoftKeyboardInset() > 0` says the same thing

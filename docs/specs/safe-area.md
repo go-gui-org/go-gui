@@ -103,11 +103,12 @@ area; iOS reports it separately.
 - **Applying the safe area automatically** (to the root, to dialogs). It would
   change every existing layout on a phone. The user decided the safe area must
   not be forced on apps (2026-11-06).
-- **Adding the keyboard to the bottom edge.** `SoftKeyboardInset` already
-  reports it, and the layout shrinks to the area above it (#1109, see
-  `soft-keyboard.md`). Folding it in here would make the safe area change on
-  every keypress that resizes the keyboard, and an app could no longer tell the
-  two apart.
+- **Adding the keyboard height to the backend's reported bottom edge.**
+  `SoftKeyboardInset` already reports it, `SafeAreaPadding` already subtracts it
+  from that edge, and the layout shrinks to the area above it (#1109, see
+  `soft-keyboard.md`). Folding it into the reported edge would make the safe
+  area change on every keypress that resizes the keyboard, and an app could no
+  longer tell the two apart.
 - **A `SafeAreaInsets` type of its own.** `Padding` already fits every `Cfg`
   that takes padding, and has the four edges.
 - **Polling the web safe area every frame.** `getComputedStyle` forces a style

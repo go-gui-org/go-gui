@@ -37,6 +37,9 @@ func layoutRevealFocused(layout *Layout, w *Window) {
 	if !w.reveal.pending && focusID == w.reveal.focusID {
 		return
 	}
+	// findLayoutByFocusID matches only a shape that can take focus, and
+	// this runs after layoutDisables: a field disabled this frame is not
+	// found, and the field the focus repair moves to is revealed then.
 	ly, ok := findLayoutByFocusID(layout, focusID)
 	if !ok {
 		// Not in this layer. A dialog holds its field in its own layer,
@@ -50,18 +53,44 @@ func layoutRevealFocused(layout *Layout, w *Window) {
 		// enter: it would never meet the p == layout stop.
 		return
 	}
-	top := ly.Shape.Y
-	bot := ly.Shape.Y + ly.Shape.Height
 	visBot := w.layoutRect().Height
-	sy := w.scrollY()
 	// Walk out from the field. The inner scroll container moves first;
 	// each move carries the field with it, so the next container out
-	// tests where the field now is. The walk stops at the layer root: a
-	// float's Parent still points at the container it was declared in,
-	// in another layer, whose positions this pass must not touch.
+	// tests where the field now is. An outer move also carries the inner
+	// containers, so one the walk skipped (its viewport wholly under the
+	// keyboard) can now be in view with the field outside it: walk again
+	// until nothing moves. Each walk only moves a container toward
+	// showing the field, so it settles in a few walks; the cap stops a
+	// degenerate tree from looping.
+	for range revealMaxWalks {
+		if !revealWalk(ly, layout, visBot, w) {
+			break
+		}
+	}
+}
+
+// revealMaxWalks caps the walks of one reveal. Two cover an inner
+// container that only an outer move brings into view; more cover deeper
+// nests of the same kind.
+const revealMaxWalks = 4
+
+// revealWalk runs one walk from the field ly up to the layer root
+// layout, scrolling each vertical scroll ancestor that hides the field.
+// It reports whether any container moved.
+func revealWalk(ly, layout *Layout, visBot float32, w *Window) bool {
+	// Positions are shifted in place, so the field's shape holds where
+	// it is now, after any earlier walk.
+	top := ly.Shape.Y
+	bot := ly.Shape.Y + ly.Shape.Height
+	sy := w.scrollY()
+	moved := false
+	// The walk stops at the layer root: a float's Parent still points at
+	// the container it was declared in, in another layer, whose
+	// positions this pass must not touch.
 	for p := ly.Parent; p != nil; p = p.Parent {
 		dy := revealScrollBy(p, top, bot, visBot, w)
 		if dy != 0 {
+			moved = true
 			id := p.Shape.idKey()
 			old := sy.GetOr(id, 0) // Default 0: never scrolled.
 			sy.Set(id, old+dy)
@@ -82,6 +111,7 @@ func layoutRevealFocused(layout *Layout, w *Window) {
 			break
 		}
 	}
+	return moved
 }
 
 // revealScrollBy returns how far the vertical scroll container p must
