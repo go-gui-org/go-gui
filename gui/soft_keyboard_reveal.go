@@ -67,6 +67,44 @@ func layoutRevealFocused(layout *Layout, w *Window) {
 			break
 		}
 	}
+	revealStopHidingEases(ly, layout, visBot, w)
+}
+
+// revealStopHidingEases stops an ease, on a scroll ancestor the walks
+// left alone, whose target would carry the shown field out of view: an
+// older ScrollVerticalToSmooth easing back to the top, for one. An ease
+// that keeps the field in view is the app's own request and runs on,
+// and a pending index scroll is never dropped here (scrollSmoothStop,
+// not scrollSmoothCancel): this pass writes no offset to that
+// container. A container a walk moved was already cancelled.
+func revealStopHidingEases(ly, layout *Layout, visBot float32, w *Window) {
+	top := ly.Shape.Y
+	bot := ly.Shape.Y + ly.Shape.Height
+	sy := w.scrollY()
+	for p := ly.Parent; p != nil; p = p.Parent {
+		if s := p.Shape; s != nil && s.Scrollable &&
+			s.ScrollMode != ScrollHorizontalOnly && s.idKey() != "" {
+			id := s.idKey()
+			if target, ok := scrollSmoothTarget(w, id, scrollAxisY); ok {
+				// Where the field lands when the ease arrives, by the
+				// distance the ease still has to go.
+				// It hides the field when a reveal from the target would
+				// move: the clamp is against the target, not the current
+				// offset, which can sit at a range limit the target does
+				// not (an ease from the end of the content back to 0).
+				d := target - sy.GetOr(id, 0) // Default 0: never scrolled.
+				if f32IsFinite(d) {
+					if dy := revealNeedY(p, top+d, bot+d, visBot); dy != 0 &&
+						f32Clamp(target+dy, scrollMaxOffsetY(p), 0) != target {
+						scrollSmoothStop(w, id, scrollAxisY)
+					}
+				}
+			}
+		}
+		if p == layout {
+			break
+		}
+	}
 }
 
 // revealMaxWalks caps the walks of one reveal. Two cover an inner
@@ -123,12 +161,29 @@ func revealWalk(ly, layout *Layout, visBot float32, w *Window) bool {
 // container's range, so a field at the end of short content moves only
 // as far as the content can.
 func revealScrollBy(p *Layout, top, bot, visBot float32, w *Window) float32 {
+	dy := revealNeedY(p, top, bot, visBot)
+	if dy == 0 {
+		return 0
+	}
+	// Default 0: never scrolled.
+	old := w.scrollY().GetOr(p.Shape.idKey(), 0)
+	target := f32Clamp(old+dy, scrollMaxOffsetY(p), 0)
+	if !f32IsFinite(target) {
+		return 0
+	}
+	return target - old
+}
+
+// revealNeedY returns how far the vertical scroll container p would move
+// its content to show the span [top, bot], before any clamp to its scroll
+// range, or 0 when p is not a vertical scroll container with an id or the
+// span already shows.
+func revealNeedY(p *Layout, top, bot, visBot float32) float32 {
 	s := p.Shape
 	if s == nil || !s.Scrollable || s.ScrollMode == ScrollHorizontalOnly {
 		return 0
 	}
-	id := s.idKey()
-	if id == "" {
+	if s.idKey() == "" {
 		return 0
 	}
 	viewTop := s.Y + s.PaddingTop()
@@ -150,13 +205,7 @@ func revealScrollBy(p *Layout, top, bot, visBot float32, w *Window) float32 {
 	default:
 		return 0
 	}
-	// Default 0: never scrolled.
-	old := w.scrollY().GetOr(id, 0)
-	target := f32Clamp(old+dy, scrollMaxOffsetY(p), 0)
-	if !f32IsFinite(target) {
-		return 0
-	}
-	return target - old
+	return dy
 }
 
 // revealState is the main-thread frame state behind the reveal pass.
@@ -188,6 +237,23 @@ func (w *Window) endRevealFrame(focusID string) {
 		w.softKeyboardInset > 0 && !w.Config.SoftKeyboardOverlays {
 		w.markLayoutRefresh(refreshReveal)
 	}
+}
+
+// revealKeepFloatTop returns the y a top-level float is placed at, given
+// fy from floatAttachLayout. A float taller than the area above the
+// keyboard would be centred with its top, where a dialog keeps its title
+// and first field, off the window. It keeps the top at the top of the
+// area instead and lets the bottom run under the keyboard. Only while
+// the keyboard shrinks the area: desktop and SoftKeyboardOverlays keep
+// the centring they had before #1109.
+func revealKeepFloatTop(layout *Layout, fy float32, w *Window) float32 {
+	place := w.layoutRect()
+	if s := layout.Shape; layout.Parent == nil && s != nil && s.Float &&
+		s.Height > place.Height && fy < place.Y &&
+		place.Height < w.windowRect().Height {
+		return place.Y
+	}
+	return fy
 }
 
 // layoutRect returns the part of the window that layout places content

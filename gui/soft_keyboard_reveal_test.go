@@ -479,9 +479,92 @@ func TestSoftKeyboardTallDialogKeepsTop(t *testing.T) {
 	if dlg.Height <= 350 {
 		t.Fatalf("dialog height = %v, want > 350 for this case", dlg.Height)
 	}
-	if dlg.Y < -0.5 {
-		t.Fatalf("tall dialog top = %v, want >= 0", dlg.Y)
+	if f32Abs(dlg.Y) > 0.5 {
+		t.Fatalf("tall dialog top = %v, want 0", dlg.Y)
 	}
+}
+
+// With the keyboard down, or with SoftKeyboardOverlays, a dialog taller
+// than the window still centres, as before #1109.
+func TestSoftKeyboardTallDialogCentresWithoutKeyboard(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		cfg   WindowCfg
+		inset float32
+	}{
+		{"keyboard down", WindowCfg{}, 0},
+		{"opt-out", WindowCfg{SoftKeyboardOverlays: true}, 250},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := newRevealWindow(t, tc.cfg, func() []View { return nil })
+			w.Dialog(DialogCfg{Title: "Name", Body: "Enter a name", MinHeight: 800})
+			setInset(w, tc.inset)
+			var dlg *Shape
+			for i := range w.layout.Children {
+				if s := w.layout.Children[i].Shape; s != nil && s.idKey() == reservedDialogID {
+					dlg = s
+				}
+			}
+			if dlg == nil {
+				t.Fatal("no dialog layer")
+			}
+			if want := (600 - dlg.Height) / 2; f32Abs(dlg.Y-want) > 0.5 {
+				t.Fatalf("dialog top = %v, want %v (centred in the window)", dlg.Y, want)
+			}
+		})
+	}
+}
+
+// An older smooth scroll still easing when the keyboard opens is stopped
+// even when the field already shows: it would carry the field under the
+// keyboard after the reveal.
+func TestSoftKeyboardRevealStopsEase(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, func() []View {
+		return []View{Column(ContainerCfg{
+			ID:         "sc",
+			Scrollable: true,
+			Sizing:     FillFill,
+			Padding:    PaddingNone,
+			SizeBorder: NoBorder,
+			Content: []View{
+				Column(ContainerCfg{
+					Sizing: FixedFixed, Width: 10, Height: 500,
+					Padding: PaddingNone, SizeBorder: NoBorder,
+				}),
+				Input(InputCfg{ID: "f"}),
+				Column(ContainerCfg{
+					Sizing: FixedFixed, Width: 10, Height: 600,
+					Padding: PaddingNone, SizeBorder: NoBorder,
+				}),
+			},
+		})}
+	})
+	w.SetFocus(ScopeID("sc", "f"))
+	frame(w)
+	w.ScrollVerticalTo("sc", -250)
+	frame(w)
+	if b := fieldBottom(t, w, ScopeID("sc", "f")); b > 350 {
+		t.Fatalf("field bottom = %v, want <= 350 (shows above the keyboard)", b)
+	}
+	w.ScrollVerticalToSmooth("sc", 0)
+	if !revealEaseActive(w, "sc") {
+		t.Fatal("no ease armed")
+	}
+	setInset(w, 250)
+	if revealEaseActive(w, "sc") {
+		t.Fatal("ease still active after the reveal")
+	}
+}
+
+// revealEaseActive reports whether a vertical ease runs for id.
+func revealEaseActive(w *Window, id string) bool {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	if w.scrollSmooth == nil {
+		return false
+	}
+	e := w.scrollSmooth.findEntry(id, scrollAxisY)
+	return e != nil && e.active
 }
 
 // An inner scroll container wholly under the keyboard is skipped on the
@@ -566,5 +649,119 @@ func TestSoftKeyboardNoRevealForDisabledField(t *testing.T) {
 	setInset(w, 250)
 	if got := w.ScrollVerticalOffset("sc"); got != 0 {
 		t.Fatalf("offset = %v, want 0 (field disabled)", got)
+	}
+}
+
+// revealTwoFieldContent is a scroll column holding fields "a" and "b"
+// 100 px apart, a spacer above them and the given trailing spacer.
+func revealTwoFieldContent(tail float32) func() []View {
+	return func() []View {
+		spacer := func(h float32) View {
+			return Column(ContainerCfg{
+				Sizing: FixedFixed, Width: 10, Height: h,
+				Padding: PaddingNone, SizeBorder: NoBorder,
+			})
+		}
+		return []View{Column(ContainerCfg{
+			ID:         "sc",
+			Scrollable: true,
+			Sizing:     FillFill,
+			Padding:    PaddingNone,
+			SizeBorder: NoBorder,
+			Content: []View{
+				spacer(500),
+				Input(InputCfg{ID: "a"}),
+				spacer(100),
+				Input(InputCfg{ID: "b"}),
+				spacer(tail),
+			},
+		})}
+	}
+}
+
+// An ease the app starts with a focus change, toward an offset that
+// keeps the new field in view, is the app's request: the reveal moves no
+// container for a field that shows, and the ease runs on.
+func TestSoftKeyboardRevealKeepsShowingEase(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, revealTwoFieldContent(600))
+	w.SetFocus(ScopeID("sc", "b"))
+	frame(w)
+	setInset(w, 250) // reveals "b"; "a" shows above it
+	off := w.ScrollVerticalOffset("sc")
+	w.SetFocus(ScopeID("sc", "a"))
+	// 10 px further: "a" still shows.
+	w.ScrollVerticalToSmooth("sc", off+10)
+	if !revealEaseActive(w, "sc") {
+		t.Fatal("no ease armed")
+	}
+	frame(w)
+	if !revealEaseActive(w, "sc") {
+		t.Fatal("reveal stopped an ease that keeps the field in view")
+	}
+}
+
+// A pending index scroll on an ancestor of a field that already shows
+// survives the reveal: the reveal moves no container there and writes no
+// offset, so the request must keep converging (a virtualized list keeps
+// one queued while its rows are measured). An ease that would hide the
+// field is still stopped there, without dropping the request
+// (scrollSmoothStop, not scrollSmoothCancel). The pass is called
+// directly: a plain column settles a request before the reveal could see
+// it.
+func TestSoftKeyboardRevealKeepsIndexScroll(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, revealTwoFieldContent(600))
+	w.SetFocus(ScopeID("sc", "b"))
+	frame(w)
+	setInset(w, 250) // reveals "b"; "a" shows above it
+	w.SetFocus(ScopeID("sc", "a"))
+	// Back to the top: "a" at y 500, under the keyboard.
+	w.ScrollVerticalToSmooth("sc", 0)
+	if !revealEaseActive(w, "sc") {
+		t.Fatal("no ease armed")
+	}
+	w.queueVirtualScroll(virtualScrollReq{scrollID: "sc", frame: w.frameCount})
+	before := w.ScrollVerticalOffset("sc")
+	layoutRevealFocused(&w.layout.Children[0], w)
+	if got := w.ScrollVerticalOffset("sc"); got != before {
+		t.Fatalf("offset = %v, want %v (field shows, nothing moves)", got, before)
+	}
+	if revealEaseActive(w, "sc") {
+		t.Fatal("ease that hides the field still active")
+	}
+	queued := false
+	for _, r := range w.virtualScrolls {
+		if r.scrollID == "sc" {
+			queued = true
+		}
+	}
+	if !queued {
+		t.Fatal("index scroll dropped by the reveal")
+	}
+}
+
+// The keyboard is up and the container is scrolled to its limit, with
+// the fields at the end of the content. Focus moves to a field that
+// shows, while an ease runs back to the top: there the field would sit
+// under the keyboard, so the ease is stopped. The check is clamped
+// against the ease's target, not the current offset, which already sits
+// at the limit and leaves the reveal no room to move.
+func TestSoftKeyboardRevealStopsEaseAtRangeEnd(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, revealTwoFieldContent(10))
+	w.SetFocus(ScopeID("sc", "b"))
+	frame(w)
+	setInset(w, 250)
+	w.ScrollVerticalTo("sc", -10000) // clamped to the limit
+	frame(w)
+	w.SetFocus(ScopeID("sc", "a"))
+	if b := fieldBottom(t, w, ScopeID("sc", "a")); b > 350 {
+		t.Fatalf("field bottom = %v, want <= 350 (shows above the keyboard)", b)
+	}
+	w.ScrollVerticalToSmooth("sc", 0)
+	if !revealEaseActive(w, "sc") {
+		t.Fatal("no ease armed")
+	}
+	frame(w)
+	if revealEaseActive(w, "sc") {
+		t.Fatal("ease to the top still active after the reveal")
 	}
 }

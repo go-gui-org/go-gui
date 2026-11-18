@@ -36,10 +36,10 @@ func layoutPipeline(layout *Layout, w *Window) {
 	// Position passes.
 	layoutAdjustScrollOffsets(layout, w)
 	// Floats are placed against the part of the window above the soft
-	// keyboard (issue #1109): a dialog centres there (its top kept in
-	// it when it is taller), and an auto-flip dropdown near the keyboard
-	// flips up instead of opening under it.
+	// keyboard (issue #1109): a dialog centres there, and an auto-flip
+	// dropdown near the keyboard flips up instead of opening under it.
 	fx, fy := floatAttachLayout(layout, w.layoutRect())
+	fy = revealKeepFloatTop(layout, fy, w)
 	layoutPositions(layout, fx, fy, w)
 	layoutApplyScrollAnchors(layout, w)
 	layoutAnchorTextBlocks(w)

@@ -308,6 +308,14 @@ func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 		// virtualScrolls is main-goroutine state.
 		w.dropVirtualScroll(id)
 	}
+	scrollSmoothStop(w, id, axis)
+}
+
+// scrollSmoothStop deactivates the eased scroll for id+axis and leaves
+// any pending index-addressed scroll alone: the part of
+// scrollSmoothCancel for a caller that writes no offset itself.
+// Main goroutine only.
+func scrollSmoothStop(w *Window, id string, axis scrollAxis) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	if w.scrollSmooth == nil {
@@ -321,6 +329,20 @@ func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 		// apply on the next flush.
 		e.dirty = false
 	}
+}
+
+// scrollSmoothTarget returns the offset the active ease for id+axis is
+// heading to, and false when none runs. Main goroutine only.
+func scrollSmoothTarget(w *Window, id string, axis scrollAxis) (float32, bool) {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	if w.scrollSmooth == nil {
+		return 0, false
+	}
+	if e := w.scrollSmooth.findEntry(id, axis); e != nil && e.active {
+		return e.target, true
+	}
+	return 0, false
 }
 
 // scrollSmoothShiftY moves any in-flight vertical ease for id by dy.

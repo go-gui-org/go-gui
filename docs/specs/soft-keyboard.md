@@ -66,12 +66,14 @@ fix a built-in dialog.
   (`layoutRevealFocused`): when the inset grows while a field has focus, and
   when focus moves while the keyboard is up. Each vertical scroll ancestor moves
   just enough, inner first, and the walk repeats while an outer move brings a
-  skipped inner container into view. Each move is clamped to that container's
-  scroll range, so a field with too little content around it stays partly
-  covered. The pass runs in `layoutPipeline` after `layoutDisables` and shifts
-  the positioned children in the frame it runs in. A focus the focus repair
-  moved is revealed in a second pass of the same `FrameFn` (`refreshReveal`).
-  The user can scroll away while typing; a shrinking inset reveals nothing.
+  skipped inner container into view. It stops any smooth scroll running on those
+  containers, which could carry a shown field under the keyboard. Each move is
+  clamped to that container's scroll range, so a field with too little content
+  around it stays partly covered. The pass runs in `layoutPipeline` after
+  `layoutDisables` and shifts the positioned children in the frame it runs in. A
+  focus the focus repair moved is revealed in a second pass of the same
+  `FrameFn` (`refreshReveal`). The user can scroll away while typing; a
+  shrinking inset reveals nothing.
 - `WindowCfg.SoftKeyboardOverlays` opts out: the keyboard covers the view as
   before, and the app uses the inset itself.
 - Failure mode: a view taller than the area above the keyboard with no scroll

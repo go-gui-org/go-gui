@@ -102,16 +102,7 @@ func floatAttachLayout(
 			winRect.Width, winRect.Height)
 		tx, ty := attachOffset(s.FloatTieOff,
 			s.Width, s.Height)
-		x, y := ax-tx+s.FloatOffsetX, ay-ty+s.FloatOffsetY
-		if s.Height > winRect.Height && y < winRect.Y {
-			// Taller than the rect: centring would push its top, where a
-			// dialog keeps its title and first field, out of the window.
-			// Keep the top and let the bottom run past. The rect shrinks
-			// while the soft keyboard is up, which makes this common on
-			// a phone (#1109).
-			y = winRect.Y
-		}
-		return x, y
+		return ax - tx + s.FloatOffsetX, ay - ty + s.FloatOffsetY
 	}
 	parent := layout.Parent.Shape
 	isRTL := effectiveTextDir(parent) == TextDirRTL
