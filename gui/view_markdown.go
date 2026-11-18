@@ -628,8 +628,10 @@ func mdElementOf(
 	block markdownBlock, kind MarkdownBlockKind, index int, docID string,
 ) MarkdownElement {
 	el := MarkdownElement{
-		DocID:           docID,
-		PlainText:       richTextPlain(block.Content),
+		DocID: docID,
+		// A code block's source keeps its tabs: Content has them
+		// expanded for display. Other blocks read Content.
+		PlainText:       mdCodeCopyText(block),
 		ListPrefix:      block.ListPrefix,
 		ImageSrc:        block.ImageSrc,
 		ImageAlt:        block.ImageAlt,

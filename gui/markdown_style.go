@@ -5,6 +5,7 @@ package gui
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-glyph"
 
@@ -138,6 +139,16 @@ func styleMdBlock(
 			mb.Content.Runs, block.CodeLanguage, &style,
 		); runs != nil {
 			mb.Content.Runs = runs
+		}
+	}
+
+	// Tabs in a fenced block are expanded after highlighting, so the
+	// highlighter still sees the source. The copy button reads
+	// codeSource, which keeps the tabs; only the drawn text changes.
+	if block.IsCode {
+		if expanded, changed := mdExpandCodeTabs(mb.Content.Runs); changed {
+			mb.codeSource = richTextPlain(mb.Content)
+			mb.Content.Runs = expanded
 		}
 	}
 
@@ -435,4 +446,77 @@ func mdAlignToHAlign(a markdown.Align) HorizontalAlign {
 	default:
 		return HAlignStart
 	}
+}
+
+// mdCodeTabWidth is the tab stop of a fenced code block, in columns.
+// Four, not eight: a code block sits in a narrow document column, and
+// eight-column stops push nested Go off the right edge.
+const mdCodeTabWidth = 4
+
+// mdExpandCodeTabs replaces each tab in a code block's runs with
+// spaces up to the next tab stop. glyph sets no tab stops, so a raw
+// tab is shaped as one space and every indentation level collapses
+// to a single column.
+//
+// The column counts runes and resets at each newline. It carries
+// across runs, because a highlighter splits one line into many runs.
+// Runs with no tab come back as the same slice with changed false, so
+// a block with no tabs costs no allocation.
+func mdExpandCodeTabs(runs []RichTextRun) ([]RichTextRun, bool) {
+	hasTab := false
+	for i := range runs {
+		if strings.IndexByte(runs[i].Text, '\t') >= 0 {
+			hasTab = true
+			break
+		}
+	}
+	if !hasTab {
+		return runs, false
+	}
+	out := make([]RichTextRun, len(runs))
+	copy(out, runs)
+	col := 0
+	var sb strings.Builder
+	for i := range out {
+		text := out[i].Text
+		if strings.IndexByte(text, '\t') < 0 {
+			// Advance the column over a tab-free run without rewriting it.
+			if nl := strings.LastIndexByte(text, '\n'); nl >= 0 {
+				col = utf8.RuneCountInString(text[nl+1:])
+			} else {
+				col += utf8.RuneCountInString(text)
+			}
+			continue
+		}
+		sb.Reset()
+		sb.Grow(len(text) + mdCodeTabWidth*strings.Count(text, "\t"))
+		for _, r := range text {
+			switch r {
+			case '\t':
+				n := mdCodeTabWidth - col%mdCodeTabWidth
+				for range n {
+					sb.WriteByte(' ')
+				}
+				col += n
+			case '\n':
+				sb.WriteByte('\n')
+				col = 0
+			default:
+				sb.WriteRune(r)
+				col++
+			}
+		}
+		out[i].Text = sb.String()
+	}
+	return out, true
+}
+
+// mdCodeCopyText is what a code block's copy button puts on the
+// clipboard: the source with its tabs when tabs were expanded for
+// display, the drawn text otherwise.
+func mdCodeCopyText(block markdownBlock) string {
+	if block.codeSource != "" {
+		return block.codeSource
+	}
+	return richTextPlain(block.Content)
 }

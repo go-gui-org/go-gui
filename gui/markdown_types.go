@@ -11,12 +11,16 @@ type markdownBlock struct {
 	// ListPrefix is the visible list marker ("1. ", "• ") for ordinary
 	// list items. Task-list items (IsTaskItem) leave this empty and
 	// carry their checked state in TaskChecked instead.
-	ListPrefix      string
-	ImageSrc        string
-	ImageAlt        string
-	CodeLanguage    string
-	MathLatex       string
-	AnchorSlug      string
+	ListPrefix   string
+	ImageSrc     string
+	ImageAlt     string
+	CodeLanguage string
+	MathLatex    string
+	AnchorSlug   string
+	// codeSource is a code block's text with its tabs, set only when
+	// Content had tabs expanded for display (mdExpandCodeTabs). The
+	// copy button reads it through mdCodeCopyText.
+	codeSource      string
 	Content         RichText
 	HeaderLevel     int
 	BlockquoteDepth int
@@ -87,7 +91,9 @@ type MarkdownElement struct {
 	// Markdown before the build pass. Compose inner IDs from it with
 	// ScopeID / ScopeIDN; do not call EffID on it again.
 	DocID string
-	// PlainText is Content with the styling dropped. It is derived per
+	// PlainText is Content with the styling dropped. For a code block
+	// it is the source with its tabs, though Content draws them as
+	// spaces to the next 4-column stop. It is derived per
 	// hooked block rather than cached on the block, so the cost lands
 	// on the documents that install a hook.
 	PlainText    string
