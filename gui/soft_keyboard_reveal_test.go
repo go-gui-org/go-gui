@@ -855,3 +855,95 @@ func TestSoftKeyboardKeepFloatTopOnlyCentred(t *testing.T) {
 		})
 	}
 }
+
+// An active ease heads to a safe offset, but a tick computed a value the
+// apply pass has not flushed, and that value hides the field. The ease
+// runs on, and the value is dropped: the ease goes on from the displayed
+// offset instead of jumping the field under the keyboard first.
+func TestSoftKeyboardRevealDropsHidingPendingOfSafeEase(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, revealTwoFieldContent(600))
+	w.SetFocus(ScopeID("sc", "b"))
+	frame(w)
+	setInset(w, 250) // reveals "b"; "a" shows above it
+	w.SetFocus(ScopeID("sc", "a"))
+	off := w.ScrollVerticalOffset("sc")
+	// Target 10 px further, "a" still shows; pending 0, "a" at y 500.
+	revealSetEntry(w, "sc", func(e *scrollSmoothEntry) {
+		e.current, e.target, e.tau = 0, off+10, 0
+		e.active, e.settled, e.dirty = true, false, true
+	})
+	layoutRevealFocused(&w.layout.Children[0], w)
+	if !revealEaseActive(w, "sc") {
+		t.Fatal("reveal stopped an ease whose target keeps the field in view")
+	}
+	if revealEntryDirty(w, "sc") {
+		t.Fatal("pending value that hides the field survived the reveal")
+	}
+}
+
+// An ease on an inner scroll container keeps the field inside the inner
+// viewport, but carries it out of the outer one, which does not move
+// with it. The ease is stopped.
+func TestSoftKeyboardRevealStopsEaseHiddenByOuterClip(t *testing.T) {
+	w := newRevealWindow(t, WindowCfg{}, func() []View {
+		spacer := func(h float32) View {
+			return Column(ContainerCfg{
+				Sizing: FixedFixed, Width: 10, Height: h,
+				Padding: PaddingNone, SizeBorder: NoBorder,
+			})
+		}
+		return []View{Column(ContainerCfg{
+			ID:         "out",
+			Scrollable: true,
+			Sizing:     FillFixed,
+			Height:     150,
+			Padding:    PaddingNone,
+			SizeBorder: NoBorder,
+			Content: []View{
+				Column(ContainerCfg{
+					ID:         "in",
+					Scrollable: true,
+					Sizing:     FillFixed,
+					Height:     300,
+					Padding:    PaddingNone,
+					SizeBorder: NoBorder,
+					Content:    []View{spacer(150), Input(InputCfg{ID: "f"}), spacer(600)},
+				}),
+				spacer(300),
+			},
+		})}
+	})
+	in := ScopeID("out", "in")
+	f := ScopeID(in, "f")
+	w.SetFocus(f)
+	w.ScrollVerticalTo(in, -150) // field at the top of both viewports
+	frame(w)
+	setInset(w, 250)
+	if b := fieldBottom(t, w, f); b > 150 {
+		t.Fatalf("field bottom = %v, want <= 150 (shows in the outer viewport)", b)
+	}
+	// Back to 0: field at y 150, inside the inner viewport (0-300) and
+	// below the outer one (0-150).
+	w.ScrollVerticalToSmooth(in, 0)
+	if !revealEaseActive(w, in) {
+		t.Fatal("no ease armed")
+	}
+	w.reveal.pending = true
+	layoutRevealFocused(&w.layout.Children[0], w)
+	if revealEaseActive(w, in) {
+		t.Fatal("ease that moves the field out of the outer viewport still active")
+	}
+}
+
+// A float taller than the area can start above the window. A field in
+// its viewport but above the window's top edge is hidden: the reveal
+// viewport is cut at the top of the layout area.
+func TestSoftKeyboardRevealCutsViewportAtWindowTop(t *testing.T) {
+	p := Layout{Shape: &Shape{
+		ID: "sc", Scrollable: true, Y: -100, Height: 450,
+	}}
+	dy := revealNeedY(&p, -40, -20, revealArea{top: 0, bot: 350})
+	if dy != 40 {
+		t.Fatalf("dy = %v, want 40 (field brought down to the window top)", dy)
+	}
+}

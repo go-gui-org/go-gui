@@ -53,7 +53,8 @@ func layoutRevealFocused(layout *Layout, w *Window) {
 		// enter: it would never meet the p == layout stop.
 		return
 	}
-	visBot := w.layoutRect().Height
+	lr := w.layoutRect()
+	vis := revealArea{top: lr.Y, bot: lr.Y + lr.Height}
 	// Walk out from the field. The inner scroll container moves first;
 	// each move carries the field with it, so the next container out
 	// tests where the field now is. An outer move also carries the inner
@@ -63,21 +64,33 @@ func layoutRevealFocused(layout *Layout, w *Window) {
 	// showing the field, so it settles in a few walks; the cap stops a
 	// degenerate tree from looping.
 	for range revealMaxWalks {
-		if !revealWalk(ly, layout, visBot, w) {
+		if !revealWalk(ly, layout, vis, w) {
 			break
 		}
 	}
-	revealStopHidingEases(ly, layout, visBot, w)
+	revealStopHidingEases(ly, layout, vis, w)
+}
+
+// revealArea is the part of the window a reveal shows the field in: the
+// layout area, from its top edge to the top of the soft keyboard.
+type revealArea struct {
+	top, bot float32
 }
 
 // revealStopHidingEases stops an ease, on a scroll ancestor the walks
-// left alone, whose target would carry the shown field out of view: an
-// older ScrollVerticalToSmooth easing back to the top, for one. An ease
-// that keeps the field in view is the app's own request and runs on,
-// and a pending index scroll is never dropped here (scrollSmoothStop,
-// not scrollSmoothCancel): this pass writes no offset to that
-// container. A container a walk moved was already cancelled.
-func revealStopHidingEases(ly, layout *Layout, visBot float32, w *Window) {
+// left alone, that would carry the shown field out of view: an older
+// ScrollVerticalToSmooth easing back to the top, for one. An ease that
+// keeps the field in view is the app's own request and runs on, and a
+// pending index scroll is never dropped here (scrollSmoothStop, not
+// scrollSmoothCancel): this pass writes no offset to that container. A
+// container a walk moved was already cancelled.
+//
+// Two offsets are checked, from one snapshot of the entry: where the
+// ease is heading (its target), and the value a tick computed that the
+// apply pass has not flushed yet. A safe target with an unsafe pending
+// value keeps the ease and drops the value, so the ease goes on from the
+// displayed offset.
+func revealStopHidingEases(ly, layout *Layout, vis revealArea, w *Window) {
 	top := ly.Shape.Y
 	bot := ly.Shape.Y + ly.Shape.Height
 	sy := w.scrollY()
@@ -85,23 +98,13 @@ func revealStopHidingEases(ly, layout *Layout, visBot float32, w *Window) {
 		if s := p.Shape; s != nil && s.Scrollable &&
 			s.ScrollMode != ScrollHorizontalOnly && s.idKey() != "" {
 			id := s.idKey()
-			if target, ok := scrollSmoothTarget(w, id, scrollAxisY); ok {
-				// A fling aims past the range and the apply pass stops it
-				// at the edge (scrollFlingEdge): project the field to the
-				// offset the fling can reach, not to its raw target.
-				target = f32Clamp(target, scrollMaxOffsetY(p), 0)
-				// Where the field lands when the ease arrives, by the
-				// distance the ease still has to go.
-				d := target - sy.GetOr(id, 0) // Default 0: never scrolled.
-				// It hides the field when a reveal from the target would
-				// move: the clamp is against the target, not the current
-				// offset, which can sit at a range limit the target does
-				// not (an ease from the end of the content back to 0).
-				if f32IsFinite(d) {
-					if dy := revealNeedY(p, top+d, bot+d, visBot); dy != 0 &&
-						f32Clamp(target+dy, scrollMaxOffsetY(p), 0) != target {
-						scrollSmoothStop(w, id, scrollAxisY)
-					}
+			if e, ok := scrollSmoothPeek(w, id, scrollAxisY); ok {
+				cur := sy.GetOr(id, 0) // Default 0: never scrolled.
+				switch {
+				case e.hasTarget && revealHidesAt(p, layout, top, bot, cur, e.target, vis):
+					scrollSmoothStop(w, id, scrollAxisY)
+				case e.hasPending && revealHidesAt(p, layout, top, bot, cur, e.pending, vis):
+					scrollSmoothDropPending(w, id, scrollAxisY, e.pending, cur)
 				}
 			}
 		}
@@ -109,6 +112,44 @@ func revealStopHidingEases(ly, layout *Layout, visBot float32, w *Window) {
 			break
 		}
 	}
+}
+
+// revealHidesAt reports whether moving scroll container p from offset
+// cur to off takes the field [top, bot] out of view, in p's own viewport
+// or in an enclosing one up to the layer root layout.
+func revealHidesAt(p, layout *Layout, top, bot, cur, off float32, vis revealArea) bool {
+	// A fling aims past the range and the apply pass stops it at the
+	// edge (scrollFlingEdge): project the field to the offset the fling
+	// can reach, not to its raw target.
+	off = f32Clamp(off, scrollMaxOffsetY(p), 0)
+	// Where the field lands at off, by the distance still to go.
+	d := off - cur
+	if !f32IsFinite(d) {
+		return false
+	}
+	// In p's own viewport, the field is hidden when a reveal from off
+	// would move. The clamp is against off, not the current offset,
+	// which can sit at a range limit off does not (an ease from the end
+	// of the content back to 0).
+	if dy := revealNeedY(p, top+d, bot+d, vis); dy != 0 &&
+		f32Clamp(off+dy, scrollMaxOffsetY(p), 0) != off {
+		return true
+	}
+	if p == layout {
+		return false
+	}
+	// The enclosing viewports do not move with p's ease. The field is
+	// hidden when the move takes it out of one that shows it now; one
+	// that already clips it is the walks' concern, not this ease's.
+	for q := p.Parent; q != nil; q = q.Parent {
+		if revealNeedY(q, top+d, bot+d, vis) != 0 && revealNeedY(q, top, bot, vis) == 0 {
+			return true
+		}
+		if q == layout {
+			break
+		}
+	}
+	return false
 }
 
 // revealMaxWalks caps the walks of one reveal. Two cover an inner
@@ -119,7 +160,7 @@ const revealMaxWalks = 4
 // revealWalk runs one walk from the field ly up to the layer root
 // layout, scrolling each vertical scroll ancestor that hides the field.
 // It reports whether any container moved.
-func revealWalk(ly, layout *Layout, visBot float32, w *Window) bool {
+func revealWalk(ly, layout *Layout, vis revealArea, w *Window) bool {
 	// Positions are shifted in place, so the field's shape holds where
 	// it is now, after any earlier walk.
 	top := ly.Shape.Y
@@ -130,7 +171,7 @@ func revealWalk(ly, layout *Layout, visBot float32, w *Window) bool {
 	// the container it was declared in, in another layer, whose
 	// positions this pass must not touch.
 	for p := ly.Parent; p != nil; p = p.Parent {
-		dy := revealScrollBy(p, top, bot, visBot, w)
+		dy := revealScrollBy(p, top, bot, vis, w)
 		if dy != 0 {
 			moved = true
 			id := p.Shape.idKey()
@@ -159,13 +200,14 @@ func revealWalk(ly, layout *Layout, visBot float32, w *Window) bool {
 // revealScrollBy returns how far the vertical scroll container p must
 // move its content so the span [top, bot] shows in its viewport, or 0
 // when p is not a vertical scroll container or the span already shows.
-// The viewport is cut at visBot, the top of the soft keyboard: a
-// container that runs under the keyboard (a fixed height, a non-Fill
-// root) shows nothing below it. The result keeps the offset in the
+// The viewport is cut to vis: at the bottom by the top of the soft
+// keyboard, as a container that runs under the keyboard (a fixed height,
+// a non-Fill root) shows nothing below it; at the top by the window, as a
+// float taller than the area can start above it. The result keeps the offset in the
 // container's range, so a field at the end of short content moves only
 // as far as the content can.
-func revealScrollBy(p *Layout, top, bot, visBot float32, w *Window) float32 {
-	dy := revealNeedY(p, top, bot, visBot)
+func revealScrollBy(p *Layout, top, bot float32, vis revealArea, w *Window) float32 {
+	dy := revealNeedY(p, top, bot, vis)
 	if dy == 0 {
 		return 0
 	}
@@ -182,7 +224,7 @@ func revealScrollBy(p *Layout, top, bot, visBot float32, w *Window) float32 {
 // its content to show the span [top, bot], before any clamp to its scroll
 // range, or 0 when p is not a vertical scroll container with an id or the
 // span already shows.
-func revealNeedY(p *Layout, top, bot, visBot float32) float32 {
+func revealNeedY(p *Layout, top, bot float32, vis revealArea) float32 {
 	s := p.Shape
 	if s == nil || !s.Scrollable || s.ScrollMode == ScrollHorizontalOnly {
 		return 0
@@ -190,8 +232,8 @@ func revealNeedY(p *Layout, top, bot, visBot float32) float32 {
 	if s.idKey() == "" {
 		return 0
 	}
-	viewTop := s.Y + s.PaddingTop()
-	viewBot := min(s.Y+s.Height-s.Padding.Bottom-s.SizeBorder, visBot)
+	viewTop := max(s.Y+s.PaddingTop(), vis.top)
+	viewBot := min(s.Y+s.Height-s.Padding.Bottom-s.SizeBorder, vis.bot)
 	if viewBot <= viewTop || !f32IsFinite(viewTop) || !f32IsFinite(viewBot) {
 		// Degenerate: no room to show anything, or the container is
 		// wholly under the keyboard. Scrolling cannot help.

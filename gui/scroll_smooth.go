@@ -331,27 +331,57 @@ func scrollSmoothStop(w *Window, id string, axis scrollAxis) {
 	}
 }
 
-// scrollSmoothTarget returns the offset the ease for id+axis will leave
-// applied, and false when none is left to apply: the target of an
-// active ease, or the final value of a retired one that the apply pass
-// has not flushed yet (dirty). A fling's target is unclamped; the caller
-// clamps it to the range. Main goroutine only.
-func scrollSmoothTarget(w *Window, id string, axis scrollAxis) (float32, bool) {
+// scrollSmoothPending is one snapshot of an eased scroll's offsets:
+// where an active ease is heading, and a value a tick computed that the
+// apply pass has not flushed yet. A fling's target is unclamped; the
+// caller clamps it to the range.
+type scrollSmoothPending struct {
+	target, pending       float32
+	hasTarget, hasPending bool
+}
+
+// scrollSmoothPeek returns the offsets the ease for id+axis can still
+// leave applied, read under one lock so both come from the same tick,
+// and false when there are none. A retired entry can still hold an
+// unflushed final value. Main goroutine only.
+func scrollSmoothPeek(w *Window, id string, axis scrollAxis) (scrollSmoothPending, bool) {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	var r scrollSmoothPending
+	if w.scrollSmooth == nil {
+		return r, false
+	}
+	e := w.scrollSmooth.findEntry(id, axis)
+	if e == nil {
+		return r, false
+	}
+	if e.active {
+		r.target, r.hasTarget = e.target, true
+	}
+	if e.dirty {
+		r.pending, r.hasPending = e.current, true
+	}
+	return r, r.hasTarget || r.hasPending
+}
+
+// scrollSmoothDropPending discards the unflushed value pending for
+// id+axis and sets the ease's position back to displayed, the offset
+// layout shows, so an active ease goes on toward its target from there.
+// A tick that ran since the caller's peek has replaced the value, and
+// the call then does nothing. Main goroutine only.
+func scrollSmoothDropPending(w *Window, id string, axis scrollAxis, pending, displayed float32) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	if w.scrollSmooth == nil {
-		return 0, false
+		return
 	}
-	e := w.scrollSmooth.findEntry(id, axis)
-	switch {
-	case e == nil:
-		return 0, false
-	case e.active:
-		return e.target, true
-	case e.dirty:
-		return e.current, true
+	if e := w.scrollSmooth.findEntry(id, axis); e != nil && e.dirty && e.current == pending {
+		e.dirty = false
+		e.current = displayed
+		// A settled entry retires on its next tick without moving
+		// current again; it must tick back to its target first.
+		e.settled = false
 	}
-	return 0, false
 }
 
 // scrollSmoothShiftY moves any in-flight vertical ease for id by dy.
