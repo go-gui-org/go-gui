@@ -39,7 +39,9 @@ Every widget has a `*Cfg` struct. Conventions:
   that means to absorb a click must say so. Notification callbacks run with no
   event in flight (`OnTextChanged`, form `OnSubmit` and `OnReset`), so there
   `Consume()` is a harmless no-op: consume the originating input event in its
-  own handler instead.
+  own handler instead. Two dispatch paths pre-mark the event before the callback
+  runs: a press that takes focus, and Space/Enter click activation. There,
+  omitting `Consume()` does not propagate to the parent.
 - **`gui:"auto"` tag** — an `ID` that the factory fills with a generated leaf
   when it is empty (#881). This is the default for a stateful widget.
 - **`gui:"required"` tag** — fields that must be non-empty get the tag. The
