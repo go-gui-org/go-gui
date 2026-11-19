@@ -17,6 +17,12 @@ and this project adheres to
   screen stayed blank; go-video's player showed no picture. The custom pipelines
   now declare the pass's stencil format on iOS and macOS, as go-gui's own
   pipelines do. macOS drew without validation, but by chance.
+- **The iOS backend links CoreGraphics (#1300).** It calls CoreGraphics
+  (`CGRectGetMaxY`, `CGRectZero` and others) but linked only Metal, QuartzCore,
+  Foundation and UIKit. An app built in Xcode linked anyway, because its project
+  links CoreGraphics; a plain Go executable that imports the backend, such as a
+  test binary built with `GOOS=ios`, failed with undefined `_CG…` symbols unless
+  `CGO_LDFLAGS` named the framework.
 
 ## [v0.98.0] - 2026-11-19
 
