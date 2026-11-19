@@ -6,7 +6,7 @@ package ios
 
 /*
 #cgo CFLAGS: -fobjc-arc
-#cgo LDFLAGS: -framework Metal -framework QuartzCore -framework Foundation -framework UIKit
+#cgo LDFLAGS: -framework Metal -framework QuartzCore -framework Foundation -framework UIKit -framework CoreGraphics
 #include <stdlib.h>
 #include "metal_darwin.h"
 #include "ios_app.h"

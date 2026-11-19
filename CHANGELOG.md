@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **The iOS backend links CoreGraphics (#1300).** It calls CoreGraphics
+  (`CGRectGetMaxY`, `CGRectZero` and others) but linked only Metal, QuartzCore,
+  Foundation and UIKit. An app built in Xcode linked anyway, because its project
+  links CoreGraphics; a plain Go executable that imports the backend, such as a
+  test binary built with `GOOS=ios`, failed with undefined `_CG…` symbols unless
+  `CGO_LDFLAGS` named the framework.
+
 ## [v0.98.0] - 2026-11-19
 
 ### Changed
