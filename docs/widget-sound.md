@@ -228,8 +228,8 @@ func (p *filePlayer) PlaySound(cue gui.SoundCue, gain float32) {
     default:
         return
     }
-    // Per-sound gain is available, so scale here; prefer pre-normalized
-    // assets and pass 1 when the file needs no correction.
+    // Per-sound gain is available, so always apply the caller's gain here,
+    // multiplied by any asset correction the file needs.
     s.SetVolume(float64(gain))
     _, _ = s.PlayOnce()
 }

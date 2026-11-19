@@ -191,8 +191,8 @@ dropdowns, tooltips, toasts) and `ShadowDialog` (dialogs, the command palette),
 both resolved in `ThemeMaker` from `ThemeCfg`. **Elevation goes on floating
 surfaces only.** A panel or card that separates from its neighbors by fill value
 never gets a shadow. A shadow there solves a contrast problem with the wrong
-tool. `Theme.RadiusLarge` and the two shadow tiers travel together: a floating
-surface carries both.
+tool. `Theme.RadiusLarge` is the reserved top radius tier for floating surfaces;
+the shadow tiers are what a floating surface always carries.
 
 ## Vertical centring — correct the ink only where the alphabet allows
 

@@ -436,9 +436,10 @@ dc.FilledCircleGradient(cx, cy, r, &gui.CanvasGradient{
 })
 ```
 
-Stops past 12 resample down — the shader packs 12 stops (`GradientStopSlots`),
-on the shape gradient path (`ContainerCfg`) and on this one. Do not stack
-concentric discs to fake a falloff. That is what this replaces.
+Stops past 12 resample down only on the shader path. The resample happens only
+when the lowered ramp paints the same picture; otherwise the fill falls back to
+a triangle mesh that keeps every stop. Do not stack concentric discs to fake a
+falloff. That is what this replaces.
 
 A gradient fill always starts its own batch and never merges with the flat fill
 before it, so interleaving the two keeps painter's order.

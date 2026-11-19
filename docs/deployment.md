@@ -18,7 +18,9 @@ standard path end to end.
 ## Step 1: compile for the target
 
 A C toolchain is needed on **macOS** (the Metal backend is Objective-C) and for
-the mobile backends. Linux and Windows (desktop) build fully cgo-free.
+the mobile backends. Linux and Windows (desktop) build fully cgo-free — unless
+the app opts into `-tags hunspell`, which pulls in C Hunspell for spell checking
+and needs a C toolchain with libhunspell-dev.
 
 ```bash
 # Windows (amd64). -H windowsgui marks the PE as a GUI-subsystem image:

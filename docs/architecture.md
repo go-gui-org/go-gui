@@ -116,7 +116,7 @@ frame rebuilds the entire UI from the view function.
 ├──────────────────────────────────────────────────────────────────┤
 │ RenderCmd                                                        │
 │  ├─ Kind         RenderKind    ← what to draw                    │
-│  ├─ X, Y, W, H              ← screen coordinates                 │
+│  ├─ X, Y, W, H              ← coords (own frame if transformed)  │
 │  ├─ Color, Radius           ← visual properties                  │
 │  └─ ...per-kind fields        ← text, image, SVG data, clip, more│
 └──────────────────────────────────────────────────────────────────┘
@@ -224,12 +224,14 @@ policy from code that drifts.
 
 ### Frame lifecycle
 
-- Every frame runs on the one main OS thread, in order: `generateViewLayout`
-  (builds the Layout tree and stamps each shape's `effID`) → `layoutArrange`
-  (sizing, `focusOwner` resolution, float extraction) → `renderLayout` (called
-  from `buildRenderers`, rebuilds `w.renderers`) → per-backend `renderersDraw`
-  (drains read-only). All `*Window` access is main-thread-only. Backends wake
-  the loop from other threads via `SetWakeMainFn`.
+- Every full frame runs on the one main OS thread, in order:
+  `generateViewLayout` (builds the Layout tree and stamps each shape's `effID`)
+  → `layoutArrange` (sizing, `focusOwner` resolution, float extraction) →
+  `renderLayout` (called from `buildRenderers`, rebuilds `w.renderers`) →
+  per-backend `renderersDraw` (drains read-only). A render-only refresh skips
+  generation and arrangement: `renderOnlyLocked` rebuilds `w.renderers` from the
+  existing tree. All `*Window` access is main-thread-only. Backends wake the
+  loop from other threads via `SetWakeMainFn`.
 - Frame-scoped objects come from the `w.scratch` arenas. The `w.allocShape`,
   `w.allocEventHandlers` and `w.allocEffects` methods draw from the
   `viewShapes`, `viewEvents` and `viewEffects` arenas. Layer slices come from

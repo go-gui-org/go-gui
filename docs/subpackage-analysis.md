@@ -13,10 +13,10 @@ root `gui` package into subpackages (`gui/layout/`, `gui/animation/`, and more).
   `animation_*.go` — provides grep-level discoverability
 - Existing subpackages: `datagrid`, `markdown`, `svg`, `svg/css`, `highlight`,
   `audio`, `shader`, `appinfo`, `instance`, `backend`, `internal`, `locales`,
-  `assets` — leaf subsystems that import `gui`. All but one invert the
-  dependency back through interfaces, so `gui` never imports them; the exception
-  is `gui/appinfo`, which `gui` imports for window metadata
-  (`(*Window).AppInfo`)
+  `assets` — leaf subsystems that import `gui`. Most invert the dependency back
+  through interfaces so `gui` never imports them; `gui` does import three back:
+  `gui/appinfo` for window metadata, `gui/markdown` and `gui/highlight` for the
+  markdown widget
 
 ## Why core subsystems can't move
 
@@ -77,8 +77,8 @@ The existing approach is right:
   for discoverability. No internal import boundaries.
 - **Leaf subsystems become subpackages** — `datagrid/`, `markdown/`, `svg/`,
   `highlight/`. They import `gui` and are imported by user code. `gui` does not
-  import them back (interface-based inversion where needed), except
-  `gui/appinfo` for window metadata.
+  import most of them back (interface-based inversion where needed); it does
+  import `gui/appinfo`, `gui/markdown` and `gui/highlight` directly.
 
 ## Decision
 

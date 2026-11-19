@@ -33,10 +33,13 @@ Every widget has a `*Cfg` struct. Conventions:
 - **Callbacks** — one func field per event. Most take just `func(EventCtx)`, but
   several carry payloads (`OnSelect func([]string, EventCtx)`,
   `OnTextChanged func(string, EventCtx)`,
-  `OnSubmit func(FormSubmitEvent, EventCtx)`). One rule for all of them: call
-  `ctx.Consume()` on any path that acts on the event. On any path that means
-  "not mine", call nothing. Nothing is marked handled for you. A widget that
-  means to absorb a click must say so.
+  `OnSubmit func(FormSubmitEvent, EventCtx)`). Input callbacks follow one rule:
+  call `ctx.Consume()` on any path that acts on the event, and call nothing on
+  any path that means "not mine" — nothing is marked handled for you. A widget
+  that means to absorb a click must say so. Notification callbacks run with no
+  event in flight (`OnTextChanged`, form `OnSubmit` and `OnReset`), so there
+  `Consume()` is a harmless no-op: consume the originating input event in its
+  own handler instead.
 - **`gui:"auto"` tag** — an `ID` that the factory fills with a generated leaf
   when it is empty (#881). This is the default for a stateful widget.
 - **`gui:"required"` tag** — fields that must be non-empty get the tag. The
@@ -273,9 +276,9 @@ func applyToggleDefaults(cfg *ToggleCfg) {
         cfg.Padding = d.Padding
     }
     if cfg.TextStyle == (TextStyle{}) {
-        cfg.TextStyle = d.TextStyleNormal
+        cfg.TextStyle = d.textStyleNormal
     } else {
-        cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.TextStyleNormal)
+        cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.textStyleNormal)
     }
     // ... repeat for each style field
 }

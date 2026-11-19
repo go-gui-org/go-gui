@@ -29,8 +29,9 @@ go run ./tools/devloop ./examples/get_started/
    error and exits. There is no previous binary to keep running.
 2. **Watch.** Every 0.5 s (override with `DEV_LOOP_POLL_SECONDS`), the tool
    scans the module for changes to `*.go`, `go.mod`, or `go.sum` files. It
-   watches only those file names, so docs and scripts never trigger a rebuild;
-   it skips the top-level `build/` and `.git/` directories.
+   watches only those file names, so a doc or a shell script never triggers a
+   rebuild — but a `.go` file does, wherever it sits. It skips the top-level
+   `build/` and `.git/` directories.
 3. **On save.** The tool rebuilds the app. Success: it kills the old process and
    launches the new binary with the original args. Failure: it prints the error,
    the watcher keeps running, and the last good binary keeps running. The next
