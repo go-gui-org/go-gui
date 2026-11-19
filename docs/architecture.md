@@ -12,31 +12,31 @@ frame rebuilds the entire UI from the view function.
 │  w := gui.NewWindow(WindowCfg{State: &App{}})                       │
 │  app := gui.State[App](w)    ← typed state slot per window          │
 │                                                                     │
-│  View func(w) → returns *Layout tree                                │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-                               ▼
+│  viewGenerator → View, GenerateLayout → Layout value                │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │
+                                ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     FRAME PIPELINE (per frame)                      │
 │                                                                     │
-│  ┌──────────────┐    ┌──────────────┐    ┌───────────────────────┐  │
-│  │ View func    │───▶│ generateView │───▶│ Layout tree           │  │
-│  │ (user code)  │    │ Layout()     │    │ (Layout + Shape nodes)│  │
-│  └──────────────┘    └──────────────┘    └───────────┬───────────┘  │
-│                                                      │              │
-│                                                      ▼              │
+│  ┌──────────────┐   ┌────────────────────┐   ┌───────────────────┐  │
+│  │ View         │──▶│ generateViewLayout │──▶│ Layout tree       │  │
+│  │ (user code)  │   │ (per View node)    │   │ (Layout+Shape)    │  │
+│  └──────────────┘   └────────────────────┘   └─────────┬─────────┘  │
+│                                                        │            │
+│                                                        ▼            │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │ layoutArrange()                                               │  │
 │  │  ├─ resolve Sizing (Fit/Fixed/Fill per axis)                  │  │
 │  │  ├─ layoutFillWidths / layoutFillHeights                      │  │
 │  │  ├─ layoutSizeChildren (Splitter/DockLayout size their panes) │  │
 │  │  ├─ spacing() — visible-children-only gap calc                │  │
-│  │  └─ AmendLayout hooks (overlay repositioning)                 │  │
+│  │  └─ layoutAmend fires AmendLayout (overlays, hover, caret)    │  │
 │  └───────────────────────────────────┬───────────────────────────┘  │
 │                                      │                              │
 │                                      ▼                              │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ renderLayout(bgColor, clip, w) → emits into w.renderers       │  │
+│  │ renderLayout(layout, bgColor, clip, w) → builds w.renderers   │  │
 │  │  ├─ walk arranged tree                                        │  │
 │  │  ├─ emit RenderCmd per Shape (rect, text, circle, image, SVG) │  │
 │  │  ├─ apply ColorFilter / effects                               │  │
@@ -44,23 +44,24 @@ frame rebuilds the entire UI from the view function.
 │  └───────────────────────────────────┬───────────────────────────┘  │
 │                                      │                              │
 │                                      ▼                              │
-│                              w.renderers                            │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-                               ▼
+│              w.renderers → Renderers() → backend renderersDraw      │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │
+                                ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         BACKEND LAYER                               │
 │                                                                     │
 │  Build-tag dispatch (gui/backend/run_*.go):                         │
 │                                                                     │
-│  darwin && !ios → Metal (CGo) + AppKit windowing                    │
-│  ios            → Metal (CGo) + UIKit windowing                     │
-│  android        → OpenGL ES 3.0 (CGo) + Android Activity/View       │
-│  js && wasm     → Canvas2D + WebGL2 (custom shaders)                │
-│  linux   && !js && !android && !gl → native GL backend              │
-│  windows && !js && !android && !gl → native GL backend              │
-│  !darwin && !js && !android && gl  → force GL backend               │
-│  (any other combination            → panics: unsupported platform)  │
+│  darwin && cgo && !ios → Metal (CGo) + AppKit                       │
+│  darwin && !cgo && !ios → link error, needs CGo (#1159)             │
+│  ios → Metal (CGo) + UIKit                                          │
+│  android → Run panics, use android.SetWindow/Start/Render           │
+│  js && wasm → Canvas2D + WebGL2 (custom shaders)                    │
+│  linux && !js && !android && !gl → native GL (X11 + EGL)            │
+│  windows && !js && !android && !gl → native GL (Win32 + WGL)        │
+│  !darwin && !js && !android && gl → force GL backend                │
+│  (any other combination → panics: unsupported platform)             │
 │                                                                     │
 │  ┌──────────┬──────────┬──────────┬──────────┬──────────┐           │
 │  │ macOS    │ iOS      │ Linux    │ Windows  │ Web      │           │
@@ -90,34 +91,34 @@ frame rebuilds the entire UI from the view function.
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ Window                                                           │
-│  ├─ state     any           ← typed slot: State[T](w)            │
-│  ├─ stateMap  map[ns]any    ← per-widget internal state          │
-│  ├─ layout    Layout        ← root of current frame's tree       │
-│  ├─ renderers []RenderCmd   ← draw list for backend              │
-│  ├─ animations map[string]Animation                              │
-│  └─ commands  []Command     ← keyboard shortcuts                 │
+│  ├─ state      any              ← typed slot: State[T](w)        │
+│  ├─ viewState  viewState        ← registry + focus/hover/press   │
+│  ├─ layout     Layout           ← root of current frame's tree   │
+│  ├─ renderers []RenderCmd   ← draw list, embedded windowRender   │
+│  ├─ animations              ← map[string]Animation + animMu      │
+│  └─ commands []queuedCommand← frame queue (+ shortcut registry)  │
 ├──────────────────────────────────────────────────────────────────┤
 │ Layout                                                           │
-│  ├─ Shape    *Shape         ← renderable properties              │
-│  ├─ Parent   *Layout        ← pointer up                         │
-│  ├─ Children []Layout       ← values down (no pointer cycles)    │
-│  ├─ Axis     AxisType       ← Row / Column / None                │
- │  └─ Sizing   SizingType     ← Fit/Fixed/Fill per axis           │
+│  ├─ Shape *Shape            ← renderable properties              │
+│  ├─ Parent *Layout          ← pointer up                         │
+│  └─ Children []Layout       ← values down (no pointer cycles)    │
+│  (Axis and Sizing live on Shape, not here)                       │
 ├──────────────────────────────────────────────────────────────────┤
 │ Shape                                                            │
-│  ├─ Pos, Size              ← absolute coordinates                │
-│  ├─ Color, ColorBorder     ← appearance                          │
-│  ├─ ShapeType              ← Rect, Circle, Text, Image, SVG...   │
-│  ├─ TC *ShapeTextConfig    ← text fields (not on Shape directly) │
-│  ├─ Events callbacks       ← OnClick, OnHover, OnKey...          │
-│  ├─ Effects []Effect       ← shadows, blur, filters              │
-│  └─ AmendLayout func       ← post-sizing hook                    │
+│  ├─ X/Y/Width/Height        ← absolute geometry (+Min/Max)       │
+│  ├─ Axis Axis, Sizing Sizing ← direction and per-axis size       │
+│  ├─ Color, ColorBorder      ← appearance                         │
+│  ├─ shapeType (unexported)  ← Rect/Circle/Text/Image/SVG...      │
+│  ├─ TC *ShapeTextConfig     ← text fields, not on Shape          │
+│  ├─ events *eventHandlers   ← OnClick/OnKey... + AmendLayout     │
+│  ├─ fx *shapeEffects        ← shadow/gradient/blur/filter        │
+│  └─ a11Y/bc/svgOpts/xf      ← other optionals (unexported)       │
 ├──────────────────────────────────────────────────────────────────┤
 │ RenderCmd                                                        │
-│  ├─ Kind     RenderKind    ← what to draw                        │
-│  ├─ Pos, Size              ← screen coordinates                  │
-│  ├─ Color, Radius          ← visual properties                   │
-│  └─ ...per-kind fields     ← text, image, SVG data, clip, etc.   │
+│  ├─ Kind         RenderKind    ← what to draw                    │
+│  ├─ X, Y, W, H              ← screen coordinates                 │
+│  ├─ Color, Radius           ← visual properties                  │
+│  └─ ...per-kind fields        ← text, image, SVG data, clip, more│
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -127,14 +128,14 @@ frame rebuilds the entire UI from the view function.
 ┌───────────────────────────────────┐  ┌──────────────────────────────┐
 │ EVENT DISPATCH                    │  │ ANIMATION                    │
 │                                   │  │                              │
-│ OS event → Event struct           │  │  │ Animation interface:      │
-│  ├─ hit-test Layout tree          │  │  ├─ Tween (value lerp)       │
-│  ├─ travel up to ancestors        │  │  ├─ Spring (physics-based)   │
-│  ├─ ctx.Consume() stops it;       │  │  ├─ Keyframe (waypoints)     │
-│  │   silence lets it travel       │  │  ├─ Layout (FLIP-style)      │
-│  └─ callbacks: func(EventCtx)     │  │  ├─ Hero (cross-view)        │
-│                                   │  │  └─ BlinkCursor              │
-│ Key dispatch also feeds Commands  │  │                              │
+│ OS event → Event struct           │  │  Animation implementations:  │
+│  ├─ hit-test Layout tree          │  │  ├─ TweenAnimation (lerp)    │
+│  ├─ travel up to ancestors        │  │  ├─ SpringAnimation (physics)│
+│  ├─ ctx.Consume() stops it;       │  │  ├─ KeyframeAnimation        │
+│  │   silence lets it travel       │  │  ├─ layoutTransition (FLIP)  │
+│  └─ callbacks: func(EventCtx)     │  │  ├─ HeroTransition           │
+│                                   │  │  └─ blinkCursorAnimation     │
+│ Key dispatch also feeds Commands  │  │  lowercase = unexported      │
 │ (keyboard shortcuts / Shortcut)   │  │ Easing: bezier LUT cache     │
 └───────────────────────────────────┘  └──────────────────────────────┘
 
@@ -145,9 +146,9 @@ frame rebuilds the entire UI from the view function.
 │   gui.State[App](w)               │  │ a real user choice. Plain    │
 │                                   │  │ fields elsewhere. Unset      │
 │ Per-widget internal state:        │  │ falls through to theme.      │
-│   StateMap[K,V](w, namespace,     │  │                              │
-│     capacity)                     │  │ DefaultContainerStyle sets   │
-│                                   │  │ baseline (SizeBorder=1.5)    │
+│   StateMap[K, V](w, ns, maxSize)  │  │                              │
+│   (*BoundedMap, per window)       │  │ defaultContainerStyle sets   │
+│                                   │  │ baseline (SizeBorder=1)      │
 │ No globals, no closures for state │  │                              │
 └───────────────────────────────────┘  └──────────────────────────────┘
 
@@ -168,7 +169,7 @@ frame rebuilds the entire UI from the view function.
 
 ```
 go-gui/
-├── gui/                          ← core (~270 non-test .go files at top level)
+├── gui/                          ← core (~370 non-test .go files at top level)
 │   ├── view*.go                  ← View interface, generateViewLayout
 │   ├── layout*.go                ← Layout tree, arrange, query
 │   ├── shape*.go                 ← Shape type + ShapeTextConfig
@@ -180,10 +181,19 @@ go-gui/
 │   ├── a11y*.go                  ← Accessibility tree
 │   ├── opt.go                    ← Opt[T] generic optional
 │   ├── view_<widget>.go          ← Widget factories (button, input, grid...)
-│   └── datagrid/                 ← DataGrid subpackage (data sources, ORM, export)
+│   ├── datagrid/                 ← DataGrid (data sources, ORM, export)
+│   ├── markdown/                 ← Markdown parse and render (goldmark)
+│   ├── svg/                      ← SVG animation support
+│   ├── shader/                   ← GLSL sources for the GL backend
+│   ├── highlight/                ← Syntax highlighting (chroma)
+│   ├── audio/                    ← Opt-in sound effects and music
+│   ├── locales/                  ← Locale data (10 JSON files)
+│   ├── appinfo/                  ← App manifest (ID, name, version, icon)
+│   ├── instance/                 ← One running copy per user
 │   └── backend/
 │       ├── metal/                ← Metal renderer (macOS)
 │       ├── gl/                   ← OpenGL renderer (Linux/Windows)
+│       ├── soft/                 ← CPU renderer (headless, no-GPU fallback)
 │       ├── filedialog/           ← Native file dialogs
 │       ├── printdialog/          ← Native print dialogs
 │       ├── android/              ← Android backend (GLES3 + JNI)
@@ -191,10 +201,12 @@ go-gui/
 │       ├── web/                  ← Web/WASM backend (Canvas2D + WebGL2)
 │       ├── nativemenu/           ← Native menu support
 │       ├── atspi/                ← AT-SPI accessibility (Linux)
+│       ├── ibus/                 ← IBus input method (Linux IME)
 │       ├── sni/                  ← StatusNotifierItem / system tray
+│       ├── sysbeep/              ← OS alert sound
 │       ├── spellcheck/           ← Spell checking
 │       └── internal/             ← Shared backend internals
-└── examples/                     ← 62 example apps
+└── examples/                     ← 89 example apps (plus internal/)
     ├── get_started/
     ├── showcase/
     ├── calculator/
@@ -214,13 +226,15 @@ policy from code that drifts.
 
 - Every frame runs on the one main OS thread, in order: `generateViewLayout`
   (builds the Layout tree and stamps each shape's `effID`) → `layoutArrange`
-  (sizing, `focusOwner` resolution, float extraction) → `renderLayout` (emits
-  into `w.renderers`) → backend `renderersDraw` (drains read-only). All
-  `*Window` access is main-thread-only. Backends wake the loop from other
-  threads via `SetWakeMainFn`.
-- Frame-scoped objects come from the `w.scratch` pools (`allocShape`,
-  `allocEventHandlers`, `allocEffects`, layer slices). Pointers are valid only
-  until the next frame's pool reset — never store them in window/app state.
+  (sizing, `focusOwner` resolution, float extraction) → `renderLayout` (called
+  from `buildRenderers`, rebuilds `w.renderers`) → per-backend `renderersDraw`
+  (drains read-only). All `*Window` access is main-thread-only. Backends wake
+  the loop from other threads via `SetWakeMainFn`.
+- Frame-scoped objects come from the `w.scratch` arenas. The `w.allocShape`,
+  `w.allocEventHandlers` and `w.allocEffects` methods draw from the
+  `viewShapes`, `viewEvents` and `viewEffects` arenas. Layer slices come from
+  the same pools. Pointers stay valid only until the next frame pool reset. Code
+  must not store them in window or app state.
 - **Where to change:** `gui/window_update.go` owns the frame pass. Keep new
   pipeline work inside `FrameFn` on the main thread. Allocate from the scratch
   pools.
@@ -266,8 +280,9 @@ policy from code that drifts.
   consume it read-only via `(*Window).Renderers()` during `renderersDraw` and
   must not retain or mutate commands across frames.
 - Bracket kinds (`RenderClip`, `RenderStencilBegin/End`,
-  `RenderFilterBegin/End`, `RenderRotateBegin/End`) must stay balanced. Clip
-  commands take effect immediately for subsequent commands in the stream.
+  `RenderFilterBegin/End`, `RenderRotateBegin/End`, `RenderTransformBegin/End`)
+  must stay balanced. Clip commands take effect immediately for subsequent
+  commands in the stream.
 - **Where to change:** `gui/render_layout.go` emits. `gui/backend/*/draw.go`
   consumes. Adding a `RenderKind` touches the dispatch switch in every backend.
 - **Catches:** `gui/render_layout_test.go`, `gui/backend/*/render*_test.go`
@@ -352,11 +367,11 @@ policy from code that drifts.
 
 ### Widget Cfg invariants
 
-- **Focusable defaults:** 22 Cfgs are focusable by default. They are `Button`,
+- **Focusable defaults:** 23 Cfgs are focusable by default. They are `Button`,
   `ColorChannelSlider`, `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`,
-  `DatePicker`, `ExpandPanel`, `FlipPanel`, `Input`, `InputDate`, `ListBox`,
-  `NumericInput`, `RadioButtonGroup`, `Radio`, `SegmentedControl`, `Select`,
-  `Slider`, `Switch`, `Toggle`, `Tree`, `VirtualList`. Opt out with
+  `DataGrid`, `DatePicker`, `ExpandPanel`, `FlipPanel`, `Input`, `InputDate`,
+  `ListBox`, `NumericInput`, `RadioButtonGroup`, `Radio`, `SegmentedControl`,
+  `Select`, `Slider`, `Switch`, `Toggle`, `Tree`, `VirtualList`. Opt out with
   `FocusDisabled`, never `Focusable: false`. A focusable-by-default control with
   an empty `ID` takes a generated one and still joins the tab order; an opt-in
   `Focusable` without an `ID` is a silent no-op — the widget renders and clicks
