@@ -1,12 +1,13 @@
 # Theme tokens
 
-Issue #755. `ThemeCfg` holds 71 fields in one flat struct. This file maps each
+Issue #755. `ThemeCfg` holds 73 fields in one flat struct. This file maps each
 field to its group. The struct stays flat. The groups below are the map.
 
 `ThemeCfg` is the input to `ThemeMaker`. Zero means default, except where the
-field doc names zero as a valid choice (`SizeBorder`, `SizeScrollbarGap`,
-`SizeScrollbarGapEnd`). `Color`, `Padding`, `Sizing`, `Spacing`, `Radius` and
-`Border` flag themselves. Use the constructors or roles for them.
+field doc names zero as a valid choice (`SizeBorder`, `SizeFieldMinWidth`,
+`SizeScrollbarGap`, `SizeScrollbarGapEnd`, `ToastAnchor`). `Color`, `Padding`,
+`Sizing`, `Spacing`, `Radius` and `Border` flag themselves. Use the constructors
+or roles for them.
 
 ## Type
 
@@ -35,7 +36,8 @@ Border width and the corner radius ladder.
 Padding ladder, form density, and the gap ladder.
 
 - `Padding`, `PaddingSmall`, `PaddingMedium`, `PaddingLarge` — padding ladder.
-  These size the gap between things.
+  These size the inset inside things. The gap between things is the `Spacing*`
+  ladder below.
 - `PaddingField` — text inset inside a form control. It sets the control height.
   It is not part of the ladder.
 - `PaddingButton` — label inset inside a Button. At body size it gives the same
@@ -101,6 +103,8 @@ Unset derives. A theme states only the override.
 - `Sounds` — sound set. Zero is silent.
 - `TitlebarDark` — dark titlebar flag.
 - `FillBorder` — fill border flag.
+- `ToastAnchor` — window corner where toasts stack. Zero (`ToastTopLeft`) is a
+  valid choice.
 
 ## Text roles (contract)
 
@@ -156,13 +160,16 @@ The status colors are tuned as fills and are too faint as text on light themes.
 `ColorSelect` stays as it is for fills. `RichLink` and markdown links take only
 the link color, so a link keeps the size of the text around it.
 
-Contrast floors (issue #863). Every text role has a minimum contrast, listed in
-`contrastFloors` (`gui/theme_contrast.go`): 4.5:1 on `ColorBackground` and
-`ColorPanel`, and 3:1 for `TextStylePlaceholder` on `ColorInterior`.
-`TextStyleDisabled` has no floor. `ThemeMaker` and `WithColors` raise a derived
-color to its floor: the quiet roles by alpha, the status and link roles by
-lightness. A color the app states (`TextStyleDef.Color`, a `ColorText*` field, a
-role set by hand) is never moved. `DebugLowContrast` reports it instead.
+Contrast floors (issue #863). Every text role except `TextStyleDisabled`,
+`TextStyleCodeSmall`, `TextStyleCodeTiny` and the icon roles has a minimum
+contrast, listed in `contrastFloors` (`gui/theme_contrast.go`): 4.5:1 on
+`ColorBackground` and `ColorPanel`, and 3:1 for `TextStylePlaceholder` on
+`ColorInterior`. `TextStyleDisabled` has no floor, and neither do the code-small
+roles or the icon roles (glyphs, not text). `ThemeMaker` and `WithColors` raise
+a derived color to its floor: the quiet roles by alpha, the status and link
+roles by lightness. A color the app states (`TextStyleDef.Color`, a `ColorText*`
+field, a role set by hand) is never moved. `DebugLowContrast` reports it
+instead.
 
 Rules:
 

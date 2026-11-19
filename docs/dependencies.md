@@ -57,7 +57,7 @@ go mod tidy
 Example:
 
 ```bash
-go get github.com/go-gui-org/go-glyph@v1.13.0
+go get github.com/go-gui-org/go-glyph@v1.27.0
 go mod tidy
 ```
 
@@ -84,13 +84,11 @@ is needed. `go.mod` carries none, so CI fetches the tagged module.
 ## Verification
 
 Pre-commit checks (PostToolUse hook runs lint-fix + tests on every
-`.go` edit; reproduce manually with):
+`.go` edit; reproduce manually with the repo gates):
 
 ```bash
-go build ./...
-go vet ./...
-make lint
-go test ./...
+make check      # fast gate: vet, doc generation, format, audits
+make prepush    # full gate: check + race tests, cross-lint, cross-compile
 ```
 
 Commit `go.mod` and `go.sum` together whenever either changes.

@@ -153,7 +153,13 @@ func run() error {
 	b.WriteString("```\n\n")
 	b.WriteString("Example:\n\n")
 	b.WriteString("```bash\n")
-	b.WriteString("go get github.com/go-gui-org/go-glyph@v1.13.0\n")
+	glyphVersion := ""
+	for _, m := range direct {
+		if m.path == "github.com/go-gui-org/go-glyph" {
+			glyphVersion = m.version
+		}
+	}
+	fmt.Fprintf(&b, "go get github.com/go-gui-org/go-glyph@%s\n", glyphVersion)
 	b.WriteString("go mod tidy\n")
 	b.WriteString("```\n\n")
 	b.WriteString("After updating dependencies, regenerate this file:\n\n")
@@ -174,12 +180,10 @@ func run() error {
 
 	b.WriteString("## Verification\n\n")
 	b.WriteString("Pre-commit checks (PostToolUse hook runs lint-fix + tests on every\n")
-	b.WriteString("`.go` edit; reproduce manually with):\n\n")
+	b.WriteString("`.go` edit; reproduce manually with the repo gates):\n\n")
 	b.WriteString("```bash\n")
-	b.WriteString("go build ./...\n")
-	b.WriteString("go vet ./...\n")
-	b.WriteString("make lint\n")
-	b.WriteString("go test ./...\n")
+	b.WriteString("make check      # fast gate: vet, doc generation, format, audits\n")
+	b.WriteString("make prepush    # full gate: check + race tests, cross-lint, cross-compile\n")
 	b.WriteString("```\n\n")
 	b.WriteString("Commit `go.mod` and `go.sum` together whenever either changes.\n")
 

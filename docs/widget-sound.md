@@ -69,10 +69,10 @@ system _alert_ volume and expose no app-level gain.
 ## A real player
 
 For actual click sounds, implement `gui.SoundPlayer` over `gui/audio`. Below is
-the showcase's player, quoted whole from `examples/showcase/sound_player.go`. It
-synthesizes every cue rather than loading files, so it needs no assets. A test
-compares this block against that file byte for byte: what you read here is what
-compiles.
+the showcase's player, quoted from the marked `player` region of
+`examples/showcase/sound_player.go`. It synthesizes every cue rather than
+loading files, so it needs no assets. A test pins this block against that region
+byte for byte: what you read here is what compiles.
 
 ```go
 // Cue envelope: percussive, one-shot, so each cue frees its own mixer
@@ -228,9 +228,9 @@ func (p *filePlayer) PlaySound(cue gui.SoundCue, gain float32) {
     default:
         return
     }
-    // gui/audio exports no per-sound volume setter today, so a
-    // file-based player either ignores gain or scales the whole mixer
-    // with audio.SetMasterVolume. Prefer pre-normalized assets.
+    // Per-sound gain is available, so scale here; prefer pre-normalized
+    // assets and pass 1 when the file needs no correction.
+    s.SetVolume(float64(gain))
     _, _ = s.PlayOnce()
 }
 
@@ -401,7 +401,7 @@ too — the OS plays its own.
 - `gui/audio` does not build for `js`, `android`, or `ios`. Put your player
   behind a `//go:build !js && !android && !ios` tag and supply an empty stub for
   the others, the way the showcase does.
-- `BeepAvailable()` is false on mobile and wasm, and on Linux without
+- `(*Window).BeepAvailable()` is false on mobile and wasm, and on Linux without
   `canberra-gtk-play`.
 - The failure mode is always silence, never a panic. A nil `SoundPlayer` is the
   default and every call site nil-guards, which is also why headless tests are

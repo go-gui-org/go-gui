@@ -81,16 +81,16 @@ before you examine the pprof output.
 The go-gui render pipeline has well-defined hot paths. When investigating
 performance, profile these first:
 
-| Path                  | Function               | Benchmark                       |
-| --------------------- | ---------------------- | ------------------------------- |
-| View → Layout tree    | `generateViewLayout`   | `BenchmarkGenerateViewLayout`   |
-| Layout → RenderCmd    | `renderLayout`         | `BenchmarkRenderLayout`         |
-| Layout arrangement    | `layoutArrange`        | `BenchmarkLayoutArrange`        |
-| SVG cache hit         | `LoadSvg` (cached)     | `BenchmarkSvgLoadCacheHit`      |
-| SVG cache miss        | `LoadSvg` (uncached)   | `BenchmarkSvgLoadCacheMiss`     |
-| SVG render            | `renderSvg`            | `BenchmarkRenderSvgAnimated`    |
-| Wrap container layout | `layoutWrapContainers` | `BenchmarkLayoutWrapContainers` |
-| Focus traversal       | `NextFocusable`        | `BenchmarkFocusTraversal`       |
+| Path                  | Function                              | Benchmark                       |
+| --------------------- | ------------------------------------- | ------------------------------- |
+| View → Layout tree    | `generateViewLayout`                  | `BenchmarkGenerateViewLayout`   |
+| Layout → RenderCmd    | `renderLayout`                        | `BenchmarkRenderLayout`         |
+| Layout arrangement    | `layoutArrange`                       | `BenchmarkLayoutArrange`        |
+| SVG cache hit         | `LoadSvg` (cached)                    | `BenchmarkSvgLoadCacheHit`      |
+| SVG cache miss        | `LoadSvg` (uncached)                  | `BenchmarkSvgLoadCacheMiss`     |
+| SVG render            | `renderSvg`                           | `BenchmarkRenderSvgAnimated`    |
+| Wrap container layout | `layoutWrapContainers`                | `BenchmarkLayoutWrapContainers` |
+| Focus traversal       | `nextFocusable` (method on `*Layout`) | `BenchmarkFocusTraversal`       |
 
 ## Allocation targets
 

@@ -53,9 +53,9 @@ roles `TextStyleIconXLarge` .. `TextStyleIconTiny`. Every role is exported — a
 app's widget names the role of the widget beside it instead of guessing. The
 list and the rules for changing it are in `docs/theme-tokens.md` (§ Text roles).
 For weight and slant, apply `Bold()`, `Italic()` or `Regular()` to a role. For a
-mono donor, use `Theme.Mono`. Take a step by reading a role, never by arithmetic
-on `X.Size`. A `Size ± N` that produces a text style is a finding. Two tracked
-exceptions carry the marker (§ Deviating).
+mono donor, use `theme.Mono` on a `Theme` value. Take a step by reading a role,
+never by arithmetic on `X.Size`. A `Size ± N` that produces a text style is a
+finding. Two tracked exceptions carry the marker (§ Deviating).
 
 Naming a step's _floor_ does not resolve the step.
 `f32Max(X.Size-4, TextStyleCaptionSmall.Size)` still sizes text by arithmetic.
@@ -105,7 +105,7 @@ not typography, and is not a finding.
 ## Field labels — two placements, one per control kind
 
 - `labelledField` — the label **above** the control: form fields (`Input`,
-  `Select`, `Combobox`, `NumericInput`, `DatePicker`, `InputDate`,
+  `Select`, `Combobox`, `Slider`, `NumericInput`, `DatePicker`, `InputDate`,
   `ColorPicker`). It exists so the placement and the gap are decided once, not
   per widget.
 - `trailingLabel` — the label **beside** the control: boolean controls
@@ -165,13 +165,14 @@ padding do not silently add height.
 ## Radius and elevation — one ladder, two elevation tiers
 
 The radius ladder is `Theme.RadiusSmall` 4 (badges, scrollbar thumbs),
-`Theme.RadiusMedium` 6 (controls), `Theme.RadiusLarge` 12 (dialogs, dropdowns,
-popovers, the tab body). One number sets it in the base theme. A platform theme
-overrides it only where the platform actually differs (Windows keeps its native
-large at 8). A floating surface is a style at `RadiusLarge` or higher. A control
-taking `RadiusLarge` is a finding on the same basis as a magic alpha. The toggle
-pill (`radiusLarge * 2`, clamped to a capsule) is the deliberate exception.
-Rounding is never spelled at a call site.
+`Theme.RadiusMedium` 6 (controls) and `Theme.RadiusLarge` 12 (reserved top tier
+for floating surfaces). No widget default reads `RadiusLarge` yet: dialogs and
+toasts take `RadiusMedium`, tooltips `RadiusSmall`. One number sets it in the
+base theme. A platform theme overrides it only where the platform actually
+differs (Windows keeps its native large at 8). A control taking `RadiusLarge` is
+a finding on the same basis as a magic alpha. The switch pill
+(`radiusLarge * 2`, clamped to a capsule) is the deliberate exception. Rounding
+is never spelled at a call site.
 
 A Cfg radius field takes a `gui.Radius`. The roles `gui.RadiusSmall`,
 `gui.RadiusMedium` and `gui.RadiusLarge` read the active theme's step when the
