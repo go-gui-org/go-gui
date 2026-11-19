@@ -30,10 +30,18 @@ Every widget has a `*Cfg` struct. Conventions:
   `Padding Padding`, `Spacing Spacing`, `Radius Radius`, `SizeBorder Border`
   (`Table` is the exception: its `SizeBorder` is a plain `float32` applied
   as-is).
-- **Callbacks** — one func field per event. Sig: `func(EventCtx)`. One rule for
-  all of them: call `ctx.Consume()` on any path that acts on the event. On any
-  path that means "not mine", call nothing. Nothing is marked handled for you. A
-  widget that means to absorb a click must say so.
+- **Callbacks** — one func field per event. Most take just `func(EventCtx)`, but
+  several carry payloads (`OnSelect func([]string, EventCtx)`,
+  `OnTextChanged func(string, EventCtx)`,
+  `OnSubmit func(FormSubmitEvent, EventCtx)`). Input callbacks follow one rule:
+  call `ctx.Consume()` on any path that acts on the event, and call nothing on
+  any path that means "not mine" — nothing is marked handled for you. A widget
+  that means to absorb a click must say so. Notification callbacks run with no
+  event in flight (`OnTextChanged`, form `OnSubmit` and `OnReset`), so there
+  `Consume()` is a harmless no-op: consume the originating input event in its
+  own handler instead. Two dispatch paths pre-mark the event before the callback
+  runs: a press that takes focus, and Space/Enter click activation. There,
+  omitting `Consume()` does not propagate to the parent.
 - **`gui:"auto"` tag** — an `ID` that the factory fills with a generated leaf
   when it is empty (#881). This is the default for a stateful widget.
 - **`gui:"required"` tag** — fields that must be non-empty get the tag. The
@@ -77,6 +85,10 @@ type ToggleCfg struct {
     Disabled    bool
     Invisible   bool
     Selected    bool
+    // Sound overrides the theme's toggle cue for this instance
+    // (issue #446). SoundDisabled suppresses it.
+    Sound         SoundCue
+    SoundDisabled bool
 }
 ```
 
@@ -88,8 +100,9 @@ Sig: `func WidgetName(cfg WidgetCfg) View`. The function:
    `cfg.ID = vw.autoLeaf("<kind>")` and calls the factory again. The
    `!cfg.FocusDisabled` guard stays only where focus is the one thing the ID is
    for; a widget that also keys scroll, state or inner IDs from it takes the
-   leaf unconditionally. Build inner IDs with `ScopeID(w.EffID(cfg.ID), part)`,
-   never a relative leaf, and add the widget to
+   leaf unconditionally. Resolve the leaf inside `GenerateLayout`
+   (`cfg.ID = w.EffID(cfg.ID)`, then `ScopeID(cfg.ID, part)`), or in handlers
+   via `ctx.EffID(leaf)` — never a relative leaf — and add the widget to
    `TestAutoIDEveryWidgetTwiceHasNoDuplicates`.
 2. **Calls applyDefaults** — provides theme colors, sizes, and text styles for
    any field the user did not set
@@ -174,8 +187,8 @@ func Toggle(cfg ToggleCfg) View {
             A11YDescription: cfg.A11YDescription,
         },
         ClickOnSpace: true,
+        // Plain OnClick is left-click only; any-button is OnAnyClick.
         OnClick:      cfg.OnClick,
-        ClickButton:  MouseLeft,
         MinWidth:     cfg.MinWidth,
         OnHover:      /* hover highlight */,
         AmendLayout:  /* focus highlight */,
@@ -190,9 +203,8 @@ func Toggle(cfg ToggleCfg) View {
 click semantics without per-frame closures:
 
 ```go
-// Left-click only (not right/middle).
-OnClick:     cfg.OnClick,
-ClickButton: MouseLeft,
+// Plain OnClick is left-click only; any-button is OnAnyClick.
+OnClick: cfg.OnClick,
 
 // Space/Enter keyboard activation (Focusable + ID required; an empty
 // auto ID already fills the ID for focusable-by-default controls).
@@ -214,9 +226,9 @@ the owner's focus state, set `Shape.focusOwner` instead of giving it an ID.
 **a11yLabel helper** — `a11yLabel(userLabel, fallback)` returns the
 user-supplied label if non-empty, otherwise the fallback. Set it on every
 interactive widget. When the widget builds a `Shape` directly rather than
-delegating to a `ContainerCfg`, use `cfg.a11yInfo(fallback)` instead. It is the
-same pairing, promoted from the embedded `A11YCfg`. It returns the `*accessInfo`
-the shape's `a11Y` field wants.
+delegating to a `ContainerCfg`, use `cfg.a11yInfo(w, fallback)` instead. It is
+the same pairing, promoted from the embedded `A11YCfg`. It returns the
+`*accessInfo` the shape's `a11Y` field wants.
 
 ## 3. Theme defaults
 
@@ -226,17 +238,19 @@ Most widgets have a default style struct in `styles_widget.go`:
 // In styles_widget.go
 
 type toggleStyle struct {
+    // textStyleNormal and textStyleLabel stay lowercase; the rest keep
+    // capitals even though the struct is unexported.
+    textStyleNormal TextStyle
+    textStyleLabel  TextStyle
+    Padding         Padding
+    Size            float32
+    SizeBorder      float32
+    Radius          float32
     // Colors holds the six per-state colors: Base, Hover, Click,
     // Focus, Border and BorderFocus. Extra colors a single widget
     // needs, like ColorSelect, stay as their own fields.
-    Colors           ColorSet
-    ColorSelect      Color
-    Padding          Padding
-    Size             float32
-    SizeBorder       float32
-    Radius           float32
-    TextStyleNormal  TextStyle
-    TextStyleLabel   TextStyle
+    Colors      ColorSet
+    ColorSelect Color
 }
 
 var defaultToggleStyle = toggleStyle{...}
@@ -245,9 +259,8 @@ var defaultToggleStyle = toggleStyle{...}
 The style struct is unexported on purpose. Apps style a widget through the theme
 roles and `Theme.With`, never by naming the struct, and no exported function or
 field hands one out, so nothing outside `gui` can hold a value of it (#735,
-#1235). Its fields keep their capitalized names anyway: on a type no other
-package can reach, field case carries no API meaning, and the theme tests read
-these structs by reflection.
+#1235). Field case carries no API meaning on a type no other package can reach,
+so most fields keep capitals; the theme tests read these structs by reflection.
 
 And in the theme's `init()` or `buildTheme()` function, populate the light/dark
 variants. The factory's `applyDefaults` function provides any field the user did
@@ -265,9 +278,9 @@ func applyToggleDefaults(cfg *ToggleCfg) {
         cfg.Padding = d.Padding
     }
     if cfg.TextStyle == (TextStyle{}) {
-        cfg.TextStyle = d.TextStyleNormal
+        cfg.TextStyle = d.textStyleNormal
     } else {
-        cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.TextStyleNormal)
+        cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.textStyleNormal)
     }
     // ... repeat for each style field
 }
@@ -333,7 +346,7 @@ func TestMain(m *testing.M) { os.Exit(gui.RunTestsCheckingLeaks(m)) }
 In `examples/showcase/`, create a demo function and register it:
 
 ```go
-// examples/showcase/demo_toggle.go
+// examples/showcase/demo_selection.go
 func demoToggle(_ *gui.Window) gui.View {
     return gui.Column(gui.ContainerCfg{
         Padding: gui.PadAll(8),
@@ -371,10 +384,11 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 ## 6. Verify
 
 ```bash
-go test ./gui/...          # all tests (including your new ones)
-go vet ./gui/...           # static analysis (requiredid tag checks)
-golangci-lint run ./gui/... # full lint
-go run ./examples/showcase/ # visual check
+go test ./...                                # all tests
+go vet ./...                                 # static analysis
+go run ./tools/requiredid/cmd/requiredid ./...  # ID tag checks
+make lint                                    # full lint (repo-pinned)
+go run ./examples/showcase/                  # visual check
 ```
 
 ## Checklist
@@ -384,13 +398,15 @@ go run ./examples/showcase/ # visual check
 - [ ] `gui:"auto"` on a stateful `ID`, with the generated-leaf branch in the
       factory; `gui:"required"` only where a generated value cannot work
 - [ ] a11y role, state, label set on the root shape
-- [ ] Keyboard/click semantics via `ClickOnSpace` / `ClickButton` /
-      `ClickOnEnter` where appropriate
+- [ ] Keyboard/click semantics via `ClickOnSpace` / `ClickOnEnter` /
+      `OnAnyClick` where appropriate
 - [ ] Theme defaults in `styles_widget.go` (or skip if not needed)
 - [ ] `apply<Name>Defaults` function for theme fallback
 - [ ] `gui/view_<name>_test.go` — layout structure, config passthrough, a11y,
       property rendering tests
 - [ ] `examples/showcase/demo_<name>.go` — demo function
 - [ ] `examples/showcase/detail.go` — registered in `componentDemos`
-- [ ] `go test ./gui/...` passes
-- [ ] `golangci-lint run ./gui/...` passes
+- [ ] `go test ./...` passes
+- [ ] `go run ./tools/requiredid/cmd/requiredid ./...` passes
+- [ ] `make lint` passes
+- [ ] `CHANGELOG.md` entry under `## [Unreleased]` (`make check` enforces it)

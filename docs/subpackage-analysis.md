@@ -5,15 +5,18 @@ root `gui` package into subpackages (`gui/layout/`, `gui/animation/`, and more).
 
 ## Current state
 
-- Root `gui/` package: ~270 non-test .go files at top level
-- 31 library packages under `gui/` (21 under `backend/`). 104 total in the
+- Root `gui/` package: ~370 non-test .go files at top level
+- 51 library packages under `gui/` (36 under `backend/`). 169 total in the
   module including examples and tools
 - Compile time: 0.28s — not a problem
 - File naming convention: `layout_*.go`, `render_*.go`, `view_*.go`,
   `animation_*.go` — provides grep-level discoverability
 - Existing subpackages: `datagrid`, `markdown`, `svg`, `svg/css`, `highlight`,
-  `audio`, `shader`, `backend`, `internal`, `locales`, `assets` — leaf
-  subsystems that import `gui` but are not imported by it
+  `audio`, `shader`, `appinfo`, `instance`, `backend`, `internal`, `locales`,
+  `assets` — leaf subsystems that import `gui`. Most invert the dependency back
+  through interfaces so `gui` never imports them; `gui` does import three back:
+  `gui/appinfo` for window metadata, `gui/markdown` and `gui/highlight` for the
+  markdown widget
 
 ## Why core subsystems can't move
 
@@ -73,8 +76,9 @@ The existing approach is right:
 - **Core types stay in `gui/`** — flat, single package. File prefix convention
   for discoverability. No internal import boundaries.
 - **Leaf subsystems become subpackages** — `datagrid/`, `markdown/`, `svg/`,
-  `highlight/`. They import `gui` and are imported by user code. `gui` never
-  imports them (interface-based inversion where needed).
+  `highlight/`. They import `gui` and are imported by user code. `gui` does not
+  import most of them back (interface-based inversion where needed); it does
+  import `gui/appinfo`, `gui/markdown` and `gui/highlight` directly.
 
 ## Decision
 

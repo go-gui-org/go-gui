@@ -14,20 +14,20 @@ stamps identity). Tab order also needs `!FocusSkip` and `!Disabled`.
 
 ```go
 // No ID: takes a generated ID and joins the tab order (#881).
-Button{Label: "Save", OnClick: save}
+gui.Button(gui.ButtonCfg{Label: "Save", OnClick: save})
 
 // Inputs are focusable by default. FocusDisabled opts out.
-Input{ID: "name", FocusDisabled: true} // not in the tab order
+gui.Input(gui.InputCfg{ID: "name", FocusDisabled: true}) // not in the tab order
 ```
 
 Most input controls are focusable by default. They are `Button`,
 `ColorChannelSlider`, `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`,
-`DatePicker`, `ExpandPanel`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
-`RadioButtonGroup`, `Radio`, `Select`, `Slider`, `Switch`, `Toggle`, `Tree`,
-`VirtualList`. All of them take a generated ID when `ID` is empty (see "Auto
-IDs" below). Everything else opts in with `Focusable: true`, and an opt-in shape
-still needs an explicit `ID`. The `requiredid` analyzer and the
-`DebugMissingIDs` gate report one without it. See
+`DataGrid`, `DatePicker`, `ExpandPanel`, `Input`, `InputDate`, `ListBox`,
+`NumericInput`, `RadioButtonGroup`, `Radio`, `Select`, `Slider`, `Switch`,
+`Toggle`, `Tree`, `VirtualList`. All of them take a generated ID when `ID` is
+empty (see "Auto IDs" below). Everything else opts in with `Focusable: true`,
+and an opt-in shape still needs an explicit `ID`. The `requiredid` analyzer and
+the `DebugMissingIDs` gate report one without it. See
 `docs/specs/focusable-default-input.md`.
 
 ## Soft keyboard
@@ -151,8 +151,8 @@ Set an explicit ID in these cases:
 A widget of another kind does not move the count. An error `Text` shown above
 two inputs leaves their keys as they were. An auto ID opens no scope, so an
 explicit `ID` inside an ID-less scroll container resolves as if the container
-were absent. `Form` counts across the whole window, because its registry keys on
-the bare form ID.
+were absent. `Form` keys its registry on the bare, unresolved form ID, so field
+IDs stay put when they resolve under the absolute `"form:<id>"` scope.
 
 `gui.Debug` reports a focused widget whose generated key moved to another widget
 (`DebugAutoIDs`), and an app ID that starts with the reserved `~`. See
@@ -196,7 +196,7 @@ paints it, so a pointer move inside the shape needs no rebuild (#977).
 | read hover or press inside an own `GenerateLayout` | `w.IsHovered(effID)` / `w.IsPressed(effID)` |
 | set a hover fill or cursor on a container          | `ContainerCfg.Hover` (`gui.HoverStyle`)     |
 | read the pointer position, set a cursor, hit-test  | `OnHover`                                   |
-| react once when the pointer leaves a shape         | `OnMouseLeave`                              |
+| react once when the pointer leaves a canvas        | `DrawCanvasCfg.OnMouseLeave`                |
 
 `gui.Interactive` reads the state for the leaf ID in its scope and gives it to a
 builder. The root of the built view must carry the same ID:
@@ -364,9 +364,10 @@ nothing detects that. See `docs/specs/virtualized-variable-height-lists.md`.
 
 ## Numeric input steps
 
-`NumericInput` steps on Up/Down by default (`KeyboardDisabled` opts out) and on
-the mouse wheel only when `MouseWheel` is set. Shift scales the step 10x, Alt
-0.1x; `ShiftMultiplier`/`AltMultiplier` override each (zero takes the default).
+`NumericInput` steps on Up/Down by default (`StepCfg.KeyboardDisabled` opts out)
+and on the mouse wheel only when `StepCfg.MouseWheel` is set. Shift scales the
+step 10x, Alt 0.1x; `StepCfg.ShiftMultiplier`/`StepCfg.AltMultiplier` override
+each (zero takes the default).
 
 ## Date picker sizing
 
@@ -435,9 +436,10 @@ dc.FilledCircleGradient(cx, cy, r, &gui.CanvasGradient{
 })
 ```
 
-There is no stop-count limit — the shader's five-stop cap belongs to the shape
-gradient path (`ContainerCfg`), not this one. Do not stack concentric discs to
-fake a falloff. That is what this replaces.
+Stops past 12 resample down only on the shader path. The resample happens only
+when the lowered ramp paints the same picture; otherwise the fill falls back to
+a triangle mesh that keeps every stop. Do not stack concentric discs to fake a
+falloff. That is what this replaces.
 
 A gradient fill always starts its own batch and never merges with the flat fill
 before it, so interleaving the two keeps painter's order.
@@ -743,9 +745,10 @@ func TestGoldenExample(t *testing.T) {
   day. The window's theme and pointer state are restored afterwards.
 - A mismatch writes the recording under `testdata/failures/` for review.
   Git-ignore that directory.
-- `GoldenCfg` also carries `FocusID`, `KeyPressID`, `HoverX`/`HoverY` and
-  `MousePressed` for appearances `TestClick` cannot reach: a held Space, a hover
-  with no click.
+- `GoldenCfg` also carries `FocusID`, `KeyPressID`, `HoverX`/`HoverY`,
+  `MousePressed`, `Dir` (golden dir, default `testdata`) and `HoverInert` (pins
+  a disabled widget's hovered look) for appearances `TestClick` cannot reach: a
+  held Space, a hover with no click.
 
 ## Animation time in tests
 
@@ -774,8 +777,9 @@ duplicate IDs, focusable shapes without IDs, handlers that act without
 consuming, and the rest of the sweep: scrollable or `OnMouseLeave` shapes
 without IDs, a height-0 virtualized listbox, an over-stop gradient, a
 `Wrap`+`Overflow` container, unresolved state keys, unclaimed focus IDs, stamp
-drift, dropped callbacks and links, and refused window features. Findings print
-once per window. In tests, use `(*Window).TestDuplicateIDs` and
+drift, dropped callbacks and links, refused window features, unknown lookups,
+glyph fallback, sizing mistakes, and low-contrast text. Findings print once per
+window. In tests, use `(*Window).TestDuplicateIDs` and
 `(*Window).TestUnconsumedEvents`.
 
 `DebugUnscopedIDs` is separate and opt-in: it is not part of `DebugAll`. It

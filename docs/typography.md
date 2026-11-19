@@ -86,7 +86,7 @@ for the rest: `Bold()`, `Italic()`, `Regular()`. Each modifier keeps size and
 color, so chaining works in any order. `Display.Regular()` is the extra-large
 regular rung.
 
-`Theme.Mono(style)` moves a style to the mono family. It adds the same +1
+`theme.Mono(style)` moves a style to the mono family. It adds the same +1
 compensation the code roles use. Set `Size` after `Mono()`, not before: an
 explicit size replaces the compensation instead of stacking on it. Where a code
 role fits, use the role and skip the modifier.

@@ -17,8 +17,10 @@ standard path end to end.
 
 ## Step 1: compile for the target
 
-A C toolchain is needed only on **macOS** (the Metal backend is Objective-C).
-Linux and Windows build fully cgo-free.
+A C toolchain is needed on **macOS** (the Metal backend is Objective-C) and for
+the mobile backends. Linux and Windows (desktop) build fully cgo-free — unless
+the app opts into `-tags hunspell`, which pulls in C Hunspell for spell checking
+and needs a C toolchain with libhunspell-dev.
 
 ```bash
 # Windows (amd64). -H windowsgui marks the PE as a GUI-subsystem image:
@@ -229,9 +231,11 @@ The Windows `.exe` is not Authenticode signed — that is a separate issue; run
 ## Mobile
 
 Mobile targets build through the standard Go mobile tooling rather than buildapp
-— see `make build-ios` (`go build -buildmode=c-archive` for `examples/ios_demo`)
-and `make build-android` (`gomobile bind` to an `.aar` for
-`examples/android_demo`) in the `Makefile`.
+— see `make build-ios`
+(`CGO_ENABLED=1 GOOS=ios GOARCH=arm64 go build -buildmode=c-archive -tags ios`
+for `examples/ios_demo`, needs the Xcode SDK) and `make build-android`
+(`gomobile bind -target=android/arm64,android/amd64 -androidapi 24` to an `.aar`
+for `examples/android_demo`) in the `Makefile`.
 
 On mobile, the app still reads the embedded `appinfo.toml` at run time, so the
 per-app storage ID is the manifest ID. But the package ID comes from the host
