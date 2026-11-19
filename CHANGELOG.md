@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Custom shaders draw on iOS (#1299).** The Metal pipelines built for `Shader`
+  declared no stencil format, while the main pass they draw in has a Stencil8
+  attachment. On iOS, Metal's validation stopped the app at the first custom
+  shader draw, and without validation (an app started from the home screen) the
+  screen stayed blank; go-video's player showed no picture. The custom pipelines
+  now declare the pass's stencil format on iOS and macOS, as go-gui's own
+  pipelines do. macOS drew without validation, but by chance.
 - **The iOS backend links CoreGraphics (#1300).** It calls CoreGraphics
   (`CGRectGetMaxY`, `CGRectZero` and others) but linked only Metal, QuartzCore,
   Foundation and UIKit. An app built in Xcode linked anyway, because its project

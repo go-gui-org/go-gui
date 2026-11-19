@@ -653,8 +653,9 @@ int metalBuildCustomPipeline(MetalCtx ctx_,
         [lib newFunctionWithName:@"fs_main"];
     desc.vertexDescriptor = mainVertexDesc();
     // Custom shaders draw in the main pass, so they match its
-    // sample count.
+    // sample count and its stencil attachment (#1299).
     desc.rasterSampleCount = (NSUInteger)ctx->sampleCount;
+    desc.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
     desc.colorAttachments[0].pixelFormat =
         MTLPixelFormatBGRA8Unorm;
     desc.colorAttachments[0].blendingEnabled = YES;
