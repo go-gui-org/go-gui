@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.98.0] - 2026-11-19
+
 ### Changed
 
 - **BREAKING: layout keeps the focused field and dialogs above the soft keyboard
