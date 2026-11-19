@@ -493,6 +493,9 @@ int metalBuildCustomPipeline(const char* mslSrc) {
     desc.fragmentFunction =
         [lib newFunctionWithName:@"fs_main"];
     desc.vertexDescriptor = mainVertexDesc();
+    // Custom shaders draw in the main pass, so they match its
+    // stencil attachment (#1299).
+    desc.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
     desc.colorAttachments[0].pixelFormat =
         MTLPixelFormatBGRA8Unorm;
     desc.colorAttachments[0].blendingEnabled = YES;
