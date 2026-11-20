@@ -6,8 +6,8 @@ import (
 )
 
 // TestPlayEventConcurrent pins that PlayEvent is safe from any goroutine.
-// On darwin the C-string cache was a plain array write; two first calls
-// for the same cue raced. sync.Once per event serializes the init.
+// On darwin the sound cache is shared state; two first calls
+// for the same cue must not race. A mutex guards it.
 func TestPlayEventConcurrent(t *testing.T) {
 	const workers = 8
 	var start, done sync.WaitGroup

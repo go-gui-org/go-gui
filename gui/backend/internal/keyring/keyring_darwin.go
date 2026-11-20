@@ -1,157 +1,168 @@
-//go:build darwin && cgo
+//go:build darwin && !ios
 
 package keyring
 
-/*
-#cgo LDFLAGS: -framework Security -framework CoreFoundation
-#include <Security/Security.h>
-#include <TargetConditionals.h>
-#include <stdlib.h>
-#include <string.h>
-
-// gg_query builds the query that names one generic password item:
-// class, service and account. The caller releases it.
-static CFMutableDictionaryRef gg_query(const char *service, const char *account) {
-	CFMutableDictionaryRef q = CFDictionaryCreateMutable(NULL, 0,
-		&kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-	CFStringRef s = CFStringCreateWithCString(NULL, service, kCFStringEncodingUTF8);
-	CFStringRef a = CFStringCreateWithCString(NULL, account, kCFStringEncodingUTF8);
-	CFDictionarySetValue(q, kSecClass, kSecClassGenericPassword);
-	CFDictionarySetValue(q, kSecAttrService, s);
-	CFDictionarySetValue(q, kSecAttrAccount, a);
-	CFRelease(s);
-	CFRelease(a);
-	return q;
-}
-
-// gg_loaded is gg_secret_load's result. A struct return, not out
-// parameters, so the Go side passes no Go pointers into C.
-typedef struct {
-	void *data;
-	long len;
-	OSStatus status;
-} gg_loaded;
-
-// gg_secret_load copies the item's data into a malloc'd buffer. The
-// caller clears and frees it.
-static gg_loaded gg_secret_load(const char *service, const char *account) {
-	gg_loaded r = {NULL, 0, errSecSuccess};
-	CFMutableDictionaryRef q = gg_query(service, account);
-	CFDictionarySetValue(q, kSecReturnData, kCFBooleanTrue);
-	CFDictionarySetValue(q, kSecMatchLimit, kSecMatchLimitOne);
-	CFTypeRef res = NULL;
-	r.status = SecItemCopyMatching(q, &res);
-	CFRelease(q);
-	if (r.status != errSecSuccess) {
-		return r;
-	}
-	if (res == NULL || CFGetTypeID(res) != CFDataGetTypeID()) {
-		if (res != NULL) CFRelease(res);
-		r.status = errSecInternalError;
-		return r;
-	}
-	CFDataRef d = (CFDataRef)res;
-	long n = (long)CFDataGetLength(d);
-	void *buf = malloc(n > 0 ? (size_t)n : 1);
-	if (buf == NULL) {
-		CFRelease(res);
-		r.status = errSecAllocate;
-		return r;
-	}
-	memcpy(buf, CFDataGetBytePtr(d), (size_t)n);
-	CFRelease(res);
-	r.data = buf;
-	r.len = n;
-	return r;
-}
-
-// gg_secret_save updates the item if it exists, else adds it.
-static OSStatus gg_secret_save(const char *service, const char *account,
-		const void *data, long n) {
-	CFDataRef d = CFDataCreate(NULL, (const UInt8 *)data, (CFIndex)n);
-	CFMutableDictionaryRef q = gg_query(service, account);
-	CFMutableDictionaryRef upd = CFDictionaryCreateMutable(NULL, 0,
-		&kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-	CFDictionarySetValue(upd, kSecValueData, d);
-	OSStatus st = SecItemUpdate(q, upd);
-	CFRelease(upd);
-	if (st == errSecItemNotFound) {
-		CFDictionarySetValue(q, kSecValueData, d);
-#if TARGET_OS_IPHONE
-		// Readable by a background task after the first unlock, and
-		// never moved to another device by a backup restore.
-		CFDictionarySetValue(q, kSecAttrAccessible,
-			kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly);
-#endif
-		st = SecItemAdd(q, NULL);
-	}
-	CFRelease(q);
-	CFRelease(d);
-	return st;
-}
-
-static OSStatus gg_secret_delete(const char *service, const char *account) {
-	CFMutableDictionaryRef q = gg_query(service, account);
-	OSStatus st = SecItemDelete(q);
-	CFRelease(q);
-	return st;
-}
-
-// gg_status_message writes the Security framework's text for st into
-// buf as UTF-8. It writes an empty string when there is none.
-static void gg_status_message(OSStatus st, char *buf, long n) {
-	buf[0] = 0;
-	CFStringRef s = SecCopyErrorMessageString(st, NULL);
-	if (s == NULL) return;
-	CFStringGetCString(s, buf, (CFIndex)n, kCFStringEncodingUTF8);
-	CFRelease(s);
-}
-*/
-import "C"
-
 import (
+	"errors"
 	"fmt"
+	"sync"
 	"unsafe"
 
+	"github.com/ebitengine/purego"
+
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/internal/darwinffi"
 )
+
+// Security framework status codes (SecBase.h). OSStatus is an int32.
+const (
+	errSecSuccess        = 0
+	errSecAllocate       = -108
+	errSecNotAvailable   = -25291
+	errSecNoSuchKeychain = -25294
+	errSecItemNotFound   = -25300
+	errSecInternalError  = -26276
+)
+
+// sec holds the Security framework functions and the kSec* keys. It is
+// bound on first use through purego, so the Keychain works with cgo off
+// (#1307). A secret call is not on a per-frame path, so the typed
+// RegisterFunc form, which allocates per call, is fine.
+var sec struct {
+	once sync.Once
+
+	copyMatching func(query uintptr, result *uintptr) int32
+	add          func(attrs uintptr, result uintptr) int32
+	update       func(query, attrs uintptr) int32
+	del          func(query uintptr) int32
+	errorMessage func(status int32, reserved uintptr) uintptr
+
+	class, classGenericPassword, attrService, attrAccount uintptr
+	returnData, matchLimit, matchLimitOne, valueData      uintptr
+}
+
+func loadSec() {
+	sec.once.Do(func() {
+		lib := darwinffi.Open(darwinffi.PathSecurity)
+		purego.RegisterLibFunc(&sec.copyMatching, lib, "SecItemCopyMatching")
+		purego.RegisterLibFunc(&sec.add, lib, "SecItemAdd")
+		purego.RegisterLibFunc(&sec.update, lib, "SecItemUpdate")
+		purego.RegisterLibFunc(&sec.del, lib, "SecItemDelete")
+		purego.RegisterLibFunc(&sec.errorMessage, lib, "SecCopyErrorMessageString")
+		sec.class = darwinffi.Data(lib, "kSecClass")
+		sec.classGenericPassword = darwinffi.Data(lib, "kSecClassGenericPassword")
+		sec.attrService = darwinffi.Data(lib, "kSecAttrService")
+		sec.attrAccount = darwinffi.Data(lib, "kSecAttrAccount")
+		sec.returnData = darwinffi.Data(lib, "kSecReturnData")
+		sec.matchLimit = darwinffi.Data(lib, "kSecMatchLimit")
+		sec.matchLimitOne = darwinffi.Data(lib, "kSecMatchLimitOne")
+		sec.valueData = darwinffi.Data(lib, "kSecValueData")
+	})
+}
+
+// errInvalidName is the error for a service or key that is not valid
+// UTF-8. The Keychain names items with CFStrings, which cannot hold one.
+var errInvalidName = errors.New("keychain: service and key must be valid UTF-8")
+
+// query builds the dictionary that names one generic password item:
+// class, service and account. The caller releases it.
+//
+// CFStringCreateWithCString returns NULL for bytes that are not valid
+// UTF-8, and a NULL value in the dictionary crashes the process: the
+// kCFType callbacks call CFRetain on it. So a bad name is an error
+// before any dictionary is built. gui does not check the names.
+func query(service, account string) (uintptr, error) {
+	loadSec()
+	s := darwinffi.CFString(service)
+	a := darwinffi.CFString(account)
+	if s == 0 || a == 0 {
+		darwinffi.CFRelease(s) // CFRelease of 0 is a no-op
+		darwinffi.CFRelease(a)
+		return 0, errInvalidName
+	}
+	q := darwinffi.CFMutableDict()
+	darwinffi.CFDictSet(q, sec.class, sec.classGenericPassword)
+	darwinffi.CFDictSet(q, sec.attrService, s)
+	darwinffi.CFDictSet(q, sec.attrAccount, a)
+	// The dictionary retains both strings.
+	darwinffi.CFRelease(s)
+	darwinffi.CFRelease(a)
+	return q, nil
+}
 
 // Load returns the Keychain item for service and key.
 func Load(service, key string) ([]byte, error) {
-	cs, ck := C.CString(service), C.CString(key)
-	defer C.free(unsafe.Pointer(cs))
-	defer C.free(unsafe.Pointer(ck))
-	r := C.gg_secret_load(cs, ck)
-	if r.status != 0 { // errSecSuccess
-		return nil, statusErr(r.status)
+	q, err := query(service, key)
+	if err != nil {
+		return nil, err
+	}
+	darwinffi.CFDictSet(q, sec.returnData, darwinffi.CFTrue())
+	darwinffi.CFDictSet(q, sec.matchLimit, sec.matchLimitOne)
+	// res is a heap variable: its address goes to C as an out-parameter.
+	// RegisterFunc keeps a Go pointer argument alive for the call.
+	res := new(uintptr)
+	st := sec.copyMatching(q, res)
+	darwinffi.CFRelease(q)
+	if st != errSecSuccess {
+		return nil, statusErr(st)
+	}
+	d := *res
+	defer darwinffi.CFRelease(d)
+	if d == 0 || darwinffi.CFTypeID(d) != darwinffi.CFDataTypeID() {
+		return nil, statusErr(errSecInternalError)
 	}
 	// An item another program wrote can be any size. Refuse one over
-	// gui's 2560-byte cap before GoBytes copies it, so a huge item costs
-	// no Go allocation, and its length cannot overflow C.int.
-	if r.len > maxItemBytes {
-		clear(unsafe.Slice((*byte)(r.data), int(r.len)))
-		C.free(r.data)
+	// gui's 2560-byte cap before it is copied, so a huge item costs no
+	// Go allocation.
+	n := darwinffi.CFDataLen(d)
+	if n > maxItemBytes {
 		return nil, fmt.Errorf("keychain: item is %d bytes, over the %d-byte limit",
-			int64(r.len), maxItemBytes)
+			int64(n), maxItemBytes)
 	}
-	out := C.GoBytes(r.data, C.int(r.len))
-	// Clear the C copy before it goes back to the allocator, so the
-	// secret does not stay in freed memory.
-	clear(unsafe.Slice((*byte)(r.data), int(r.len)))
-	C.free(r.data)
+	out := make([]byte, n)
+	if n > 0 {
+		// The bytes belong to d and stay valid until it is released by
+		// the deferred CFRelease. The cgo form copied them to a malloc
+		// buffer first and cleared that copy. Here they go straight into
+		// Go memory, so there is no second C copy to clear.
+		copy(out, unsafe.Slice(cBytes(darwinffi.CFDataPtr(d)), n))
+	}
 	return out, nil
+}
+
+// cBytes converts the address of C memory to a *byte. The memory is
+// outside the Go heap, so the garbage collector never moves or frees
+// it. The bits go through a pointer variable because go vet flags
+// every direct uintptr-to-pointer cast.
+func cBytes(p uintptr) *byte {
+	var b *byte
+	*(*uintptr)(unsafe.Pointer(&b)) = p
+	return b
 }
 
 // Save adds or replaces the Keychain item for service and key.
 func Save(service, key string, value []byte) error {
-	cs, ck := C.CString(service), C.CString(key)
-	defer C.free(unsafe.Pointer(cs))
-	defer C.free(unsafe.Pointer(ck))
-	// value holds no Go pointers, so cgo allows passing it for the
-	// length of the call. CFDataCreate copies it; no C-heap copy is
-	// left to clear.
-	st := C.gg_secret_save(cs, ck, unsafe.Pointer(unsafe.SliceData(value)), C.long(len(value)))
-	if st != 0 { // errSecSuccess
+	// CFDataCreate copies value, so no C copy of the secret is left to
+	// clear.
+	d := darwinffi.CFData(value)
+	if d == 0 {
+		return statusErr(errSecAllocate)
+	}
+	defer darwinffi.CFRelease(d)
+	q, err := query(service, key)
+	if err != nil {
+		return err
+	}
+	defer darwinffi.CFRelease(q)
+	upd := darwinffi.CFMutableDict()
+	darwinffi.CFDictSet(upd, sec.valueData, d)
+	st := sec.update(q, upd)
+	darwinffi.CFRelease(upd)
+	if st == errSecItemNotFound {
+		darwinffi.CFDictSet(q, sec.valueData, d)
+		st = sec.add(q, 0)
+	}
+	if st != errSecSuccess {
 		return statusErr(st)
 	}
 	return nil
@@ -160,11 +171,13 @@ func Save(service, key string, value []byte) error {
 // Delete removes the Keychain item for service and key. A missing item
 // is not an error.
 func Delete(service, key string) error {
-	cs, ck := C.CString(service), C.CString(key)
-	defer C.free(unsafe.Pointer(cs))
-	defer C.free(unsafe.Pointer(ck))
-	st := C.gg_secret_delete(cs, ck)
-	if st != 0 && st != C.errSecItemNotFound {
+	q, err := query(service, key)
+	if err != nil {
+		return err
+	}
+	st := sec.del(q)
+	darwinffi.CFRelease(q)
+	if st != errSecSuccess && st != errSecItemNotFound {
 		return statusErr(st)
 	}
 	return nil
@@ -173,16 +186,18 @@ func Delete(service, key string) error {
 // statusErr maps a Security framework status to an error: not found to
 // gui.ErrSecretNotFound, no usable keychain to ErrSecretsUnsupported,
 // and the rest to an error with the framework's own message.
-func statusErr(st C.OSStatus) error {
+func statusErr(st int32) error {
 	switch st {
-	case C.errSecItemNotFound:
+	case errSecItemNotFound:
 		return gui.ErrSecretNotFound
-	case C.errSecNotAvailable, C.errSecNoSuchKeychain:
+	case errSecNotAvailable, errSecNoSuchKeychain:
 		return unsupported{reason: fmt.Sprintf("keychain not available (OSStatus %d)", int(st))}
 	}
-	var msg [256]C.char
-	C.gg_status_message(st, &msg[0], C.long(len(msg)))
-	if text := C.GoString(&msg[0]); text != "" {
+	loadSec()
+	s := sec.errorMessage(st, 0)
+	text := darwinffi.GoString(s)
+	darwinffi.CFRelease(s)
+	if text != "" {
 		return fmt.Errorf("keychain: %s (OSStatus %d)", text, int(st))
 	}
 	return fmt.Errorf("keychain: OSStatus %d", int(st))

@@ -1,4 +1,4 @@
-//go:build (linux || windows || (darwin && cgo)) && !ios
+//go:build (linux || windows || darwin) && !ios
 
 package sysbeep
 

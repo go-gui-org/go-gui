@@ -8,6 +8,16 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **macOS locale, keychain, sounds, keep awake and appearance no longer use cgo
+  (#1307).** These five services now call the system frameworks through purego.
+  This is step 1 of the port that #1304 decided. The rest of the macOS backend
+  still needs cgo, so a macOS app still builds with cgo on. One change shows
+  now: with `CGO_ENABLED=0` on macOS, `LocaleAutoDetect` reads the system
+  locale. Before, it read only the `LC_ALL`, `LC_MESSAGES` and `LANG` variables.
+  iOS keeps its cgo code. The API does not change.
+
 ### Fixed
 
 - **Custom shaders draw on iOS (#1299).** The Metal pipelines built for `Shader`

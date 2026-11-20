@@ -1,4 +1,4 @@
-//go:build (darwin && cgo) || (linux && !android) || windows
+//go:build (darwin && (!ios || cgo)) || (linux && !android) || windows
 
 package keyring
 

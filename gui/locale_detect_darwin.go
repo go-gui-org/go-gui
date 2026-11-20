@@ -1,66 +1,45 @@
-//go:build darwin
+//go:build darwin && !ios
 
 package gui
 
-/*
-#cgo LDFLAGS: -framework CoreFoundation
-#include <CoreFoundation/CoreFoundation.h>
-#include <stdlib.h>
-
-static const char* detectLocale() {
-	CFLocaleRef locale = CFLocaleCopyCurrent();
-	if (!locale) return NULL;
-	CFStringRef ident = CFLocaleGetIdentifier(locale);
-	if (!ident) {
-		CFRelease(locale);
-		return NULL;
-	}
-	CFIndex len = CFStringGetMaximumSizeForEncoding(
-		CFStringGetLength(ident), kCFStringEncodingUTF8) + 1;
-	char *buf = (char *)malloc(len);
-	if (!buf) {
-		CFRelease(locale);
-		return NULL;
-	}
-	if (!CFStringGetCString(ident, buf, len, kCFStringEncodingUTF8)) {
-		free(buf);
-		CFRelease(locale);
-		return NULL;
-	}
-	CFRelease(locale);
-	return buf;
-}
-*/
-import "C"
-
 import (
-	"os"
 	"strings"
-	"unsafe"
+	"sync"
+
+	"github.com/ebitengine/purego"
+	"github.com/go-gui-org/go-gui/gui/internal/darwinffi"
 )
 
-// localeDetect returns the BCP 47 locale ID from the OS,
-// falling back to environment variables.
+// localeCF holds the two CFLocale functions, bound on first use.
+// LocaleAutoDetect is a startup call, so the typed RegisterFunc form,
+// which allocates per call, is fine.
+var localeCF struct {
+	once          sync.Once
+	copyCurrent   func() uintptr
+	getIdentifier func(locale uintptr) uintptr
+}
+
+// localeDetect returns the BCP 47 locale ID from the OS
+// (CFLocaleCopyCurrent), falling back to environment variables. It
+// uses purego, so it works with cgo off (#1307).
 func localeDetect() string {
-	cStr := C.detectLocale()
-	if cStr == nil {
+	localeCF.once.Do(func() {
+		lib := darwinffi.Open(darwinffi.PathCoreFoundation)
+		purego.RegisterLibFunc(&localeCF.copyCurrent, lib, "CFLocaleCopyCurrent")
+		purego.RegisterLibFunc(&localeCF.getIdentifier, lib, "CFLocaleGetIdentifier")
+	})
+	locale := localeCF.copyCurrent()
+	if locale == 0 {
 		return localeFromEnv()
 	}
-	defer C.free(unsafe.Pointer(cStr))
-	id := C.GoString(cStr)
+	// The identifier follows the Get rule: locale owns it, so only the
+	// locale is released, after the string is copied out.
+	id := darwinffi.GoString(localeCF.getIdentifier(locale))
+	darwinffi.CFRelease(locale)
 	// Normalize en_US → en-US
 	id = strings.ReplaceAll(id, "_", "-")
 	if id == "" {
 		return localeFromEnv()
 	}
 	return id
-}
-
-func localeFromEnv() string {
-	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
-		if v := os.Getenv(key); v != "" {
-			return normalizeLocaleEnv(v)
-		}
-	}
-	return "en-US"
 }

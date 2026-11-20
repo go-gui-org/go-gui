@@ -532,7 +532,11 @@ Port service by service inside the one backend. The backend keeps cgo until the
 last service moves. Each step is one PR.
 
 1. Plain C and plain-send services: keyring, locale, keep awake, system beep,
-   appearance.
+   appearance. **Done in #1307.** The shared helpers are in
+   `gui/internal/darwinffi`. iOS keeps cgo copies of keyring and locale
+   (`keyring_ios.go`, `locale_detect_ios.go`), because purego needs cgo on iOS.
+   Keep awake and appearance have no cgo of their own, but keep the `cgo` build
+   term until step 6, because the rest of `gui/backend/metal` needs cgo.
 2. Dialogs, print, spell check.
 3. Menus and tray.
 4. Accessibility.
