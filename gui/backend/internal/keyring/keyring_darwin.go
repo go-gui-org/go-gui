@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"unsafe"
 
 	"github.com/ebitengine/purego"
 
@@ -119,25 +118,10 @@ func Load(service, key string) ([]byte, error) {
 		return nil, fmt.Errorf("keychain: item is %d bytes, over the %d-byte limit",
 			int64(n), maxItemBytes)
 	}
-	out := make([]byte, n)
-	if n > 0 {
-		// The bytes belong to d and stay valid until it is released by
-		// the deferred CFRelease. The cgo form copied them to a malloc
-		// buffer first and cleared that copy. Here they go straight into
-		// Go memory, so there is no second C copy to clear.
-		copy(out, unsafe.Slice(cBytes(darwinffi.CFDataPtr(d)), n))
-	}
-	return out, nil
-}
-
-// cBytes converts the address of C memory to a *byte. The memory is
-// outside the Go heap, so the garbage collector never moves or frees
-// it. The bits go through a pointer variable because go vet flags
-// every direct uintptr-to-pointer cast.
-func cBytes(p uintptr) *byte {
-	var b *byte
-	*(*uintptr)(unsafe.Pointer(&b)) = p
-	return b
+	// The cgo form copied the bytes to a malloc buffer first and
+	// cleared that copy. Here they go straight into Go memory, so there
+	// is no second C copy to clear.
+	return darwinffi.CFDataBytes(d), nil
 }
 
 // Save adds or replaces the Keychain item for service and key.

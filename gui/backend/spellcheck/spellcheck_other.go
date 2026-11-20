@@ -1,4 +1,4 @@
-//go:build (!darwin || !cgo) && !ios && (!linux || android || !hunspell)
+//go:build !darwin && !ios && (!linux || android || !hunspell)
 
 // Package spellcheck provides native spell checking.
 // This file is a no-op stub for unsupported platforms.

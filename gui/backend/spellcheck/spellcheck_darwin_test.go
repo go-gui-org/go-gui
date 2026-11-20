@@ -1,4 +1,4 @@
-//go:build darwin && !ios && cgo
+//go:build darwin && !ios
 
 package spellcheck
 
@@ -53,4 +53,65 @@ func TestCheckEmptyIsNil(t *testing.T) {
 
 func TestLearnEmptyNoPanic(t *testing.T) {
 	Learn("")
+}
+
+// Check reports byte ranges, while NSSpellChecker reports UTF-16
+// ranges. Words after two-byte, three-byte and four-byte characters
+// (a surrogate pair in UTF-16) must still land on the right bytes.
+func TestCheckByteOffsetsAfterMultibyte(t *testing.T) {
+	tests := []struct {
+		name, text, want string
+	}{
+		{"ascii", "the wrold", "wrold"},
+		{"two-byte", "café wrold", "wrold"},
+		{"three-byte", "日本 wrold", "wrold"},
+		{"surrogate pair", "😀 wrold", "wrold"},
+		{"bom", "\uFEFFthe wrold", "wrold"},
+		{"two boms", "\uFEFF\uFEFFthe wrold", "wrold"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Check(tc.text)
+			var words []string
+			for _, r := range got {
+				words = append(words, tc.text[r.StartByte:r.StartByte+r.LenBytes])
+			}
+			if !slices.Contains(words, tc.want) {
+				t.Errorf("Check(%q) words = %q, want %q among them", tc.text, words, tc.want)
+			}
+		})
+	}
+}
+
+func TestCheckInvalidUTF8IsNil(t *testing.T) {
+	if got := Check("wrold \xff"); got != nil {
+		t.Errorf("Check invalid UTF-8 = %v, want nil", got)
+	}
+}
+
+func TestSuggestReturnsGuesses(t *testing.T) {
+	const text = "😀 wrold"
+	got := Suggest(text, len("😀 "), len("wrold"))
+	if !slices.Contains(got, "world") {
+		t.Errorf("Suggest(%q) = %q, want it to hold %q", text, got, "world")
+	}
+}
+
+// A span that starts inside a character names no word.
+func TestSuggestSplitCharacterIsNil(t *testing.T) {
+	if got := Suggest("é wrold", 1, 3); got != nil {
+		t.Errorf("Suggest split character = %q, want nil", got)
+	}
+}
+
+// After a BOM, Suggest must look at the word the span names, not the
+// one 1 UTF-16 unit later.
+func TestSuggestAfterBOM(t *testing.T) {
+	for _, prefix := range []string{"\uFEFF", "\uFEFF\uFEFF"} {
+		text := prefix + "wrold"
+		got := Suggest(text, len(prefix), len("wrold"))
+		if !slices.Contains(got, "world") {
+			t.Errorf("Suggest(%q) = %q, want it to hold %q", text, got, "world")
+		}
+	}
 }

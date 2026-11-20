@@ -1,4 +1,4 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && !ios
 
 package filedialog
 
@@ -6,15 +6,6 @@ import (
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
-)
-
-// C enum values from dialog_darwin.h — duplicated here because Go
-// prohibits import "C" in _test.go files.
-const (
-	testDialogOK      = 0
-	testDialogCancel  = 1
-	testDialogError   = 2
-	testDialogDiscard = 3
 )
 
 func TestBuildAlertResult(t *testing.T) {
@@ -26,9 +17,9 @@ func TestBuildAlertResult(t *testing.T) {
 		want    gui.NativeDialogStatus
 		wantErr string
 	}{
-		{"ok", testDialogOK, "", gui.DialogOK, ""},
-		{"cancel", testDialogCancel, "", gui.DialogCancel, ""},
-		{"error", testDialogError, "failed", gui.DialogError, "failed"},
+		{"ok", dialogOK, "", gui.DialogOK, ""},
+		{"cancel", dialogCancel, "", gui.DialogCancel, ""},
+		{"error", dialogError, "failed", gui.DialogError, "failed"},
 		{"unknown status", 999, "", gui.DialogError, ""},
 	}
 	for _, tt := range tests {
@@ -54,10 +45,10 @@ func TestBuildSaveDiscardResult(t *testing.T) {
 		errMsg string
 		want   gui.NativeDialogStatus
 	}{
-		{"ok", testDialogOK, "", gui.DialogOK},
-		{"discard", testDialogDiscard, "", gui.DialogDiscard},
-		{"cancel", testDialogCancel, "", gui.DialogCancel},
-		{"error with message", testDialogError, "fail", gui.DialogError},
+		{"ok", dialogOK, "", gui.DialogOK},
+		{"discard", dialogDiscard, "", gui.DialogDiscard},
+		{"cancel", dialogCancel, "", gui.DialogCancel},
+		{"error with message", dialogError, "fail", gui.DialogError},
 		{"unknown status", 999, "", gui.DialogError},
 	}
 	for _, tt := range tests {
@@ -83,7 +74,7 @@ func TestBuildDialogResult(t *testing.T) {
 			{Path: "/b.txt", BookmarkData: []byte{1, 2, 3}},
 		}
 		result := buildDialogResult(
-			testDialogOK, paths, "")
+			dialogOK, paths, "")
 		if result.Status != gui.DialogOK {
 			t.Errorf("Status = %d, want %d",
 				result.Status, gui.DialogOK)
@@ -108,7 +99,7 @@ func TestBuildDialogResult(t *testing.T) {
 
 	t.Run("cancel no paths", func(t *testing.T) {
 		result := buildDialogResult(
-			testDialogCancel, nil, "")
+			dialogCancel, nil, "")
 		if result.Status != gui.DialogCancel {
 			t.Errorf("Status = %d, want %d",
 				result.Status, gui.DialogCancel)
@@ -121,7 +112,7 @@ func TestBuildDialogResult(t *testing.T) {
 
 	t.Run("error with message", func(t *testing.T) {
 		result := buildDialogResult(
-			testDialogError, nil, "dialog failed")
+			dialogError, nil, "dialog failed")
 		if result.Status != gui.DialogError {
 			t.Errorf("Status = %d, want %d",
 				result.Status, gui.DialogError)

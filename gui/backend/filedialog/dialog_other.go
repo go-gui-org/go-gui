@@ -1,4 +1,4 @@
-//go:build (!darwin || !cgo) && !linux && !windows && !ios
+//go:build !darwin && !linux && !windows && !ios
 
 package filedialog
 

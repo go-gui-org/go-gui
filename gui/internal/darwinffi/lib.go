@@ -18,6 +18,8 @@ const (
 	PathFoundation     = "/System/Library/Frameworks/Foundation.framework/Foundation"
 	PathAppKit         = "/System/Library/Frameworks/AppKit.framework/AppKit"
 	PathSecurity       = "/System/Library/Frameworks/Security.framework/Security"
+	PathPDFKit         = "/System/Library/Frameworks/PDFKit.framework/PDFKit"
+	PathUTI            = "/System/Library/Frameworks/UniformTypeIdentifiers.framework/UniformTypeIdentifiers"
 )
 
 // libs caches one handle per path. A framework loads on first use, not

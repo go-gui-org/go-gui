@@ -17,8 +17,23 @@ and this project adheres to
   now: with `CGO_ENABLED=0` on macOS, `LocaleAutoDetect` reads the system
   locale. Before, it read only the `LC_ALL`, `LC_MESSAGES` and `LANG` variables.
   iOS keeps its cgo code. The API does not change.
+- **macOS file dialogs, alerts, print and spell check no longer use cgo
+  (#1312).** These services now call AppKit and PDFKit through purego. This is
+  step 2 of the port that #1304 decided. The rest of the macOS backend still
+  needs cgo. The API does not change.
 
 ### Fixed
+
+- **macOS spell check marks the right word after a byte order mark (#1312).**
+  NSString drops leading byte order marks (U+FEFF), and `spellcheck.Check`
+  counted its ranges from the shortened string. Every misspelled range after the
+  marks started 3 bytes early per mark, so the underline sat to the left of the
+  word. `Check` and `Suggest` now measure how many marks were dropped and count
+  from the original text.
+- **The macOS print dialog prints the requested number of copies (#1312).**
+  `NativePrintParams.Copies` was set after the print operation was built, and
+  the operation keeps its own copy of the print settings, so every print came
+  out as one copy. The copy count is now set first.
 
 - **Custom shaders draw on iOS (#1299).** The Metal pipelines built for `Shader`
   declared no stencil format, while the main pass they draw in has a Stencil8
