@@ -359,10 +359,10 @@ What the numbers mean:
 Not tested by the spike: `NSTextInputClient` (IME) callbacks that return
 `NSRange` or `NSRect` to AppKit, accessibility, menus and dialogs.
 
-The port itself is not yet decided (decided 2026-11-20, see § Investigation
-below). Next step, if it goes ahead: port service by service, with `SyscallN`
-and the argument array on every per-frame path. Start with the plain-C services
-(keyring, locale), then `metal_darwin.m`.
+The port was decided on 2026-11-20 (see § Investigation below). Port service by
+service, with `SyscallN` and the argument array on every per-frame path. Start
+with the plain-C services (keyring, locale). The renderer (`metal_darwin.m`)
+goes last. § Port order below gives the full sequence.
 
 ### Investigation (2026-11, #1304)
 
@@ -493,10 +493,12 @@ No service needs a small cgo boundary on darwin/arm64.
 
 #### Costs of the port
 
-- **Build and distribution.** `CGO_ENABLED=0 go build` works on darwin/arm64. A
-  Linux host can cross-compile a macOS binary. Xcode Command Line Tools are not
-  necessary to build. Signing and notarization still need a Mac, or `rcodesign`,
-  which this investigation did not test.
+- **Build and distribution.** After the last port step, `CGO_ENABLED=0 go build`
+  will work on darwin/arm64. Today an app that calls `backend.Run` with cgo off
+  gets the link-time error from `gui/backend/run_darwin_nocgo.go`. After the
+  port, a Linux host can cross-compile a macOS binary, and Xcode Command Line
+  Tools are not necessary to build. Signing and notarization still need a Mac,
+  or `rcodesign`, which this investigation did not test.
 - **Intel.** darwin/amd64 loses the backend. It gets the link-time error that
   `gui/backend/run_darwin_nocgo.go` gives today. The port PR must carry a
   `**BREAKING:**` CHANGELOG entry. mygo's `_stret` path can add Intel back
@@ -506,9 +508,10 @@ No service needs a small cgo boundary on darwin/arm64.
   selector" crash, and a lost release is a leak. The port must cache every
   selector at startup and test that each target class responds to each selector.
 - **Pointer rule.** A pointer argument reaches `SyscallN` as a `uintptr`. It
-  must point to a global or to a heap field, never to a stack local. The spike
-  puts every scratch value (`MTLRegion`, NSError out-parameter, vertex bytes) in
-  a heap struct.
+  must point to a global, or to a field of an object that stays reachable for
+  the whole native call. It must never point to a stack local. The spike puts
+  every scratch value (`MTLRegion`, NSError out-parameter, vertex bytes) in a
+  heap struct.
 - **Size of the work.** About 6100 lines of Objective-C become Go with `unsafe`.
   gowaku needs about 7200 lines of Go for a similar scope.
 
