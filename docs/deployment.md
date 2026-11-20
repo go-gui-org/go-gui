@@ -48,8 +48,9 @@ go run ./cmd/buildapp -platform windows -arch amd64 -build-pkg ./myapp/ \
   -o build -name "My App" -icon icon.png
 ```
 
-Cross-compiling to macOS from another OS still needs the macOS SDK, so build the
-macOS binary on a Mac.
+The macOS binary cross-compiles from any OS, but only for darwin/arm64: Intel
+Macs are not supported. Packaging still runs on a Mac: the signed `.app` needs
+`sips`, `iconutil` and `codesign` (`hdiutil` for `-dmg`).
 
 Stage the binary under a clean name before packaging: the executable's basename
 becomes the installed program name (the `Exec=` line on Linux, the file inside
