@@ -27,6 +27,15 @@ and this project adheres to
 - **The macOS accessibility tree no longer uses cgo (#1317).** VoiceOver now
   reads the tree through purego. This is step 4 of the port that #1304 decided.
   The rest of the macOS backend still needs cgo. The API does not change.
+- **The macOS window, events, IME and app delegate no longer use cgo (#1321).**
+  `metal_window_darwin.m` is gone: the window, its content view, the event poll,
+  the input method client, the frame pump and the clipboard call AppKit through
+  purego. This is step 5 of the port that #1304 decided. Only the Metal renderer
+  still needs cgo. The event poll and the wake that the animation loop posts
+  each frame make no heap allocation, as before. One change shows: a window
+  title or clipboard text with bytes that are not valid UTF-8 now has each bad
+  byte replaced by U+FFFD. Before, the title stayed as it was and the clipboard
+  text was dropped. The API does not change.
 
 ### Fixed
 

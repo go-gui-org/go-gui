@@ -238,15 +238,16 @@ go-glyph main, not the `go.mod` pin).
   `gui/backend/gl/` already has no cgo (X11 via xgb, EGL via purego, Win32 via
   syscall).
 - **Current CGo state:** `CGO_ENABLED=0 go build ./...` is green on Linux and
-  Windows for the whole module. macOS (6.1k lines ObjC) is still cgo; the
-  2026-08-12 "stays cgo" decision is reversed (below). The #1160 spike
-  (2026-10-25) measured 0 allocations per send and per frame (clear loop only,
-  not the draw paths) with `purego.SyscallN` and a package-level argument array;
-  `objc.ID.Send` and `purego.RegisterFunc` allocate on every call. **Decided
-  2026-11-20 (#1304): port to purego, darwin/arm64 only; darwin/amd64 is
-  dropped.** Port service by service in the one backend, in the order the spec
-  gives; the renderer goes last and must batch quads (a purego send costs ~2.4×
-  a send inside C). No second `!cgo` backend.
+  Windows for the whole module. On macOS only the renderer (`metal_darwin.m`,
+  1.6k lines ObjC) is still cgo (port steps 1–5 done); the 2026-08-12 "stays
+  cgo" decision is reversed (below). The #1160 spike (2026-10-25) measured 0
+  allocations per send and per frame (clear loop only, not the draw paths) with
+  `purego.SyscallN` and a package-level argument array; `objc.ID.Send` and
+  `purego.RegisterFunc` allocate on every call. **Decided 2026-11-20 (#1304):
+  port to purego, darwin/arm64 only; darwin/amd64 is dropped.** Port service by
+  service in the one backend, in the order the spec gives; the renderer goes
+  last and must batch quads (a purego send costs ~2.4× a send inside C). No
+  second `!cgo` backend.
 
 Full history and rationale in `docs/specs/cgo-free-backend-feasibility.md`.
 

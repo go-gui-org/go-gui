@@ -25,3 +25,28 @@ func TestIMERectViewY_FlipsToBottomLeft(t *testing.T) {
 		}
 	}
 }
+
+// IME offsets are UTF-16 units from AppKit and code points in the event.
+// A surrogate pair counts once, and a boundary inside a pair rounds to
+// its end (issue #169).
+func TestUTF16UnitsToCodePoints(t *testing.T) {
+	for _, tc := range []struct {
+		s    string
+		unit uint
+		want uint
+	}{
+		{"あい", 0, 0},
+		{"あい", 1, 1},
+		{"あい", 2, 2},
+		{"あい", 99, 2}, // past the end clamps
+		{"あ😀", 1, 1},  // before the pair
+		{"あ😀", 2, 2},  // inside the pair rounds to its end
+		{"あ😀", 3, 2},  // after the pair
+		{"𠮟", 2, 1},   // one code point, two units
+		{"", 5, 0},
+	} {
+		if got := utf16UnitsToCodePoints(tc.s, tc.unit); got != tc.want {
+			t.Errorf("utf16UnitsToCodePoints(%q, %d) = %d, want %d", tc.s, tc.unit, got, tc.want)
+		}
+	}
+}
