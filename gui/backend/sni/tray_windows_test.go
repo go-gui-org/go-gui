@@ -222,6 +222,15 @@ func newRealTray(t *testing.T) *Tray {
 	if err := <-errc; err != nil {
 		t.Fatalf("ensureWindow: %v", err)
 	}
+	// The window outlives the test and hears TaskbarCreated, also a real
+	// one if Explorer restarts or the DPI changes during a later test.
+	// Without entries a re-add has nothing to add, so the window then
+	// reaches neither the shell nor a later test's fake of it.
+	t.Cleanup(func() {
+		tr.mu.Lock()
+		tr.entries = nil
+		tr.mu.Unlock()
+	})
 	return tr
 }
 

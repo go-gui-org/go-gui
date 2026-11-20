@@ -287,14 +287,21 @@ func TestTrayReAddSetsVersionOnIconThatExists(t *testing.T) {
 	na.restart()
 	fs.refuse[nimSetVersion], fs.refuse[nimDelete] = true, true
 	tr.reAddIcons()
-	if got := na.snapshot()[uint32(a)].version; got != 0 {
-		t.Fatalf("setup: icon version %d, want the version 0 icon the refusals leave", got)
+	left, exists := na.snapshot()[uint32(a)]
+	if !exists || left.version != 0 {
+		t.Fatalf("setup: shell icon %+v (exists: %v), want the version 0 icon the refusals leave",
+			left, exists)
 	}
 
 	fs.refuse[nimSetVersion], fs.refuse[nimDelete] = false, false
+	fs.calls = nil
 	tr.reAddIcons()
 	if got := na.snapshot()[uint32(a)].version; got != notifyIconV4 {
 		t.Errorf("icon version %d after the next re-add, want %d", got, notifyIconV4)
+	}
+	modified := slices.ContainsFunc(fs.calls, func(c notifyCall) bool { return c.message == nimModify })
+	if !modified {
+		t.Errorf("the next re-add did not modify the icon that exists: %+v", fs.calls)
 	}
 	na.checkHandles(t, tr)
 }
@@ -418,6 +425,9 @@ func TestTrayCoalescesTaskbarCreated(t *testing.T) {
 
 	inAdd := make(chan struct{})
 	release := make(chan struct{})
+	// A failed test must not leave the pass waiting in the shell call.
+	releaseShell := sync.OnceFunc(func() { close(release) })
+	t.Cleanup(releaseShell)
 	var adds atomic.Int32
 	model := shellNotifyIcon
 	shellNotifyIcon = func(message uint32, nid *notifyIconDataW) bool {
@@ -429,11 +439,11 @@ func TestTrayCoalescesTaskbarCreated(t *testing.T) {
 	}
 
 	tr.requestReAdd()
-	<-inAdd
+	waitClosed(t, inAdd, "the pass to reach NIM_ADD")
 	for range 5 {
 		tr.requestReAdd()
 	}
-	close(release)
+	releaseShell()
 	waitReAddIdle(t, tr)
 
 	// One NIM_ADD per pass: the pass that was running, and one more.
@@ -441,6 +451,17 @@ func TestTrayCoalescesTaskbarCreated(t *testing.T) {
 		t.Errorf("%d re-add passes for 5 messages during one pass, want 2", got)
 	}
 	na.checkHandles(t, tr)
+}
+
+// waitClosed fails the test if done is not closed in time, so a worker
+// that never gets there does not block the test until its timeout.
+func waitClosed(t *testing.T, done <-chan struct{}, what string) {
+	t.Helper()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("timed out waiting for %s", what)
+	}
 }
 
 // waitReAddIdle waits until the passes that requestReAdd started are
@@ -470,6 +491,9 @@ func TestTrayRemoveDuringReAdd(t *testing.T) {
 
 	inAdd := make(chan struct{})
 	release := make(chan struct{})
+	// A failed test must not leave the re-add waiting in the shell call.
+	releaseShell := sync.OnceFunc(func() { close(release) })
+	t.Cleanup(releaseShell)
 	deleted := make(chan struct{}, 1)
 	model := shellNotifyIcon
 	shellNotifyIcon = func(message uint32, nid *notifyIconDataW) bool {
@@ -488,7 +512,7 @@ func TestTrayRemoveDuringReAdd(t *testing.T) {
 		tr.reAddIcons()
 		close(reAdded)
 	}()
-	<-inAdd
+	waitClosed(t, inAdd, "the re-add to reach NIM_ADD")
 	removed := make(chan struct{})
 	go func() {
 		tr.Remove(a)
@@ -500,9 +524,9 @@ func TestTrayRemoveDuringReAdd(t *testing.T) {
 		t.Error("Remove reached the shell while the re-add was in it")
 	case <-time.After(100 * time.Millisecond):
 	}
-	close(release)
-	<-reAdded
-	<-removed
+	releaseShell()
+	waitClosed(t, reAdded, "the re-add to finish")
+	waitClosed(t, removed, "Remove to finish")
 
 	if got := na.snapshot(); len(got) != 0 {
 		t.Errorf("shell icons after Remove: %+v, want none", got)
@@ -530,15 +554,10 @@ func TestTrayWindowHearsTaskbarCreatedBroadcast(t *testing.T) {
 		return true
 	}
 
-	tr := newRealTray(t)
 	// The window outlives the test, and with one fixed name it hears the
-	// broadcast of every later run (-count). Without entries it then has
-	// nothing to add, so it never reaches the shell.
-	t.Cleanup(func() {
-		tr.mu.Lock()
-		tr.entries = nil
-		tr.mu.Unlock()
-	})
+	// broadcast of every later run (-count). newRealTray takes its
+	// entries away when the test ends, so it then has nothing to add.
+	tr := newRealTray(t)
 	if visible, _, _ := procIsWindowVisible.Call(tr.hwnd); visible != 0 {
 		t.Error("the tray window is visible")
 	}

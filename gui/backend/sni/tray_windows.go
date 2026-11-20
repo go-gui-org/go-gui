@@ -309,8 +309,13 @@ func (t *Tray) messageLoop(ready chan<- error) {
 // WS_EX_TOOLWINDOW keeps both true should anything show it.
 func (t *Tray) createWindow() (uintptr, error) {
 	nameW, _ := syscall.UTF16PtrFromString(taskbarCreatedName)
-	msgID, _, _ := procRegisterWindowMessageW.Call(
+	msgID, _, registerErr := procRegisterWindowMessageW.Call(
 		uintptr(unsafe.Pointer(nameW)))
+	if msgID == 0 {
+		// The tray works without it; only the re-add is lost.
+		log.Printf("sni: RegisterWindowMessage(%s): %v",
+			taskbarCreatedName, registerErr)
+	}
 	t.taskbarCreated = uint32(msgID)
 
 	className := fmt.Sprintf("go-gui-tray-window-%d", trayClassSeq.Add(1))
