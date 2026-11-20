@@ -566,7 +566,24 @@ last service moves. Each step is one PR.
    change while there was no focus, so a focus that came back to the same node
    was not posted. A node that named itself, or a later node, as its parent made
    a cycle that VoiceOver walks for ever.
-5. Window, events and IME (`metal_window_darwin.m`).
+5. Window, events and IME. **Done in #1321.** `metal_window_darwin.m` and
+   `metal_window.h` are gone. The four classes keep their names (`GUIWindow`,
+   `MetalContentView`, `GUIApplication`, `GoGuiAppDelegate`), and their state is
+   in Go. The `dispatch_async` blocks are `dispatch_async_f` with one purego
+   callback each, the `NSTimer` blocks are target/action timers, and the
+   run-loop observer of the frame pump is a purego callback. The event path must
+   not allocate, and `objc.Send` allocates 4 to 9 times for each call. A mouse
+   event reads about ten values, some of them doubles and an NSPoint, which
+   `purego.SyscallN` cannot return. `darwinffi.FCaller` is a small arm64
+   trampoline that gives D0-D3 back, through `runtime.cgocall` as purego does.
+   `TestStoreEventDoesNotAllocate` and `TestWakeUpDoesNotAllocate` hold the
+   event path and the per-frame wake at 0 allocations. darwin/amd64 keeps
+   building until step 6, with `objc.Send` in place of the trampoline. The C
+   test hooks are Go functions in a test file now. The port found one purego
+   limit: on darwin/arm64, `objc.Send` puts each stack argument (an integer
+   argument after the eighth) in an 8-byte slot, but Apple packs stack arguments
+   by size. `keyEventWithType:…isARepeat:keyCode:` then gets key code 0. No
+   production send has such arguments.
 6. Renderer (`metal_darwin.m`), with quad batching. Then remove cgo from
    darwin/arm64, and give darwin/amd64 the link-time error.
 

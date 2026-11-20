@@ -4,50 +4,8 @@ package metal
 
 /*
 #include <stdlib.h>
-#include "metal_window.h"
 // For metalCompileShadersProbe (test helper, defined in metal_darwin.m).
 #include "metal_darwin.h"
-
-// Test helpers — defined in metal_window.m.
-int metalTestActivationPolicyIsRegular(void);
-void metalTestSizeLimits(GoGuiNSWindow w, int *minW, int *minH, int *maxW, int *maxH);
-int metalTestDelegateIsSet(void);
-int metalTestDelegateOpenURLs(void);
-int metalTestMainMenuExists(void);
-int metalTestMenuQuitWired(void);
-int metalTestWindowDelegateExists(void *windowHandle);
-void metalTestInjectKeyDown(unsigned short keyCode, unsigned int modifiers);
-void metalTestInjectQuitEvent(void);
-int metalTestQuitActionSetsQuitEvent(void);
-int metalTestAppShouldTerminateCorrect(void);
-int metalTestPollReturnsOnQuitRequested(void);
-int metalTestPollIdleWake(void);
-long metalTestPollWakeGrowth(int cycles);
-int metalTestCursorBoundsCheck(float mouseX, float mouseY,
-                               float width, float height);
-int metalTestMenuAboutExists(void);
-int metalTestWindowsMenuExists(void);
-int metalTestFocusedGUIWindowMatches(void *windowHandle);
-int metalTestApplicationDidBecomeActive(void);
-void metalTestRunModalMode(int ms);
-void metalTestRunDefaultMode(int ms);
-int metalTestFramePumpActive(void);
-int metalTestNestedModesPumpStaysArmed(void);
-int metalTestPressAndHoldRegistered(void);
-void metalTestPushIMECommit(const char *utf8);
-void metalTestPushIMEComposition(const char *utf8, int start, int len);
-int metalTestIMEQueueDepth(void);
-void metalTestResetIMEQueue(void);
-int metalTestPopTextEvent(void);
-int metalTestIMEClientConformance(void *windowHandle);
-int metalTestIMEKeySuppressedWhileComposing(void *windowHandle);
-int metalTestIMEDeadKeyDeliveredWithoutTextContext(void *windowHandle);
-int metalTestContentViewIsFirstResponder(void *windowHandle);
-int metalTestWindowAppearance(void *windowHandle);
-int metalTestWindowVisible(void *windowHandle);
-void metalTestStartLiveResize(void *windowHandle);
-void metalTestEndLiveResize(void *windowHandle);
-int metalTestLayerPresentsWithTransaction(void *windowHandle);
 */
 import "C"
 import (
@@ -95,12 +53,7 @@ func lookupWindow(id uint32) *windowState {
 // cannot clobber it.
 var pumpScratch []*windowState
 
-// framePumpCount counts goMetalPumpFrames invocations that actually ran
-// (i.e. reached Go from a nested runloop). Tests read it to prove the
-// timer fires in nested modes and stays quiet in the default mode.
-var framePumpCount atomic.Uint64
-
-//export goMetalPumpFrames
+// goMetalPumpFrames is the frame-pump timer action (app_darwin.go).
 func goMetalPumpFrames() {
 	framePumpCount.Add(1)
 	pumpWindows(pumpWindow)
@@ -154,29 +107,10 @@ func pumpWindows(pump func(*windowState)) {
 }
 
 // ─── Test helpers ──────────────────────────────────────────────
-
-func testActivationPolicyRegular() bool {
-	return C.metalTestActivationPolicyIsRegular() != 0
-}
-
-// testSizeLimits reads back the window's content size limits. Used to
-// confirm the WindowCfg limits reached AppKit, which no Go-side check
-// can observe.
-func testSizeLimits(win C.GoGuiNSWindow) (minW, minH, maxW, maxH int) {
-	var a, b, c, d C.int
-	C.metalTestSizeLimits(win, &a, &b, &c, &d)
-	return int(a), int(b), int(c), int(d)
-}
-
-func testDelegateSet() bool {
-	return C.metalTestDelegateIsSet() != 0
-}
-
-// testDelegateOpenURLs drives -application:openURLs: on the real
-// delegate. See runMainThreadTests.
-func testDelegateOpenURLs() bool {
-	return C.metalTestDelegateOpenURLs() != 0
-}
+//
+// The renderer probes stay here: they call metal_darwin.m, and a _test.go
+// file cannot import "C". The window test hooks are Go now and live in
+// window_hooks_darwin_test.go.
 
 // testCompileShaders compiles the built-in MSL library standalone at
 // the pinned language version. 0 = compiled, -1 = compile failed,
@@ -204,222 +138,10 @@ func testEdgeCoverage() int {
 	return int(C.metalEdgeCoverageProbe(cMSL))
 }
 
-func testMenuExists() bool {
-	return C.metalTestMainMenuExists() != 0
-}
+// ─── Window callbacks (from the GUIWindow methods) ────────────
 
-func testMenuQuitWired() bool {
-	return C.metalTestMenuQuitWired() != 0
-}
-
-func testWindowDelegateExists(handle C.GoGuiNSWindow) bool {
-	return C.metalTestWindowDelegateExists(unsafe.Pointer(handle)) != 0
-}
-
-// testIMEClientConformance checks the NSTextInputClient answers a
-// Japanese IME needs to commit converted text. Needs a real window, so
-// it runs from runMainThreadTests.
-func testIMEClientConformance(handle C.GoGuiNSWindow) bool {
-	return C.metalTestIMEClientConformance(unsafe.Pointer(handle)) != 0
-}
-
-// testIMEKeySuppressedWhileComposing checks that a key the input
-// method owns does not also reach the widget.
-func testIMEKeySuppressedWhileComposing(handle C.GoGuiNSWindow) bool {
-	return C.metalTestIMEKeySuppressedWhileComposing(
-		unsafe.Pointer(handle)) != 0
-}
-
-// testIMEDeadKeyDeliveredWithoutTextContext checks that an Option key
-// that produces a dead-key preedit still reaches the app as a key-down
-// when no editable text widget is focused (issue #393).
-func testIMEDeadKeyDeliveredWithoutTextContext(handle C.GoGuiNSWindow) bool {
-	return C.metalTestIMEDeadKeyDeliveredWithoutTextContext(
-		unsafe.Pointer(handle)) != 0
-}
-
-// testContentViewIsFirstResponder checks keys reach the view without
-// the input method having been activated.
-func testContentViewIsFirstResponder(handle C.GoGuiNSWindow) bool {
-	return C.metalTestContentViewIsFirstResponder(
-		unsafe.Pointer(handle)) != 0
-}
-
-// testWindowAppearance reports the appearance pinned on the window:
-// -1 none (follows the system), 0 Aqua, 1 DarkAqua, 2 anything else.
-func testWindowAppearance(handle C.GoGuiNSWindow) int {
-	return int(C.metalTestWindowAppearance(unsafe.Pointer(handle)))
-}
-
-// testWindowVisible reports whether the NSWindow is on screen.
-func testWindowVisible(handle C.GoGuiNSWindow) bool {
-	return C.metalTestWindowVisible(unsafe.Pointer(handle)) != 0
-}
-
-func testWindowID(handle C.GoGuiNSWindow) uint32 {
-	return uint32(C.metalWindowGetID(handle))
-}
-
-// testStartLiveResize / testEndLiveResize fire the live-resize
-// delegate methods the way AppKit's tracking loop does. testLayer-
-// PresentsWithTransaction reports the layer's presentation mode:
-// 1 = transaction, 0 = async, -1 = no CAMetalLayer. Together they
-// verify the async-presentation switch without a real drag, which
-// AppKit does not expose programmatically.
-func testStartLiveResize(handle C.GoGuiNSWindow) {
-	C.metalTestStartLiveResize(unsafe.Pointer(handle))
-}
-
-func testEndLiveResize(handle C.GoGuiNSWindow) {
-	C.metalTestEndLiveResize(unsafe.Pointer(handle))
-}
-
-func testLayerPresentsWithTransaction(handle C.GoGuiNSWindow) int {
-	return int(C.metalTestLayerPresentsWithTransaction(
-		unsafe.Pointer(handle)))
-}
-
-// testActivateNow calls C.metalAppFinishLaunch directly to verify
-// the activation function exists, links, and runs without crashing.
-func testActivateNow() {
-	C.metalAppFinishLaunch()
-}
-
-// testInjectKeyDown sets up the C event globals to simulate a
-// key-down event, so mapMetalEvent can be tested without a
-// running event loop.
-func testInjectKeyDown(keyCode uint16, modifiers uint32) {
-	C.metalTestInjectKeyDown(C.ushort(keyCode), C.uint(modifiers))
-}
-
-// testInjectQuitEvent sets up the C event globals to simulate a
-// quit event so mapMetalEvent's METAL_EVENT_QUIT branch can be
-// tested without a running event loop.
-func testInjectQuitEvent() {
-	C.metalTestInjectQuitEvent()
-}
-
-// testPushIMECommit queues a committed-text event exactly as
-// insertText: does, so tests can simulate several IME callbacks
-// landing inside one sendEvent:.
-func testPushIMECommit(text string) {
-	ctext := C.CString(text)
-	defer C.free(unsafe.Pointer(ctext))
-	C.metalTestPushIMECommit(ctext)
-}
-
-// testPushIMEComposition queues a preedit-update event as
-// setMarkedText: does. An empty text is the composition-end signal.
-func testPushIMEComposition(text string, start, length int) {
-	ctext := C.CString(text)
-	defer C.free(unsafe.Pointer(ctext))
-	C.metalTestPushIMEComposition(ctext, C.int(start), C.int(length))
-}
-
-// testIMEQueueDepth reports how many text events are still queued.
-func testIMEQueueDepth() int {
-	return int(C.metalTestIMEQueueDepth())
-}
-
-// testResetIMEQueue drops queued text events so one test cannot
-// leak state into the next.
-func testResetIMEQueue() {
-	C.metalTestResetIMEQueue()
-}
-
-// testPopTextEvent drains one queued text event into the C event
-// globals, bypassing metalPollEvent. Used where the queue may be
-// empty: metalPollEvent would then fall through to NSApp, which is
-// main-thread-only.
-func testPopTextEvent() bool {
-	return C.metalTestPopTextEvent() != 0
-}
-
-// testPollEvent runs the real metalPollEvent drain path. Only safe to
-// call with a non-empty text queue — the drain returns before any
-// NSApp access.
-func testPollEvent() bool {
-	return C.metalPollEvent(0) != 0
-}
-
-func testQuitActionSetsQuitEvent() bool {
-	return C.metalTestQuitActionSetsQuitEvent() != 0
-}
-
-func testAppShouldTerminateCorrect() bool {
-	return C.metalTestAppShouldTerminateCorrect() != 0
-}
-
-// testPollReturnsOnQuitRequested verifies metalPollEvent returns
-// immediately when _quitRequested is set, before any event dequeue.
-func testPollReturnsOnQuitRequested() bool {
-	return C.metalTestPollReturnsOnQuitRequested() != 0
-}
-
-// testPollIdleWake verifies metalPollEvent(-1) blocks until a wake
-// event arrives (issue #405). 0 on success, non-zero on failure.
-// Main-thread only: it runs the real blocking poll.
-func testPollIdleWake() int {
-	return int(C.metalTestPollIdleWake())
-}
-
-// testPollWakeGrowth runs cycles of post-wake + poll and returns how
-// many bytes the malloc zones grew by. Main-thread only: it runs the
-// real poll.
-func testPollWakeGrowth(cycles int) int {
-	return int(C.metalTestPollWakeGrowth(C.int(cycles)))
-}
-
-func testCursorBoundsCheck(mouseX, mouseY, width, height float32) bool {
-	return C.metalTestCursorBoundsCheck(C.float(mouseX), C.float(mouseY),
-		C.float(width), C.float(height)) != 0
-}
-
-func testMenuAboutExists() bool {
-	return C.metalTestMenuAboutExists() != 0
-}
-
-func testWindowsMenuExists() bool {
-	return C.metalTestWindowsMenuExists() != 0
-}
-
-func testFocusedGUIWindowMatches(handle C.GoGuiNSWindow) bool {
-	return C.metalTestFocusedGUIWindowMatches(unsafe.Pointer(handle)) != 0
-}
-
-func testApplicationDidBecomeActive() bool {
-	return C.metalTestApplicationDidBecomeActive() != 0
-}
-
-// testFramePumpActive reports whether the nested-runloop frame-pump
-// timer is currently installed.
-func testFramePumpActive() bool { return C.metalTestFramePumpActive() != 0 }
-
-// testNestedModesPumpStaysArmed reports whether the pump timer was
-// found disarmed while a second nested mode ran inside the first.
-func testNestedModesPumpStaysArmed() bool {
-	return C.metalTestNestedModesPumpStaysArmed() != 0
-}
-
-// testPressAndHoldRegistered reports ApplePressAndHoldEnabled as
-// registered by metalAppInit: 0 off, 1 on, -1 never registered.
-// Press-and-hold suppresses the insertText: calls that back key repeat,
-// so the fix registers it off.
-func testPressAndHoldRegistered() int {
-	return int(C.metalTestPressAndHoldRegistered())
-}
-
-// testRunModalMode spins the main runloop in NSModalPanelRunLoopMode —
-// what AppKit does inside runModal — so the pump timer can fire there.
-// testRunDefaultMode is the negative control.
-func testRunModalMode(ms int)   { C.metalTestRunModalMode(C.int(ms)) }
-func testRunDefaultMode(ms int) { C.metalTestRunDefaultMode(C.int(ms)) }
-
-// ─── C callbacks (weak in metal_window.m, strong here) ───────
-
-//export goMetalWindowResized
-func goMetalWindowResized(wid C.uint, width, height C.int) {
-	ws := lookupWindow(uint32(wid))
+func goMetalWindowResized(wid uint32, width, height int) {
+	ws := lookupWindow(wid)
 	if ws == nil {
 		return
 	}
@@ -428,7 +150,7 @@ func goMetalWindowResized(wid C.uint, width, height C.int) {
 	// Dispatch resize event to the attached window.
 	if ws.attachedWindow != nil {
 		w := ws.attachedWindow
-		w32, h32 := int(width), int(height)
+		w32, h32 := width, height
 		if w32 < 0 {
 			w32 = 0
 		}
@@ -445,9 +167,8 @@ func goMetalWindowResized(wid C.uint, width, height C.int) {
 	}
 }
 
-//export goMetalWindowShouldClose
-func goMetalWindowShouldClose(wid C.uint) {
-	ws := lookupWindow(uint32(wid))
+func goMetalWindowShouldClose(wid uint32) {
+	ws := lookupWindow(wid)
 	if ws == nil || ws.attachedWindow == nil {
 		return
 	}
@@ -456,14 +177,13 @@ func goMetalWindowShouldClose(wid C.uint) {
 	// stays open until the Go event loop destroys it.
 }
 
-//export goMetalWindowFocusChanged
-func goMetalWindowFocusChanged(wid C.uint, focused C.int) {
-	ws := lookupWindow(uint32(wid))
+func goMetalWindowFocusChanged(wid uint32, focused bool) {
+	ws := lookupWindow(wid)
 	if ws == nil || ws.attachedWindow == nil {
 		return
 	}
 	et := gui.EventUnfocused
-	if focused != 0 {
+	if focused {
 		et = gui.EventFocused
 	}
 	ws.attachedWindow.EventFn(&gui.Event{Type: et})
@@ -472,36 +192,30 @@ func goMetalWindowFocusChanged(wid C.uint, focused C.int) {
 	// own, so the frame reflecting the focus change would wait for
 	// the next real event. Post an empty event to bring the loop
 	// round for the repaint (issue #405).
-	C.metalPostEmptyEvent()
+	wakeUp()
 }
 
-//export goMetalWindowOccluded
-func goMetalWindowOccluded(wid C.uint, occluded C.int) {
-	ws := lookupWindow(uint32(wid))
+func goMetalWindowOccluded(wid uint32, occluded bool) {
+	ws := lookupWindow(wid)
 	if ws == nil || ws.attachedWindow == nil {
 		return
 	}
 	// On show, DispatchWindowOccluded marks a full refresh and wakes the
 	// idle loop through the window's wake function, so the first visible
 	// frame does not wait for the next real event.
-	gui.DispatchWindowOccluded(ws.attachedWindow, occluded != 0)
+	gui.DispatchWindowOccluded(ws.attachedWindow, occluded)
 }
 
-//export goMetalWindowState
-func goMetalWindowState(wid C.uint, zoomed, fullscreen C.int) {
-	ws := lookupWindow(uint32(wid))
+func goMetalWindowState(wid uint32, zoomed, fullscreen bool) {
+	ws := lookupWindow(wid)
 	if ws == nil || ws.attachedWindow == nil {
 		return
 	}
-	gui.DispatchWindowState(ws.attachedWindow, zoomed != 0, fullscreen != 0)
+	gui.DispatchWindowState(ws.attachedWindow, zoomed, fullscreen)
 }
 
-//export goMetalFileDrop
-func goMetalFileDrop(wid C.uint, cpath *C.char) {
-	// cpath is [NSString UTF8String] — internal autoreleased
-	// buffer. Do NOT free.
-	path := C.GoString(cpath)
-	ws := lookupWindow(uint32(wid))
+func goMetalFileDrop(wid uint32, path string) {
+	ws := lookupWindow(wid)
 	if ws == nil || ws.attachedWindow == nil {
 		return
 	}
@@ -512,7 +226,7 @@ func goMetalFileDrop(wid C.uint, cpath *C.char) {
 	// performDragOperation: is delivered by the drag session, not an
 	// NSEvent — wake the idle loop so the drop's repaint happens
 	// promptly (issue #405).
-	C.metalPostEmptyEvent()
+	wakeUp()
 }
 
 // openApp is the App that receives OS open requests. RunApp sets it
@@ -520,24 +234,8 @@ func goMetalFileDrop(wid C.uint, cpath *C.char) {
 // deliver to.
 var openApp atomic.Pointer[gui.App]
 
-//export goMetalOpenURLs
-func goMetalOpenURLs(items **C.char, isFile *C.int, n C.int) {
-	if n <= 0 {
-		return
-	}
-	cItems := unsafe.Slice(items, int(n))
-	cFile := unsafe.Slice(isFile, int(n))
-	paths := make([]string, len(cItems))
-	files := make([]bool, len(cItems))
-	for i := range cItems {
-		paths[i] = C.GoString(cItems[i])
-		files[i] = cFile[i] != 0
-	}
-	deliverOpen(openApp.Load(), paths, files)
-}
-
 // deliverOpen sorts what AppKit sent into an OpenEvent and hands it
-// to app. Split from the cgo export so tests can drive it.
+// to app. Split from the delegate method so tests can drive it.
 func deliverOpen(app *gui.App, items []string, isFile []bool) {
 	var ev gui.OpenEvent
 	for i, s := range items {
