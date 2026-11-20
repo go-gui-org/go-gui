@@ -54,6 +54,17 @@ and this project adheres to
   contrast in ThemeLight and at about 80% in ThemeDark, where full contrast
   reads too bright for long text. Code comments and blocked-image placeholders
   stay secondary.
+- **Windows tray icons come back after Explorer restarts (#1308).** When the
+  shell restarts, after a crash or a manual restart, it drops every
+  notification-area icon and broadcasts `TaskbarCreated` so that applications
+  add theirs again. The tray window was message-only, and a message-only window
+  gets no broadcasts, so the icon stayed gone and an app hidden to the tray
+  could not be reached. The tray window is now a hidden top-level window that
+  hears the message and adds every live tray entry again, with its current icon,
+  tooltip, click action and menu. When the icon still exists, as after a DPI
+  change, it is updated in place instead of added twice. The window stays out of
+  the taskbar and Alt+Tab, and ignores a `WM_CLOSE` sent from outside, as
+  `taskkill` without `/F` sends one.
 
 ## [v0.98.0] - 2026-11-19
 
