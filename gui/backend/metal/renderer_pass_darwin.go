@@ -79,9 +79,14 @@ func (c *metalCtx) setCustomPipeline(idx int32) {
 
 // ─── Filter (glow) ────────────────────────────────────────────
 
-// ensureFilterTextures sizes the filter textures to w x h.
+// ensureFilterTextures sizes the filter textures to w x h. A partial
+// failure retries on the next beginFilter: the guard requires every
+// attachment beginFilter needs, and records the size only for a
+// complete set.
 func (c *metalCtx) ensureFilterTextures(w, h int) {
-	if c.filterTexA != 0 && c.filterW == w && c.filterH == h {
+	if c.filterTexA != 0 && c.filterTexB != 0 &&
+		(c.sampleCount <= 1 || c.filterMsaaTex != 0) &&
+		c.filterW == w && c.filterH == h {
 		return
 	}
 	const rt = mtlTextureUsageShaderRead | mtlTextureUsageRenderTarget
@@ -108,10 +113,14 @@ func (c *metalCtx) beginFilter(w, h int) int {
 	if c == nil || c.enc == 0 || c.cmdBuf == 0 {
 		return -1
 	}
+	c.filterActive = false
 	c.ensureFilterTextures(w, h)
 	if c.filterTexA == 0 || c.filterTexB == 0 || (c.sampleCount > 1 && c.filterMsaaTex == 0) {
 		return -2
 	}
+	// Save the main-pass scissor: suspending the pass drops it, and
+	// endFilter binds it again on resume.
+	c.filterScissor, c.filterScissOK = c.st.scissor, c.st.scissOK
 	c.endMainEncoder(true) // endFilter resumes it
 
 	// The pass is never resumed, so its samples resolve and are dropped.
@@ -138,6 +147,7 @@ func (c *metalCtx) beginFilter(w, h int) int {
 	}
 	c.enc = c.newEncoder(rpd, w, h)
 	c.st = encState{}
+	c.filterActive = true
 	return 0
 }
 
@@ -212,7 +222,9 @@ func (c *metalCtx) filterPass(pipe int, src, dst objc.ID, w, h int, tm0 float32,
 // matrix passes, resumes the main pass and draws the result layers
 // times onto it. cm is the color matrix, or nil.
 func (c *metalCtx) endFilter(blurRadius float32, layers int, cm *[16]float32) {
-	if c == nil || c.enc == 0 || c.cmdBuf == 0 {
+	// A failed beginFilter leaves the main encoder open: ending it here
+	// would close the main pass as if it were the filter pass.
+	if c == nil || !c.filterActive || c.enc == 0 || c.cmdBuf == 0 {
 		return
 	}
 	layers = max(layers, 1)
@@ -220,6 +232,7 @@ func (c *metalCtx) endFilter(blurRadius float32, layers int, cm *[16]float32) {
 	c.flush()
 	msg(c.enc, rsel.endEncoding)
 	c.enc = 0
+	c.filterActive = false
 
 	// src is the texture that holds the result so far.
 	src := c.filterTexA
@@ -240,6 +253,13 @@ func (c *metalCtx) endFilter(blurRadius float32, layers int, cm *[16]float32) {
 	if c.enc == 0 {
 		return
 	}
+	// The resumed pass starts unclipped: bind the scissor the filter
+	// suspended. An empty outer clip suppresses the composite below,
+	// like every other draw, so there is nothing to restore for it.
+	if c.filterScissOK && !c.clipEmpty {
+		r := c.filterScissor
+		c.setScissorRect(r[0], r[1], r[2], r[3])
+	}
 	c.setPipeline(pipeFilterTex)
 	c.setFragmentTex(0, src, &c.st.tex0)
 	var m [16]float32
@@ -248,13 +268,17 @@ func (c *metalCtx) endFilter(blurRadius float32, layers int, cm *[16]float32) {
 	m = [16]float32{0: 1, 5: 1, 10: 1, 15: 1}
 	c.setTM(&m)
 	// The composite uses non-flipped UVs: v=0 at the top of the screen
-	// reads the top of the texture.
+	// reads the top of the texture. Under an empty clip the blend of a
+	// clear texture is a no-op, so skip the draws but keep the resumed
+	// pass consistent for what follows.
 	c.setFullQuad(c.viewW, c.viewH, false)
 	msg(c.enc, rsel.setVertexBytes, ptr(&c.quadVerts), uintptr(len(c.quadVerts)*4), 0)
 	c.st.vbuf = 0
-	for range layers {
-		msg(c.enc, rsel.drawIndexedPrimitives, mtlPrimitiveTypeTriangle, 6,
-			mtlIndexTypeUInt16, uintptr(c.quadIdx), 0)
+	if !c.clipEmpty {
+		for range layers {
+			msg(c.enc, rsel.drawIndexedPrimitives, mtlPrimitiveTypeTriangle, 6,
+				mtlIndexTypeUInt16, uintptr(c.quadIdx), 0)
+		}
 	}
 }
 
@@ -262,6 +286,9 @@ func (c *metalCtx) endFilter(blurRadius float32, layers int, cm *[16]float32) {
 
 // stencilQuad draws the quad at v into the stencil with state ds.
 func (c *metalCtx) stencilQuad(v unsafe.Pointer, ds objc.ID) {
+	if c.clipEmpty {
+		return
+	}
 	c.flush()
 	msg(c.enc, rsel.setDepthStencilState, uintptr(ds))
 	c.setPipeline(pipeStencil)
@@ -372,17 +399,16 @@ func edgeCoverageProbe(src string) int {
 
 	var mvp [16]float32
 	orthoInto(&mvp, n, n)
-	// x, y, params, u, v, r, g, b, a: the SVG vertex layout. On the heap,
-	// because its address goes to Metal.
-	verts := new([27]float32)
-	*verts = [27]float32{
+	// x, y, params, u, v, r, g, b, a: the SVG vertex layout. On the
+	// heap, because its address goes to Metal as a uintptr.
+	c.probeVerts = [27]float32{
 		0, 0, 0, 0, 0, 1, 1, 1, 1,
 		n, 0, 0, 0, 0, 1, 1, 1, 1,
 		0, n, 0, 0, 0, 1, 1, 1, 1,
 	}
 	c.setPipeline(pipeSolid)
 	c.setMVP(&mvp)
-	c.drawTriangles(unsafe.Pointer(verts), 3)
+	c.drawTriangles(unsafe.Pointer(&c.probeVerts), 3)
 	c.endMainEncoder(false)
 	msg(c.cmdBuf, rsel.commit)
 	msg(c.cmdBuf, rsel.waitUntilCompleted)

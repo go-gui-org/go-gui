@@ -32,6 +32,7 @@ package metal
 
 import (
 	"log"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -111,6 +112,14 @@ type metalCtx struct {
 	// content pass. It resolves into filterTexA.
 	filterMsaaTex, filterTexA, filterTexB, filterStencilTex objc.ID
 	filterW, filterH                                        int
+	// filterActive records a successful beginFilter. A failed begin
+	// leaves the main encoder open, which endFilter must not end.
+	filterActive bool
+	// filterScissor saves the main-pass scissor across a filter.
+	// Suspending the main pass drops the bound scissor, and the resumed
+	// pass starts unclipped, so endFilter binds the saved rect again.
+	filterScissor [4]uint
+	filterScissOK bool
 
 	stencilIncr, stencilTest, stencilDecr, stencilOff objc.ID
 
@@ -135,16 +144,27 @@ type metalCtx struct {
 	batchN      int
 	batchStride uintptr
 
+	// clipEmpty suppresses draws while the clip is empty. An empty clip
+	// paints nothing, so setScissor binds no scissor and every draw below
+	// is a no-op until the next nonempty clip. It is context state, not
+	// encoder state: a fresh encoder binds no scissor either, so the two
+	// agree across suspend and resume.
+	clipEmpty bool
+
 	st encState
 
 	// Scratch for arguments that go by pointer. The bound values of the
 	// cached setters are kept here too.
 	mvp, tm, frag0, scratch [16]float32
 	quadVerts               [4 * 9]float32
-	viewport                [6]float64
-	scissor                 [4]uint
-	region                  [6]uint
-	errOut                  objc.ID
+	// probeVerts holds the edge coverage probe triangle. Its address
+	// reaches Metal as a uintptr, which does not keep a stack local in
+	// place, so it lives on the heap with the rest of the context.
+	probeVerts [27]float32
+	viewport   [6]float64
+	scissor    [4]uint
+	region     [6]uint
+	errOut     objc.ID
 }
 
 // newMetalCtx makes the renderer for layer. src is the MSL source of
@@ -211,6 +231,9 @@ func newMetalCtx(layer objc.ID, src string) *metalCtx {
 		blend = iota
 		replace
 		stencilMask
+		// replaceNoStencil writes through like replace, but its pass
+		// has no stencil attachment: the blur and color filter passes.
+		replaceNoStencil
 	)
 	for i, p := range [pipeCount]pdesc{
 		pipeSolid:       {"vs_solid", "fs_solid", mvd, ms, blend},
@@ -218,10 +241,10 @@ func newMetalCtx(layer objc.ID, src string) *metalCtx {
 		pipeBlur:        {"vs_blur", "fs_blur", mvd, ms, blend},
 		pipeGradient:    {"vs_gradient", "fs_gradient", mvd, ms, blend},
 		pipeImageClip:   {"vs_solid", "fs_image_clip", mvd, ms, blend},
-		pipeFilterBlurH: {"vs_filter", "fs_filter_blur_h", mvd, 1, replace},
-		pipeFilterBlurV: {"vs_filter", "fs_filter_blur_v", mvd, 1, replace},
+		pipeFilterBlurH: {"vs_filter", "fs_filter_blur_h", mvd, 1, replaceNoStencil},
+		pipeFilterBlurV: {"vs_filter", "fs_filter_blur_v", mvd, 1, replaceNoStencil},
 		pipeFilterTex:   {"vs_filter", "fs_filter_tex", mvd, ms, blend},
-		pipeFilterColor: {"vs_filter", "fs_filter_color", mvd, 1, replace},
+		pipeFilterColor: {"vs_filter", "fs_filter_color", mvd, 1, replaceNoStencil},
 		pipeGlyphTex:    {"vs_glyph", "fs_glyph_tex", gvd, ms, blend},
 		pipeGlyphColor:  {"vs_glyph", "fs_glyph_color", gvd, ms, blend},
 		pipeStencil:     {"vs_solid", "fs_stencil", mvd, ms, stencilMask},
@@ -250,6 +273,9 @@ func newMetalCtx(layer objc.ID, src string) *metalCtx {
 	}
 	c.quadIdx = objc.ID(msg(c.device, rsel.newBufferWithBytes,
 		uintptr(unsafe.Pointer(&idx[0])), uintptr(len(idx)*2), mtlResourceStorageModeShared))
+	// newBufferWithBytes copies the bytes synchronously, but the call
+	// takes only a uintptr: keep the slice live until it returns.
+	runtime.KeepAlive(idx)
 
 	// Shared samplers: linear and nearest, both clamp-to-edge.
 	sd := newObj(rcls.samplerDesc)
@@ -342,8 +368,12 @@ func vertexDesc(stride uintptr, attrs [3][2]uintptr) objc.ID {
 // makePipeline builds a render pipeline, retained, or returns 0 and
 // logs why. kind 0 blends source-over, 1 writes through with no blend
 // (the full-screen filter passes, where blending would apply alpha
-// twice), 2 writes no color (the stencil mask). A pipeline must have
-// the sample count of the pass it draws in, or Metal rejects the draw.
+// twice), 2 writes no color (the stencil mask), 3 writes through with
+// no stencil format (the blur and color filter passes, whose pass
+// descriptor has no stencil attachment). A pipeline's sample count must
+// equal the sample count of the pass it draws in, and its stencil
+// format must equal the format of the pass's stencil attachment, or
+// Metal rejects the draw with validation on.
 func (c *metalCtx) makePipeline(lib objc.ID, vs, fs string, vd objc.ID, samples, kind int) objc.ID {
 	vf := objc.ID(msg(lib, rsel.newFunctionWithName, uintptr(darwinffi.NSString(vs))))
 	defer release(vf)
@@ -367,7 +397,12 @@ func (c *metalCtx) makePipeline(lib objc.ID, vs, fs string, vd objc.ID, samples,
 	case 2:
 		msg(ca, rsel.setWriteMask, mtlColorWriteMaskNone)
 	}
-	msg(desc, rsel.setStencilAttachmentPixelFormat, mtlPixelFormatStencil8)
+	// Kind 3 (replaceNoStencil) draws without stencil: its pass has no
+	// stencil attachment, and a pipeline that declares a stencil format
+	// the pass lacks is rejected with validation on.
+	if kind != 3 {
+		msg(desc, rsel.setStencilAttachmentPixelFormat, mtlPixelFormatStencil8)
+	}
 	c.errOut = 0
 	pso := objc.ID(msg(c.device, rsel.newRenderPipelineStateWithDescriptorError,
 		uintptr(desc), ptr(&c.errOut)))

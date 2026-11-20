@@ -81,6 +81,10 @@ func (c *metalCtx) setScissorRect(x, y, w, h uint) {
 }
 
 // setScissor clips to the rect in pixels, clamped to the viewport.
+// An empty clip paints nothing: rather than park a 1x1 scissor outside
+// the viewport (which Metal validation rejects as out of bounds), it
+// draws the open batch and suppresses every draw until the next
+// nonempty clip.
 func (c *metalCtx) setScissor(x, y, w, h int) {
 	if c.enc == 0 {
 		return
@@ -98,12 +102,11 @@ func (c *metalCtx) setScissor(x, y, w, h int) {
 		h = min(h, c.viewH-y)
 	}
 	if w <= 0 || h <= 0 {
-		// A zero-area scissor clips everything. A 1x1 rect at the origin
-		// still paints one pixel, and a zero-size rect fails Metal
-		// validation, so park a 1x1 rect just outside the viewport.
-		c.setScissorRect(uint(max(c.viewW, 0)), uint(max(c.viewH, 0)), 1, 1)
+		c.flush()
+		c.clipEmpty = true
 		return
 	}
+	c.clipEmpty = false
 	c.setScissorRect(uint(x), uint(y), uint(w), uint(h))
 }
 
@@ -187,7 +190,7 @@ func (c *metalCtx) reserve(size uintptr) (ch *vchunk, off uintptr, ok bool) {
 
 // drawQuad adds one quad of stride-byte vertices at v to the batch.
 func (c *metalCtx) drawQuad(v unsafe.Pointer, stride uintptr) {
-	if c.enc == 0 {
+	if c.enc == 0 || c.clipEmpty {
 		return
 	}
 	size := 4 * stride
@@ -244,7 +247,7 @@ func (c *metalCtx) drawGlyphQuad(v unsafe.Pointer) { c.drawQuad(v, glyphStride) 
 
 // drawTriangles draws numVerts gpu.Vertex values at v as a triangle list.
 func (c *metalCtx) drawTriangles(v unsafe.Pointer, numVerts int) {
-	if c.enc == 0 || numVerts <= 0 {
+	if c.enc == 0 || c.clipEmpty || numVerts <= 0 {
 		return
 	}
 	c.flush()

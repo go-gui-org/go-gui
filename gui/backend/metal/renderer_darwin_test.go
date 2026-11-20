@@ -139,6 +139,31 @@ func TestBatchFlushesOnStateChange(t *testing.T) {
 	}
 }
 
+// TestEmptyClipSuppressesDraws: an empty clip paints nothing. The
+// setter binds no scissor (an out-of-bounds 1x1 sentinel fails Metal
+// validation), and every draw below is a no-op until the next
+// nonempty clip.
+func TestEmptyClipSuppressesDraws(t *testing.T) {
+	o := newOffscreen(t, 32)
+	o.c.setScissor(0, 0, 0, 0)
+	if !o.c.clipEmpty {
+		t.Fatal("empty clip did not arm suppression")
+	}
+	o.rect(0, 0, 32, 32, gui.RGB(0, 255, 0))
+	if o.c.batchN != 0 {
+		t.Fatalf("suppressed rect batched %d quads, want 0", o.c.batchN)
+	}
+	o.c.setScissor(0, 0, 32, 32)
+	if o.c.clipEmpty {
+		t.Fatal("nonempty clip left suppression armed")
+	}
+	o.rect(0, 0, 32, 32, gui.RGB(255, 0, 0))
+	px := o.finish(t)
+	if r, g, b := rgbAt(px, 32, 8, 8); r != 255 || g != 0 || b != 0 {
+		t.Fatalf("recovered pixel = (%d,%d,%d), want (255,0,0)", r, g, b)
+	}
+}
+
 // TestBatchSpansLimits draws more quads than one batch holds
 // (maxBatchQuads) and than one vertex buffer holds (vchunkBytes). The
 // quads overdraw 32 cells in turn with three colors, so a quad that is
