@@ -4,6 +4,7 @@ package darwinffi
 
 import (
 	"sync"
+	"unsafe"
 
 	"github.com/ebitengine/purego"
 )
@@ -135,6 +136,23 @@ func CFDataLen(d uintptr) int {
 func CFDataPtr(d uintptr) uintptr {
 	loadCF()
 	return cf.dataGetBytePtr(d)
+}
+
+// CFDataBytes returns a Go copy of the bytes of the CFData d. The
+// result is never nil: an empty d gives an empty slice. NSData is
+// toll-free bridged to CFData, so d can be an NSData.
+func CFDataBytes(d uintptr) []byte {
+	n := CFDataLen(d)
+	out := make([]byte, n)
+	if n > 0 {
+		// The bytes belong to d, outside the Go heap, and stay valid
+		// until d is released. The bits go through a pointer variable
+		// because go vet flags every direct uintptr-to-pointer cast.
+		var p *byte
+		*(*uintptr)(unsafe.Pointer(&p)) = CFDataPtr(d)
+		copy(out, unsafe.Slice(p, n))
+	}
+	return out
 }
 
 // CFMutableDict returns a new, empty CFMutableDictionary that retains

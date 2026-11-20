@@ -537,7 +537,14 @@ last service moves. Each step is one PR.
    (`keyring_ios.go`, `locale_detect_ios.go`), because purego needs cgo on iOS.
    Keep awake and appearance have no cgo of their own, but keep the `cgo` build
    term until step 6, because the rest of `gui/backend/metal` needs cgo.
-2. Dialogs, print, spell check.
+2. Dialogs, print, spell check. **Done in #1312.** No test shows a panel or an
+   alert: AppKit aborts when one is made off the main thread, and `go test` runs
+   each test on its own goroutine. The tests cover the parts that need no
+   window: content types, file paths, print info and spell check. The port also
+   corrects two faults in the cgo code. NSString drops leading byte order marks,
+   so every spell check range after them was 3 bytes early per mark. The print
+   copy count was set after the operation took its own copy of the print info,
+   so it was lost.
 3. Menus and tray.
 4. Accessibility.
 5. Window, events and IME (`metal_window_darwin.m`).
