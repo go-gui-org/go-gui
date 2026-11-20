@@ -24,8 +24,29 @@ and this project adheres to
 - **The macOS menubar and tray no longer use cgo (#1314).** They now call AppKit
   through purego. This is step 3 of the port that #1304 decided. The rest of the
   macOS backend still needs cgo. The API does not change.
+- **The macOS accessibility tree no longer uses cgo (#1317).** VoiceOver now
+  reads the tree through purego. This is step 4 of the port that #1304 decided.
+  The rest of the macOS backend still needs cgo. The API does not change.
 
 ### Fixed
+
+- **A macOS VoiceOver announcement with text that is not valid UTF-8 no longer
+  stops the app (#1317).** NSString gives nil for such bytes, and the dictionary
+  that held the text raised an exception, so `A11yAnnounce` stopped the app. A
+  node label, value or description with such bytes was lost. The bad bytes now
+  show as U+FFFD in both.
+- **The macOS accessibility root no longer acts as the first node (#1317).** The
+  root element had node index 0. It reported focus when node 0 had focus, and a
+  VoiceOver press on the root pressed node 0. The root now has no focus and no
+  action.
+- **macOS VoiceOver hears focus that comes back to the same widget (#1317).**
+  When focus left the tree (for example, a click on empty space) and came back
+  to the widget that had it last, no focus change was posted. VoiceOver then did
+  not move to that widget. Each return of focus is now posted.
+- **A bad parent index no longer makes a cycle in the macOS accessibility tree
+  (#1317).** A node that named itself, or a later node, as its parent was cut
+  off from the root, and VoiceOver walked the loop for ever. Only an earlier
+  node is now a valid parent. Any other index attaches the node to the root.
 
 - **macOS spell check marks the right word after a byte order mark (#1312).**
   NSString drops leading byte order marks (U+FEFF), and `spellcheck.Check`

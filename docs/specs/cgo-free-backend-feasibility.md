@@ -553,7 +553,19 @@ last service moves. Each step is one PR.
    same main run loop runs. The tests build menus but do not install them. The
    port also corrects one fault in the cgo code: a title that was not valid
    UTF-8 gave a nil NSString, and NSMenuItem stopped the app.
-4. Accessibility.
+4. Accessibility. **Done in #1317.** Go keeps the whole tree. Each node has one
+   `GoGuiA11yElement`, a subclass of NSAccessibilityElement with no state of its
+   own. Its methods find their node through a Go map and answer from the Go
+   copy. A sync computes the screen offset of the view once, not with two sends
+   for each node, and keeps the CFString of a text that did not change. The
+   tests build a tree with no window and ask the elements what VoiceOver asks.
+   The port also corrects four faults in the cgo code. An announcement with text
+   that was not valid UTF-8 put nil in a dictionary, and the exception stopped
+   the app. The root element had node index 0, so it reported the focus of node
+   0 and sent its actions as actions of node 0. The last posted focus did not
+   change while there was no focus, so a focus that came back to the same node
+   was not posted. A node that named itself, or a later node, as its parent made
+   a cycle that VoiceOver walks for ever.
 5. Window, events and IME (`metal_window_darwin.m`).
 6. Renderer (`metal_darwin.m`), with quad batching. Then remove cgo from
    darwin/arm64, and give darwin/amd64 the link-time error.

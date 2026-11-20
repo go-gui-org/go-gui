@@ -5,12 +5,13 @@ package metal
 /*
 #include <stdlib.h>
 #include "metal_window.h"
-#include "a11y_darwin.h"
 */
 import "C"
 import (
 	"unicode/utf8"
 	"unsafe"
+
+	"github.com/ebitengine/purego/objc"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/keyring"
@@ -80,26 +81,34 @@ func (n *nativePlatform) BookmarkStopAccess(_ []byte)                  {}
 
 func (n *nativePlatform) A11yInit(cb func(action, index int)) {
 	setA11yCallback(a11yToken(n.window), cb)
-	C.a11yInit(n.window)
+	nsWindow := objc.ID(uintptr(C.metalWindowGetNSWindow(n.window)))
+	a11yInit(a11yToken(n.window), nsWindow)
 }
 
 func (n *nativePlatform) A11ySync(nodes []gui.A11yNode, count, focusedIdx int) {
 	var logW, logH C.int
 	C.metalWindowGetSize(n.window, &logW, &logH)
-	a11ySyncBridge(n.window, nodes, count, focusedIdx, float32(logH))
+	a11ySyncBridge(a11yToken(n.window), nodes, count, focusedIdx, float32(logH))
 }
 
 func (n *nativePlatform) A11yDestroy() {
 	clearA11yCallback(a11yToken(n.window))
-	C.a11yDestroy(n.window)
+	a11yDestroy(a11yToken(n.window))
 }
 
 func (n *nativePlatform) A11yAnnounce(text string) {
-	// Cap announcement text: every byte crosses into ObjC via
-	// C.CString, so unbounded input is an unbounded C allocation.
-	cstr := C.CString(truncateA11yText(text, maxA11yAnnounceLen))
-	defer C.free(unsafe.Pointer(cstr))
-	C.a11yAnnounce(cstr)
+	// Cap the announcement text: VoiceOver has no use for more, and the
+	// text is copied into a CFString.
+	a11yAnnounce(truncateA11yText(text, maxA11yAnnounceLen))
+}
+
+// cGoString copies a C string into Go. It is here for the tests:
+// a _test.go file cannot have its own import "C" block.
+func cGoString(p *C.char) string { return C.GoString(p) }
+
+// a11yToken names the tree of window w: its handle, as a number.
+func a11yToken(w C.GoGuiNSWindow) uintptr {
+	return uintptr(unsafe.Pointer(w))
 }
 
 // maxA11yAnnounceLen caps spoken announcement text at 8 KB, well
@@ -107,7 +116,7 @@ func (n *nativePlatform) A11yAnnounce(text string) {
 const maxA11yAnnounceLen = 8192
 
 // truncateA11yText caps s at max bytes on a rune boundary, so the
-// C string stays valid UTF-8.
+// text stays valid UTF-8.
 func truncateA11yText(s string, max int) string {
 	if len(s) <= max {
 		return s
