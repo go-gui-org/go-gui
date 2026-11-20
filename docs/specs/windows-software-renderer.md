@@ -294,7 +294,10 @@ Layout, the pacing wait, DWM's composition and RDP's encoding are not included.
 - At 1920×1080 the three components sum to 16–30 ms. No frame rate is derived
   for 4K: no opaque present was measured above 1920×1080.
 - Idle draws nothing, and input costs at most one frame per loop turn: the loop
-  drains every pending message before it asks for a frame.
+  drains every pending message before it asks for a frame. A resize is the
+  exception. `WM_SIZE` draws inside the message handler, on GL and on soft
+  alike, so a live resize draws one full frame for each size the system reports,
+  and follows the mouse no faster than the frame times above allow.
 - Remote sessions are capped at 30 fps by default
   ([Microsoft](https://learn.microsoft.com/en-us/troubleshoot/windows-server/remote/frame-rate-limited-to-30-fps)).
 
