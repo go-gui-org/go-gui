@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -298,6 +299,163 @@ func TestTrayReAddSetsVersionOnIconThatExists(t *testing.T) {
 	na.checkHandles(t, tr)
 }
 
+// A refused version step is not a refused add. addIcon has deleted the
+// icon again, so there is nothing to modify, and the re-add must not
+// try. The entry stays live, and the next TaskbarCreated adds it.
+func TestTrayReAddDoesNotModifyAfterRefusedVersion(t *testing.T) {
+	tr, fs, na := newNotificationArea(t)
+	a, err := tr.Create(gui.SystemTrayCfg{Tooltip: "a", IconPNG: pngA}, nil)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	na.restart()
+	fs.refuse[nimSetVersion] = true
+	fs.calls = nil
+	tr.reAddIcons()
+	for _, call := range fs.calls {
+		if call.message == nimModify {
+			t.Errorf("re-add sent NIM_MODIFY after a refused version step: %+v", fs.calls)
+		}
+	}
+	if got := na.snapshot(); len(got) != 0 {
+		t.Errorf("shell icons after the refused version step: %+v, want none", got)
+	}
+
+	fs.refuse[nimSetVersion] = false
+	tr.reAddIcons()
+	if got := na.snapshot()[uint32(a)]; got.version != notifyIconV4 || got.hIcon != entryIcon(tr, a) {
+		t.Errorf("next re-add: shell icon %+v, want version %d with the entry's icon %#x",
+			got, notifyIconV4, entryIcon(tr, a))
+	}
+	na.checkHandles(t, tr)
+}
+
+// A re-add pass lists the entries and then takes shellMu for one icon
+// at a time, so a Remove can come between the listing and an entry's
+// turn. That entry must be skipped: adding it would bring back an icon
+// nobody owns.
+func TestTrayReAddSkipsEntryRemovedDuringPass(t *testing.T) {
+	tr, fs, na := newNotificationArea(t)
+	a, err := tr.Create(gui.SystemTrayCfg{Tooltip: "a", IconPNG: pngA}, nil)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	tr.mu.Lock()
+	listed := tr.entries[a]
+	tr.mu.Unlock()
+
+	na.restart()
+	tr.Remove(a)
+	fs.calls = nil
+	tr.reAddIcon(listed)
+
+	if len(fs.calls) != 0 {
+		t.Errorf("re-add of a removed entry reached the shell: %+v", fs.calls)
+	}
+	if got := na.snapshot(); len(got) != 0 {
+		t.Errorf("shell icons: %+v, want none", got)
+	}
+	na.checkHandles(t, tr)
+}
+
+// The handle swap after a shell call needs the entry to be the live one
+// still. shellMu keeps Remove out during the call, but a path that takes
+// the entry without it has freed the icon the entry held. Swapping then
+// frees that icon a second time and leaks the new handle.
+func TestTrayHandleSwapNeedsLiveEntry(t *testing.T) {
+	cases := []struct {
+		name    string
+		message uint32 // the shell call during which the entry is taken
+		act     func(tr *Tray, id int)
+	}{
+		{"Update", nimModify, func(tr *Tray, id int) {
+			tr.Update(id, gui.SystemTrayCfg{IconPNG: pngB})
+		}},
+		{"re-add", nimAdd, func(tr *Tray, _ int) { tr.reAddIcons() }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tr, _, na := newNotificationArea(t)
+			a, err := tr.Create(gui.SystemTrayCfg{IconPNG: pngA}, nil)
+			if err != nil {
+				t.Fatalf("Create: %v", err)
+			}
+			if tc.message == nimAdd {
+				na.restart() // so the re-add's NIM_ADD is accepted
+			}
+			model := shellNotifyIcon
+			shellNotifyIcon = func(message uint32, nid *notifyIconDataW) bool {
+				accepted := model(message, nid)
+				if message == tc.message {
+					// Take the entry as Remove does, but without shellMu.
+					tr.mu.Lock()
+					taken := tr.entries[a]
+					delete(tr.entries, a)
+					tr.mu.Unlock()
+					if taken != nil {
+						destroyIcon(taken.hIcon)
+					}
+				}
+				return accepted
+			}
+
+			tc.act(tr, a)
+			na.checkHandles(t, tr)
+		})
+	}
+}
+
+// Explorer restarts and DPI changes can send several TaskbarCreated
+// messages close together. Those that come during a pass must ask for
+// one more pass together, not for one each.
+func TestTrayCoalescesTaskbarCreated(t *testing.T) {
+	tr, _, na := newNotificationArea(t)
+	if _, err := tr.Create(gui.SystemTrayCfg{Tooltip: "a", IconPNG: pngA}, nil); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	na.restart()
+
+	inAdd := make(chan struct{})
+	release := make(chan struct{})
+	var adds atomic.Int32
+	model := shellNotifyIcon
+	shellNotifyIcon = func(message uint32, nid *notifyIconDataW) bool {
+		if message == nimAdd && adds.Add(1) == 1 {
+			close(inAdd)
+			<-release
+		}
+		return model(message, nid)
+	}
+
+	tr.requestReAdd()
+	<-inAdd
+	for range 5 {
+		tr.requestReAdd()
+	}
+	close(release)
+	waitReAddIdle(t, tr)
+
+	// One NIM_ADD per pass: the pass that was running, and one more.
+	if got := adds.Load(); got != 2 {
+		t.Errorf("%d re-add passes for 5 messages during one pass, want 2", got)
+	}
+	na.checkHandles(t, tr)
+}
+
+// waitReAddIdle waits until the passes that requestReAdd started are
+// done.
+func waitReAddIdle(t *testing.T, tr *Tray) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for tr.reAddState.Load() != reAddIdle {
+		if time.Now().After(deadline) {
+			t.Fatal("the re-add passes did not finish")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
 // A Remove while a re-add is in the shell must wait for it. If it went
 // ahead, its NIM_DELETE would find no icon yet, the re-add's NIM_ADD
 // would then bring back an icon nobody owns, with a handle Remove had
@@ -399,10 +557,8 @@ func TestTrayWindowHearsTaskbarCreatedBroadcast(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("the tray window did not get the broadcast")
 	}
-	// The re-add holds shellMu until its shell calls are done; wait for
-	// it before Cleanup puts the real shell back.
-	tr.shellMu.Lock()
-	tr.shellMu.Unlock() //nolint:staticcheck // empty critical section waits for the re-add
+	// Wait for the pass before Cleanup puts the real shell back.
+	waitReAddIdle(t, tr)
 }
 
 // A top-level window can be sent WM_CLOSE by other processes; taskkill

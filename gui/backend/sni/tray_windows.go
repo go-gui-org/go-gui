@@ -9,6 +9,7 @@ package sni
 import (
 	"errors"
 	"fmt"
+	"log"
 	"runtime"
 	"slices"
 	"sync"
@@ -171,17 +172,20 @@ type Tray struct {
 	// tray thread. Read and written under mu.
 	trackMenu func(hMenu uintptr, x, y int32)
 	// shellMu serializes the work that tells the shell about an icon:
-	// Create's add, Update, Remove and the re-add after the taskbar is
-	// created again. Each holds it from reading the entry until the
-	// shell calls and the handle cleanup are done, so a re-add cannot
-	// bring back an icon that Remove deleted, send an icon or tooltip
-	// that Update replaced, or send a handle that was freed. It is held
-	// across shell calls, so the tray's own message handling never
-	// takes it: the re-add runs on a goroutine of its own. An app
+	// Create's add, Update, Remove and the re-add of one icon after the
+	// taskbar is created again. Each holds it from reading the entry
+	// until the shell calls and the handle cleanup are done, so a re-add
+	// cannot bring back an icon that Remove deleted, send an icon or
+	// tooltip that Update replaced, or send a handle that was freed. It
+	// is held across shell calls, so the tray's own message handling
+	// never takes it: the re-add runs on a goroutine of its own. An app
 	// callback that the tray thread runs can still call Create, Update
-	// or Remove, and then waits for the shell call in progress. Take it
-	// before mu.
+	// or Remove, and then waits for the shell calls of one icon at
+	// most. Take it before mu.
 	shellMu sync.Mutex
+	// reAddState makes one re-add pass at a time out of any number of
+	// TaskbarCreated messages; see requestReAdd.
+	reAddState atomic.Int32
 	// taskbarCreated is the TaskbarCreated message ID. Written on the
 	// tray thread before the window exists, read only by wndProc.
 	taskbarCreated uint32
@@ -346,9 +350,15 @@ func (t *Tray) createWindow() (uintptr, error) {
 	}
 	// An elevated process does not get messages above WM_USER from a
 	// process of lower integrity, such as Explorer, unless it allows
-	// them. On failure the tray still works; only the re-add is lost.
+	// them. On failure the tray still works; an elevated app then loses
+	// only the re-add, so the failure is logged and not returned.
 	if msgID != 0 {
-		procChangeWindowMessageFilterEx.Call(hwnd, msgID, msgfltAllow, 0)
+		allowed, _, filterErr := procChangeWindowMessageFilterEx.Call(
+			hwnd, msgID, msgfltAllow, 0)
+		if allowed == 0 {
+			log.Printf("sni: ChangeWindowMessageFilterEx(%s): %v",
+				taskbarCreatedName, filterErr)
+		}
 	}
 	return hwnd, nil
 }
@@ -358,7 +368,7 @@ func (t *Tray) wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr
 		// The shell created the taskbar again. The re-add takes
 		// shellMu, which Create, Update and Remove hold across shell
 		// calls, so it runs off this thread.
-		go t.reAddIcons()
+		t.requestReAdd()
 		return 0
 	}
 	switch msg {
@@ -621,14 +631,16 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 
 	// The shell keeps drawing the icon it last accepted, so the entry
 	// swaps to the new handle, and frees the old one, only once the
-	// shell has accepted it. If the shell refused, the new handle is the
-	// one nothing uses. Remove cannot take the entry during the call:
-	// both hold shellMu. With no new icon, NIF_ICON was not sent and the
+	// shell has accepted it. If the shell refused, or the entry was
+	// taken during the call (whoever takes it frees the icon it held),
+	// the new handle is the one nothing uses. shellMu keeps Remove out
+	// during the call; the check also holds for a path that does not
+	// take shellMu. With no new icon, NIF_ICON was not sent and the
 	// shell keeps the entry's icon, so nothing is freed.
 	var freeIcon uintptr
 	if hIcon != 0 {
 		t.mu.Lock()
-		if accepted {
+		if accepted && t.entries[id] == e {
 			freeIcon, e.hIcon = e.hIcon, hIcon
 		} else {
 			freeIcon = hIcon
