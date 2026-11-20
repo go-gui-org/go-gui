@@ -407,8 +407,9 @@ rectangles and an icon is now at 0 allocations.
   second implementation. Revisited at step 4, at about 13 call sites: kept as
   branches. Each site is a one-line delegation, the two soft paths share little
   (pacing, repaint and upload all differ), and the interface would move every
-  Linux GPU user's frame path for no change in behaviour. Revisit if a third
-  present path (Windows `SetDIBitsToDevice`) arrives.
+  Linux GPU user's frame path for no change in behaviour. Revisited for the
+  Windows present path (#1310) and kept as branches there too:
+  `docs/specs/windows-software-renderer.md`.
 - **A shared soft core with an upload interface** (step 4): the renderer, the
   error logging and the last frame shared, X11 `PutImage` and `wl_shm` behind
   one interface. The shared part is about 30 lines; the indirection costs more
@@ -449,6 +450,8 @@ rectangles and an icon is now at 0 allocations.
 - An X11 soft frame still makes about 13–14 small allocations, all xgb's own
   per-request cost (step 5). A Wayland frame makes about 6 in purego's callback
   path while dispatching events, GL and soft alike (ebitengine/purego#567).
-- Windows has no soft path (out of the first round, per the issue).
+- Windows has no soft path yet (out of the first round, per the issue). Its
+  design is `docs/specs/windows-software-renderer.md` (#1310), which presents
+  from a DIB section with `BitBlt`, not with `SetDIBitsToDevice`.
 - An auto-picked soft window keeps the GL driver the probe loaded, about 70 MB
   with llvmpipe, on X11 and Wayland. `GOGUI_RENDERER=soft` loads none.
