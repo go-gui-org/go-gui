@@ -1,15 +1,16 @@
 //go:build windows
 
 // Package sni provides system tray support. On Windows this uses
-// Shell_NotifyIconW with a message-only window for callbacks. The
-// window and its message loop live on one thread owned by the tray, so
-// a tray can be made from any goroutine.
+// Shell_NotifyIconW with a hidden window for callbacks. The window and
+// its message loop live on one thread owned by the tray, so a tray can
+// be made from any goroutine.
 package sni
 
 import (
 	"errors"
 	"fmt"
 	"runtime"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -37,6 +38,9 @@ var (
 	procTrackPopupMenu      = user32.NewProc("TrackPopupMenu")
 	procDestroyMenu         = user32.NewProc("DestroyMenu")
 	procSetForegroundWindow = user32.NewProc("SetForegroundWindow")
+
+	procRegisterWindowMessageW      = user32.NewProc("RegisterWindowMessageW")
+	procChangeWindowMessageFilterEx = user32.NewProc("ChangeWindowMessageFilterEx")
 )
 
 // Shell_NotifyIcon constants.
@@ -58,6 +62,7 @@ const (
 // Window message constants.
 const (
 	wmAppTray = 0x8000 + 100
+	wmNull    = 0x0000
 	wmCommand = 0x0111
 	wmDestroy = 0x0002
 	wmClose   = 0x0010
@@ -75,8 +80,10 @@ const (
 
 // Window class / style constants.
 const (
-	hwndMessage = ^uintptr(2) // HWND_MESSAGE = -3
-	classStyle  = 0
+	classStyle     = 0
+	wsPopup        = 0x80000000
+	wsExToolWindow = 0x00000080
+	msgfltAllow    = 1 // MSGFLT_ALLOW for ChangeWindowMessageFilterEx
 )
 
 // Menu flags.
@@ -163,6 +170,21 @@ type Tray struct {
 	// can see the menu request without a modal menu loop blocking the
 	// tray thread. Read and written under mu.
 	trackMenu func(hMenu uintptr, x, y int32)
+	// shellMu serializes the work that tells the shell about an icon:
+	// Create's add, Update, Remove and the re-add after the taskbar is
+	// created again. Each holds it from reading the entry until the
+	// shell calls and the handle cleanup are done, so a re-add cannot
+	// bring back an icon that Remove deleted, send an icon or tooltip
+	// that Update replaced, or send a handle that was freed. It is held
+	// across shell calls, so the tray's own message handling never
+	// takes it: the re-add runs on a goroutine of its own. An app
+	// callback that the tray thread runs can still call Create, Update
+	// or Remove, and then waits for the shell call in progress. Take it
+	// before mu.
+	shellMu sync.Mutex
+	// taskbarCreated is the TaskbarCreated message ID. Written on the
+	// tray thread before the window exists, read only by wndProc.
+	taskbarCreated uint32
 }
 
 type entry struct {
@@ -186,7 +208,7 @@ type menuNode struct {
 	childCount int
 }
 
-// ensureWindow starts the tray thread, which creates the message-only
+// ensureWindow starts the tray thread, which creates the hidden
 // window and runs its message loop. Safe to call multiple times. A failed init is not
 // retried: every call returns that same error. A retry would call
 // RegisterClassExW again, which fails once the class exists.
@@ -272,9 +294,21 @@ func (t *Tray) messageLoop(ready chan<- error) {
 }
 
 // createWindow registers this tray's window class and creates the
-// message-only window. It must run on the thread that reads the
-// window's messages.
+// hidden window. It must run on the thread that reads the window's
+// messages.
+//
+// The window is a top-level popup that is never shown, not a
+// message-only window (parent HWND_MESSAGE): a message-only window
+// gets no broadcast messages, so it never heard TaskbarCreated, and
+// every tray icon stayed lost after Explorer restarted. A window that
+// is never shown has no taskbar button and is not in Alt+Tab;
+// WS_EX_TOOLWINDOW keeps both true should anything show it.
 func (t *Tray) createWindow() (uintptr, error) {
+	nameW, _ := syscall.UTF16PtrFromString(taskbarCreatedName)
+	msgID, _, _ := procRegisterWindowMessageW.Call(
+		uintptr(unsafe.Pointer(nameW)))
+	t.taskbarCreated = uint32(msgID)
+
 	className := fmt.Sprintf("go-gui-tray-window-%d", trayClassSeq.Add(1))
 	classNameW, _ := syscall.UTF16PtrFromString(className)
 
@@ -297,23 +331,36 @@ func (t *Tray) createWindow() (uintptr, error) {
 	}
 
 	hwnd, _, _ := procCreateWindowExW.Call(
-		0,
+		wsExToolWindow,
 		uintptr(unsafe.Pointer(classNameW)),
 		0,          // window name
-		0,          // style
+		wsPopup,    // style; no WS_VISIBLE
 		0, 0, 0, 0, // x, y, w, h
-		hwndMessage, // parent = HWND_MESSAGE
-		0,           // menu
-		0,           // hInstance
-		0,           // lpParam
+		0, // parent: none, so the window is top-level
+		0, // menu
+		0, // hInstance
+		0, // lpParam
 	)
 	if hwnd == 0 {
 		return 0, errors.New("sni: CreateWindowExW failed")
+	}
+	// An elevated process does not get messages above WM_USER from a
+	// process of lower integrity, such as Explorer, unless it allows
+	// them. On failure the tray still works; only the re-add is lost.
+	if msgID != 0 {
+		procChangeWindowMessageFilterEx.Call(hwnd, msgID, msgfltAllow, 0)
 	}
 	return hwnd, nil
 }
 
 func (t *Tray) wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
+	if msg == t.taskbarCreated && msg != 0 {
+		// The shell created the taskbar again. The re-add takes
+		// shellMu, which Create, Update and Remove hold across shell
+		// calls, so it runs off this thread.
+		go t.reAddIcons()
+		return 0
+	}
 	switch msg {
 	case wmAppTray:
 		// Create sets NOTIFYICON_VERSION_4, so the message uses that
@@ -335,7 +382,15 @@ func (t *Tray) wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr
 		t.fireMenuAction(menuID)
 		return 0
 
-	case wmDestroy, wmClose:
+	case wmClose:
+		// The window is top-level, so other processes can send it
+		// WM_CLOSE: taskkill without /F asks a process to end this way,
+		// and the app may choose to keep running. The tray window lives
+		// as long as the tray, so it does not close; ending its loop
+		// here would leave the icons dead.
+		return 0
+
+	case wmDestroy:
 		procPostMessageW.Call(hwnd, 0x0012, 0, 0) // WM_QUIT
 		return 0
 	}
@@ -434,6 +489,12 @@ func (t *Tray) showContextMenu(iconID uintptr, x, y int32) {
 		uintptr(tpmRightButton|tpmBottomAlign),
 		uintptr(x), uintptr(y),
 		0, t.hwnd, 0)
+
+	// The other half of that sequence: a message posted after tracking.
+	// Without it, a menu opened while the tray window is already the
+	// foreground window closes as soon as it opens, and a top-level
+	// window does take the foreground.
+	procPostMessageW.Call(t.hwnd, wmNull, 0, 0)
 }
 
 // Create registers a new system tray icon with an optional
@@ -467,29 +528,6 @@ func (t *Tray) Create(
 	menuNodes := buildMenuNodes(cfg.Menu)
 	hMenu := buildPopupMenu(menuNodes, id)
 
-	// Build tooltip as UTF-16.
-	tip, _ := syscall.UTF16FromString(cfg.Tooltip)
-
-	// The icon is named by hWnd + uID in every call, never by GUID. The
-	// shell matches an icon added with NIF_GUID by its GUID only, so
-	// NIM_MODIFY and NIM_DELETE by uID would miss it (#619). A GUID
-	// would also tie the icon to the path of the executable: NIM_ADD
-	// fails after the executable moves, and a second instance of the
-	// same executable cannot add its icon.
-	nid := notifyIconDataW{
-		cbSize:           uint32(unsafe.Sizeof(notifyIconDataW{})),
-		hWnd:             t.hwnd,
-		uID:              uint32(id),
-		uFlags:           nifMessage | nifTip | nifShowTip,
-		uCallbackMessage: wmAppTray,
-		hIcon:            hIcon,
-	}
-	copy(nid.szTip[:], tip)
-
-	if hIcon != 0 {
-		nid.uFlags |= nifIcon
-	}
-
 	// freeHandles releases the icon and menu when Create fails.
 	freeHandles := func() {
 		if hIcon != 0 {
@@ -500,32 +538,21 @@ func (t *Tray) Create(
 		}
 	}
 
-	if !shellNotifyIcon(nimAdd, &nid) {
-		freeHandles()
-		return 0, errors.New("sni: Shell_NotifyIcon(NIM_ADD) failed")
-	}
+	// Held until the entry is stored, so a re-add that starts after the
+	// icon is added also finds the entry.
+	t.shellMu.Lock()
+	defer t.shellMu.Unlock()
 
-	// Set NOTIFYICON_VERSION_4. It applies to an icon that exists, so it
-	// must come after NIM_ADD; sent before, it had no icon to act on and
-	// its failure went unseen (#617). wndProc decodes only the version 4
-	// layout, so if the shell refuses, the icon's clicks would be decoded
-	// wrong: remove the icon and fail instead.
-	nidVersion := nid
-	nidVersion.uFlags = 0
-	nidVersion.uVersion = notifyIconV4
-	if !shellNotifyIcon(nimSetVersion, &nidVersion) {
-		nidDelete := nid
-		nidDelete.uFlags = 0
-		shellNotifyIcon(nimDelete, &nidDelete)
+	if err := t.addIcon(id, hIcon, cfg.Tooltip); err != nil {
 		freeHandles()
-		return 0, errors.New("sni: Shell_NotifyIcon(NIM_SETVERSION) failed")
+		return 0, err
 	}
 
 	t.mu.Lock()
 	t.entries[id] = &entry{
 		id:        id,
 		tooltip:   cfg.Tooltip,
-		iconPNG:   cfg.IconPNG,
+		iconPNG:   slices.Clone(cfg.IconPNG),
 		menuNodes: menuNodes,
 		actionCb:  actionCb,
 		hIcon:     hIcon,
@@ -539,6 +566,9 @@ func (t *Tray) Create(
 // Update replaces the icon, tooltip, and menu for an existing
 // tray entry.
 func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
+	t.shellMu.Lock()
+	defer t.shellMu.Unlock()
+
 	t.mu.Lock()
 	e, ok := t.entries[id]
 	if !ok {
@@ -555,10 +585,13 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 	if len(cfg.IconPNG) > 0 {
 		if newIcon, err := iconFromPNG(cfg.IconPNG, maxTrayIconDim); err == nil {
 			hIcon = newIcon
+			// A copy: reAddIcon reads it later, and the app may reuse
+			// its buffer. Only a PNG that made an icon replaces the
+			// entry's: an Update with no icon keeps the icon, so it
+			// must also keep the PNG a re-add makes that icon from.
+			e.iconPNG = slices.Clone(cfg.IconPNG)
 		}
 	}
-
-	e.iconPNG = cfg.IconPNG
 
 	e.menuNodes = buildMenuNodes(cfg.Menu)
 	oldMenu := e.hMenu
@@ -588,14 +621,14 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 
 	// The shell keeps drawing the icon it last accepted, so the entry
 	// swaps to the new handle, and frees the old one, only once the
-	// shell has accepted it. If the shell refused, or Remove took the
-	// entry during the call (Remove frees the icon the entry held), the
-	// new handle is the one nothing uses. With no new icon, NIF_ICON was
-	// not sent and the shell keeps the entry's icon, so nothing is freed.
+	// shell has accepted it. If the shell refused, the new handle is the
+	// one nothing uses. Remove cannot take the entry during the call:
+	// both hold shellMu. With no new icon, NIF_ICON was not sent and the
+	// shell keeps the entry's icon, so nothing is freed.
 	var freeIcon uintptr
 	if hIcon != 0 {
 		t.mu.Lock()
-		if accepted && t.entries[id] == e {
+		if accepted {
 			freeIcon, e.hIcon = e.hIcon, hIcon
 		} else {
 			freeIcon = hIcon
@@ -612,6 +645,9 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 
 // Remove deletes a tray entry and cleans up resources.
 func (t *Tray) Remove(id int) {
+	t.shellMu.Lock()
+	defer t.shellMu.Unlock()
+
 	t.mu.Lock()
 	e, ok := t.entries[id]
 	if !ok {
