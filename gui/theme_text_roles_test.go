@@ -362,3 +362,52 @@ func TestInspectorHelpFromSecondaryRole(t *testing.T) {
 			s.colorTextHelp, th.TextStyleSecondary.Color)
 	}
 }
+
+// Prose is long-form body text (markdown paragraphs). Light text on a
+// dark ground reads brighter and heavier than the reverse, so dark
+// prose sits at about 80% (alpha 204) while light prose keeps full body
+// contrast (issue #1297). Hue stays the body's own.
+func TestProseTextStylePerPolarity(t *testing.T) {
+	dark := proseTextStyle(&ThemeDark)
+	if dark.Color.A != 204 {
+		t.Errorf("dark prose alpha = %d, want 204", dark.Color.A)
+	}
+	body := ThemeDark.TextStyleBody.Color
+	if dark.Color.R != body.R || dark.Color.G != body.G || dark.Color.B != body.B {
+		t.Error("dark prose changed the body hue")
+	}
+	light := proseTextStyle(&ThemeLight)
+	if light.Color != ThemeLight.TextStyleBody.Color {
+		t.Errorf("light prose = %v, want body %v",
+			light.Color, ThemeLight.TextStyleBody.Color)
+	}
+}
+
+// Prose scales the body's own alpha rather than replacing it, so an
+// app's translucent body color stays translucent and prose is never
+// more opaque than body.
+func TestProseTextStyleScalesBodyAlpha(t *testing.T) {
+	light := Theme{ColorBackground: RGB(250, 250, 250)}
+	light.TextStyleBody.Color = RGBA(26, 29, 33, 200)
+	if got := proseTextStyle(&light).Color.A; got != 200 {
+		t.Errorf("light translucent prose alpha = %d, want 200", got)
+	}
+	dark := Theme{ColorBackground: RGB(30, 30, 30)}
+	dark.TextStyleBody.Color = RGBA(230, 232, 235, 200)
+	// 200 * 204 / 255 = 160.
+	if got := proseTextStyle(&dark).Color.A; got != 160 {
+		t.Errorf("dark translucent prose alpha = %d, want 160", got)
+	}
+}
+
+// Prose is raised to the text contrast floor like every other derived
+// role (issue #863). Body 170 on 60 reads at about 4.75; at 80% it would
+// drop to about 3.6, under contrastText.
+func TestProseTextStyleContrastFloor(t *testing.T) {
+	th := Theme{ColorBackground: RGB(60, 60, 60)}
+	th.TextStyleBody.Color = RGB(170, 170, 170)
+	got := proseTextStyle(&th).Color
+	if r, _ := worstContrast(got, th.ColorBackground); r < contrastText {
+		t.Errorf("prose contrast = %.2f, want >= %.2f", r, contrastText)
+	}
+}
