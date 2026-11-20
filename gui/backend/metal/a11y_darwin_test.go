@@ -10,71 +10,19 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
-func TestCStringOrNil_Empty(t *testing.T) {
-	var buf []cchar
-	got := cStringOrNil("", &buf)
-	if got != nil {
-		t.Fatal("empty string must return nil")
-	}
-	if len(buf) != 0 {
-		t.Fatalf("collector empty: got %d", len(buf))
-	}
-}
-
-func TestCStringOrNil_NonEmpty(t *testing.T) {
-	var buf []cchar
-	got := cStringOrNil("hello", &buf)
-	if got == nil {
-		t.Fatal("non-empty string must return non-nil")
-	}
-	if len(buf) != 1 {
-		t.Fatalf("collector len: got %d, want 1", len(buf))
-	}
-	if s := cGoString(got); s != "hello" {
-		t.Fatalf("round-trip: got %q, want %q", s, "hello")
-	}
-	cFree(got)
-}
-
-func TestCStringOrNil_MultipleStrings(t *testing.T) {
-	var buf []cchar
-	s1 := cStringOrNil("first", &buf)
-	s2 := cStringOrNil("second", &buf)
-	s3 := cStringOrNil("", &buf)
-
-	if s1 == nil || s2 == nil {
-		t.Fatal("non-empty strings must return non-nil")
-	}
-	if s3 != nil {
-		t.Fatal("empty string must return nil")
-	}
-	if len(buf) != 2 {
-		t.Fatalf("collector len: got %d, want 2", len(buf))
-	}
-	if cGoString(s1) != "first" {
-		t.Errorf("s1: got %q, want %q", cGoString(s1), "first")
-	}
-	if cGoString(s2) != "second" {
-		t.Errorf("s2: got %q, want %q", cGoString(s2), "second")
-	}
-	for _, cs := range buf {
-		cFree(cs)
-	}
-}
-
 func TestA11ySyncBridge_ZeroCount(t *testing.T) {
 	// Zero or negative count must push the empty clear without
 	// panicking, even with no window behind the token.
-	a11ySyncBridge(nil, nil, 0, 0, 0)
-	a11ySyncBridge(nil, nil, -1, 0, 0)
+	a11ySyncBridge(0, nil, 0, 0, 0)
+	a11ySyncBridge(0, nil, -1, 0, 0)
 }
 
 func TestA11ySyncBridge_CountBeyondNodesClears(t *testing.T) {
 	// A count past the slice end clamps instead of panicking: nil
-	// nodes clear, a short slice syncs only what it holds. A nil
-	// window resolves to no context, so both paths return headless.
-	a11ySyncBridge(nil, nil, 3, 0, 0)
-	a11ySyncBridge(nil, []gui.A11yNode{{Role: gui.AccessRoleButton}}, 3, 0, 600)
+	// nodes clear, a short slice syncs only what it holds. A token
+	// with no tree resolves to no context, so both paths return.
+	a11ySyncBridge(0, nil, 3, 0, 0)
+	a11ySyncBridge(0, []gui.A11yNode{{Role: gui.AccessRoleButton}}, 3, 0, 600)
 }
 
 func TestSetA11yCallback(t *testing.T) {
