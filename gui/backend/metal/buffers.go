@@ -1,10 +1,9 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
-// The cgo tag is load-bearing, not drift: vertex is consumed only
-// by the cgo files (draw.go, text.go, rotation.go), which the go
-// tool drops from cgo-disabled builds. Without it this file would
-// be the sole survivor under GOOS=darwin CGO_ENABLED=0 and lint
-// would flag the alias unused.
+// The arm64 tag is load-bearing, not drift: vertex is used only by the
+// backend files (draw.go, text.go, rotation.go), which are darwin/arm64
+// only. Without it this file would be the sole survivor under
+// GOARCH=amd64, and lint would flag the alias unused.
 
 package metal
 

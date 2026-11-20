@@ -17,10 +17,11 @@ standard path end to end.
 
 ## Step 1: compile for the target
 
-A C toolchain is needed on **macOS** (the Metal backend is Objective-C) and for
-the mobile backends. Linux and Windows (desktop) build fully cgo-free — unless
-the app opts into `-tags hunspell`, which pulls in C Hunspell for spell checking
-and needs a C toolchain with libhunspell-dev.
+A C toolchain is needed only for the mobile backends. macOS, Linux and Windows
+(desktop) build fully cgo-free — unless the app opts into `-tags hunspell`,
+which pulls in C Hunspell for spell checking and needs a C toolchain with
+libhunspell-dev. macOS builds are for Apple silicon (darwin/arm64) only: a
+darwin/amd64 (Intel) build stops at link.
 
 ```bash
 # Windows (amd64). -H windowsgui marks the PE as a GUI-subsystem image:
@@ -33,8 +34,9 @@ CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
   go build -o build/myapp ./myapp/
 
-# macOS (host toolchain, Apple Silicon or Intel)
-go build -o build/myapp ./myapp/
+# macOS (Apple silicon)
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
+  go build -o build/myapp ./myapp/
 ```
 
 Or let buildapp compile for you with `-build-pkg` (same flags, one step —

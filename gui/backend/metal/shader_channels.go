@@ -1,11 +1,6 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
-
-/*
-#include "metal_darwin.h"
-*/
-import "C"
 
 import (
 	"unsafe"
@@ -28,16 +23,16 @@ func (b *windowState) uploadChannels(c metalChannels, planes []gui.SurfacePlane)
 	for i, p := range planes {
 		t := c.tex[i]
 		w, h := int32(p.Width), int32(p.Height)
-		bpp := C.int(p.Format.BytesPerPixel())
+		bpp := p.Format.BytesPerPixel()
 		ptr := unsafe.Pointer(&p.Pix[0])
 		if t.id == 0 || t.w != w || t.h != h || c.fmt[i] != p.Format {
 			b.deleteSurfaceTexture(t)
-			id := C.metalCreatePlaneTexture(b.ctx, C.int(p.Format), C.int(w), C.int(h), bpp, ptr)
+			id := b.ctx.createPlaneTexture(int(p.Format), int(w), int(h), bpp, ptr)
 			c.tex[i] = metalTexture{id: int32(id), w: w, h: h}
 			c.fmt[i] = p.Format
 			continue
 		}
-		C.metalUpdateStreamTexture(b.ctx, C.int(t.id), C.int(w), C.int(h), bpp, ptr)
+		b.ctx.updateStreamTexture(int(t.id), int(w), int(h), bpp, ptr)
 	}
 	for i := len(planes); i < c.n; i++ {
 		b.deleteSurfaceTexture(c.tex[i])
@@ -63,6 +58,6 @@ func (b *windowState) bindChannels(c metalChannels, ok bool) {
 		if ok && i < c.n {
 			id = c.tex[i].id
 		}
-		C.metalBindChannel(b.ctx, C.int(i), C.int(id))
+		b.ctx.bindChannel(i, int(id))
 	}
 }

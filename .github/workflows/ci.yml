@@ -232,7 +232,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [linux/amd64, linux/arm64, windows/amd64, windows/arm64]
+        target: [linux/amd64, linux/arm64, windows/amd64, windows/arm64, darwin/arm64]
     steps:
       - uses: actions/checkout@v6
 
@@ -277,10 +277,8 @@ jobs:
   #   - js: same blind spot, for the browser build (gui/backend/web),
   #     which had a two-issue baseline. GOARCH must be wasm — js/amd64
   #     is not a valid target pair.
-  #   - darwin: analyses with cgo disabled (automatic for
-  #     cross-compilation), which covers the cgo-free darwin files. The
-  #     cgo core of the metal backend still needs a macOS runner;
-  #     tracked separately.
+  #   - darwin: arm64, the only macOS target. The metal backend has no
+  #     cgo (#1323), so the whole backend analyses from Linux.
   lint:
     name: Lint (${{ matrix.goos }})
     runs-on: ubuntu-latest
@@ -295,7 +293,7 @@ jobs:
           - goos: js
             goarch: wasm
           - goos: darwin
-            goarch: amd64
+            goarch: arm64
     steps:
       - uses: actions/checkout@v6
 

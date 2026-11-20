@@ -1,10 +1,8 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
-// The file has no cgo of its own since #1307: the sends go through
-// purego. It keeps the cgo build term because nativePlatform and the
-// rest of this package still need cgo, until the last port step.
+// The sends go through purego (#1307).
 
 import (
 	"sync"
@@ -38,6 +36,7 @@ func (n *nativePlatform) SystemAppearance() (gui.Appearance, bool) {
 // parser read it only when a theme changes or an SVG loads, so no
 // watcher is needed.
 func (n *nativePlatform) PrefersReducedMotion() bool {
+	loadObjc() // opens AppKit, for NSWorkspace
 	pool := darwinffi.PoolPush()
 	defer darwinffi.PoolPop(pool)
 	ws := darwinffi.Class("NSWorkspace").Send(darwinffi.Sel("sharedWorkspace"))

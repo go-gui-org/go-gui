@@ -1,18 +1,10 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 // Package metal provides a native Metal backend for go-gui on macOS.
 // Uses NSWindow + CAMetalLayer for windowing and Metal for GPU rendering.
 // System frameworks only — no external library dependencies.
 package metal
 
-/*
-#cgo CFLAGS: -fobjc-arc
-#cgo LDFLAGS: -framework Metal -framework QuartzCore -framework AppKit -framework Foundation
-
-#include <stdlib.h>
-#include "metal_darwin.h"
-*/
-import "C"
 import (
 	"errors"
 	"fmt"
@@ -20,7 +12,6 @@ import (
 	"math"
 	"os"
 	"runtime"
-	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
 	"github.com/go-gui-org/go-glyph"
@@ -33,22 +24,6 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
-)
-
-// Pipeline IDs matching the C enum.
-const (
-	pipeSolid       = C.PIPE_SOLID
-	pipeShadow      = C.PIPE_SHADOW
-	pipeBlur        = C.PIPE_BLUR
-	pipeGradient    = C.PIPE_GRADIENT
-	pipeImageClip   = C.PIPE_IMAGE_CLIP
-	pipeFilterBlurH = C.PIPE_FILTER_BLUR_H
-	pipeFilterBlurV = C.PIPE_FILTER_BLUR_V
-	pipeFilterTex   = C.PIPE_FILTER_TEX
-	pipeFilterColor = C.PIPE_FILTER_COLOR
-	pipeGlyphTex    = C.PIPE_GLYPH_TEX
-	pipeGlyphColor  = C.PIPE_GLYPH_COLOR
-	pipeStencil     = C.PIPE_STENCIL
 )
 
 const maxCustomPipelines = 32
@@ -452,7 +427,7 @@ func (ws *windowState) updateCursor(mc gui.MouseCursor) {
 // windowState holds per-window backend resources for
 // multi-window mode.
 type windowState struct {
-	ctx      C.MetalCtx
+	ctx      *metalCtx
 	window   *macWindow
 	textSys  *glyph.TextSystem
 	dpiScale float32
@@ -460,8 +435,7 @@ type windowState struct {
 	physH    int32
 	mvp      [16]float32
 
-	// Per-draw scratch handed to C by pointer: see drawQuad. Locals
-	// would escape to the heap on every draw.
+	// Per-draw scratch handed to the renderer by pointer: see drawQuad.
 	quad [4]vertex
 	tm   [16]float32
 	tm2  [16]float32
@@ -484,7 +458,7 @@ type windowState struct {
 	filterBlur        float32
 	filterLayer       int
 	filterColorMatrix *[16]float32
-	customCache       texcache.Cache[uint64, C.int]
+	customCache       texcache.Cache[uint64, int32]
 	shaderHashes      gui.ShaderHashCache // memoizes ShaderHash per draw
 	iconFontPath      string
 
@@ -565,19 +539,17 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 
 	// Shader source is owned by Go so the build cache tracks edits to
 	// it; C copies it during the call. See gui/backend/internal/msl.
-	cMSL := C.CString(msl.Source)
-	ctx := C.metalCtxCreate(objcPointer(win.layer), cMSL)
-	C.free(unsafe.Pointer(cMSL))
+	ctx := newMetalCtx(win.layer, msl.Source)
 	if ctx == nil {
 		metalWindowDestroy(win)
-		return nil, errors.New("metalCtxCreate failed")
+		return nil, errors.New("metal: renderer setup failed")
 	}
 
 	// Compute DPI scale from framebuffer vs logical size.
 	fbW, fbH := metalWindowGetFramebufferSize(win, scaleOverride())
 	logW, _ := metalWindowGetSize(win)
 	dpiScale := drawableScale(int32(fbW), int32(logW), 1)
-	C.metalResize(ctx, C.int(fbW), C.int(fbH))
+	ctx.resize(fbW, fbH)
 
 	ws := &windowState{
 		ctx:      ctx,
@@ -586,13 +558,13 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		physW:    int32(fbW),
 		physH:    int32(fbH),
 		textures: newMetalTexCacheLRU(ctx, 128, cfg.MaxTextureBytes),
-		customCache: texcache.New[uint64, C.int](
+		customCache: texcache.New[uint64, int32](
 			maxCustomPipelines,
-			func(idx C.int) {
+			func(idx int32) {
 				// A cached compile failure holds a negative
 				// idx with no pipeline behind it.
 				if idx >= 0 {
-					C.metalDeleteCustomPipeline(ctx, idx)
+					ctx.deleteCustomPipeline(idx)
 				}
 			},
 		),
@@ -663,7 +635,7 @@ func (ws *windowState) destroy() {
 		_ = os.Remove(ws.iconFontPath)
 	}
 	if ws.ctx != nil {
-		C.metalCtxDestroy(ws.ctx)
+		ws.ctx.destroy()
 		ws.ctx = nil
 	}
 	if ws.window != nil {
@@ -674,17 +646,12 @@ func (ws *windowState) destroy() {
 
 func (ws *windowState) renderFrame(w *gui.Window) {
 	bg := w.FrameBackground()
-	rc := C.metalBeginFrame(ws.ctx,
-		C.float(float32(bg.R)/255.0),
-		C.float(float32(bg.G)/255.0),
-		C.float(float32(bg.B)/255.0),
-		C.float(float32(bg.A)/255.0),
-	)
-	if rc != 0 {
+	if !ws.ctx.beginFrame(float32(bg.R)/255, float32(bg.G)/255,
+		float32(bg.B)/255, float32(bg.A)/255) {
 		return
 	}
-	C.metalSetPipeline(ws.ctx, C.int(pipeSolid))
-	C.metalSetMVP(ws.ctx, (*C.float)(&ws.mvp[0]))
+	ws.ctx.setPipeline(pipeSolid)
+	ws.ctx.setMVP(&ws.mvp)
 
 	w.Lock()
 	w.BackingScale = ws.dpiScale
@@ -693,7 +660,7 @@ func (ws *windowState) renderFrame(w *gui.Window) {
 
 	ws.useGlyphPipeline()
 	ws.textSys.Commit()
-	C.metalEndFrame(ws.ctx)
+	ws.ctx.endFrame()
 }
 
 func (ws *windowState) handleResize() {
@@ -710,7 +677,7 @@ func (ws *windowState) handleResize() {
 	ws.physW = int32(fbW)
 	ws.physH = int32(fbH)
 	ws.applyDPIScale(drawableScale(int32(fbW), int32(logW), ws.dpiScale))
-	C.metalResize(ws.ctx, C.int(fbW), C.int(fbH))
+	ws.ctx.resize(fbW, fbH)
 	ws.updateProjection()
 }
 
@@ -754,8 +721,8 @@ func (ws *windowState) updateProjection() {
 }
 
 func (ws *windowState) useGlyphPipeline() {
-	C.metalSetPipeline(ws.ctx, C.int(pipeGlyphTex))
-	C.metalSetMVP(ws.ctx, (*C.float)(&ws.mvp[0]))
+	ws.ctx.setPipeline(pipeGlyphTex)
+	ws.ctx.setMVP(&ws.mvp)
 }
 
 // Destroy releases all backend resources.
@@ -765,15 +732,4 @@ func (b *Backend) Destroy() {
 	// that no longer exist (and, in tests, across packages' runs).
 	metalStopFramePump()
 	b.destroy()
-}
-
-// objcPointer turns an Objective-C object into the void * a C function
-// in metal_darwin.m takes. The object is not Go memory, so the garbage
-// collector never moves it. The bits go through a pointer variable: a
-// direct unsafe.Pointer(uintptr) does the same thing, but go vet flags
-// every uintptr-to-pointer conversion.
-func objcPointer(id objc.ID) unsafe.Pointer {
-	var p unsafe.Pointer
-	*(*uintptr)(unsafe.Pointer(&p)) = uintptr(id)
-	return p
 }

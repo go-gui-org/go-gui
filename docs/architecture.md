@@ -53,8 +53,8 @@ frame rebuilds the entire UI from the view function.
 │                                                                     │
 │  Build-tag dispatch (gui/backend/run_*.go):                         │
 │                                                                     │
-│  darwin && cgo && !ios → Metal (CGo) + AppKit                       │
-│  darwin && !cgo && !ios → link error, needs CGo (#1159)             │
+│  darwin && arm64 && !ios → Metal + AppKit (purego, no CGo)          │
+│  darwin && !arm64 && !ios → link error, Intel unsupported           │
 │  ios → Metal (CGo) + UIKit                                          │
 │  android → Run panics, use android.SetWindow/Start/Render           │
 │  js && wasm → Canvas2D + WebGL2 (custom shaders)                    │
@@ -295,9 +295,10 @@ policy from code that drifts.
 - Backends call into gui only on the main OS thread. They lock only their own
   state (for example, the GL backend's own `w.Lock()` in
   `gui/backend/gl/backend.go`), never window state.
-- Platform dispatch is by build tag per the Backend Layer diagram above. macOS
-  stays CGo by decision. `CGO_ENABLED=0 go build ./...` is green on Linux and
-  Windows. Do not re-open the CGo question without a trigger.
+- Platform dispatch is by build tag per the Backend Layer diagram above. The
+  macOS backend calls AppKit and Metal through purego (#1304, #1323), so
+  `CGO_ENABLED=0 go build ./...` is green on Linux, Windows and darwin/arm64.
+  darwin/amd64 is not supported. iOS and Android keep cgo.
 - **Where to change:** new backends must follow the injected-interface pattern
   (below) and the build-tag table. Keep `gui/` free of platform imports.
 - **Catches:** `make cross-compile`, `make lint-cross`, `make test` (runs the GL
@@ -428,8 +429,8 @@ policy from code that drifts.
 - **WebGPU**: Explored on the `webgpu-backend` branch (deleted) — 12 WGSL shader
   pipelines, device init, and render loop were working. Superseded: the native
   GL backend already runs cgo-free on Linux and Windows (X11 via xgb, EGL via
-  purego). If adopted, WebGPU adds 10–40 MB of runtime shared libraries and
-  still leaves macOS — the only real CGo backend — untouched. Full assessment:
+  purego). If adopted, WebGPU adds 10–40 MB of runtime shared libraries. The
+  macOS backend is cgo-free too since #1323. Full assessment:
   `docs/specs/cgo-free-backend-feasibility.md`.
 - **Native GL on desktop**: The native GL backend is the default renderer on
   Linux and Windows. It provides direct platform windowing (X11 on Linux, Win32

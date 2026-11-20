@@ -1,12 +1,10 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
 // The window, its content view, the event poll, IME, the app delegate
 // and the frame pump go through purego (#1321). This replaces
-// metal_window_darwin.m. The file has no cgo of its own. It keeps the cgo
-// build term because the renderer in metal_darwin.m still needs cgo,
-// until the last port step.
+// metal_window_darwin.m.
 //
 // The ObjC classes keep their names: GUIWindow, MetalContentView,
 // GUIApplication and GoGuiAppDelegate. Their state is in Go. A
