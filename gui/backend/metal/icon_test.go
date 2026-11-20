@@ -227,6 +227,13 @@ func runMainThreadTests() {
 		panic("SystemAppearance: macOS reported no setting")
 	}
 
+	// 8c2. The KVO observer must deliver a change to Go. Since #1307 it
+	//      is a class registered through purego, not Objective-C. An
+	//      app-level NSApp.appearance moves effectiveAppearance without
+	//      a change to the user's system setting. The last step clears
+	//      the pin, so NSApp follows the system again.
+	testAppearanceObserver()
+
 	// 8d. TitlebarDark must pin the NSWindow's appearance, and only
 	//     once asked: a window never pinned follows the system. Light
 	//     must pin Aqua, not clear the pin, or a dark desktop would

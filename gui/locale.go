@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -352,6 +353,19 @@ func LocaleAutoDetect() {
 			}
 		}
 	}
+}
+
+// localeFromEnv returns the BCP 47 locale ID from the POSIX locale
+// variables, in their order of precedence, or "en-US" when none is set.
+// localeDetect uses it on every platform: as the only source where the
+// OS has no locale API, and as the fallback where the API gives nothing.
+func localeFromEnv() string {
+	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		if v := os.Getenv(key); v != "" {
+			return normalizeLocaleEnv(v)
+		}
+	}
+	return "en-US"
 }
 
 // normalizeLocaleEnv normalizes a POSIX locale value like
