@@ -545,7 +545,14 @@ last service moves. Each step is one PR.
    so every spell check range after them was 3 bytes early per mark. The print
    copy count was set after the operation took its own copy of the print info,
    so it was lost.
-3. Menus and tray.
+3. Menus and tray. **Done in #1314.** One target class, `GoGuiMenuTarget`,
+   serves the menubar and every tray. A tray item carries its tray ID in its
+   tag, and a menubar item has tag 0. The cgo code had one class for each kind.
+   The `dispatch_async` block that removes the items macOS adds to the Edit menu
+   is now `performSelectorOnMainThread:withObject:waitUntilDone:`, which the
+   same main run loop runs. The tests build menus but do not install them. The
+   port also corrects one fault in the cgo code: a title that was not valid
+   UTF-8 gave a nil NSString, and NSMenuItem stopped the app.
 4. Accessibility.
 5. Window, events and IME (`metal_window_darwin.m`).
 6. Renderer (`metal_darwin.m`), with quad batching. Then remove cgo from

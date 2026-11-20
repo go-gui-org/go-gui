@@ -21,6 +21,9 @@ and this project adheres to
   (#1312).** These services now call AppKit and PDFKit through purego. This is
   step 2 of the port that #1304 decided. The rest of the macOS backend still
   needs cgo. The API does not change.
+- **The macOS menubar and tray no longer use cgo (#1314).** They now call AppKit
+  through purego. This is step 3 of the port that #1304 decided. The rest of the
+  macOS backend still needs cgo. The API does not change.
 
 ### Fixed
 
@@ -34,6 +37,12 @@ and this project adheres to
   `NativePrintParams.Copies` was set after the print operation was built, and
   the operation keeps its own copy of the print settings, so every print came
   out as one copy. The copy count is now set first.
+- **A macOS menu title that is not valid UTF-8 no longer stops the app
+  (#1314).** NSString gives nil for such bytes, and NSMenuItem raises an
+  exception on a nil title, so `SetNativeMenubar` stopped the app. This applied
+  to item text, menu titles, the app name and the tray tooltip. The bad bytes
+  now show as U+FFFD. An item ID that is not valid UTF-8 still fires no
+  callback.
 
 - **Custom shaders draw on iOS (#1299).** The Metal pipelines built for `Shader`
   declared no stencil format, while the main pass they draw in has a Stencil8
