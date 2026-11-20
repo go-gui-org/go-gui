@@ -4,7 +4,9 @@ Assessment of [issue #137](https://github.com/go-gui-org/go-gui/issues/137).
 Date: 2026-07-31. Status: **Phase 1 implemented**, and the `gui/audio` follow-up
 (§ Audio outcome) closed the remaining Linux CGo dependency. **Phase 2 (macOS)
 closed 2026-08-12 by decision: not pursued — macOS stays cgo.** See § Phase 2
-for the rationale and the conditions that can reopen it.
+for the rationale and the conditions that can reopen it. **Reopened and decided
+2026-11-20 (#1304): port the macOS backend to purego, darwin/arm64 only.** See §
+Investigation (2026-11, #1304).
 
 ## Phase 1 outcome (2026-07-31)
 
@@ -357,9 +359,186 @@ What the numbers mean:
 Not tested by the spike: `NSTextInputClient` (IME) callbacks that return
 `NSRange` or `NSRect` to AppKit, accessibility, menus and dialogs.
 
-The port itself is not yet decided. Next step, if it goes ahead: port service by
+The port was decided on 2026-11-20 (see § Investigation below). Port service by
 service, with `SyscallN` and the argument array on every per-frame path. Start
-with the plain-C services (keyring, locale), then `metal_darwin.m`.
+with the plain-C services (keyring, locale). The renderer (`metal_darwin.m`)
+goes last. § Port order below gives the full sequence.
+
+### Investigation (2026-11, #1304)
+
+**Decision (2026-11-20): port the macOS backend to purego. The target is
+darwin/arm64 only. darwin/amd64 (Intel) is dropped.** The maintainer accepted
+the Intel drop. This section is the port decision that the #1160 spike left
+open.
+
+#1304 asked for a proof of concept, an inventory of APIs, a comparison with the
+cgo backend and a recommendation. The spike code is on branch
+`spike/1160-purego-macos`, in `spike/puregomac/`. It is not for merge. All
+numbers are from one Apple Silicon Mac, macOS 27, Go 1.27.4, `CGO_ENABLED=0`
+unless the row says cgo.
+
+#### Prior art
+
+Two MIT-licensed projects ship a macOS backend with no cgo. Both use the same
+purego version as go-gui (v0.11.x).
+
+- **gowaku** (`github.com/bankai-tensei/gowaku`, checked at `e4d27a2`). It is a
+  full port: AppKit, Metal, IME, accessibility, menus, tray, notifications, file
+  dialogs, drag and drop and clipboard. It is darwin/arm64 only. On amd64,
+  `gowaku.Run` returns `ErrUnsupported`. Its ADR 0082, 0083 and 0085 record the
+  design. Its `docs/BENCH.md` gives 145 ms startup and 0% idle CPU, against 151
+  ms for Gio, which uses cgo for Metal.
+- **mygo** (`github.com/egoist/mygo`, checked at `2dd01b4a`). It supports amd64
+  too. On amd64 it sends a struct return of more than 16 bytes through
+  `objc_msgSend_stret` (`internal/darwin/objc.go:120-140`).
+
+The spike copies three patterns from gowaku:
+
+- A `send(obj, sel, args ...uintptr)` helper that copies its arguments into one
+  argument array (`gpu/metal/runtime_darwin.go:63`). The variadic slice stays on
+  the stack, so a send makes no allocation.
+- An autorelease pool around each public entry point, with
+  `runtime.LockOSThread` for the life of the pool. ADR 0082 reports intermittent
+  crashes without the lock. The spike hit the same fault: a sub-benchmark ran on
+  a new goroutine, the pool pop ran on a different OS thread, and the process
+  crashed with SIGSEGV.
+- `NSTextInputClient` and `NSAccessibilityElement` methods as
+  `objc.RegisterClass` Go methods that return `NSRange` and `NSRect`
+  (`platform/cocoa/classes_darwin.go:88-113`).
+
+gowaku also records two lessons for the port. When a window is hidden,
+`CAMetalLayer` stops waiting for vsync, so a window that animates runs at about
+120 fps. gowaku stops drawing on `windowDidChangeOcclusionState:`. Also,
+`[NSApp run]` must run once and stop in `applicationDidFinishLaunching:`, or
+AppKit does not finish the launch.
+
+#### What the spike proves
+
+| Area                         | Result                                                                                                                                                                                        | Test                                                |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Window, layer, present, keys | Pass (#1160)                                                                                                                                                                                  | `-selftest`                                         |
+| go-gui shader library        | `msl.Source` compiles with the backend's pinned MSL 3.0. `vs_solid`/`fs_solid` build with `mainVertexDesc` and the backend's blend state. A drawn quad reads back red, the clear reads black. | `TestPipelineDrawsQuad`                             |
+| Texture upload               | `replaceRegion:` and `getBytes:` round-trip a 2x2 texture. `MTLRegion` (48 bytes) goes by pointer.                                                                                            | `TestTextureUploadReadback`                         |
+| Allocations                  | A full frame of 1000 quads makes 0 allocations, per-quad and batched.                                                                                                                         | `TestDrawAllocs`                                    |
+| IME struct returns           | `markedRange`, `selectedRange` (NSRange) and `firstRectForCharacterRange:actualRange:` (NSRect, out-parameter) return correct values to a purego caller and to a compiled C caller.           | `TestIMEStructReturns`, `TestIMEStructReturnsFromC` |
+| Blocks and target/action     | `dispatch_async_f` on the main queue, an `NSTimer` with target/action, an `NSTimer` with an `objc.NewBlock` block, and an `NSMenu` item with a Go action all fire.                            | `-selftest`                                         |
+
+The C-caller IME test matters. The purego test has purego on both sides of the
+call, so the same ABI mistake on both sides can pass. AppKit is a compiled C
+caller, and the C test uses that caller.
+
+Not tested: IME with a real input source (a person must type), VoiceOver, the
+file, print and alert dialogs, and the stencil and MSAA passes. gowaku ships
+each of these with purego, so the spike did not repeat them.
+
+#### Comparison with the cgo backend
+
+Frame encode time on the CPU, for N solid quads, without GPU time
+(`BenchmarkQuads`, `BenchmarkQuadsCgo`, 3 runs each):
+
+| Shape                                       | 1000 quads | 20,000 quads | allocs/frame |
+| ------------------------------------------- | ---------- | ------------ | ------------ |
+| cgo, one call per quad (today's backend)    | 67 µs      | 1230 µs      | 0            |
+| purego, two sends per quad                  | 155 µs     | 2960 µs      | 0            |
+| purego, one vertex buffer and one draw call | 15 µs      | 164 µs       | 0            |
+
+A purego send costs about 2.4 times a send inside C. With the backend's current
+draw shape, a frame of 20,000 quads costs 1.7 ms more. That is more than the 1.3
+ms that #1160 estimated. If the port writes quads into one shared vertex buffer,
+the frame costs 7.5 times less than today's cgo backend. **The port must
+therefore batch quads on the draw path.** Batching also helps the cgo backend,
+but cgo does not need it to keep today's speed. A real frame changes pipeline
+and scissor state between draws, so a batch holds one run of draws with the same
+state. The gain in a real frame is less than in this benchmark.
+
+Startup, memory and size (`spike/puregomac/measure.sh`, the same spike built
+both ways):
+
+| Measure                             | cgo off   | cgo on    |
+| ----------------------------------- | --------- | --------- |
+| Launch to first finished frame, p50 | 105 ms    | 97 ms     |
+| Peak RSS after 600 frames           | 107.5 MB  | 107.0 MB  |
+| Binary size, `-s -w`                | 10.95 MiB | 10.73 MiB |
+| GUI frameworks linked at load time  | 0         | 0         |
+
+The spike opens the frameworks with `purego.Dlopen` in both builds, so these
+rows measure the cgo runtime only. The startup difference is less than the
+spread between runs (91 ms to 686 ms). For reference, `examples/get_started` on
+the real cgo backend is 16.27 MiB and links 4 GUI frameworks. The two binaries
+contain different code, so the size difference does not measure cgo.
+
+#### Inventory
+
+"Proven" means the spike or a reference project runs the API with no cgo.
+
+| go-gui service (file)                                             | purego status                                                                            | Evidence                                                       |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Renderer (`metal_darwin.m`, 1642 lines)                           | Proven. Batch quads (see above).                                                         | Spike pipeline tests, gowaku `gpu/metal/`                      |
+| Window, events, live resize (`metal_window_darwin.m`, 2740 lines) | Proven                                                                                   | Spike `-selftest`, gowaku `window_darwin.go`                   |
+| IME (`MetalContentView <NSTextInputClient>`)                      | Proven for the ABI. Not tested with a real input source.                                 | Spike IME tests, gowaku `classes_darwin.go`, mygo `surface.go` |
+| Accessibility (`a11y_darwin.m`, 395 lines)                        | Proven                                                                                   | gowaku `accessibility_darwin.go`, mygo `access.go`             |
+| Menus and tray (`menu_darwin.m`, 505 lines)                       | Proven                                                                                   | Spike menu action, gowaku `tray_darwin.go`, mygo `menu.go`     |
+| File dialogs and alerts (`dialog_darwin.m`, 273 lines)            | Proven                                                                                   | gowaku `filedialog_darwin.go`, mygo `dialog.go`                |
+| Print (`print_darwin.m`, 81 lines)                                | Proven                                                                                   | mygo `window.go` (`NSPrintOperation`)                          |
+| Spell check (`spellcheck_darwin.m`, 172 lines)                    | Not tested. Plain `NSSpellChecker` sends with no blocks or subclass, so no new risk.     | None                                                           |
+| Appearance observer (`appearance_darwin.m`)                       | Proven                                                                                   | gowaku `platform_darwin.go`, mygo `system.go`                  |
+| Keep awake (`keep_awake_darwin.m`, `NSProcessInfo` activity)      | Not tested. Two plain sends.                                                             | None                                                           |
+| System beep (`sysbeep_*.m`, `NSSound`)                            | Proven for `NSBeep`. `NSSound` is plain sends.                                           | mygo `cf.go`                                                   |
+| Keyring (`keyring_darwin.go`, Security C API)                     | Proven                                                                                   | mygo `secrets.go`                                              |
+| Locale (`gui/locale_detect_darwin.go`, CoreFoundation)            | Proven                                                                                   | gowaku `platform_darwin.go`, mygo `locale.go`                  |
+| Blocks: `dispatch_async`, `dispatch_once`, `NSTimer …block:` (15) | Proven. Use `dispatch_async_f` with one callback, `sync.Once`, and target/action timers. | Spike `-selftest`                                              |
+| iOS backend (`gui/backend/ios/`)                                  | Out of scope. It stays cgo, so the module is never fully cgo-free.                       | —                                                              |
+
+No service needs a small cgo boundary on darwin/arm64.
+
+#### Costs of the port
+
+- **Build and distribution.** After the last port step, `CGO_ENABLED=0 go build`
+  will work on darwin/arm64. Today an app that calls `backend.Run` with cgo off
+  gets the link-time error from `gui/backend/run_darwin_nocgo.go`. After the
+  port, a Linux host can cross-compile a macOS binary, and Xcode Command Line
+  Tools are not necessary to build. Signing and notarization still need a Mac,
+  or `rcodesign`, which this investigation did not test.
+- **Intel.** darwin/amd64 loses the backend. It gets the link-time error that
+  `gui/backend/run_darwin_nocgo.go` gives today. The port PR must carry a
+  `**BREAKING:**` CHANGELOG entry. mygo's `_stret` path can add Intel back
+  later.
+- **Safety.** Today, clang does retain/release and checks selector types at
+  compile time. After the port, a selector typo is a run-time "unrecognized
+  selector" crash, and a lost release is a leak. The port must cache every
+  selector at startup and test that each target class responds to each selector.
+- **Pointer rule.** A pointer argument reaches `SyscallN` as a `uintptr`. It
+  must point to a global, or to a field of an object that stays reachable for
+  the whole native call. It must never point to a stack local. The spike puts
+  every scratch value (`MTLRegion`, NSError out-parameter, vertex bytes) in a
+  heap struct.
+- **Size of the work.** About 6100 lines of Objective-C become Go with `unsafe`.
+  gowaku needs about 7200 lines of Go for a similar scope.
+
+#### Rejected
+
+- **A second macOS backend behind a `!cgo` build tag.** Two backends must stay
+  the same in every feature. This stays rejected (see the 2026-10-05 re-check).
+- **Keep cgo.** The spike and the reference projects remove every technical
+  reason. The users who need `CGO_ENABLED=0` on darwin are the trigger, and the
+  port has no startup or memory cost.
+- **Keep Intel through mygo's `_stret` path now.** It doubles the struct ABI
+  work and the test matrix for a platform that Apple no longer sells. It can
+  come back later.
+
+#### Port order
+
+Port service by service inside the one backend. The backend keeps cgo until the
+last service moves. Each step is one PR.
+
+1. Plain C and plain-send services: keyring, locale, keep awake, system beep,
+   appearance.
+2. Dialogs, print, spell check.
+3. Menus and tray.
+4. Accessibility.
+5. Window, events and IME (`metal_window_darwin.m`).
+6. Renderer (`metal_darwin.m`), with quad batching. Then remove cgo from
+   darwin/arm64, and give darwin/amd64 the link-time error.
 
 ### Out of scope
 
