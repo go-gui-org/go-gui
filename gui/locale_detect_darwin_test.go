@@ -6,6 +6,9 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/ebitengine/purego"
+	"github.com/go-gui-org/go-gui/gui/internal/darwinffi"
 )
 
 // Issue #1307: localeDetect reads the OS locale through purego, so it
@@ -20,8 +23,31 @@ func TestLocaleDetectReadsOS(t *testing.T) {
 	if err != nil {
 		t.Skipf("defaults read -g AppleLocale: %v", err)
 	}
-	want := strings.ReplaceAll(strings.TrimSpace(string(out)), "_", "-")
+	want := strings.ReplaceAll(canonicalLocaleID(t, strings.TrimSpace(string(out))), "_", "-")
 	if got := localeDetect(); got != want {
 		t.Errorf("localeDetect() = %q, want %q (AppleLocale)", got, want)
 	}
+}
+
+// canonicalLocaleID gives the form of raw that CFLocaleCopyCurrent
+// reports. The AppleLocale text can be a legacy alias, and CoreFoundation
+// gives the canonical ID for it (iw_IL becomes he_IL). Without this step,
+// the test fails on such a Mac while the detection is correct.
+func canonicalLocaleID(t *testing.T, raw string) string {
+	t.Helper()
+	var canon func(allocator, id uintptr) uintptr
+	lib := darwinffi.Open(darwinffi.PathCoreFoundation)
+	purego.RegisterLibFunc(&canon, lib, "CFLocaleCreateCanonicalLocaleIdentifierFromString")
+	s := darwinffi.CFString(raw)
+	if s == 0 {
+		t.Fatalf("AppleLocale %q is not valid UTF-8", raw)
+	}
+	defer darwinffi.CFRelease(s)
+	// The result follows the Create rule: the test owns it.
+	c := canon(0, s)
+	if c == 0 {
+		t.Fatalf("CFLocaleCreateCanonicalLocaleIdentifierFromString(%q) = NULL", raw)
+	}
+	defer darwinffi.CFRelease(c)
+	return darwinffi.GoString(c)
 }
