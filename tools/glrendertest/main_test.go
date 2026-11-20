@@ -60,8 +60,8 @@ func TestClassify(t *testing.T) {
 
 func TestList(t *testing.T) {
 	win := testList(true)
-	if len(win) != len(commonTests) {
-		t.Errorf("windows list = %d tests, want %d", len(win), len(commonTests))
+	if len(win) != len(commonTests)+len(win32Tests) {
+		t.Errorf("windows list = %d tests, want %d", len(win), len(commonTests)+len(win32Tests))
 	}
 	for _, x := range x11Tests {
 		for _, w := range win {
@@ -71,6 +71,13 @@ func TestList(t *testing.T) {
 		}
 	}
 	full := testList(false)
+	for _, x := range win32Tests {
+		for _, f := range full {
+			if f == x {
+				t.Errorf("full list contains Windows-only %s", x)
+			}
+		}
+	}
 	if len(full) != len(commonTests)+len(x11Tests) {
 		t.Errorf("full list = %d tests, want %d", len(full), len(commonTests)+len(x11Tests))
 	}
