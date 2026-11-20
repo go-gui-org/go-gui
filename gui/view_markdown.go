@@ -75,16 +75,19 @@ func DefaultMarkdownStyle() MarkdownStyle {
 	// Line spacing comes from go-glyph's recommended line height (font
 	// leading, floored to a minimum em ratio); no manual LineSpacing needed.
 	//
-	// Markdown is document prose under headings, so paragraphs take
-	// the secondary role: headings stay bright while body reads
-	// quieter. The heading ladder has only two rungs above body, so
-	// H3 (title-small) and H4 (body bold) share a size and differ by
-	// nothing but order; H5 and H6 take the two rungs under body.
-	text := guiTheme.TextStyleSecondary
+	// Markdown is document prose: paragraphs take the prose role.
+	// That is full body contrast on a light theme and about 80% on a
+	// dark one, where full contrast reads too bright for long text.
+	// Secondary is for supporting text beside primary text, not for
+	// long prose (issue #1297). The heading ladder has only two rungs
+	// above body, so H3 (title-small) and H4 (body bold) share a size
+	// and differ by nothing but order; H5 and H6 take the two rungs
+	// under body.
+	text := proseTextStyle(&guiTheme)
 	bold := text.Bold()
 	italic := text.Italic()
 	bi := text.Italic().Bold()
-	// H4 and table heads stay bright: they name sections, not body.
+	// H4 and table heads stay bold: they name sections, not body.
 	headBold := guiTheme.TextStyleBody.Bold()
 	// Inline code sits two points under the body size (about the 85%
 	// GitHub uses). The mono face alone sets it apart. Menlo (the macOS

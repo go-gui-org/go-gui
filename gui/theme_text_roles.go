@@ -30,6 +30,12 @@ type textRoleAlphas struct {
 	disabled    uint8
 	secondary   uint8
 	label       uint8
+	// prose is long-form body text (markdown paragraphs). Unlike the
+	// rungs above it is not contrast-matched: light text on a dark
+	// ground reads brighter and heavier than dark text on a light one,
+	// so dark prose steps down to about 80% while light prose keeps
+	// full body contrast (issue #1297).
+	prose uint8
 }
 
 // The two ladders are contrast-matched, not equal.
@@ -54,12 +60,14 @@ var (
 		disabled:    128,
 		secondary:   160,
 		label:       178,
+		prose:       204,
 	}
 	textRolesOnLight = textRoleAlphas{
 		placeholder: 124,
 		disabled:    149,
 		secondary:   174,
 		label:       186,
+		prose:       255,
 	}
 )
 
@@ -173,6 +181,29 @@ func textRolesFor(text, background Color) textRoleAlphas {
 		return textRolesOnLight
 	}
 	return textRolesOnDark
+}
+
+// proseTextStyle is t's body style at the theme's prose alpha. Derived
+// on demand rather than stored on Theme: markdown is its only reader,
+// and DefaultMarkdownStyle already rebuilds from the live theme.
+//
+// The prose alpha scales the body's own alpha instead of replacing it,
+// so an app's translucent body stays translucent. Like the other derived
+// roles, the result is raised to the text contrast floor on the page
+// surfaces (issue #863). It is never made more opaque than body: if body
+// itself fails the floor, that is the app's choice, and DebugLowContrast
+// reports it on body.
+func proseTextStyle(t *Theme) TextStyle {
+	s := t.TextStyleBody
+	c := s.Color
+	prose := textRolesFor(c, t.ColorBackground).prose
+	alpha := uint8(uint16(c.A) * uint16(prose) / 255)
+	page, nPage := contrastSurfaceColors(onPage,
+		t.ColorBackground, t.ColorPanel, t.ColorInterior)
+	out := readableAlpha(RGBA(c.R, c.G, c.B, alpha), contrastText, page[:nPage]...)
+	out.A = min(out.A, c.A)
+	s.Color = out
+	return s
 }
 
 // subtleFor returns c at the polarity-fixed subtle alpha: 40 on a dark

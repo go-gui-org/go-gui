@@ -23,6 +23,12 @@ and this project adheres to
   links CoreGraphics; a plain Go executable that imports the backend, such as a
   test binary built with `GOOS=ios`, failed with undefined `_CG…` symbols unless
   `CGO_LDFLAGS` named the framework.
+- **Markdown paragraph text uses full body contrast (#1297).** Paragraphs, table
+  cells and list markers took the secondary role, so ThemeLight prose read as
+  mid gray next to near-black headings. They now take the body color at full
+  contrast in ThemeLight and at about 80% in ThemeDark, where full contrast
+  reads too bright for long text. Code comments and blocked-image placeholders
+  stay secondary.
 
 ## [v0.98.0] - 2026-11-19
 
