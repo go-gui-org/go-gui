@@ -1,18 +1,11 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
-/*
-#include <stdlib.h>
-// For metalCompileShadersProbe (test helper, defined in metal_darwin.m).
-#include "metal_darwin.h"
-*/
-import "C"
 import (
 	"log"
 	"sync"
 	"sync/atomic"
-	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
@@ -108,14 +101,12 @@ func pumpWindows(pump func(*windowState)) {
 
 // ─── Test helpers ──────────────────────────────────────────────
 //
-// The renderer probes stay here: they call metal_darwin.m, and a _test.go
-// file cannot import "C". The window test hooks are Go now and live in
-// window_hooks_darwin_test.go.
+// The renderer probes are in renderer_darwin.go. The window test hooks
+// live in window_hooks_darwin_test.go.
 
 // testCompileShaders compiles the built-in MSL library standalone at
 // the pinned language version. 0 = compiled, -1 = compile failed,
-// 1 = no Metal device. Lives here because cgo is not permitted in
-// _test.go files. See TestBuiltinShadersCompile.
+// 1 = no Metal device. See TestBuiltinShadersCompile.
 func testCompileShaders() int {
 	return testCompileMSL(msl.Source)
 }
@@ -123,9 +114,7 @@ func testCompileShaders() int {
 // testCompileMSL compiles src through the same probe; return codes
 // as testCompileShaders. See TestCustomWrapperCompiles.
 func testCompileMSL(src string) int {
-	cMSL := C.CString(src)
-	defer C.free(unsafe.Pointer(cMSL))
-	return int(C.metalCompileShadersProbe(cMSL))
+	return compileShadersProbe(src)
 }
 
 // testEdgeCoverage draws a diagonal triangle edge through the main
@@ -133,9 +122,7 @@ func testCompileMSL(src string) int {
 // -1 = no Metal device, -2 = setup failed. See
 // TestTriangleEdgesAntialiased.
 func testEdgeCoverage() int {
-	cMSL := C.CString(msl.Source)
-	defer C.free(unsafe.Pointer(cMSL))
-	return int(C.metalEdgeCoverageProbe(cMSL))
+	return edgeCoverageProbe(msl.Source)
 }
 
 // ─── Window callbacks (from the GUIWindow methods) ────────────
@@ -257,16 +244,16 @@ func deliverOpen(app *gui.App, items []string, isFile []bool) {
 }
 
 // testNullBackends returns a windowState and a glyph backend over a
-// zeroed C context (see metalTestNullCtx). Every C draw call returns
-// at its encoder guard, so a test sees only the Go side of a draw
+// renderer with no device and no encoder. Every draw call returns at
+// its encoder guard, so a test sees only the Go side of a draw
 // path — what TestDrawPathsDoNotAllocate needs to count heap
 // allocations without a GPU. The texture registered under glyph id 1
 // lets the textured-quad paths get past their lookup. Call the
 // returned func to free the context.
 func testNullBackends() (*windowState, *metalGlyphBackend, func()) {
-	ctx := C.metalTestNullCtx()
+	ctx := &metalCtx{nextTexID: 1}
 	ws := &windowState{ctx: ctx, dpiScale: 2}
 	gb := newMetalGlyphBackend(ctx, 2)
 	gb.textures[1] = metalTexInfo{cID: 1, w: 256, h: 256}
-	return ws, gb, func() { C.metalCtxDestroy(ctx) }
+	return ws, gb, func() { ctx.destroy() }
 }

@@ -53,19 +53,14 @@ func compileInTempDir(o bundleOpts) (string, error) {
 	return out, nil
 }
 
-// compilePkg runs `go build` for the target platform and arch. Linux
-// and Windows build cgo-free; macOS keeps the host C toolchain for the
-// Metal backend. On Windows "-H windowsgui" marks the PE as a
+// compilePkg runs `go build` for the target platform and arch, with cgo
+// off: the desktop backends have no cgo (macOS since #1323). On Windows "-H windowsgui" marks the PE as a
 // GUI-subsystem image, so no console window opens behind the app.
 func compilePkg(o bundleOpts, out string) error {
 	goos := platformOrHost(o.Platform)
 	goarch := o.Arch
 	if goarch == "" {
 		goarch = runtime.GOARCH
-	}
-	cgo := "0"
-	if goos == "darwin" {
-		cgo = "1"
 	}
 	ldflags := o.Ldflags
 	if goos == "windows" && !strings.Contains(ldflags, "windowsgui") {
@@ -77,7 +72,7 @@ func compilePkg(o bundleOpts, out string) error {
 	}
 	args = append(args, "-o", out, o.BuildPkg)
 	env := withEnv(os.Environ(),
-		[]string{"GOOS=" + goos, "GOARCH=" + goarch, "CGO_ENABLED=" + cgo})
+		[]string{"GOOS=" + goos, "GOARCH=" + goarch, "CGO_ENABLED=0"})
 	combined, cerr := execOutput(env, "go", args...)
 	if cerr != nil {
 		return fmt.Errorf("go build %s: %v: %s", o.BuildPkg, cerr, combined)

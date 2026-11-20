@@ -217,14 +217,16 @@ func TestCompileLinuxCgoFreeNoGuiFlag(t *testing.T) {
 	}
 }
 
-func TestCompileDarwinKeepsCgo(t *testing.T) {
+// TestCompileDarwinIsCgoFree: the macOS backend has no cgo (#1323), so
+// a darwin build needs no C toolchain and cross-compiles from any host.
+func TestCompileDarwinIsCgoFree(t *testing.T) {
 	stub := stubTools(t)
-	o := bundleOpts{Platform: "darwin", BuildPkg: "./myapp"}
+	o := bundleOpts{Platform: "darwin", Arch: "arm64", BuildPkg: "./myapp"}
 	if err := compilePkg(o, filepath.Join(t.TempDir(), "myapp")); err != nil {
 		t.Fatal(err)
 	}
-	if got := envVal((stub.calls)[0].env, "CGO_ENABLED"); got != "1" {
-		t.Errorf("CGO_ENABLED = %q, want 1", got)
+	if got := envVal((stub.calls)[0].env, "CGO_ENABLED"); got != "0" {
+		t.Errorf("CGO_ENABLED = %q, want 0", got)
 	}
 }
 

@@ -1,11 +1,6 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
-
-/*
-#include "metal_darwin.h"
-*/
-import "C"
 
 import (
 	"unsafe"
@@ -39,28 +34,25 @@ func metalTextureBytes(tex metalTexture) int64 {
 // newMetalTexCacheLRU bounds the textures by count and by bytes (#1239).
 // A non-positive maxBytes (WindowCfg.MaxTextureBytes unset) takes the desktop
 // default.
-func newMetalTexCacheLRU(ctx C.MetalCtx,
+func newMetalTexCacheLRU(ctx *metalCtx,
 	maxSize int, maxBytes int64,
 ) texcache.Cache[string, metalTexture] {
 	return texcache.NewSized[string, metalTexture](maxSize,
 		texcache.Budget(maxBytes, texcache.DesktopTextureBudget), metalTextureBytes,
 		func(tex metalTexture) {
 			if tex.id != 0 {
-				C.metalDeleteTexture(ctx, C.int(tex.id))
+				ctx.deleteTexture(int(tex.id))
 			}
 		})
 }
 
-func createMetalTexture(ctx C.MetalCtx, w, h int32,
+func createMetalTexture(ctx *metalCtx, w, h int32,
 	pixels []byte) metalTexture {
-	hasData := C.int(0)
 	var ptr unsafe.Pointer
 	if len(pixels) > 0 {
-		hasData = C.int(1)
 		ptr = unsafe.Pointer(&pixels[0])
 	}
-	id := C.metalCreateTexture(ctx,
-		C.int(w), C.int(h), ptr, hasData)
+	id := ctx.createTexture(int(w), int(h), ptr)
 	return metalTexture{id: int32(id), w: w, h: h}
 }
 

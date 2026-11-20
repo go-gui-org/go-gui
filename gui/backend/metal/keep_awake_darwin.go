@@ -1,10 +1,9 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
 // The file has no cgo of its own since #1307: the sends go through
-// purego. It keeps the cgo build term because nativePlatform and the
-// rest of this package still need cgo, until the last port step.
+// purego.
 
 import (
 	"errors"
@@ -32,6 +31,7 @@ var keepAwakeActivity objc.ID
 // The sends go through purego (#1307). A keep-awake change is rare, so
 // objc.ID.Send, which allocates per call, is fine here.
 func (n *nativePlatform) SetKeepAwake(on bool, _, reason string) error {
+	loadObjc() // opens AppKit and Foundation, for NSProcessInfo
 	pool := darwinffi.PoolPush()
 	defer darwinffi.PoolPop(pool)
 	info := darwinffi.Class("NSProcessInfo").Send(darwinffi.Sel("processInfo"))

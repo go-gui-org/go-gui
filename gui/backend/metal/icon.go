@@ -1,4 +1,4 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
