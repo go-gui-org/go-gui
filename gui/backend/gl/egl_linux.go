@@ -132,6 +132,60 @@ var (
 	eglCreateSurfaceContextFunc = eglCreateSurfaceContext
 )
 
+// eglDisplayRefs counts the X11 windows holding each EGL display. EGL
+// returns the same EGLDisplay for the same native display, so every
+// window of a multi-window app gets one handle, and eglInitialize is not
+// reference-counted: a single eglTerminate frees the contexts and
+// surfaces of every window on it. Closing a child window terminated the
+// display under the main window, whose every swap then failed with
+// EGL_NOT_INITIALIZED and left it frozen on its last frame (#1284). The
+// Wayland backend avoids the same trap by terminating its shared display
+// once, from the last window (destroyWayland). The lock is defensive:
+// windows open and close on the main thread, and this is never per frame.
+var eglDisplayRefs struct {
+	mu sync.Mutex
+	n  map[uintptr]int
+}
+
+// eglDisplayAcquire records one more window holding dpy.
+func eglDisplayAcquire(dpy uintptr) {
+	eglDisplayRefs.mu.Lock()
+	defer eglDisplayRefs.mu.Unlock()
+	if eglDisplayRefs.n == nil {
+		eglDisplayRefs.n = make(map[uintptr]int)
+	}
+	eglDisplayRefs.n[dpy]++
+}
+
+// eglDisplayRelease drops one hold on dpy and reports whether it was the
+// last, in which case the caller terminates the display. A display with
+// no recorded hold also reports true, so a caller that never acquired
+// still cleans up the display it opened, as before the count existed.
+func eglDisplayRelease(dpy uintptr) bool {
+	eglDisplayRefs.mu.Lock()
+	defer eglDisplayRefs.mu.Unlock()
+	if eglDisplayRefs.n[dpy] > 1 {
+		eglDisplayRefs.n[dpy]--
+		return false
+	}
+	delete(eglDisplayRefs.n, dpy)
+	return true
+}
+
+// eglReleaseRejected terminates a display eglFirstDesktopGL rejected,
+// unless an open window holds it. A second window's eglInitialize returns
+// the handle the first window already uses, so terminating it on a later
+// eglBindAPI or eglChooseConfig failure would freeze that window (#1284).
+// It neither takes nor drops a hold: the rejecting window never had one.
+func eglReleaseRejected(dpy uintptr) {
+	eglDisplayRefs.mu.Lock()
+	held := eglDisplayRefs.n[dpy] > 0
+	eglDisplayRefs.mu.Unlock()
+	if !held {
+		eglTerminate(dpy)
+	}
+}
+
 // errNoDesktopGLConfig marks an EGL display that initializes but offers
 // no desktop-OpenGL window config. The usual cause is a driver with
 // OpenGL ES only, for example libhybris (Android GPU drivers) on a Linux
@@ -168,7 +222,7 @@ func eglInitDisplayN() (uintptr, []eglConfigVisual, error) {
 				"eglGetPlatformDisplay(X11)")
 		})
 	}
-	return eglFirstDesktopGL(openers, func(dpy uintptr) { eglTerminate(dpy) })
+	return eglFirstDesktopGL(openers, eglReleaseRejected)
 }
 
 // eglFirstDesktopGL runs open in order and returns the first display
