@@ -375,15 +375,17 @@ const maxWindowIconDim = 1024
 
 // setWindowIcon installs cfg.IconPNG (or the go-gui default) as the
 // window's big and small icons via WM_SETICON. The HICON is owned by
-// p and released in destroy.
-func setWindowIcon(hwnd uintptr, cfg gui.WindowCfg, p *platformState) {
+// p and released in destroy. A bad icon goes to warn, not to the log: a
+// GL attempt that falls back decodes the icon too, and only the attempt
+// that opens the window may report it (windowReports).
+func setWindowIcon(hwnd uintptr, cfg gui.WindowCfg, p *platformState, warn func(error)) {
 	icon := cfg.IconPNG
 	if len(icon) == 0 {
 		icon = gui.DefaultIconPNG
 	}
 	h, err := hicon.FromPNG(icon, maxWindowIconDim)
 	if err != nil {
-		log.Printf("gl: window icon: %v", err)
+		warn(err)
 		return
 	}
 	pSendMessageW.Call(hwnd, wmSetIcon, iconBig, h)
@@ -542,7 +544,7 @@ func openWin32Window(w *gui.Window, soft bool, rep *windowReports) (*Backend, er
 	// re-attaches it, matching the focus gating on macOS and X11. Without
 	// this a composition can begin with nothing to render the preedit.
 	imeAssociate(hwnd, 0)
-	setWindowIcon(hwnd, cfg, &b.plat)
+	setWindowIcon(hwnd, cfg, &b.plat, rep.addIcon)
 	return b, nil
 }
 

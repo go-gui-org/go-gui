@@ -805,13 +805,13 @@ func (o *iconWarningWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-// TestWindowFromLogWriter: application code can run in a window's bring-up
-// before the renderer is chosen. An invalid IconPNG makes openWin32Window
-// log a warning, and an application's log writer that opens a window from
-// that write must not wait for the first window's bring-up. The writer's
-// window finds another bring-up deciding and opens on its own attempt
-// without choosing; the first window then chooses. The renderer choice was
-// once locked through the first window's bring-up up to its commit, and the
+// TestWindowFromLogWriter: an application's log writer that opens a window
+// while it writes a window's warning must not wait on the renderer choice.
+// An invalid IconPNG makes the first window log a warning. The warning is
+// one of the attempt's reports, so it is logged when New publishes them,
+// after the first window chose GL and stopped deciding: the writer's window
+// finds the choice made and opens on it. The renderer choice was once
+// locked through the first window's bring-up up to its commit, and a
 // writer's New blocked on it on the same thread.
 //
 // It needs a GL that comes up, and checks that first with GOGUI_RENDERER=gl,
@@ -894,9 +894,9 @@ func TestWindowFromLogWriter(t *testing.T) {
 	if r.second.err != nil {
 		t.Fatalf("New from the log writer: %v", r.second.err)
 	}
-	if r.chosen != win32RendererUndecided || !r.deciding {
-		t.Errorf("inside the write: process renderer %d, deciding %v; want undecided and "+
-			"deciding (the first window's bring-up)", r.chosen, r.deciding)
+	if r.chosen != win32RendererGL || r.deciding {
+		t.Errorf("inside the write: process renderer %d, deciding %v; want GL and not "+
+			"deciding (the warning is published after the choice)", r.chosen, r.deciding)
 	}
 	if r.first.hglrc == 0 || r.second.hglrc == 0 {
 		t.Errorf("hglrc %#x and %#x, want two GL windows", r.first.hglrc, r.second.hglrc)
@@ -907,4 +907,99 @@ func TestWindowFromLogWriter(t *testing.T) {
 	if got := chosenRenderer(); got != win32RendererGL {
 		t.Errorf("process renderer = %d, want GL, chosen by the first window", got)
 	}
+}
+
+// iconWarning is in the log line a bad window icon gives, and in no other.
+const iconWarning = "gl: window icon:"
+
+// TestFallbackLogsBadIconOnce: a window with an icon that does not decode
+// falls back. Both attempts decode the icon, but only the soft attempt's
+// window opens, so the warning is logged once, not once for each attempt.
+func TestFallbackLogsBadIconOnce(t *testing.T) {
+	l := newAutoProcess(t)
+	refuseContexts(t)
+	cfg := fallbackCfg()
+	cfg.IconPNG = []byte("not a png")
+	w := gui.NewWindow(cfg)
+	b := openFallback(t, w)
+	assertFallback(t, b, w, l, "create WGL context", errRefused.Error())
+	if n := strings.Count(l.String(), iconWarning); n != 1 {
+		t.Errorf("%d icon warnings, want 1; log:\n%s", n, l)
+	}
+}
+
+// vsyncChildEnv marks the subprocess TestPipelineFailureReportsNoVSync
+// starts.
+const vsyncChildEnv = "GOGUI_TEST_PIPELINE_VSYNC_CHILD"
+
+// The lines TestPipelineFailureReportsNoVSync looks for, as gui.Debug prints
+// them: any vsync finding, and the control finding the child makes itself.
+const (
+	vsyncFinding  = "gui: window: vsync: "
+	vsyncControl  = "test: control vsync finding"
+	vsyncWantLine = vsyncFinding + vsyncControl
+)
+
+// TestPipelineFailureReportsNoVSync: the driver refuses the swap interval,
+// and then the built-in pipelines fail, so New returns an error. The window
+// never opened, so it must get no vsync finding. Before #1338's review the
+// refusal went to the window at once.
+//
+// gui.Debug writes to stderr, and TestFindings sees only the findings of its
+// own render, so the window is opened in a subprocess and its stderr is
+// checked. The child then makes a control finding, which proves the gate is
+// on and stderr is read. It needs a GL that reaches the pipelines, so it
+// skips without one (tools/glrendertest runs it with GOGUI_REQUIRE_GL).
+func TestPipelineFailureReportsNoVSync(t *testing.T) {
+	if os.Getenv(vsyncChildEnv) == "" {
+		cmd := exec.Command(os.Args[0], "-test.run", "^TestPipelineFailureReportsNoVSync$", "-test.v") // #nosec G204 -- this test binary, a fixed test name
+		cmd.Env = append(os.Environ(), vsyncChildEnv+"=1")
+		raw, err := cmd.CombinedOutput()
+		out := string(raw)
+		t.Logf("subprocess:\n%s", out)
+		if err == nil && strings.Contains(out, "--- SKIP: TestPipelineFailureReportsNoVSync") {
+			t.Skip("the subprocess skipped")
+		}
+		if err != nil || !strings.Contains(out, "--- PASS: TestPipelineFailureReportsNoVSync") {
+			t.Fatalf("subprocess did not pass: %v", err)
+		}
+		if n := strings.Count(out, vsyncWantLine); n != 1 {
+			t.Fatalf("%d control findings, want 1: stderr is not what the test reads", n)
+		}
+		if n := strings.Count(out, vsyncFinding); n != 1 {
+			t.Errorf("%d vsync findings, want only the control: the failed window reported its swap interval", n)
+		}
+		return
+	}
+
+	gui.DebugCategories(gui.DebugWindowDegraded)
+	t.Cleanup(func() { gui.DebugCategories(0) })
+	oldSwap := swapIntervalFunc
+	swapIntervalFunc = func(int32) bool { return false }
+	t.Cleanup(func() { swapIntervalFunc = oldSwap })
+	reached := false
+	oldInit := initPipelinesFunc
+	initPipelinesFunc = func(*Backend) error {
+		reached = true
+		return errors.New("test: link failed")
+	}
+	t.Cleanup(func() { initPipelinesFunc = oldInit })
+
+	// openWin32Backend is New after the thread lock, so take it as New does.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	w := gui.NewWindow(fallbackCfg())
+	b, err := openWin32Backend(w, rendererEnvGL)
+	if !reached {
+		if b != nil {
+			b.Destroy()
+		}
+		skipNoWindow(t, err)
+		t.Skipf("no GL here reaches the pipelines: %v", err)
+	}
+	if err == nil {
+		b.Destroy()
+		t.Fatal("a pipeline failure opened a window")
+	}
+	w.DebugWindowVSync(vsyncControl)
 }

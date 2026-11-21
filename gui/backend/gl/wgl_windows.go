@@ -119,9 +119,9 @@ func newGLWin32(w *gui.Window, rep *windowReports, commit func()) (b *Backend, f
 		return nil, true, gerr
 	}
 	// createContext leaves the context current on hdc, which is what
-	// wglSwapIntervalEXT applies to. After the binding, the last step that
-	// can fall back, so a discarded attempt reports no swap interval.
-	applyVSync(cfg.VSyncOff, wglSetSwapInterval, w.DebugWindowVSync,
+	// wglSwapIntervalEXT applies to. The report goes to rep, so a window
+	// that fails after this point (a pipeline failure) reports nothing.
+	applyVSync(cfg.VSyncOff, swapIntervalFunc, rep.addVSync,
 		"wglSwapIntervalEXT")
 
 	b.dpiScale = windowScale(hwnd)
@@ -288,6 +288,10 @@ func createContextWithFormat(hdc, pf uintptr, pfd *pixelFormatDescriptor) (uintp
 // wglSetSwapInterval sets the swap interval of the current context. It
 // reports false when the driver lacks WGL_EXT_swap_control or refuses
 // the value.
+// swapIntervalFunc is the seam a test overrides to make the driver refuse
+// the swap interval.
+var swapIntervalFunc = wglSetSwapInterval
+
 func wglSetSwapInterval(n int32) bool {
 	fn := wglProc("wglSwapIntervalEXT")
 	if fn == 0 {

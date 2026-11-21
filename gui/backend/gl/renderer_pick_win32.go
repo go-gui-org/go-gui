@@ -83,9 +83,10 @@ func openWin32Backend(w *gui.Window, env rendererEnv) (*Backend, error) {
 //
 // Ordering. processRenderer.mu is held only to read or write the state, so
 // a window's bring-up never waits on another, whatever application code the
-// bring-up reaches (an icon or font warning through an application's log
-// writer, an OnSystemAppearance hook when the window attaches) and whatever
-// that code opens. A window whose process renderer is chosen opens there. A
+// bring-up reaches (a font warning through an application's log writer, an
+// OnSystemAppearance hook when the window attaches) and whatever that code
+// opens. A bad icon's warning is not among them: it is in rep, which
+// openWin32Backend publishes after this returns, with the choice made. A window whose process renderer is chosen opens there. A
 // window that finds none chosen and none deciding marks the state deciding
 // and is the deciding window: each of its attempts calls commit just before
 // the window attaches to w, once nothing after it can fail, and commit sets
@@ -177,13 +178,15 @@ func fallbackLine(gerr *gpuContextError) string {
 }
 
 // windowReports holds the degradation reports of one window attempt: what
-// enableWindowTransparency, reportSoftTransparency and applyWindowOpacity
-// found before it was known whether the attempt's window would be kept.
+// enableWindowTransparency, reportSoftTransparency, applyWindowOpacity,
+// setWindowIcon and applyVSync found before it was known whether the
+// attempt's window would be kept.
 // openWin32Backend publishes the reports of the attempt that opened the
 // window only, so a GL attempt that fell back reports nothing about a window
 // that no longer exists.
 type windowReports struct {
-	transparency, opacity []string
+	transparency, opacity, vsync []string
+	icon                         []error
 }
 
 func (r *windowReports) addTransparency(reason string) {
@@ -194,13 +197,30 @@ func (r *windowReports) addOpacity(reason string) {
 	r.opacity = append(r.opacity, reason)
 }
 
-// publish hands the reports to w, transparency first, in the order the
-// window setup made them.
+func (r *windowReports) addVSync(reason string) {
+	r.vsync = append(r.vsync, reason)
+}
+
+func (r *windowReports) addIcon(err error) {
+	r.icon = append(r.icon, err)
+}
+
+// publish hands the reports to w, in the order the window setup made them.
+// A bad icon is not a gui.Debug finding: it goes to the log, so it shows
+// with debug off. A New that fails publishes nothing, the icon warning
+// included: the error is what the app sees, and the icon is reported by the
+// first window that opens.
 func (r *windowReports) publish(w *gui.Window) {
 	for _, reason := range r.transparency {
 		w.DebugWindowTransparency(reason)
 	}
 	for _, reason := range r.opacity {
 		w.DebugWindowOpacity(reason)
+	}
+	for _, err := range r.icon {
+		log.Printf("gl: window icon: %v", err)
+	}
+	for _, reason := range r.vsync {
+		w.DebugWindowVSync(reason)
 	}
 }

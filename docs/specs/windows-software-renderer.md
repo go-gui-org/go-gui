@@ -187,7 +187,8 @@ deciding window, on a machine whose two attempts differ; no machine has shown
 that. Until phase 3's first review the lock was held for every bring-up, and a
 window opened from the hook blocked on it, on the same thread, for good; until
 the second, the first window held it up to its commit, and a window opened from
-the app's log writer on the icon warning blocked the same way.
+the app's log writer on the icon warning blocked the same way. The icon warning
+is now one of the attempt's reports, logged after the choice is made.
 
 ### Opening a window
 
@@ -217,8 +218,10 @@ discards the whole attempt and opens a second window, of another class (below).
 
 `OnInit` runs after `New` returns and is not affected. Step 2's changes landed
 in phase 3, with the fallback: `enableWindowTransparency`,
-`reportSoftTransparency` and `applyWindowOpacity` take a report function, which
-`New` points at the attempt's `windowReports`.
+`reportSoftTransparency`, `applyWindowOpacity`, `setWindowIcon` and the swap
+interval's `applyVSync` take a report function, which `New` points at the
+attempt's `windowReports`. A bad icon is logged once, and a window that fails
+after the swap interval is set reports no vsync finding.
 
 ### Present path
 
