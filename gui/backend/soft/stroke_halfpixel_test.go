@@ -98,17 +98,32 @@ func TestFillStaysInsideSnappedBorder(t *testing.T) {
 				if fill.Kind == gui.RenderGradient {
 					name = "gradient"
 				}
-				midX := int(30 * s)
-				seenBorder := false
+				// The border's outer bounds, then every fill pixel must
+				// lie inside them: above, below and beside.
+				x0, y0, x1, y1 := 100, 80, -1, -1
 				for py := range 80 {
-					red, green, _, _ := at(r.buf.img, midX, py)
-					if red > 0 {
-						seenBorder = true
+					for px := range 100 {
+						if red, _, _, _ := at(r.buf.img, px, py); red > 0 {
+							x0, y0 = min(x0, px), min(y0, py)
+							x1, y1 = max(x1, px), max(y1, py)
+						}
 					}
-					if green > 0 && !seenBorder {
-						t.Errorf("scale %v y=%v %v: fill green=%d at row %d, above the border",
-							s, y, name, green, py)
+				}
+				if x1 < 0 {
+					t.Fatalf("scale %v y=%v %v: no border drawn", s, y, name)
+				}
+				leaks := 0
+				for py := range 80 {
+					for px := range 100 {
+						_, green, _, _ := at(r.buf.img, px, py)
+						if green > 0 && (px < x0 || px > x1 || py < y0 || py > y1) {
+							leaks++
+						}
 					}
+				}
+				if leaks > 0 {
+					t.Errorf("scale %v y=%v %v: %d fill pixels outside the border (%d,%d)-(%d,%d)",
+						s, y, name, leaks, x0, y0, x1, y1)
 				}
 			}
 		}
