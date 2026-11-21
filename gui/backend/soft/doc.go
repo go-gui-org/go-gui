@@ -12,8 +12,10 @@
 //     MIT-SHM (core PutImage where the server cannot map it), or committed
 //     in a wl_shm buffer on native Wayland, so a machine without a GPU does
 //     not need Mesa's llvmpipe. The Windows backend uses it when
-//     GOGUI_RENDERER=soft is set (#1310) and copies the frame to the window
-//     from a GDI DIB section, with no OpenGL loaded.
+//     GOGUI_RENDERER=soft is set, with no OpenGL loaded, or, with the
+//     variable unset, when the first window's GL context or GL binding
+//     fails (#1310), and copies the frame to the window from a GDI DIB
+//     section.
 //
 // Typical use is a screenshot or a pixel-level regression test:
 //

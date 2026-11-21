@@ -170,11 +170,12 @@ func (e *pipelineInitError) Error() string { return e.err.Error() }
 
 func (e *pipelineInitError) Unwrap() error { return e.err }
 
-// initGLResources sets up GL state, shader pipelines, buffers, and
-// the glyph text system, then wires the platform-neutral injected
-// interfaces onto the window. b.physW, b.physH, and b.dpiScale must
-// be set before calling. The GL context must already be current.
-func (b *Backend) initGLResources(w *gui.Window) error {
+// prepareGLResources is the part of initGLResources that can fail: GL
+// state, the pipelines, the buffers and the text system. b.physW, b.physH,
+// and b.dpiScale must be set before calling. The GL context must already be
+// current. The Windows New calls it and attachGLWindow itself, and commits
+// its renderer choice between them (renderer_pick_win32.go).
+func (b *Backend) prepareGLResources() error {
 	b.surfaces.SetRelease(b.deleteSurfaceTexture)
 	b.channels.SetRelease(b.deleteChannels)
 	gogl.Enable(gogl.BLEND)
@@ -212,16 +213,24 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 		}
 	}
 	gui.LoadAppFonts(textSys, "gl")
+	return nil
+}
 
-	w.SetTextMeasurer(&textMeasurer{textSys: textSys})
+// attachGLWindow is the rest of initGLResources, which cannot fail: it
+// wires the injected interfaces onto w. SetNativePlatform can run
+// application code (an OnSystemAppearance hook, for one), which may open a
+// window and leave that window's context current, so every GL call here
+// comes before it.
+func (b *Backend) attachGLWindow(w *gui.Window) {
+	b.transparentTex = createTexture(1, 1, []byte{0, 0, 0, 0})
+	b.retired = frameRetirer{fence: glFence, check: glCheck, wait: glWait, finish: gogl.Finish, deleteSync: gogl.DeleteSync}
+	// dmabufImporter reads the context's extensions, so it is a GL call.
+	b.dmabuf = b.plat.dmabufImporter()
+	w.SetTextMeasurer(&textMeasurer{textSys: b.textSys})
 	w.SetSvgParser(svg.New())
 	w.SetNativePlatform(&nativePlatform{b: b})
-	b.transparentTex = createTexture(1, 1, []byte{0, 0, 0, 0})
 	gui.SetWindowRendersShaders(w, true)
-	b.retired = frameRetirer{fence: glFence, check: glCheck, wait: glWait, finish: gogl.Finish, deleteSync: gogl.DeleteSync}
-	b.dmabuf = b.plat.dmabufImporter()
 	gui.SetWindowImportsDMABuf(w, b.dmabuf != nil)
-	return nil
 }
 
 // destroyGLResources releases all GL and glyph resources. Safe to

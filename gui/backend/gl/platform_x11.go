@@ -54,12 +54,18 @@ func New(w *gui.Window) (*Backend, error) {
 	return newX11(w)
 }
 
-// softInitError marks a failure of the CPU renderer's own setup, after the
-// window exists. newX11 retries those on GL when auto-pick chose soft.
-type softInitError struct{ err error }
-
-func (e *softInitError) Error() string { return e.err.Error() }
-func (e *softInitError) Unwrap() error { return e.err }
+// initGLResources sets up GL state, shader pipelines, buffers, and
+// the glyph text system, then wires the platform-neutral injected
+// interfaces onto the window: prepareGLResources, then attachGLWindow. The
+// X11 and Wayland GL paths call it. b.physW, b.physH, and b.dpiScale must
+// be set before calling. The GL context must already be current.
+func (b *Backend) initGLResources(w *gui.Window) error {
+	if err := b.prepareGLResources(); err != nil {
+		return err
+	}
+	b.attachGLWindow(w)
+	return nil
+}
 
 // newX11 is New without the Wayland branch. The X11 RunApp loop calls it
 // directly: once it runs, Wayland was already declined, and a Wayland

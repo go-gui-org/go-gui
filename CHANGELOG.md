@@ -26,6 +26,27 @@ and this project adheres to
   instead. `examples/dmabuf_surface` shows a producer with a pool of GBM
   buffers.
 
+- **A Windows app whose OpenGL cannot run it falls back to the CPU renderer
+  (#1310).** With `GOGUI_RENDERER` unset, the first window tries GL. If its WGL
+  context is refused, or the GL functions cannot be bound, as on Microsoft's
+  generic OpenGL 1.1 in a VM or an RDP session without a GPU driver, the window
+  opens on go-gui's CPU renderer instead of failing with `ErrNoGPUContext`, and
+  every later window of the process opens there too. One log line names the step
+  that failed, its cause and, where a context was made, `GL_VERSION` and
+  `GL_RENDERER`; it says that custom shaders are not drawn and that
+  `GOGUI_RENDERER=gl` reports the error instead. A machine whose GL comes up,
+  Mesa's `opengl32.dll` beside the exe included, stays on GL and makes the same
+  calls as before, except that the swap interval is now set after the GL
+  functions are bound. A GL that comes up but cannot build the built-in shaders
+  still fails with `ErrNoGPUContext`, and so does a later window whose GL fails
+  in a process whose first window is on GL. Across a fallback, a window the app
+  hid before the start stays hidden, placement requests made before the backend
+  started reach the window that opens, `OnInit` runs once, and `gui.Debug`
+  reports only what holds for that window. A window the app opens while the
+  first one starts, from an `OnSystemAppearance` hook, opens on the renderer the
+  first window chose. One opened before that choice, from the app's log writer
+  on a startup warning or from another thread at the same moment, does not wait
+  for it: it tries GL with the same fallback on its own.
 - **`GOGUI_RENDERER=soft` runs a Windows app without OpenGL (#1310).** The
   Windows backend draws with go-gui's own CPU renderer, the one Linux uses, and
   copies each frame to the window through GDI. The process loads no
@@ -38,8 +59,7 @@ and this project adheres to
   window is opaque on this path and reports it through `gui.Debug`. Custom
   shaders draw their children but not their shader fill. The "no GPU context"
   message on Windows now names `GOGUI_RENDERER=soft`. With the variable unset or
-  `gl`, the backend makes the same calls as before; the automatic fallback is a
-  later step of #1310.
+  `gl`, a machine whose GL comes up makes the same calls as before.
 
 ### Changed
 
@@ -151,6 +171,13 @@ and this project adheres to
   now counts the windows on the display and terminates it only when the last one
   closes, as the Wayland backend already did. Windows and macOS were not
   affected.
+- **A GL window whose `OnSystemAppearance` hook opens another window keeps a
+  valid blank texture (#1310).** The hook runs while the first window starts,
+  and the window it opens leaves its own OpenGL context current. The first
+  window then created the 1×1 transparent texture that stands in for an unused
+  shader channel in that other context, so its custom shaders sampled a texture
+  name that did not exist in their own. The texture is now created before the
+  hook can run. Windows, X11 and Wayland share this step.
 - **A Windows app on Microsoft's generic OpenGL exits with advice instead of a
   panic (#1310).** Without a vendor GPU driver, for example in a VM or an RDP
   session, Windows has only Microsoft's generic OpenGL 1.1 ("GDI Generic"). When

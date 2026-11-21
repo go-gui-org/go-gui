@@ -111,8 +111,26 @@ starts on a machine whose OpenGL cannot run it: a VM or an RDP session without a
 GPU driver, where Windows has only its generic OpenGL 1.1 and startup otherwise
 fails with `ErrNoGPUContext`. Frames are paced to the monitor's refresh rate. A
 `WindowCfg.Transparent` window is opaque on this path, and custom shaders draw
-their children but not their shader fill. With the variable unset, Windows uses
-GL and does not yet fall back by itself.
+their children but not their shader fill.
+
+With the variable unset, Windows tries GL for the first window. If that window
+gets no WGL context, or cannot bind the GL functions the backend needs, as on
+Microsoft's generic OpenGL 1.1, it opens on the software renderer instead, and
+so does every later window of the process. One log line names the step that
+failed and its cause, with `GL_VERSION` and `GL_RENDERER` when a context was
+made, and says that custom shaders are not drawn. The `opengl32.dll` the GL
+attempt loaded stays in memory. A machine whose GL comes up stays on GL, an app
+that ships Mesa's `opengl32.dll` beside the exe included, typically to keep
+custom shaders. In a process whose first window is on GL, a later window whose
+GL fails returns `ErrNoGPUContext` rather than falling back alone, and so does a
+GL that comes up but cannot build the built-in shaders: that is a driver bug the
+software renderer would hide. `GOGUI_RENDERER=gl` reports the error instead of
+falling back. The choice is made once per process: after a session moves between
+the console and RDP, restart the app. One case is outside it: a window the app
+opens while the first one is still starting, from another thread or from its log
+writer, does not wait for the choice. It tries GL with the same fallback on its
+own, so it could end on another renderer than the first window on a machine
+where the two attempts differ.
 
 On X11 libxkbcommon is optional. Keys, shortcuts and switching between keyboard
 layouts work without it; with it, the X11 backend also types letters of scripts

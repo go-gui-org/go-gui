@@ -1,14 +1,14 @@
 # Windows software renderer
 
-Issue #1310 (follow-up of #1265). Status: **phases 1 and 2 of 5 landed** (#1319,
-#1333; phases 3 to 5 planned).
+Issue #1310 (follow-up of #1265). Status: **phases 1 to 3 of 5 landed** (#1319,
+#1333, #1338; phases 4 and 5 planned).
 
 The maintainer accepted this design on the issue on 2026-11-20 (see Decisions).
-Code facts are as of #1319, except where a sentence names phase 2. "Measured"
-with no machine named means throwaway programs on one 16-thread AMD desktop
-(Windows 11 24H2, Go 1.27.4, a 1920×1080 screen, median of 10–20 runs); those
-figures are indicative. "The lab VM" is the one machine without a GPU driver
-that was tested (see Problem).
+Code facts are as of #1319, except where a sentence names phase 2 or phase 3.
+"Measured" with no machine named means throwaway programs on one 16-thread AMD
+desktop (Windows 11 24H2, Go 1.27.4, a 1920×1080 screen, median of 10–20 runs);
+those figures are indicative. "The lab VM" is the one machine without a GPU
+driver that was tested (see Problem).
 
 ## Problem
 
@@ -154,6 +154,42 @@ a context exists, `GOGUI_RENDERER=gl`, and that custom shaders are not drawn.
 When the soft setup fails too, the error is the GPU error first, so it still
 matches `ErrNoGPUContext`, with the soft cause after it, as on Linux.
 
+Since phase 3 the line reads
+`gl: <step> failed (<cause>); drawing with the CPU renderer (GOGUI_RENDERER=gl reports the error instead; custom shaders are not drawn)`,
+and it is logged once the soft setup has succeeded, so a soft setup that fails
+too logs nothing. The process renderer (`processRenderer`, in
+`renderer_pick_win32.go`) is set by the first window that opens with the
+variable unset. A first window that opens no window at all, through a plain
+error, a pipeline failure or a soft setup that fails too, leaves it undecided,
+and the next window is a first window again. `gl`, `soft` and other values are
+read per window and neither read nor set it. A soft setup failure is a
+`softInitError` (renderer setup); a failure to create the soft window stays a
+plain error, as on GL.
+
+**Ordering.** No window's bring-up waits on another's. The process renderer's
+lock guards only its state, the choice and a `deciding` flag, and is never held
+across a bring-up: application code can run inside one before the choice is made
+(an invalid `IconPNG` or a font logs a warning through the app's log writer) and
+when the window attaches to the `gui.Window` (`SetNativePlatform` runs an
+`OnSystemAppearance` hook), and either may open a window. A window that finds
+the choice made opens there. One that finds no choice and no bring-up deciding
+sets `deciding` and is the deciding window: each attempt commits just before the
+attach, once no later step can fail, by setting the choice, and the soft attempt
+then logs the line. So a window opened from the attach, on this thread or
+another, finds the choice made: GL when the first window is on GL, soft with no
+GL attempt when it fell back. The deciding window clears `deciding` on every
+return, so after a failure without a choice the next window decides. A window
+that finds another bring-up deciding, opened from code that bring-up reached
+before its commit or from another thread at the same moment, makes its own
+attempt, GL with the same fallback and its own fallback line, without setting
+the choice or waiting. In principle it could end on another renderer than the
+deciding window, on a machine whose two attempts differ; no machine has shown
+that. Until phase 3's first review the lock was held for every bring-up, and a
+window opened from the hook blocked on it, on the same thread, for good; until
+the second, the first window held it up to its commit, and a window opened from
+the app's log writer on the icon warning blocked the same way. The icon warning
+is now one of the attempt's reports, logged after the choice is made.
+
 ### Opening a window
 
 By the WGL attempt the `HWND` already has a registry entry, an IME association,
@@ -164,22 +200,28 @@ discards the whole attempt and opens a second window, of another class (below).
 2. The GL attempt runs today's sequence. It publishes nothing to the
    `gui.Window` until the binding has succeeded, the last step that can fall
    back:
-   - `applyVSync` reports a refused swap interval to the window and runs before
-     the binding today. It moves after it.
+   - `applyVSync` reports a refused swap interval to the window. It ran before
+     the binding until phase 3, and runs after it since.
    - `enableWindowTransparency` and `applyWindowOpacity` run before WGL and
      report degradations to the window. Each attempt collects its reports, and
      `New` publishes those of the attempt that won.
    - `SetNativePlatform` replays placement requests queued before the backend
      started, so it must run once, on the window that survives. It does:
-     `initGLResources` calls it, after the binding.
+     `attachGLWindow`, the part of `initGLResources` that cannot fail, calls it
+     after the binding and the pipelines, once the choice is committed.
 3. A failed attempt that falls back is torn down with `plat.destroy`: no GL
    resource exists yet. The window was never shown (`showAtStart` is `New`'s
    last step), and its messages went to `DefWindowProc`, because `wndProc`
    routes nothing while `plat.w` is unset.
-4. The soft attempt creates its window and attaches the native platform.
+4. The soft attempt creates its window, commits the choice and attaches the
+   native platform.
 
-`OnInit` runs after `New` returns and is not affected. Step 2's changes land in
-phase 3, with the fallback.
+`OnInit` runs after `New` returns and is not affected. Step 2's changes landed
+in phase 3, with the fallback: `enableWindowTransparency`,
+`reportSoftTransparency`, `applyWindowOpacity`, `setWindowIcon` and the swap
+interval's `applyVSync` take a report function, which `New` points at the
+attempt's `windowReports`. A bad icon is logged once, and a window that fails
+after the swap interval is set reports no vsync finding.
 
 ### Present path
 
@@ -284,13 +326,15 @@ All in package `gui/backend/gl`, which already imports `soft` on Linux.
 | `platform_win32.go`, `events_win32.go`, `wgl_windows.go`, `gpu_error.go` | as now                                      | the six branches; lazy `opengl32`; the Windows hint                                                                                    |
 
 Phase 2 moved four of the six shared names; `softInitError` and
-`newGPUContextErrorNoSoft` move with the fallback in phase 3, because Windows
-does not call them before it and the `unused` linter rejects them under
+`newGPUContextErrorNoSoft` moved with the fallback in phase 3, because Windows
+did not call them before it and the `unused` linter rejects them under
 `GOOS=windows`. `New` keeps the thread lock and the choice in
 `platform_win32.go`, with `openWin32Window` and `finishWin32Window`, the window
 setup both renderers share. The GL attempt (`newGLWin32`) is in
 `wgl_windows.go`, the soft attempt (`newSoftWin32`) in `softpresent_win32.go`:
-`platform_win32.go` was at 798 of its 800 lines.
+`platform_win32.go` was at 798 of its 800 lines. Since phase 3, `New` reads the
+choice and hands it to `openWin32Backend` in `renderer_pick_win32.go`, which
+runs the attempts, the fallback and the report publishing.
 
 `glstring.go` is the precedent: #1319 moved `cGoString` and `glRenderer` there
 for both platforms. **Lazy `opengl32`:** until phase 2 the DLL and four WGL
@@ -361,7 +405,7 @@ workload.
 | ----- | ---------------------------------------------------------------------------------------------------- | -------------- |
 | 1     | A GL bring-up failure is a GPU-context failure: no panic, and the message names the GL. No soft code | landed (#1319) |
 | 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | landed (#1333) |
-| 3     | Automatic fallback when the first window's context or binding fails                                  | planned        |
+| 3     | Automatic fallback when the first window's context or binding fails                                  | landed (#1338) |
 | 4     | Transparent frameless windows on soft                                                                | planned        |
 | 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | planned        |
 
@@ -380,15 +424,20 @@ entry, and updates the table above. The steps, in execution order:
 5. `GOGUI_RENDERER=soft` selects the path; a transparent window is opaque, with
    a report. Add ", or set GOGUI_RENDERER=soft" to the Windows error text.
 6. Give `glrendertest` its Windows selections (see Tests).
-7. **Phase 3.** Add the process renderer, the first-window fallback and its log
-   line to `New`. Move `applyVSync` after the binding, and collect each
-   attempt's degradation reports for `New` to publish.
-8. Run the CI showcase smoke test twice with the variable unset: with no Mesa
-   DLL (the real no-GPU start, which must stay up), and with Mesa (which must
-   stay on GL).
-9. Before phase 3 merges, run the showcase and the benchmark on a machine
-   without a vendor driver. Record in the pull request: the fallback line, a
-   live resize, minimise and restore, and the acceptance figures.
+7. **Phase 3, done in #1338.** Add the process renderer, the first-window
+   fallback and its log line to `New`. Move `applyVSync` after the binding, and
+   collect each attempt's degradation reports for `New` to publish.
+8. **Phase 3, done in #1338.** Run the CI showcase smoke test twice with the
+   variable unset: with no Mesa DLL (the real no-GPU start, which must stay up),
+   and with Mesa (which must stay on GL). The run with Mesa keeps the old test
+   of a start (alive after 10 s, or a zero exit); the run without Mesa must be
+   alive at the 10 s deadline, and an earlier exit fails it whatever its status,
+   with the log and the status printed. Each reads the app's log: the run
+   without Mesa requires the fallback line, the run with Mesa its absence.
+9. **Phase 3, done in #1338.** Before phase 3 merges, run the showcase and the
+   benchmark on a machine without a vendor driver. Record in the pull request:
+   the fallback line, a live resize, minimise and restore, and the acceptance
+   figures.
 10. **Phase 4.** Create a transparent, frameless soft window with
     `WS_EX_LAYERED`, skip `enableWindowTransparency`, and present it with
     `UpdateLayeredWindow` from the memory DC, then flush. Raise alpha 0 to 1 on
@@ -410,11 +459,11 @@ platforms (`gpu_error.go`, `gui/backend/soft/doc.go`,
 selections on Windows, chosen with `-select` (`mesa-gl`, the default, `soft`,
 `system-gl`), each one process per test as before:
 
-| Selection   | Mesa DLL beside the binary | `GOGUI_RENDERER`           | Runs                                               |
-| ----------- | -------------------------- | -------------------------- | -------------------------------------------------- |
-| Mesa GL     | yes                        | `gl`, or unset by the test | today's list, plus the keeps-GL test               |
-| forced soft | yes                        | `soft`                     | the soft present tests                             |
-| system GL   | no                         | unset or `gl`, by the test | phase 1's regression test, then the fallback tests |
+| Selection   | Mesa DLL beside the binary | `GOGUI_RENDERER`           | Runs                                                 |
+| ----------- | -------------------------- | -------------------------- | ---------------------------------------------------- |
+| Mesa GL     | yes                        | `gl`, or unset by the test | today's list, plus the tests that need GL to come up |
+| forced soft | yes                        | `soft`                     | the soft present tests                               |
+| system GL   | no                         | unset or `gl`, by the test | phase 1's regression test, then the fallback tests   |
 
 `glrendertest` reports a skip as a failure, and the regression test skips when
 its retry is refused too, so the system GL selection also shows what the
@@ -446,9 +495,40 @@ runner's own OpenGL does.
   `TestFallbackKeepsQueuedPlacement`, `TestFallbackRunsOnInitOnce`,
   `TestFallbackPublishesWinningReportsOnly`. `TestSoftProcessMakesNoGLAttempt`:
   after a fallback, a second window is on soft and the seam is never called.
+  `TestPipelineFailureDoesNotFallBack` needs a GL that reaches the pipelines, so
+  it runs in the Mesa GL selection; the others run in the system GL one.
+  `TestFallbackPublishesWinningReportsOnly` opens its window in a subprocess and
+  reads the `gui.Debug` reports from its stderr, the only place they go; the GL
+  attempt's transparency and opacity reports come from the
+  `enableWindowTransparencyFunc` and `applyWindowOpacityFunc` seams, so each is
+  one only the discarded attempt can make. The soft setup fails through the
+  `newSoftPresentWin32Func` seam. Each test resets the process renderer, so they
+  also pass in one process.
 - **Phase 3, Mesa GL.** `TestUnsetWithMesaKeepsGL`: the window is on GL and a
-  custom shader's fill is in the read-back pixels.
+  custom shader's fill is in the read-back pixels. Its `New` is the process's
+  first, the automatic attempt with no `opengl32.dll` loaded before it, where
+  phase 2 had a Mesa beside the exe get no context; in a plain `go test` run
+  where an earlier test loaded the DLL it reruns itself alone in a subprocess.
+  With Mesa beside the binary the loaded DLL must be that one and the context
+  Mesa's, and with `GOGUI_REQUIRE_GL` set Mesa must be there; elsewhere it may
+  be the machine's own GL, and a machine whose GL does not come up skips it.
+  Like the other GL drawing tests it is not built with cgo.
   `TestLaterWindowGLFailureReturnsError`: no soft window opens.
+  `TestWindowFromAppearanceHook`: a first window that follows the system
+  appearance opens a second window from its `OnSystemAppearance` hook, inside
+  `New`; the second must open, on the first window's renderer, within 30 s, once
+  on the machine's own outcome (GL in this selection) and once after a forced
+  fallback. On GL, the first window's transparent texture must be a texture in
+  its own context: the hook's window leaves its context current, and the texture
+  was once created after the attach, in that context. `TestWindowFromLogWriter`:
+  a first window with an invalid `IconPNG` logs a warning, and a log writer
+  opens a second window from that write; the second finds the first deciding,
+  opens on GL without choosing, and the first then chooses GL. It checks first,
+  with `GOGUI_RENDERER=gl`, that GL comes up, since a second window that fell
+  back would log from inside the write, where the log package holds its own
+  lock. A New that blocks in either test ends the test binary with the reason
+  and every goroutine's stack, since the stuck goroutine would also keep the
+  test from ending.
 - **Phase 4.** `TestLayeredAlphaFloor` (pure: 0 becomes 1, 2 stays 2);
   `UpdateLayeredWindow` succeeding on a real window.
 
@@ -529,6 +609,12 @@ examples. Session moves are recorded, not fixed (decision 5).
 
 ## Not verified
 
+- The phase 3 fallback on a machine without a GPU driver. Both triggers were
+  forced through seams on the workstation, where the phase 3 tests pass one
+  process per test and all in one process, and the three glrendertest selections
+  pass with Mesa 26.3.0 beside the binary. Not run: the lab VM (step 9) and the
+  CI runner, whose showcase smoke test without Mesa is the first real start on
+  the runner's own OpenGL.
 - The soft path beyond two machines on one Windows version (Windows 11 LTSC
   2024, build 26100): a workstation with an AMD driver, and the lab VM in its
   console session and in an RDP session. On both, the phase 2 tests pass one

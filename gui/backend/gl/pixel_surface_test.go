@@ -62,6 +62,10 @@ func TestPixelSurfaceTextureReuseAndPixels(t *testing.T) {
 // Upload-only baseline. Reading one texel from the uploaded texture forces the
 // transfer to finish without including a draw; results include readback latency.
 func BenchmarkPixelSurfaceUpload(b *testing.B) {
+	// Named, as for the GL tests (newProbeBackend): unset, a software
+	// rasterizer or a refused context opens on the CPU renderer, which has
+	// no GL to upload to (#1265, #1310).
+	b.Setenv("GOGUI_RENDERER", "gl")
 	for _, size := range [][2]int{{1280, 720}, {1920, 1080}, {3840, 2160}} {
 		b.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(b *testing.B) {
 			window := gui.NewWindow(gui.WindowCfg{Width: 64, Height: 64})

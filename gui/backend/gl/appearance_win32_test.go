@@ -9,16 +9,23 @@ import (
 )
 
 // resetWinAppearance clears the shared state and stubs the registry
-// query with the given reading for the rest of the test.
+// query with the given reading for the rest of the test. The cleanup puts
+// back the subscriptions and the cached reading from before the test.
 func resetWinAppearance(t *testing.T, a gui.Appearance, ok bool) {
 	t.Helper()
 	winAppearanceMu.Lock()
+	oldCBs, oldKnown, oldLast := winAppearanceCBs, winAppearanceKnown, winAppearanceLast
 	winAppearanceCBs = make(map[*nativePlatform]func(gui.Appearance))
 	winAppearanceKnown = false
 	winAppearanceMu.Unlock()
 	old := winAppearanceQuery
 	winAppearanceQuery = func() (gui.Appearance, bool) { return a, ok }
-	t.Cleanup(func() { winAppearanceQuery = old })
+	t.Cleanup(func() {
+		winAppearanceQuery = old
+		winAppearanceMu.Lock()
+		winAppearanceCBs, winAppearanceKnown, winAppearanceLast = oldCBs, oldKnown, oldLast
+		winAppearanceMu.Unlock()
+	})
 }
 
 func TestNoteSystemAppearanceFansOutOnFlip(t *testing.T) {
