@@ -24,9 +24,10 @@ LINT_ARGS ?=
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples \
 	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergo-ids ergo-pointeramend ergo-style ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check wayland-selftest
 
-# Desktop builds are cgo-free since the purego GL bindings (#155): the
-# backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
-# Windows. Only macOS (Metal) and the mobile backends need cgo.
+# Desktop builds are cgo-free: backend/gl uses X11/xgb + purego EGL on Linux
+# and Win32 syscalls on Windows (#155), and the Metal backend calls AppKit and
+# Metal through purego with no cgo (#1323). Only the mobile backends and the
+# opt-in `-tags hunspell` / `-tags otoaudio` need cgo.
 # GOOS/GOARCH are explicit: without them a macOS developer running
 # `make release` gets a Mach-O binary in the "linux" tarball.  The
 # purego backend cross-compiles cleanly, so this costs nothing on a
@@ -56,28 +57,15 @@ build-windows:
 	go build -ldflags "$(LDFLAGS) -H windowsgui" \
 	  -o build/showcase-windows-arm64.exe ./examples/showcase/
 
-# Universal binary, so one .dmg serves Apple silicon and Intel.  A bare
-# `go build` here inherits the host arch, which on a macos-latest runner
-# meant the release .dmg would not run on an Intel Mac at all.
-#
-# Each half is a separate cgo build -- the Metal backend is ObjC -- and
-# needs its own -arch in CGO_CFLAGS/CGO_LDFLAGS, because the C compiler
-# does not read GOARCH.  lipo then fuses the two Mach-O files.  macOS
-# only: cross-compiling this from Linux would need the macOS SDK.
+# Apple silicon only. The Metal backend has no cgo (#1323), and
+# darwin/amd64 (Intel) is not supported: an Intel build stops at link
+# (gui/backend/run_darwin_amd64.go). GOARCH is set, so the binary does
+# not depend on the arch of the host, and the build runs on any host.
 build-macos:
 	@mkdir -p build
-	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 \
-	  CGO_CFLAGS="-arch arm64" \
-	  CGO_LDFLAGS="-arch arm64 -Wl,-no_warn_duplicate_libraries" \
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
 	  go build -ldflags "$(LDFLAGS)" \
-	  -o build/showcase-darwin-arm64 ./examples/showcase/
-	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 \
-	  CGO_CFLAGS="-arch x86_64" \
-	  CGO_LDFLAGS="-arch x86_64 -Wl,-no_warn_duplicate_libraries" \
-	  go build -ldflags "$(LDFLAGS)" \
-	  -o build/showcase-darwin-amd64 ./examples/showcase/
-	lipo -create -output build/showcase-macos \
-	  build/showcase-darwin-arm64 build/showcase-darwin-amd64
+	  -o build/showcase-macos ./examples/showcase/
 
 build-wasm:
 	GOOS=js GOARCH=wasm \
@@ -161,10 +149,8 @@ package-windows: build-windows
 	  -name "Go-Gui Showcase" -icon gui/default_icon.png \
 	  build/pkg-windows-arm64/showcase.exe
 
-# No -bundle-deps.  install_name_tool cannot rewrite a load command in a
-# fat Mach-O, so passing it aborts the whole target the moment the
-# binary goes universal.  Nothing is lost: the showcase links only
-# /System and /usr/lib, which every macOS already has.
+# No -bundle-deps: the showcase links only /usr/lib, which every macOS
+# already has. The frameworks load at run time (purego).
 # -dmg writes the UDZO image next to the .app, so no hand-run hdiutil
 # step remains; the image itself is left unsigned (the .app inside
 # carries the signature, which is what Gatekeeper checks).
@@ -272,10 +258,8 @@ lint: $(LINT_BIN)
 # Lint the GOOS-conditional files the default (GOOS=linux or darwin)
 # build cannot see: every //go:build windows/js file was unlinted before
 # CI added these steps. Linting is a type-check, not an execution, so
-# each target analyses fine from any host. On macOS the darwin run is a
-# strict superset of CI's: it also covers the cgo metal files, which CI
-# cannot compile from a Linux runner. Mirror of the CI vet job's lint
-# steps (issue #292).
+# each target analyses fine from any host. Mirror of the CI vet job's
+# lint steps (issue #292).
 lint-cross: lint-windows lint-js $(LINT_BIN)
 	GOOS=darwin $(LINT_BIN) run --allow-parallel-runners ./...
 
@@ -295,7 +279,7 @@ lint-js: $(LINT_BIN)
 # sink, so the oto/ALSA sink (-tags otoaudio) is built explicitly to
 # keep it from bit-rotting. Mirror of the CI vet job's build steps.
 cross-compile:
-	for target in linux/amd64 linux/arm64 windows/amd64 windows/arm64; do \
+	for target in linux/amd64 linux/arm64 windows/amd64 windows/arm64 darwin/arm64; do \
 		echo "==> $$target"; \
 		CGO_ENABLED=0 GOOS=$${target%/*} GOARCH=$${target#*/} \
 		  go build ./...; \

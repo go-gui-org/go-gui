@@ -1,11 +1,6 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
-
-/*
-#include "metal_darwin.h"
-*/
-import "C"
 
 import (
 	"unsafe"
@@ -19,25 +14,26 @@ import (
 
 // metalGlyphBackend implements glyph.DrawBackend using Metal.
 type metalGlyphBackend struct {
-	ctx      C.MetalCtx
+	ctx      *metalCtx
 	textures map[glyph.TextureID]metalTexInfo
 	nextID   glyph.TextureID
 	dpiScale float32
 
-	// quad is the vertex scratch every draw hands to C. cgo moves any
-	// array whose address goes to C onto the heap, so a local verts
-	// array cost one 128-byte allocation per glyph — the largest
-	// source of garbage while a terminal repaints. Main thread only;
-	// each draw overwrites it.
+	// quad is the vertex scratch every draw hands to the renderer. Its
+	// address can reach Metal as a uintptr, which does not keep a stack
+	// local in place, so it lives here, on the heap. Under cgo a local
+	// array cost one 128-byte allocation per glyph, the largest source
+	// of garbage while a terminal repaints. Main thread only; each draw
+	// overwrites it.
 	quad [4][8]float32
 }
 
 type metalTexInfo struct {
-	cID  int32 // C-side texture ID
+	cID  int32 // renderer texture ID
 	w, h int32
 }
 
-func newMetalGlyphBackend(ctx C.MetalCtx,
+func newMetalGlyphBackend(ctx *metalCtx,
 	dpiScale float32) *metalGlyphBackend {
 	return &metalGlyphBackend{
 		ctx:      ctx,
@@ -48,7 +44,7 @@ func newMetalGlyphBackend(ctx C.MetalCtx,
 
 func (gb *metalGlyphBackend) destroy() {
 	for _, t := range gb.textures {
-		C.metalDeleteTexture(gb.ctx, C.int(t.cID))
+		gb.ctx.deleteTexture(int(t.cID))
 	}
 	gb.textures = nil
 }
@@ -60,10 +56,9 @@ func (gb *metalGlyphBackend) NewTexture(
 
 	// A failed upload keeps cID 0; the Draw paths skip it
 	// instead of binding a stale texture (see below).
-	var cID C.int
+	var cID int
 	if width > 0 && height > 0 {
-		cID = C.metalCreateTexture(gb.ctx, C.int(width),
-			C.int(height), nil, C.int(0))
+		cID = gb.ctx.createTexture(width, height, nil)
 	}
 	gb.textures[id] = metalTexInfo{
 		cID: int32(cID), w: int32(width), h: int32(height),
@@ -83,8 +78,7 @@ func (gb *metalGlyphBackend) UpdateTexture(
 		int64(len(data)) < int64(t.w)*int64(t.h)*4 {
 		return
 	}
-	C.metalUpdateTexture(gb.ctx, C.int(t.cID), 0, 0,
-		C.int(t.w), C.int(t.h),
+	gb.ctx.updateTexture(int(t.cID), 0, 0, int(t.w), int(t.h),
 		unsafe.Pointer(&data[0]))
 }
 
@@ -94,7 +88,7 @@ func (gb *metalGlyphBackend) DeleteTexture(
 	if !ok {
 		return
 	}
-	C.metalDeleteTexture(gb.ctx, C.int(t.cID))
+	gb.ctx.deleteTexture(int(t.cID))
 	delete(gb.textures, id)
 }
 
@@ -128,10 +122,9 @@ func (gb *metalGlyphBackend) DrawTexturedQuad(
 		{x0, y1, u0, v1, cr, cg, cb, ca},
 	}
 
-	C.metalSetPipeline(gb.ctx, C.int(pipeGlyphTex))
-	C.metalBindTexture(gb.ctx, C.int(t.cID))
-	C.metalDrawGlyphQuad(gb.ctx,
-		(*C.float)(unsafe.Pointer(&gb.quad[0])))
+	gb.ctx.setPipeline(pipeGlyphTex)
+	gb.ctx.bindTexture(int(t.cID))
+	gb.ctx.drawGlyphQuad(unsafe.Pointer(&gb.quad))
 }
 
 func (gb *metalGlyphBackend) DrawFilledRect(
@@ -151,9 +144,8 @@ func (gb *metalGlyphBackend) DrawFilledRect(
 		{x0, y1, 0, 0, cr, cg, cb, ca},
 	}
 
-	C.metalSetPipeline(gb.ctx, C.int(pipeGlyphColor))
-	C.metalDrawGlyphQuad(gb.ctx,
-		(*C.float)(unsafe.Pointer(&gb.quad[0])))
+	gb.ctx.setPipeline(pipeGlyphColor)
+	gb.ctx.drawGlyphQuad(unsafe.Pointer(&gb.quad))
 }
 
 // DrawFilledRectTransformed implements glyph.TransformedFillBackend: the
@@ -180,9 +172,8 @@ func (gb *metalGlyphBackend) DrawFilledRectTransformed(
 		gb.quad[i] = [8]float32{tx, ty, 0, 0, cr, cg, cb, ca}
 	}
 
-	C.metalSetPipeline(gb.ctx, C.int(pipeGlyphColor))
-	C.metalDrawGlyphQuad(gb.ctx,
-		(*C.float)(unsafe.Pointer(&gb.quad[0])))
+	gb.ctx.setPipeline(pipeGlyphColor)
+	gb.ctx.drawGlyphQuad(unsafe.Pointer(&gb.quad))
 }
 
 // Asserted, not merely implemented: the interface is optional, so a
@@ -228,10 +219,9 @@ func (gb *metalGlyphBackend) DrawTexturedQuadTransformed(
 		}
 	}
 
-	C.metalSetPipeline(gb.ctx, C.int(pipeGlyphTex))
-	C.metalBindTexture(gb.ctx, C.int(t.cID))
-	C.metalDrawGlyphQuad(gb.ctx,
-		(*C.float)(unsafe.Pointer(&gb.quad[0])))
+	gb.ctx.setPipeline(pipeGlyphTex)
+	gb.ctx.bindTexture(int(t.cID))
+	gb.ctx.drawGlyphQuad(unsafe.Pointer(&gb.quad))
 }
 
 func (gb *metalGlyphBackend) DPIScale() float32 {

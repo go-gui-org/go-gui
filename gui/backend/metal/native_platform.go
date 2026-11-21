@@ -1,17 +1,9 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
-/*
-#include <stdlib.h>
-#include "metal_window.h"
-*/
-import "C"
 import (
 	"unicode/utf8"
-	"unsafe"
-
-	"github.com/ebitengine/purego/objc"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/keyring"
@@ -24,7 +16,7 @@ type nativePlatform struct {
 	// keyring.Platform supplies SecretLoad, SecretSave and SecretDelete,
 	// gui's optional secret-store hook (issue #920).
 	keyring.Platform
-	window C.GoGuiNSWindow
+	window *macWindow
 }
 
 // --- URI ---
@@ -81,13 +73,11 @@ func (n *nativePlatform) BookmarkStopAccess(_ []byte)                  {}
 
 func (n *nativePlatform) A11yInit(cb func(action, index int)) {
 	setA11yCallback(a11yToken(n.window), cb)
-	nsWindow := objc.ID(uintptr(C.metalWindowGetNSWindow(n.window)))
-	a11yInit(a11yToken(n.window), nsWindow)
+	a11yInit(a11yToken(n.window), metalWindowNS(n.window))
 }
 
 func (n *nativePlatform) A11ySync(nodes []gui.A11yNode, count, focusedIdx int) {
-	var logW, logH C.int
-	C.metalWindowGetSize(n.window, &logW, &logH)
+	_, logH := metalWindowGetSize(n.window)
 	a11ySyncBridge(a11yToken(n.window), nodes, count, focusedIdx, float32(logH))
 }
 
@@ -102,13 +92,10 @@ func (n *nativePlatform) A11yAnnounce(text string) {
 	a11yAnnounce(truncateA11yText(text, maxA11yAnnounceLen))
 }
 
-// cGoString copies a C string into Go. It is here for the tests:
-// a _test.go file cannot have its own import "C" block.
-func cGoString(p *C.char) string { return C.GoString(p) }
-
-// a11yToken names the tree of window w: its handle, as a number.
-func a11yToken(w C.GoGuiNSWindow) uintptr {
-	return uintptr(unsafe.Pointer(w))
+// a11yToken names the tree of window w: its NSWindow, as a number. It
+// is 0 for nil.
+func a11yToken(w *macWindow) uintptr {
+	return uintptr(metalWindowNS(w))
 }
 
 // maxA11yAnnounceLen caps spoken announcement text at 8 KB, well
@@ -131,22 +118,15 @@ func truncateA11yText(s string, max int) string {
 // --- IME ---
 
 func (n *nativePlatform) IMEStart() {
-	C.metalWindowIMESetActive(n.window, 1)
+	metalWindowIMESetActive(n.window, true)
 }
 
 func (n *nativePlatform) IMEStop() {
-	C.metalWindowIMESetActive(n.window, 0)
+	metalWindowIMESetActive(n.window, false)
 }
 
 func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
-	C.metalWindowIMESetCursorRect(n.window,
-		C.float(x), C.float(y), C.float(w), C.float(h))
-}
-
-// imeRectViewY wraps the y flip firstRectForCharacterRange applies to the
-// IME rect, so a test can check the math without a window.
-func imeRectViewY(y, h, viewH float32) float32 {
-	return float32(C.metalIMERectViewY(C.float(y), C.float(h), C.float(viewH)))
+	metalWindowIMESetCursorRect(n.window, float32(x), float32(y), float32(w), float32(h))
 }
 
 // macOS has no soft keyboard to ask for (issue #770).
@@ -157,23 +137,19 @@ func (n *nativePlatform) HideSoftKeyboard()                           {}
 
 // TitlebarDark pins this window's appearance to dark or light (#1207).
 func (n *nativePlatform) TitlebarDark(dark bool) {
-	d := 0
-	if dark {
-		d = 1
-	}
-	C.metalWindowSetAppearanceDark(n.window, C.int(d))
+	metalWindowSetAppearanceDark(n.window, dark)
 }
 
 func (n *nativePlatform) SetWindowVibrancy(m gui.VibrancyMaterial) {
-	C.metalWindowSetVibrancy(n.window, C.int(m))
+	metalWindowSetVibrancy(n.window, int(m))
 }
 
 func (n *nativePlatform) SetWindowOpacity(opacity float32) {
-	C.metalWindowSetAlpha(n.window, C.float(opacity))
+	metalWindowSetAlpha(n.window, opacity)
 }
 
 func (n *nativePlatform) StartWindowDrag() {
-	C.metalWindowStartDrag(n.window)
+	metalWindowStartDrag(n.window)
 }
 
 // StartWindowResize is a no-op on macOS: a borderless window keeps
@@ -184,52 +160,44 @@ func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 // ShowWindow unhides a hidden window, keys it, and activates the app
 // so a tray "Show Window" item brings the app forward (issue #779).
 func (n *nativePlatform) ShowWindow() {
-	C.metalWindowShow(n.window)
+	metalWindowShow(n.window)
 }
 
 // HideWindow removes the window from the screen without destroying
 // it, so a tray menu can bring it back with ShowWindow.
 func (n *nativePlatform) HideWindow() {
-	C.metalWindowHide(n.window)
+	metalWindowHide(n.window)
 }
 
 // MinimizeWindow sends the window to the Dock.
-func (n *nativePlatform) MinimizeWindow() { C.metalWindowMinimize(n.window) }
+func (n *nativePlatform) MinimizeWindow() { metalWindowMinimize(n.window) }
 
 // MaximizeWindow zooms the window.
-func (n *nativePlatform) MaximizeWindow() { C.metalWindowMaximize(n.window) }
+func (n *nativePlatform) MaximizeWindow() { metalWindowMaximize(n.window) }
 
 // RestoreWindow undoes a minimize, then a zoom.
-func (n *nativePlatform) RestoreWindow() { C.metalWindowRestore(n.window) }
+func (n *nativePlatform) RestoreWindow() { metalWindowRestore(n.window) }
 
 // SetWindowFullscreen enters or leaves a fullscreen Space. It animates;
 // the state arrives through goMetalWindowState when that ends.
 func (n *nativePlatform) SetWindowFullscreen(fullscreen bool) {
-	f := 0
-	if fullscreen {
-		f = 1
-	}
-	C.metalWindowSetFullscreen(n.window, C.int(f))
+	metalWindowSetFullscreen(n.window, fullscreen)
 }
 
 // ResizeWindow sets the content area, in points.
 func (n *nativePlatform) ResizeWindow(width, height int) {
-	C.metalWindowResize(n.window, C.int(width), C.int(height))
+	metalWindowResize(n.window, width, height)
 }
 
 // MoveWindow puts the content area's corner at x, y.
 func (n *nativePlatform) MoveWindow(x, y int) {
-	C.metalWindowMove(n.window, C.int(x), C.int(y))
+	metalWindowMove(n.window, x, y)
 }
 
 // WindowPosition returns the content area's corner in y-down points. A
 // minimized window reports no position.
 func (n *nativePlatform) WindowPosition() (x, y int, ok bool) {
-	var cx, cy C.int
-	if C.metalWindowGetPosition(n.window, &cx, &cy) == 0 {
-		return 0, 0, false
-	}
-	return int(cx), int(cy), true
+	return metalWindowGetPosition(n.window)
 }
 
 // --- Spell check ---
@@ -289,13 +257,10 @@ func (n *nativePlatform) PlaySystemSound(cue gui.SoundCue) { nativehost.PlaySyst
 
 func (n *nativePlatform) SystemSoundAvailable() bool { return nativehost.SystemSoundAvailable() }
 
-// startHidden is the hidden argument of metalWindowCreate: 1 for a
+// startHidden is the hidden argument of metalWindowCreate: true for a
 // window the app hid before the backend started (issue #1270). Such a
 // window is created but not ordered front, and Window.Show brings it up
 // later.
-func startHidden(w *gui.Window) int {
-	if w.IsVisible() {
-		return 0
-	}
-	return 1
+func startHidden(w *gui.Window) bool {
+	return !w.IsVisible()
 }

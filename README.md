@@ -11,8 +11,8 @@
 no JavaScript, HTML, or CSS.**
 
 Write your UI entirely in Go. Your data stays in Go structs. Your UI stays in Go
-code. Render with native GPU acceleration — Metal on macOS, cgo-free OpenGL on
-Linux and Windows, and WebGL/WASM in the browser.
+code. Render with native GPU acceleration — Metal on macOS, OpenGL on Linux and
+Windows (all cgo-free on desktop), and WebGL/WASM in the browser.
 
 https://go-gui.com · [Documentation](https://github.com/go-gui-org/go-gui/wiki)
 · [Showcase](https://go-gui-org.github.io/showcase/) · [llms.txt](llms.txt) (for
@@ -110,8 +110,8 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   own. `VirtualList` handles rows the app builds, including rows whose height is
   known only during layout. `Window.ScrollToIndex` can address a row that does
   not exist yet
-- **GPU-accelerated rendering** — Metal on macOS, OpenGL on Linux and Windows,
-  WebGL/WASM in the browser, and Metal/UIKit on iOS
+- **GPU-accelerated rendering** — cgo-free Metal on macOS, cgo-free OpenGL on
+  Linux and Windows, WebGL/WASM in the browser, and Metal/UIKit on iOS (cgo)
 - **Rich interaction** — keyframe, spring, and tween animation, hero
   transitions, gestures, scrolling, focus management, color filters, box
   shadows, blur effects, canvas paths that draw themselves in
@@ -246,17 +246,18 @@ gui.Button(gui.ButtonCfg{
 
 ## Installation
 
-Requires **Go 1.26+**. A **C toolchain** (CGo) is needed only on **macOS** — the
-Metal backend is Objective-C. Linux and Windows build fully cgo-free
-(`CGO_ENABLED=0 go build ./...`). The desktop backends are native: Metal on
-macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text shaping and
-rasterization are pure Go via go-glyph. On a Wayland desktop, Linux apps use a
-native Wayland backend; `GOGUI_WAYLAND=0` keeps X11 (see `docs/deployment.md`).
-On a Linux machine without a GPU, the X11 and Wayland backends draw on the CPU
-with go-gui's own renderer instead of Mesa's llvmpipe; `GOGUI_RENDERER=gl` or
-`soft` overrides the choice. On native Wayland only `GOGUI_RENDERER=soft` runs
-with no GL library installed: with the variable unset the backend loads EGL to
-make the choice, and an EGL that fails to load falls back to X11.
+Requires **Go 1.26+**. The desktop builds need no C toolchain: macOS, Linux and
+Windows build fully cgo-free (`CGO_ENABLED=0 go build ./...`). macOS needs an
+Apple silicon Mac (darwin/arm64); Intel Macs are not supported. The desktop
+backends are native: Metal on macOS, X11 + EGL on Linux, Win32 + WGL on Windows.
+Text shaping and rasterization are pure Go via go-glyph. On a Wayland desktop,
+Linux apps use a native Wayland backend; `GOGUI_WAYLAND=0` keeps X11 (see
+`docs/deployment.md`). On a Linux machine without a GPU, the X11 and Wayland
+backends draw on the CPU with go-gui's own renderer instead of Mesa's llvmpipe;
+`GOGUI_RENDERER=gl` or `soft` overrides the choice. On native Wayland only
+`GOGUI_RENDERER=soft` runs with no GL library installed: with the variable unset
+the backend loads EGL to make the choice, and an EGL that fails to load falls
+back to X11.
 
 ```bash
 go get github.com/go-gui-org/go-gui
@@ -282,8 +283,8 @@ icon-embedded `.exe`, or menu-installable Linux tarball.
 
 ## Contributing
 
-1. Install **Go 1.26+** (a C toolchain too if developing on macOS; see
-   [Installation](#installation)).
+1. Install **Go 1.26+** (no C toolchain needed for desktop; iOS/Android and
+   optional `-tags hunspell` need one — see [Installation](#installation)).
 2. Clone the repo.
 3. Run tests and lint:
 

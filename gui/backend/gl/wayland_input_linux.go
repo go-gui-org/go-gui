@@ -386,8 +386,8 @@ func (a *wlAxisAcc) addValue120(axis uint32, v int32) {
 
 // wlPreciseLinesPerPoint converts touchpad points to the fractional
 // lines gui.Event carries for a precise scroll. It is the factor the
-// macOS backend applies to AppKit's precise deltas (kPreciseScrollScale
-// in metal_window_darwin.m), so a touchpad moves the same 1.5 px per
+// macOS backend applies to AppKit's precise deltas (preciseScrollScale
+// in gui/backend/metal/poll_darwin.go), so a touchpad moves the same 1.5 px per
 // point of finger travel under the default ScrollMultiplier on both.
 // Raw points made Wayland touchpads scroll 20x the finger (#1110).
 const wlPreciseLinesPerPoint = 0.075

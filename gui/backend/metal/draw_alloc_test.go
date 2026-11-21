@@ -1,4 +1,4 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
@@ -11,12 +11,11 @@ import (
 )
 
 // TestDrawPathsDoNotAllocate guards the per-draw vertex and uniform
-// arrays. Each one is handed to C by pointer; built as a local, cgo
-// makes the compiler move it to the heap, so every glyph and every
-// rect cost one allocation. A terminal repainting a full screen at
-// 60 fps spent about 13 MB/s of its garbage on these alone. The
-// arrays live in per-backend scratch fields instead, so a draw must
-// not allocate at all.
+// arrays. Each one goes to the renderer by pointer. Under cgo, a local
+// array moved to the heap, so every glyph and every rect cost one
+// allocation: a terminal repainting a full screen at 60 fps spent about
+// 13 MB/s of its garbage on these alone. The arrays live in per-backend
+// scratch fields, so a draw must not allocate at all.
 func TestDrawPathsDoNotAllocate(t *testing.T) {
 	ws, gb, free := testNullBackends()
 	defer free()

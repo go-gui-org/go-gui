@@ -1,12 +1,6 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
-
-/*
-#include <stdlib.h>
-#include "metal_darwin.h"
-*/
-import "C"
 
 import (
 	"github.com/go-gui-org/go-gui/gui"
@@ -21,8 +15,8 @@ func (b *windowState) beginRotation(r *gui.RenderCmd) {
 	cx := r.RotCX * s
 	cy := r.RotCY * s
 	gpu.ApplyRotation(&b.mvp, r.RotAngle, cx, cy)
-	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
-	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
+	b.ctx.setPipeline(pipeSolid)
+	b.ctx.setMVP(&b.mvp)
 }
 
 // beginTransform saves the MVP and multiplies in a view transform
@@ -34,8 +28,8 @@ func (b *windowState) beginTransform(r *gui.RenderCmd) {
 		return
 	}
 	gpu.ApplyHomography(&b.mvp, r.Homography, b.dpiScale)
-	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
-	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
+	b.ctx.setPipeline(pipeSolid)
+	b.ctx.setMVP(&b.mvp)
 }
 
 func (b *windowState) endRotation() {
@@ -45,6 +39,6 @@ func (b *windowState) endRotation() {
 	}
 	b.mvp = b.mvpStack[n-1]
 	b.mvpStack = b.mvpStack[:n-1]
-	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
-	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
+	b.ctx.setPipeline(pipeSolid)
+	b.ctx.setMVP(&b.mvp)
 }

@@ -76,12 +76,11 @@ yourself with per-platform flags. With it, one call does both:
 buildapp -platform windows -arch amd64 -build-pkg ./myapp -o dist
 ```
 
-Linux and Windows compile `CGO_ENABLED=0`; macOS keeps the host C toolchain for
-the Metal backend. On Windows `-H windowsgui` is added to the linker flags when
-missing, so no console window opens behind the app; your `-ldflags` are kept.
-`-build-pkg` takes no positional binary — it compiles the package itself.
-Cross-compiling to macOS from another OS still needs the macOS SDK, so build the
-macOS binary on a Mac.
+macOS, Linux and Windows compile `CGO_ENABLED=0`. On Windows `-H windowsgui` is
+added to the linker flags when missing, so no console window opens behind the
+app; your `-ldflags` are kept. `-build-pkg` takes no positional binary — it
+compiles the package itself. The macOS binary cross-compiles from any OS, but
+only for darwin/arm64: Intel Macs are not supported.
 
 ## App manifest
 

@@ -1,19 +1,10 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 // Package metal provides a native Metal backend for go-gui on macOS.
 // Uses NSWindow + CAMetalLayer for windowing and Metal for GPU rendering.
 // System frameworks only — no external library dependencies.
 package metal
 
-/*
-#cgo CFLAGS: -fobjc-arc
-#cgo LDFLAGS: -framework Metal -framework QuartzCore -framework AppKit -framework Foundation
-
-#include <stdlib.h>
-#include "metal_darwin.h"
-#include "metal_window.h"
-*/
-import "C"
 import (
 	"errors"
 	"fmt"
@@ -21,8 +12,8 @@ import (
 	"math"
 	"os"
 	"runtime"
-	"unsafe"
 
+	"github.com/ebitengine/purego/objc"
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -35,42 +26,20 @@ import (
 	"github.com/go-gui-org/go-gui/gui/svg"
 )
 
-// Pipeline IDs matching the C enum.
-const (
-	pipeSolid       = C.PIPE_SOLID
-	pipeShadow      = C.PIPE_SHADOW
-	pipeBlur        = C.PIPE_BLUR
-	pipeGradient    = C.PIPE_GRADIENT
-	pipeImageClip   = C.PIPE_IMAGE_CLIP
-	pipeFilterBlurH = C.PIPE_FILTER_BLUR_H
-	pipeFilterBlurV = C.PIPE_FILTER_BLUR_V
-	pipeFilterTex   = C.PIPE_FILTER_TEX
-	pipeFilterColor = C.PIPE_FILTER_COLOR
-	pipeGlyphTex    = C.PIPE_GLYPH_TEX
-	pipeGlyphColor  = C.PIPE_GLYPH_COLOR
-	pipeStencil     = C.PIPE_STENCIL
-)
-
 const maxCustomPipelines = 32
 
 // idleWaitMs returns the poll timeout for one event-loop iteration.
 // -1 blocks until an event ([NSDate distantFuture]); 0 drains without
 // waiting. The loop blocks when the previous frame rendered nothing
 // (idle) — every path that dirties state wakes it: QueueCommand and
-// the animation loop via metalPostEmptyEvent, App.OpenWindow via the
+// the animation loop via wakeUp, App.OpenWindow via the
 // app wake fn, and the focus/file-drop callbacks in callbacks.go
 // (issue #405).
-func idleWaitMs(rendered bool) C.int {
+func idleWaitMs(rendered bool) int {
 	if !rendered {
 		return -1
 	}
 	return 0
-}
-
-// wakeUp posts an empty event so the idle poll returns and the loop
-// can repaint. Shared by the per-window and app-level wake fns.
-func wakeUp() {
-	C.metalPostEmptyEvent()
 }
 
 // Backend is the Metal backend for go-gui (single-window mode).
@@ -89,7 +58,7 @@ func New(w *gui.Window) (*Backend, error) {
 
 	// Activate the app before creating any windows so the
 	// window is visible on macOS for CLI-launched binaries.
-	C.metalAppInit()
+	metalAppInit()
 
 	ws, err := createWindowState(w)
 	if err != nil {
@@ -114,7 +83,7 @@ func (b *Backend) Run(w *gui.Window) {
 	iconSet := false
 
 	// Activate now that windows exist on screen.
-	C.metalAppFinishLaunch()
+	metalAppFinishLaunch()
 
 	w.SetWakeMainFn(wakeUp)
 
@@ -124,8 +93,8 @@ func (b *Backend) Run(w *gui.Window) {
 	for running {
 		// Idle: block until an event wakes us instead of polling.
 		// Every path that dirties state wakes the loop (issue #405).
-		ev := C.metalPollEvent(C.int(idleWaitMs(rendered)))
-		for ev != 0 {
+		ev := metalPollEvent(idleWaitMs(rendered))
+		for ev {
 			mapped, cont := mapMetalEvent()
 			*evt = mapped
 			if !cont {
@@ -140,7 +109,7 @@ func (b *Backend) Run(w *gui.Window) {
 			if evt.Type != gui.EventInvalid {
 				w.EventFn(evt)
 			}
-			ev = C.metalPollEvent(0) // drain remaining
+			ev = metalPollEvent(0) // drain remaining
 		}
 		if !running {
 			break
@@ -217,7 +186,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 
 	// Activate the app before creating any windows so
 	// windows are visible on macOS for CLI-launched binaries.
-	C.metalAppInit()
+	metalAppInit()
 
 	states := make(map[uint32]*windowState)
 
@@ -227,7 +196,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		if err != nil {
 			return fmt.Errorf("metal: create window: %w", err)
 		}
-		winID := uint32(C.metalWindowGetID(ws.window))
+		winID := metalWindowGetID(ws.window)
 		ws.setAttachedWindow(w)
 		states[winID] = ws
 		app.Register(winID, w)
@@ -238,7 +207,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	}
 
 	defer func() {
-		C.metalStopFramePump()
+		metalStopFramePump()
 		for _, ws := range states {
 			ws.destroy()
 		}
@@ -256,7 +225,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	}
 
 	// Activate now that windows exist on screen.
-	C.metalAppFinishLaunch()
+	metalAppFinishLaunch()
 
 	running := true
 	rendered := true
@@ -275,7 +244,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 					log.Printf("metal: open window: %v", err)
 					continue
 				}
-				winID := uint32(C.metalWindowGetID(ws.window))
+				winID := metalWindowGetID(ws.window)
 				ws.setAttachedWindow(w)
 				states[winID] = ws
 				app.Register(winID, w)
@@ -291,9 +260,9 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 
 		// Poll events. Idle: block until an event wakes us instead of
 		// polling (issue #405).
-		ev := C.metalPollEvent(C.int(idleWaitMs(rendered)))
-		for ev != 0 {
-			wid := uint32(C.metalEventWindowID())
+		ev := metalPollEvent(idleWaitMs(rendered))
+		for ev {
+			wid := pollState.ev.windowID
 			mapped, cont := mapMetalEvent()
 			*evt = mapped
 			evt.WindowID = wid
@@ -305,14 +274,14 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 				break
 			}
 			if evt.Type == gui.EventInvalid {
-				ev = C.metalPollEvent(0)
+				ev = metalPollEvent(0)
 				continue
 			}
 
 			if w := app.Window(wid); w != nil {
 				w.EventFn(evt)
 			}
-			ev = C.metalPollEvent(0) // drain remaining
+			ev = metalPollEvent(0) // drain remaining
 		}
 		if !running {
 			break
@@ -424,11 +393,10 @@ func cursorSelector(mc gui.MouseCursor) string {
 	}
 }
 
-// cursorCStrings caches each NSCursor selector name as a C string,
-// allocated once at startup, so the per-frame cursor update avoids a
-// C.CString alloc+free on the hot path. The strings live for the
-// process lifetime and are intentionally never freed.
-var cursorCStrings = func() map[gui.MouseCursor]*C.char {
+// cursorSels caches the NSCursor selector of each cursor, made once at
+// startup, so the per-frame cursor update does not take the runtime lock
+// of objc.RegisterName.
+var cursorSelectors = func() map[gui.MouseCursor]objc.SEL {
 	cursors := []gui.MouseCursor{
 		gui.CursorDefault, gui.CursorArrow, gui.CursorIBeam,
 		gui.CursorCrosshair, gui.CursorPointingHand,
@@ -437,40 +405,37 @@ var cursorCStrings = func() map[gui.MouseCursor]*C.char {
 		gui.CursorResizeAll, gui.CursorNotAllowed,
 		gui.CursorGrab, gui.CursorGrabbing,
 	}
-	m := make(map[gui.MouseCursor]*C.char, len(cursors))
+	m := make(map[gui.MouseCursor]objc.SEL, len(cursors))
 	for _, c := range cursors {
 		if sel := cursorSelector(c); sel != "" {
-			m[c] = C.CString(sel)
+			m[c] = objc.RegisterName(sel)
 		}
 	}
 	return m
 }()
 
 // updateCursor sets the native cursor for the window from a cached
-// C string. No-op when the cursor has no NSCursor mapping.
+// selector. No-op when the cursor has no NSCursor mapping.
 func (ws *windowState) updateCursor(mc gui.MouseCursor) {
-	cstr := cursorCStrings[mc]
-	if cstr == nil {
+	sel := cursorSelectors[mc]
+	if sel == 0 {
 		return
 	}
-	C.metalWindowSetCursor(ws.window, cstr,
-		C.metalEventMouseX(),
-		C.metalEventMouseY())
+	metalWindowSetCursor(ws.window, sel, pollState.ev.mouseX, pollState.ev.mouseY)
 }
 
 // windowState holds per-window backend resources for
 // multi-window mode.
 type windowState struct {
-	ctx      C.MetalCtx
-	window   C.GoGuiNSWindow
+	ctx      *metalCtx
+	window   *macWindow
 	textSys  *glyph.TextSystem
 	dpiScale float32
 	physW    int32
 	physH    int32
 	mvp      [16]float32
 
-	// Per-draw scratch handed to C by pointer: see drawQuad. Locals
-	// would escape to the heap on every draw.
+	// Per-draw scratch handed to the renderer by pointer: see drawQuad.
 	quad [4]vertex
 	tm   [16]float32
 	tm2  [16]float32
@@ -493,7 +458,7 @@ type windowState struct {
 	filterBlur        float32
 	filterLayer       int
 	filterColorMatrix *[16]float32
-	customCache       texcache.Cache[uint64, C.int]
+	customCache       texcache.Cache[uint64, int32]
 	shaderHashes      gui.ShaderHashCache // memoizes ShaderHash per draw
 	iconFontPath      string
 
@@ -508,7 +473,7 @@ type windowState struct {
 func (ws *windowState) setAttachedWindow(w *gui.Window) {
 	ws.attachedWindow = w
 	gui.SetWindowRendersShaders(w, true)
-	id := uint32(C.metalWindowGetID(ws.window))
+	id := metalWindowGetID(ws.window)
 	registerWindow(id, ws)
 }
 
@@ -527,22 +492,15 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		height = 480
 	}
 
-	fixed := 0
-	if cfg.FixedSize {
-		fixed = 1
-	}
-
-	cTitle := C.CString(title)
-	defer C.free(unsafe.Pointer(cTitle))
-	win := C.metalWindowCreate(cTitle, C.int(width), C.int(height),
-		C.int(fixed), C.int(cfg.Decorations), C.int(startHidden(w)))
+	win := metalWindowCreate(title, int(width), int(height),
+		cfg.FixedSize, int(cfg.Decorations), startHidden(w))
 	if win == nil {
 		return nil, errors.New("metalWindowCreate failed")
 	}
 
 	// Before the first frame, so no opaque frame is composited first.
 	if cfg.Transparent {
-		C.metalWindowSetTransparent(win, 1)
+		metalWindowSetTransparent(win, true)
 	}
 
 	// CAMetalLayer.displaySyncEnabled = NO was tried and measured (issue
@@ -558,16 +516,15 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 	// attached (in OnInit, or before backend.Run). Same reason as
 	// above: apply it before the first frame is composited.
 	if o := w.WindowOpacity(); o < 1 {
-		C.metalWindowSetAlpha(win, C.float(o))
+		metalWindowSetAlpha(win, o)
 	}
 
 	// Cocoa content sizes are points, the same unit WindowCfg uses, so
 	// the limits go across unscaled. Skipped entirely when nothing is
 	// constrained, leaving the window's AppKit defaults untouched.
 	if limits := gui.WindowSizeLimits(cfg); !limits.None() {
-		C.metalWindowSetSizeLimits(win,
-			C.int(limits.MinW), C.int(limits.MinH),
-			C.int(limits.MaxW), C.int(limits.MaxH))
+		metalWindowSetSizeLimits(win, limits.MinW, limits.MinH,
+			limits.MaxW, limits.MaxH)
 	}
 
 	iconPNG := cfg.IconPNG
@@ -575,29 +532,24 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		iconPNG = gui.DefaultIconPNG
 	}
 
-	layer := C.metalWindowGetLayer(win)
-	if layer == nil {
-		C.metalWindowDestroy(win)
-		return nil, errors.New("metalWindowGetLayer failed")
+	if win.layer == 0 {
+		metalWindowDestroy(win)
+		return nil, errors.New("metal: window has no CAMetalLayer")
 	}
 
 	// Shader source is owned by Go so the build cache tracks edits to
 	// it; C copies it during the call. See gui/backend/internal/msl.
-	cMSL := C.CString(msl.Source)
-	ctx := C.metalCtxCreate(layer, cMSL)
-	C.free(unsafe.Pointer(cMSL))
+	ctx := newMetalCtx(win.layer, msl.Source)
 	if ctx == nil {
-		C.metalWindowDestroy(win)
-		return nil, errors.New("metalCtxCreate failed")
+		metalWindowDestroy(win)
+		return nil, errors.New("metal: renderer setup failed")
 	}
 
 	// Compute DPI scale from framebuffer vs logical size.
-	var fbW, fbH C.int
-	C.metalWindowGetFramebufferSize(win, C.float(scaleOverride()), &fbW, &fbH)
-	var logW, logH C.int
-	C.metalWindowGetSize(win, &logW, &logH)
+	fbW, fbH := metalWindowGetFramebufferSize(win, scaleOverride())
+	logW, _ := metalWindowGetSize(win)
 	dpiScale := drawableScale(int32(fbW), int32(logW), 1)
-	C.metalResize(ctx, fbW, fbH)
+	ctx.resize(fbW, fbH)
 
 	ws := &windowState{
 		ctx:      ctx,
@@ -606,13 +558,13 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		physW:    int32(fbW),
 		physH:    int32(fbH),
 		textures: newMetalTexCacheLRU(ctx, 128, cfg.MaxTextureBytes),
-		customCache: texcache.New[uint64, C.int](
+		customCache: texcache.New[uint64, int32](
 			maxCustomPipelines,
-			func(idx C.int) {
+			func(idx int32) {
 				// A cached compile failure holds a negative
 				// idx with no pipeline behind it.
 				if idx >= 0 {
-					C.metalDeleteCustomPipeline(ctx, idx)
+					ctx.deleteCustomPipeline(idx)
 				}
 			},
 		),
@@ -655,30 +607,20 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 func injectInterfaces(w *gui.Window, ws *windowState) {
 	w.SetTextMeasurer(&textMeasurer{textSys: ws.textSys})
 	w.SetSvgParser(svg.New())
-	w.SetClipboardFn(func(text string) {
-		cstr := C.CString(text)
-		defer C.free(unsafe.Pointer(cstr))
-		C.metalClipboardSet(cstr)
-	})
+	w.SetClipboardFn(metalClipboardSet)
 	w.SetClipboardGetFn(func() string {
-		cstr := C.metalClipboardGet()
-		if cstr == nil {
-			return ""
-		}
-		defer C.free(unsafe.Pointer(cstr))
-		return C.GoString(cstr)
+		text, _ := metalClipboardGet()
+		return text
 	})
 	w.SetTitleFn(func(t string) {
-		cstr := C.CString(t)
-		defer C.free(unsafe.Pointer(cstr))
-		C.metalWindowSetTitle(ws.window, cstr)
+		metalWindowSetTitle(ws.window, t)
 	})
 	w.SetNativePlatform(&nativePlatform{window: ws.window})
 }
 
 func (ws *windowState) destroy() {
 	if ws.window != nil {
-		unregisterWindow(uint32(C.metalWindowGetID(ws.window)))
+		unregisterWindow(metalWindowGetID(ws.window))
 	}
 	ws.textures.DestroyAll()
 	ws.surfaces.clear()
@@ -693,28 +635,23 @@ func (ws *windowState) destroy() {
 		_ = os.Remove(ws.iconFontPath)
 	}
 	if ws.ctx != nil {
-		C.metalCtxDestroy(ws.ctx)
+		ws.ctx.destroy()
 		ws.ctx = nil
 	}
 	if ws.window != nil {
-		C.metalWindowDestroy(ws.window)
+		metalWindowDestroy(ws.window)
 		ws.window = nil
 	}
 }
 
 func (ws *windowState) renderFrame(w *gui.Window) {
 	bg := w.FrameBackground()
-	rc := C.metalBeginFrame(ws.ctx,
-		C.float(float32(bg.R)/255.0),
-		C.float(float32(bg.G)/255.0),
-		C.float(float32(bg.B)/255.0),
-		C.float(float32(bg.A)/255.0),
-	)
-	if rc != 0 {
+	if !ws.ctx.beginFrame(float32(bg.R)/255, float32(bg.G)/255,
+		float32(bg.B)/255, float32(bg.A)/255) {
 		return
 	}
-	C.metalSetPipeline(ws.ctx, C.int(pipeSolid))
-	C.metalSetMVP(ws.ctx, (*C.float)(&ws.mvp[0]))
+	ws.ctx.setPipeline(pipeSolid)
+	ws.ctx.setMVP(&ws.mvp)
 
 	w.Lock()
 	w.BackingScale = ws.dpiScale
@@ -723,14 +660,12 @@ func (ws *windowState) renderFrame(w *gui.Window) {
 
 	ws.useGlyphPipeline()
 	ws.textSys.Commit()
-	C.metalEndFrame(ws.ctx)
+	ws.ctx.endFrame()
 }
 
 func (ws *windowState) handleResize() {
-	var fbW, fbH C.int
-	C.metalWindowGetFramebufferSize(ws.window, C.float(scaleOverride()), &fbW, &fbH)
-	var logW, logH C.int
-	C.metalWindowGetSize(ws.window, &logW, &logH)
+	fbW, fbH := metalWindowGetFramebufferSize(ws.window, scaleOverride())
+	logW, _ := metalWindowGetSize(ws.window)
 
 	// Guard against zero dimensions — can occur during
 	// teardown or if the window is occluded before its first
@@ -742,7 +677,7 @@ func (ws *windowState) handleResize() {
 	ws.physW = int32(fbW)
 	ws.physH = int32(fbH)
 	ws.applyDPIScale(drawableScale(int32(fbW), int32(logW), ws.dpiScale))
-	C.metalResize(ws.ctx, fbW, fbH)
+	ws.ctx.resize(fbW, fbH)
 	ws.updateProjection()
 }
 
@@ -786,8 +721,8 @@ func (ws *windowState) updateProjection() {
 }
 
 func (ws *windowState) useGlyphPipeline() {
-	C.metalSetPipeline(ws.ctx, C.int(pipeGlyphTex))
-	C.metalSetMVP(ws.ctx, (*C.float)(&ws.mvp[0]))
+	ws.ctx.setPipeline(pipeGlyphTex)
+	ws.ctx.setMVP(&ws.mvp)
 }
 
 // Destroy releases all backend resources.
@@ -795,6 +730,6 @@ func (b *Backend) Destroy() {
 	// App-global, so it belongs here rather than in windowState.destroy:
 	// leaving a live timer behind would keep pumping frames for windows
 	// that no longer exist (and, in tests, across packages' runs).
-	C.metalStopFramePump()
+	metalStopFramePump()
 	b.destroy()
 }

@@ -1,10 +1,12 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
 import (
 	"math"
 	"testing"
+
+	"github.com/ebitengine/purego/objc"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -246,11 +248,11 @@ func TestCursorSelector_Unknown(t *testing.T) {
 	}
 }
 
-// The cursorCStrings cache hand-lists the cursors it allocates. Guard
+// The cursorSelectors cache hand-lists the cursors it allocates. Guard
 // against drift from cursorSelector: every cursor with a selector must
-// have a cached C string whose value matches, or updateCursor silently
+// have a cached selector whose name matches, or updateCursor silently
 // no-ops for that cursor.
-func TestCursorCStrings_MatchSelector(t *testing.T) {
+func TestCursorSelectors_MatchSelector(t *testing.T) {
 	cursors := []gui.MouseCursor{
 		gui.CursorDefault, gui.CursorArrow, gui.CursorIBeam,
 		gui.CursorCrosshair, gui.CursorPointingHand,
@@ -264,14 +266,14 @@ func TestCursorCStrings_MatchSelector(t *testing.T) {
 		if sel == "" {
 			continue
 		}
-		cstr, ok := cursorCStrings[mc]
-		if !ok || cstr == nil {
-			t.Errorf("cursor %v: selector %q but no cached C string",
+		cached, ok := cursorSelectors[mc]
+		if !ok || cached == 0 {
+			t.Errorf("cursor %v: selector %q but no cached selector",
 				mc, sel)
 			continue
 		}
-		if got := cGoString(cstr); got != sel {
-			t.Errorf("cursor %v: cached %q, want %q", mc, got, sel)
+		if want := objc.RegisterName(sel); cached != want {
+			t.Errorf("cursor %v: cached selector is not %q", mc, sel)
 		}
 	}
 }

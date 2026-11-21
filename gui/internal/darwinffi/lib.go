@@ -17,6 +17,8 @@ const (
 	PathCoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
 	PathFoundation     = "/System/Library/Frameworks/Foundation.framework/Foundation"
 	PathAppKit         = "/System/Library/Frameworks/AppKit.framework/AppKit"
+	PathMetal          = "/System/Library/Frameworks/Metal.framework/Metal"
+	PathQuartzCore     = "/System/Library/Frameworks/QuartzCore.framework/QuartzCore"
 	PathSecurity       = "/System/Library/Frameworks/Security.framework/Security"
 	PathPDFKit         = "/System/Library/Frameworks/PDFKit.framework/PDFKit"
 	PathUTI            = "/System/Library/Frameworks/UniformTypeIdentifiers.framework/UniformTypeIdentifiers"

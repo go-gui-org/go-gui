@@ -67,10 +67,10 @@ jobs:
         working-directory: go-gui
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
-      # Builds arm64 and amd64, fuses them with lipo, bundles the result
-      # as Go-Gui Showcase.app and writes an ad-hoc signed .dmg through
-      # `buildapp -dmg`.  One download serves Apple silicon and Intel.
-      - name: Package universal .dmg
+      # Builds for Apple silicon (darwin/arm64, no cgo), bundles the
+      # result as Go-Gui Showcase.app and writes an ad-hoc signed .dmg
+      # through `buildapp -dmg`. Intel Macs are not supported (#1323).
+      - name: Package .dmg
         working-directory: go-gui
         run: make package-macos
 

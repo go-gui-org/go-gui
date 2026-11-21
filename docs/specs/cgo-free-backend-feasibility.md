@@ -1,12 +1,12 @@
 # CGo-free desktop backend — feasibility assessment
 
-Assessment of [issue #137](https://github.com/go-gui-org/go-gui/issues/137).
-Date: 2026-07-31. Status: **Phase 1 implemented**, and the `gui/audio` follow-up
-(§ Audio outcome) closed the remaining Linux CGo dependency. **Phase 2 (macOS)
-closed 2026-08-12 by decision: not pursued — macOS stays cgo.** See § Phase 2
-for the rationale and the conditions that can reopen it. **Reopened and decided
-2026-11-20 (#1304): port the macOS backend to purego, darwin/arm64 only.** See §
-Investigation (2026-11, #1304).
+Status: **done** — desktop is cgo-free. Phase 1 (Linux + Windows, 2026-07-31)
+and the `gui/audio` follow-up closed the Linux CGo dependency. Phase 2 (macOS)
+was closed 2026-08-12 by decision (not pursued — macOS stays cgo), **reopened
+and decided 2026-11-20 (#1304), and the port is done (#1323): the macOS backend
+has no cgo.** What follows is the historical assessment, kept for the rationale
+and the rejected approaches. For the current state see `docs/architecture.md`
+and `docs/deployment.md`.
 
 ## Phase 1 outcome (2026-07-31)
 
@@ -566,9 +566,49 @@ last service moves. Each step is one PR.
    change while there was no focus, so a focus that came back to the same node
    was not posted. A node that named itself, or a later node, as its parent made
    a cycle that VoiceOver walks for ever.
-5. Window, events and IME (`metal_window_darwin.m`).
-6. Renderer (`metal_darwin.m`), with quad batching. Then remove cgo from
-   darwin/arm64, and give darwin/amd64 the link-time error.
+5. Window, events and IME. **Done in #1321.** `metal_window_darwin.m` and
+   `metal_window.h` are gone. The four classes keep their names (`GUIWindow`,
+   `MetalContentView`, `GUIApplication`, `GoGuiAppDelegate`), and their state is
+   in Go. The `dispatch_async` blocks are `dispatch_async_f` with one purego
+   callback each, the `NSTimer` blocks are target/action timers, and the
+   run-loop observer of the frame pump is a purego callback. The event path must
+   not allocate, and `objc.Send` allocates 4 to 9 times for each call. A mouse
+   event reads about ten values, some of them doubles and an NSPoint, which
+   `purego.SyscallN` cannot return. `darwinffi.FCaller` is a small arm64
+   trampoline that gives D0-D3 back, through `runtime.cgocall` as purego does.
+   `TestStoreEventDoesNotAllocate` and `TestWakeUpDoesNotAllocate` hold the
+   event path and the per-frame wake at 0 allocations. darwin/amd64 keeps
+   building until step 6, with `objc.Send` in place of the trampoline. The C
+   test hooks are Go functions in a test file now. The port found one purego
+   limit: on darwin/arm64, `objc.Send` puts each stack argument (an integer
+   argument after the eighth) in an 8-byte slot, but Apple packs stack arguments
+   by size. `keyEventWithType:…isARepeat:keyCode:` then gets key code 0. No
+   production send has such arguments.
+6. Renderer (`metal_darwin.m`), with quad batching. **Done in #1323.**
+   `metal_darwin.m` and `metal_darwin.h` are gone, and the renderer is
+   `renderer_darwin.go`. The backend has no cgo, and the darwin files build for
+   arm64 only. darwin/amd64 stops at link with
+   `macOS_requires_arm64__Intel_Macs_are_not_supported`
+   (`gui/backend/run_darwin_amd64.go`), and `TestDarwinArm64BuildsWithoutCgo`
+   and `TestDarwinAmd64LinkFails` hold both. `make cross-compile` and CI now
+   build darwin/arm64 with `CGO_ENABLED=0`, and the release `.dmg` is arm64
+   only. Two changes keep the draw path at today's cost or less. First, quads
+   are batched: `drawQuad` copies the vertices into a shared vertex buffer (4
+   MiB chunks, three frames in a ring) and sends nothing. A run of quads goes in
+   one `drawIndexedPrimitives` call when the encoder state must change. Second,
+   the setters cache the bound state. The draw code sets the pipeline and the
+   MVP before each draw, and a setter whose value is bound sends nothing and
+   keeps the batch open. A frame of 20,000 solid quads encodes in about 400 µs
+   with 0 allocations (`BenchmarkBatchedQuads`, CPU only). The figure includes
+   `gpu.BuildQuad` for each quad, so it is not the same shape as the 164 µs of
+   the spike. The cgo backend took 1230 µs for the same count.
+   `TestBatchFlushesOnStateChange` reads back a frame to prove that a state
+   change draws the open batch first, and `TestBatchSpansLimits` crosses the
+   batch and buffer limits. The port found one fault that the cgo build hid:
+   with no cgo, nothing links AppKit at load time, so a class lookup before
+   `loadObjc` gets nil. `GoGuiA11yElement` then had no superclass and stopped
+   the app on its first message. Each lookup that can come first now calls
+   `loadObjc`.
 
 ### Out of scope
 
@@ -595,9 +635,10 @@ env CGO_ENABLED=0 GOOS=windows go build ./gui/...
 grep -rhoE '\bgo?gl\.[A-Z][A-Za-z0-9_]*\(' gui/backend/gl/ --include='*.go' | sort -u | wc -l
 grep -rhoE '\bgo?gl\.[A-Z][A-Z0-9_]+\b'    gui/backend/gl/ --include='*.go' | sort -u | wc -l
 
-# 4. macOS native surface
-grep -rl 'import "C"' --include='*.go' gui/backend/metal/ | wc -l   # 9
-find gui -name '*.m' -o -name '*.h' | xargs wc -l | tail -1         # 5924
+# 4. macOS native surface: none since #1323 (9 cgo files and 5924
+#    lines of .m/.h before the port). The .m/.h left are iOS and Android.
+grep -rl 'import "C"' --include='*.go' gui/backend/metal/ | wc -l   # 0
+env CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build ./...           # green
 ```
 
 Acceptance test if Phase 1 is approved: both `CGO_ENABLED=0` builds above
