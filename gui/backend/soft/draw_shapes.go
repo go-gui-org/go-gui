@@ -6,6 +6,7 @@ import (
 	"golang.org/x/image/vector"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 )
 
 // maxDeviceCoord bounds every coordinate and size that reaches
@@ -36,7 +37,7 @@ func (r *renderer) drawRect(cmd *gui.RenderCmd) {
 		return
 	}
 	s := r.scale
-	x, y, w, h := cmd.X*s, cmd.Y*s, cmd.W*s, cmd.H*s
+	x, y, w, h := gpu.SnapRect(cmd.X, cmd.Y, cmd.W, cmd.H, s)
 	// Reject before region(): a negative box would canonicalize to a
 	// non-empty rect, and NaN, Inf or a huge value relies on an
 	// arch-specific int conversion.
@@ -60,8 +61,8 @@ func (r *renderer) drawStrokeRect(cmd *gui.RenderCmd) {
 		return
 	}
 	s := r.scale
-	th := cmd.Thickness * s
-	x, y, w, h := cmd.X*s, cmd.Y*s, cmd.W*s, cmd.H*s
+	th := gpu.SnapThickness(cmd.Thickness, s)
+	x, y, w, h := gpu.SnapRect(cmd.X, cmd.Y, cmd.W, cmd.H, s)
 	if !validBox(x, y, w, h) {
 		return
 	}

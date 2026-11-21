@@ -128,6 +128,19 @@ and this project adheres to
 
 ### Fixed
 
+- **Borders and fills land on whole device pixels (#1334).** A rect or a 1px
+  border placed at a fractional position — a button centred in a row whose
+  leftover height is odd sits at y = n+0.5 — drew its top and bottom edges as
+  two faint rows that never reached the border color, while its sides stayed
+  crisp. At 125% or 150% scale every edge was fractional. Every backend now
+  rounds the device edges of a rect, a gradient fill and a gradient border to
+  whole pixels, and a stroke's device thickness to whole pixels (at least one),
+  so a 1px border is one full-strength row on every side at any position and
+  scale. Edges round, not sizes, so boxes that share an edge still meet. Layout
+  geometry, hit testing and the render commands do not change. Two visible
+  effects: a progress bar's fill grows in whole-pixel steps, and on the web
+  backend a stroke now lies inside its box, as it already did on the GPU and
+  soft backends, instead of straddling its edge.
 - **Closing one window on X11 no longer freezes the others (#1284).** EGL gives
   every window of a multi-window app the same display, and closing a window
   terminated it. Each surviving window then failed every swap with

@@ -109,17 +109,19 @@ func (b *Backend) drawRect(r *gui.RenderCmd) {
 		return
 	}
 	s := b.DPIScale
+	x, y, w, h := gpu.SnapRect(r.X, r.Y, r.W, r.H, s)
 	b.SetPipeline(pipeSolid)
-	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
+	verts := gpu.BuildQuad(x, y, w, h,
 		r.Color, r.Radius*s, 0)
 	C.metalDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
 }
 
 func (b *Backend) drawStrokeRect(r *gui.RenderCmd) {
 	s := b.DPIScale
+	x, y, w, h := gpu.SnapRect(r.X, r.Y, r.W, r.H, s)
 	b.SetPipeline(pipeSolid)
-	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
-		r.Color, r.Radius*s, r.Thickness*s)
+	verts := gpu.BuildQuad(x, y, w, h,
+		r.Color, r.Radius*s, gpu.SnapThickness(r.Thickness, s))
 	C.metalDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
 }
 
@@ -222,10 +224,7 @@ func (b *Backend) drawGradient(w *gui.Window, r *gui.RenderCmd) {
 		return
 	}
 	s := b.DPIScale
-	x := r.X * s
-	y := r.Y * s
-	width := r.W * s
-	h := r.H * s
+	x, y, width, h := gpu.SnapRect(r.X, r.Y, r.W, r.H, s)
 	rad := r.Radius * s
 
 	stops := gui.NormalizeGradientStopsInto(
@@ -256,7 +255,8 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 	b.SetPipeline(pipeSolid)
 	for i := range 4 {
 		rc := &rects[i]
-		verts := gpu.BuildQuad(rc.X*s, rc.Y*s, rc.W*s, rc.H*s,
+		bx, by, bw, bh := gpu.SnapRect(rc.X, rc.Y, rc.W, rc.H, s)
+		verts := gpu.BuildQuad(bx, by, bw, bh,
 			rc.Color, 0, 0)
 		C.metalDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
 	}

@@ -8,6 +8,7 @@ import (
 	"golang.org/x/image/vector"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 )
 
 // gradientSrc samples a gui.GradientDef at absolute device coordinates.
@@ -66,7 +67,7 @@ func (r *renderer) drawGradient(cmd *gui.RenderCmd) {
 		return
 	}
 	s := r.scale
-	x, y, w, h := cmd.X*s, cmd.Y*s, cmd.W*s, cmd.H*s
+	x, y, w, h := gpu.SnapRect(cmd.X, cmd.Y, cmd.W, cmd.H, s)
 	rad := cmd.Radius * s
 
 	src := &r.gradSrc
@@ -105,8 +106,7 @@ func (r *renderer) drawGradientBorder(cmd *gui.RenderCmd) {
 		if rc.W <= 0 || rc.H <= 0 || rc.Color.A == 0 {
 			continue
 		}
-		x, y := rc.X*s, rc.Y*s
-		w, h := rc.W*s, rc.H*s
+		x, y, w, h := gpu.SnapRect(rc.X, rc.Y, rc.W, rc.H, s)
 		region := r.buf.region(x, y, w, h)
 		r.buf.fillPath(region, r.buf.solid(rc.Color),
 			func(z *vector.Rasterizer, ox, oy float32) {
