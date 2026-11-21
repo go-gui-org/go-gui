@@ -126,7 +126,11 @@ GL fails returns `ErrNoGPUContext` rather than falling back alone, and so does a
 GL that comes up but cannot build the built-in shaders: that is a driver bug the
 software renderer would hide. `GOGUI_RENDERER=gl` reports the error instead of
 falling back. The choice is made once per process: after a session moves between
-the console and RDP, restart the app.
+the console and RDP, restart the app. One case is outside it: a window the app
+opens while the first one is still starting, from another thread or from its log
+writer, does not wait for the choice. It tries GL with the same fallback on its
+own, so it could end on another renderer than the first window on a machine
+where the two attempts differ.
 
 On X11 libxkbcommon is optional. Keys, shortcuts and switching between keyboard
 layouts work without it; with it, the X11 backend also types letters of scripts
