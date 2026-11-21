@@ -28,6 +28,12 @@ func TestSuggestClampsToRemainder(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := Suggest(text, tc.start, tc.length)
 			want := Suggest(text, tc.wantStart, tc.wantL)
+			// NSSpellChecker can return the same guesses in a different
+			// order on two calls (seen on the macos-latest runner, PR
+			// #1319). The test checks the clamp, not the ranking, so it
+			// compares the guesses as sorted sets.
+			slices.Sort(got)
+			slices.Sort(want)
 			if !slices.Equal(got, want) {
 				t.Errorf("Suggest(%q, %d, %d) = %q, want clamped %q",
 					text, tc.start, tc.length, got, want)

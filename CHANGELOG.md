@@ -64,6 +64,15 @@ and this project adheres to
 
 ### Fixed
 
+- **A Windows app on Microsoft's generic OpenGL exits with advice instead of a
+  panic (#1310).** Without a vendor GPU driver, for example in a VM or an RDP
+  session, Windows has only Microsoft's generic OpenGL 1.1 ("GDI Generic"). When
+  the backend got a context from it, binding the OpenGL 3.3 functions failed and
+  `Run` panicked with a stack trace. That failure, and a failure to build the
+  built-in shader pipelines, now return `ErrNoGPUContext`, so the app prints the
+  cause and the "no GPU context" advice and exits non-zero, with no stack trace.
+  The message names the `GL_VERSION` and `GL_RENDERER` the context reported. A
+  machine whose OpenGL works makes the same calls as before.
 - **A macOS VoiceOver announcement with text that is not valid UTF-8 no longer
   stops the app (#1317).** NSString gives nil for such bytes, and the dictionary
   that held the text raised an exception, so `A11yAnnounce` stopped the app. A

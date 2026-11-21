@@ -142,6 +142,23 @@ func (b *Backend) initCaches(cfg gui.WindowCfg) {
 	b.allowedImageRoots = imgpath.NormalizeRoots(cfg.AllowedImageRoots)
 }
 
+// initPipelinesFunc and newTextSystemFunc are seams for the tests that
+// tell a pipeline failure apart from a text-system failure.
+var (
+	initPipelinesFunc = (*Backend).initPipelines
+	newTextSystemFunc = glyph.NewTextSystem
+)
+
+// pipelineInitError marks an initGLResources failure to build the
+// built-in pipelines: the context is current but cannot compile or link
+// the backend's shaders. The Windows New reports it as a GPU-context
+// failure (#1310); a text-system failure stays a plain error.
+type pipelineInitError struct{ err error }
+
+func (e *pipelineInitError) Error() string { return e.err.Error() }
+
+func (e *pipelineInitError) Unwrap() error { return e.err }
+
 // initGLResources sets up GL state, shader pipelines, buffers, and
 // the glyph text system, then wires the platform-neutral injected
 // interfaces onto the window. b.physW, b.physH, and b.dpiScale must
@@ -155,8 +172,8 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 	gogl.Disable(gogl.CULL_FACE)
 	gogl.Viewport(0, 0, b.physW, b.physH)
 
-	if err := b.initPipelines(); err != nil {
-		return err
+	if err := initPipelinesFunc(b); err != nil {
+		return &pipelineInitError{err: err}
 	}
 	b.initMSAA()
 	b.initQuadBuffers()
@@ -164,7 +181,7 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 	b.updateProjection()
 
 	b.glyphBack = newGlyphBackend(b.dpiScale)
-	textSys, err := glyph.NewTextSystem(b.glyphBack)
+	textSys, err := newTextSystemFunc(b.glyphBack)
 	if err != nil {
 		return err
 	}
