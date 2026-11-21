@@ -50,6 +50,10 @@ func hotCalls() map[string]func() {
 			BufferSubData(ARRAY_BUFFER, 0, 4, unsafe.Pointer(&pixels[0]))
 		},
 		"glClear":                   func() { Clear(COLOR_BUFFER_BIT) },
+		"glClientWaitSync":          func() { _ = ClientWaitSync(1, 0, 0) },
+		"glDeleteSync":              func() { DeleteSync(1) },
+		"glFenceSync":               func() { _ = FenceSync(SYNC_GPU_COMMANDS_COMPLETE, 0) },
+		"glGetError":                func() { _ = GetError() },
 		"glColorMask":               func() { ColorMask(true, true, true, false) },
 		"glDisable":                 func() { Disable(BLEND) },
 		"glDrawArrays":              func() { DrawArrays(TRIANGLES, 0, 6) },
@@ -131,6 +135,18 @@ func TestRawCallsDoNotAllocate(t *testing.T) {
 					name, got, want)
 			}
 		})
+	}
+}
+
+// TestExtensionCallsDoNotAllocate holds the extension entry points, which
+// InitEGLImage binds outside the two tables, to the raw path's budget.
+func TestExtensionCallsDoNotAllocate(t *testing.T) {
+	extEGLImageTargetTexture2DOES = harmlessProcAddr(t)
+	t.Cleanup(func() { extEGLImageTargetTexture2DOES = 0 })
+	call := func() { EGLImageTargetTexture2DOES(TEXTURE_2D, 1) }
+	call()
+	if got := testing.AllocsPerRun(100, call); got > rawCallAllocs {
+		t.Errorf("glEGLImageTargetTexture2DOES allocates %.1f times per call, want at most %.0f", got, rawCallAllocs)
 	}
 }
 

@@ -180,3 +180,38 @@ func (c *Cache[T]) ResolvePlanes(surface *gui.PixelSurface, upload func(T, []gui
 	}
 	return e.resource, ok
 }
+
+// ResolveFrame is ResolvePlanes for a renderer that imports GPU frames
+// (#1326). When the surface's current frame was lent by UpdateDMABuf,
+// imp receives it, already held for this renderer (ReadDMABuf): the
+// resource it returns owns that hold and drops it when released. Any
+// other frame goes to upload, as in ResolvePlanes. Either receives the
+// previous resource and must retire what it no longer draws. ok is false
+// for a closed surface.
+func (c *Cache[T]) ResolveFrame(surface *gui.PixelSurface, upload func(T, []gui.SurfacePlane) T,
+	imp func(T, *gui.PixelSurface, []gui.SurfacePlane, []gui.DMABufPlane, gui.GPUFrame) T) (T, bool) {
+	e, cached := c.entries.Get(surface)
+	if !cached {
+		// A closed surface gets no entry, as in Resolve.
+		if !surface.ReadDMABuf(0, nil) && !surface.ReadPlanes(0, nil) {
+			var zero T
+			return zero, false
+		}
+		e = &entry[T]{surface: surface, frame: c.frame}
+	}
+	ok := surface.ReadDMABuf(e.version, func(planes []gui.SurfacePlane, bufs []gui.DMABufPlane, frame gui.GPUFrame, version uint64) {
+		e.resource = imp(e.resource, surface, planes, bufs, frame)
+		e.version = version
+	})
+	if !ok {
+		ok = surface.ReadPlanes(e.version, func(planes []gui.SurfacePlane, version uint64) {
+			e.resource = upload(e.resource, planes)
+			e.version = version
+		})
+	}
+	if ok && !cached {
+		c.init()
+		c.entries.Set(surface, e)
+	}
+	return e.resource, ok
+}

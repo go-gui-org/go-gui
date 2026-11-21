@@ -123,7 +123,9 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   ([`examples/custom_shader/`](examples/custom_shader/),
   [`docs/shader-porting.md`](docs/shader-porting.md)). A shader can also read
   the planes of a `PixelSurface` as textures, for video and other streamed
-  images ([`examples/shader_channels/`](examples/shader_channels/))
+  images ([`examples/shader_channels/`](examples/shader_channels/)). On Linux
+  the planes can be GPU buffers a hardware video decoder hands over, drawn
+  without a copy ([`examples/dmabuf_surface/`](examples/dmabuf_surface/))
 - **Live pixel surfaces** — `PixelSurface` is an image the app updates every
   frame from any goroutine, for video frames, camera feeds or emulator screens.
   A new frame redraws without rebuilding layout, on every backend

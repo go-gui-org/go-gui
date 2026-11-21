@@ -92,6 +92,14 @@ type PixelSurface struct {
 	version uint64
 	closed  bool
 	windows map[*Window]struct{}
+	// gpu holds the frames lent by UpdateDMABuf: the current one, at
+	// gpuCurrent-1 (0 when the planes above are current), and those
+	// renderers still hold. gpuPlanes and gpuBufs are ReadDMABuf's view
+	// of the current one.
+	gpu        []gpuSlot
+	gpuCurrent int
+	gpuPlanes  [maxSurfacePlanes]SurfacePlane
+	gpuBufs    [maxSurfacePlanes]DMABufPlane
 }
 
 const (
@@ -169,6 +177,8 @@ func (s *PixelSurface) Update(pix []byte, stride int) error {
 	if s == nil {
 		return errPixelSurfaceClosed
 	}
+	var done GPUFrame
+	defer releaseGPUFrame(&done)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.version == 0 {
@@ -182,6 +192,7 @@ func (s *PixelSurface) Update(pix []byte, stride int) error {
 		return errPixelSurfaceSource
 	}
 	copyPlane(s.planes[0], src)
+	done = s.retireGPUFrame()
 	s.version++
 	s.wakeWindows()
 	return nil
@@ -196,6 +207,8 @@ func (s *PixelSurface) UpdatePlanes(planes ...PixelPlane) error {
 	if s == nil {
 		return errPixelSurfaceClosed
 	}
+	var done GPUFrame
+	defer releaseGPUFrame(&done)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.version == 0 {
@@ -212,6 +225,7 @@ func (s *PixelSurface) UpdatePlanes(planes ...PixelPlane) error {
 	for i := range planes {
 		copyPlane(s.planes[i], planes[i])
 	}
+	done = s.retireGPUFrame()
 	s.version++
 	s.wakeWindows()
 	return nil
@@ -226,6 +240,8 @@ func (s *PixelSurface) Resize(width, height int) error {
 	if s == nil {
 		return errPixelSurfaceClosed
 	}
+	var done GPUFrame
+	defer releaseGPUFrame(&done)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.version == 0 {
@@ -243,6 +259,7 @@ func (s *PixelSurface) Resize(width, height int) error {
 	}
 	p.Width, p.Height = width, height
 	p.Pix = make([]byte, width*height*p.Format.BytesPerPixel())
+	done = s.retireGPUFrame()
 	s.version++
 	s.wakeWindows()
 	return nil
@@ -255,12 +272,15 @@ func (s *PixelSurface) Close() {
 	if s == nil {
 		return
 	}
+	var done GPUFrame
+	defer releaseGPUFrame(&done)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
 		return
 	}
 	s.closed = true
+	done = s.retireGPUFrame()
 	for i := range s.planes {
 		s.planes[i].Pix = nil
 	}
@@ -282,7 +302,8 @@ func (s *PixelSurface) Closed() bool {
 // open and is a single RGBA8 plane, it returns true and synchronously
 // visits tightly packed pixels when version differs from after. Each
 // renderer keeps its own version, starting at 0. Any other surface returns
-// false: an Image draws only RGBA8.
+// false: an Image draws only RGBA8, and only from main memory, so a current
+// frame lent by UpdateDMABuf returns false too.
 // The slice is read-only and valid only during visit; copy or upload it before
 // returning. visit must not call surface methods or mutate window state.
 // The surface lock is held during visit, so a concurrent Update cannot change
@@ -293,7 +314,7 @@ func (s *PixelSurface) ReadPixels(after uint64, visit func(width, height int, pi
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed || s.version == 0 || s.n != 1 || s.planes[0].Format != PixelFormatRGBA8 {
+	if s.closed || s.version == 0 || s.gpuCurrent != 0 || s.n != 1 || s.planes[0].Format != PixelFormatRGBA8 {
 		return false
 	}
 	if s.version != after && visit != nil {
@@ -304,8 +325,10 @@ func (s *PixelSurface) ReadPixels(after uint64, visit func(width, height int, pi
 }
 
 // ReadPlanes is the shader renderer's integration point: ReadPixels for
-// every plane at once. If the surface is open, it returns true and visits
-// the planes, in order, when version differs from after. The slice and
+// every plane at once. If the surface is open and its current frame is in
+// main memory, it returns true and visits the planes, in order, when
+// version differs from after. A frame lent by UpdateDMABuf returns false:
+// a renderer that imports it reads it with ReadDMABuf. The slice and
 // the pixels are read-only and valid only during visit, under the same
 // rules as ReadPixels.
 func (s *PixelSurface) ReadPlanes(after uint64, visit func(planes []SurfacePlane, version uint64)) bool {
@@ -314,7 +337,7 @@ func (s *PixelSurface) ReadPlanes(after uint64, visit func(planes []SurfacePlane
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed || s.version == 0 {
+	if s.closed || s.version == 0 || s.gpuCurrent != 0 {
 		return false
 	}
 	if s.version != after && visit != nil {

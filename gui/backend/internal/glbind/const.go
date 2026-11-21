@@ -62,3 +62,15 @@ const (
 	UNSIGNED_SHORT       = 0x1403
 	VERTEX_SHADER        = 0x8B31
 )
+
+// Fences (GL 3.2) and the extension list, for the DMA-BUF import (#1326).
+const (
+	ALREADY_SIGNALED           = 0x911A
+	CONDITION_SATISFIED        = 0x911C
+	EXTENSIONS                 = 0x1F03
+	NUM_EXTENSIONS             = 0x821D
+	SYNC_FLUSH_COMMANDS_BIT    = 0x00000001
+	SYNC_GPU_COMMANDS_COMPLETE = 0x9117
+	TIMEOUT_EXPIRED            = 0x911B
+	WAIT_FAILED                = 0x911D
+)
