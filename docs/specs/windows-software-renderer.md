@@ -1,7 +1,7 @@
 # Windows software renderer
 
-Issue #1310 (follow-up of #1265). Status: **phases 1 and 2 of 5 landed** (#1319,
-#1333; phase 3 in review, phases 4 and 5 planned).
+Issue #1310 (follow-up of #1265). Status: **phases 1 to 3 of 5 landed** (#1319,
+#1333, #1338; phases 4 and 5 planned).
 
 The maintainer accepted this design on the issue on 2026-11-20 (see Decisions).
 Code facts are as of #1319, except where a sentence names phase 2 or phase 3.
@@ -402,7 +402,7 @@ workload.
 | ----- | ---------------------------------------------------------------------------------------------------- | -------------- |
 | 1     | A GL bring-up failure is a GPU-context failure: no panic, and the message names the GL. No soft code | landed (#1319) |
 | 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | landed (#1333) |
-| 3     | Automatic fallback when the first window's context or binding fails                                  | in review      |
+| 3     | Automatic fallback when the first window's context or binding fails                                  | landed (#1338) |
 | 4     | Transparent frameless windows on soft                                                                | planned        |
 | 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | planned        |
 
@@ -421,19 +421,20 @@ entry, and updates the table above. The steps, in execution order:
 5. `GOGUI_RENDERER=soft` selects the path; a transparent window is opaque, with
    a report. Add ", or set GOGUI_RENDERER=soft" to the Windows error text.
 6. Give `glrendertest` its Windows selections (see Tests).
-7. **Phase 3, done.** Add the process renderer, the first-window fallback and
-   its log line to `New`. Move `applyVSync` after the binding, and collect each
-   attempt's degradation reports for `New` to publish.
-8. **Phase 3, done.** Run the CI showcase smoke test twice with the variable
-   unset: with no Mesa DLL (the real no-GPU start, which must stay up), and with
-   Mesa (which must stay on GL). The run with Mesa keeps the old test of a start
-   (alive after 10 s, or a zero exit); the run without Mesa must be alive at the
-   10 s deadline, and an earlier exit fails it whatever its status, with the log
-   and the status printed. Each reads the app's log: the run without Mesa
-   requires the fallback line, the run with Mesa its absence.
-9. Before phase 3 merges, run the showcase and the benchmark on a machine
-   without a vendor driver. Record in the pull request: the fallback line, a
-   live resize, minimise and restore, and the acceptance figures.
+7. **Phase 3, done in #1338.** Add the process renderer, the first-window
+   fallback and its log line to `New`. Move `applyVSync` after the binding, and
+   collect each attempt's degradation reports for `New` to publish.
+8. **Phase 3, done in #1338.** Run the CI showcase smoke test twice with the
+   variable unset: with no Mesa DLL (the real no-GPU start, which must stay up),
+   and with Mesa (which must stay on GL). The run with Mesa keeps the old test
+   of a start (alive after 10 s, or a zero exit); the run without Mesa must be
+   alive at the 10 s deadline, and an earlier exit fails it whatever its status,
+   with the log and the status printed. Each reads the app's log: the run
+   without Mesa requires the fallback line, the run with Mesa its absence.
+9. **Phase 3, done in #1338.** Before phase 3 merges, run the showcase and the
+   benchmark on a machine without a vendor driver. Record in the pull request:
+   the fallback line, a live resize, minimise and restore, and the acceptance
+   figures.
 10. **Phase 4.** Create a transparent, frameless soft window with
     `WS_EX_LAYERED`, skip `enableWindowTransparency`, and present it with
     `UpdateLayeredWindow` from the memory DC, then flush. Raise alpha 0 to 1 on
