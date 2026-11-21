@@ -216,9 +216,10 @@ work:
   Windows. The purego `glbind` backend (cgo-free Phase 1, 2026-07-31) already
   builds the entire module `CGO_ENABLED=0` on both platforms — no zig, no SDL,
   no pkg-config.
-- **It does not serve the platform that still needs cgo.** macOS, the only
-  remaining CGo backend, is native Metal/AppKit with zero SDL dependency
-  (`macos-native-backend.md`, implemented). The shim adds nothing there.
+- **It does not serve a platform that needs cgo.** At the time, macOS was the
+  only remaining CGo backend: native Metal/AppKit with zero SDL dependency
+  (`macos-native-backend.md`, implemented). The shim adds nothing there. macOS
+  is now cgo-free too, via purego (#1323).
 - **The cost stays real.** zig as a mandatory build tool for every contributor
   and CI pipeline, hosting in a personal SDL fork (`cataggar/SDL`) with no own
   lifecycle, and downstream replace-directive leakage — all paid to feed a

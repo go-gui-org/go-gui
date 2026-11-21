@@ -1,6 +1,11 @@
 # Debugging native backends
 
-## CGo boundary blindness
+Desktop is cgo-free (purego on macOS/Linux, syscalls on Windows). CGo remains
+only on mobile (iOS/Android) and under opt-in `-tags hunspell` /
+`-tags otoaudio`. The boundary rules below apply to the purego boundary the same
+way they applied to CGo.
+
+## Boundary blindness (CGo / purego)
 
 Reading source cannot show whether a value survives the C↔Go boundary. A value
 set in ObjC and read in Go looks correct on both sides and can still be lost in

@@ -11,8 +11,8 @@
 no JavaScript, HTML, or CSS.**
 
 Write your UI entirely in Go. Your data stays in Go structs. Your UI stays in Go
-code. Render with native GPU acceleration — Metal on macOS, cgo-free OpenGL on
-Linux and Windows, and WebGL/WASM in the browser.
+code. Render with native GPU acceleration — Metal on macOS, OpenGL on Linux and
+Windows (all cgo-free on desktop), and WebGL/WASM in the browser.
 
 https://go-gui.com · [Documentation](https://github.com/go-gui-org/go-gui/wiki)
 · [Showcase](https://go-gui-org.github.io/showcase/) · [llms.txt](llms.txt) (for
@@ -110,8 +110,8 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   own. `VirtualList` handles rows the app builds, including rows whose height is
   known only during layout. `Window.ScrollToIndex` can address a row that does
   not exist yet
-- **GPU-accelerated rendering** — Metal on macOS, OpenGL on Linux and Windows,
-  WebGL/WASM in the browser, and Metal/UIKit on iOS
+- **GPU-accelerated rendering** — cgo-free Metal on macOS, cgo-free OpenGL on
+  Linux and Windows, WebGL/WASM in the browser, and Metal/UIKit on iOS (cgo)
 - **Rich interaction** — keyframe, spring, and tween animation, hero
   transitions, gestures, scrolling, focus management, color filters, box
   shadows, blur effects, canvas paths that draw themselves in
@@ -283,8 +283,8 @@ icon-embedded `.exe`, or menu-installable Linux tarball.
 
 ## Contributing
 
-1. Install **Go 1.26+** (a C toolchain too if developing on macOS; see
-   [Installation](#installation)).
+1. Install **Go 1.26+** (no C toolchain needed for desktop; iOS/Android and
+   optional `-tags hunspell` need one — see [Installation](#installation)).
 2. Clone the repo.
 3. Run tests and lint:
 

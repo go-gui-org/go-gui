@@ -1,13 +1,12 @@
 # CGo-free desktop backend — feasibility assessment
 
-Assessment of [issue #137](https://github.com/go-gui-org/go-gui/issues/137).
-Date: 2026-07-31. Status: **Phase 1 implemented**, and the `gui/audio` follow-up
-(§ Audio outcome) closed the remaining Linux CGo dependency. **Phase 2 (macOS)
-closed 2026-08-12 by decision: not pursued — macOS stays cgo.** See § Phase 2
-for the rationale and the conditions that can reopen it. **Reopened and decided
-2026-11-20 (#1304): port the macOS backend to purego, darwin/arm64 only.** See §
-Investigation (2026-11, #1304). **The port is done (#1323): the macOS backend
-has no cgo.**
+Status: **done** — desktop is cgo-free. Phase 1 (Linux + Windows, 2026-07-31)
+and the `gui/audio` follow-up closed the Linux CGo dependency. Phase 2 (macOS)
+was closed 2026-08-12 by decision (not pursued — macOS stays cgo), **reopened
+and decided 2026-11-20 (#1304), and the port is done (#1323): the macOS backend
+has no cgo.** What follows is the historical assessment, kept for the rationale
+and the rejected approaches. For the current state see `docs/architecture.md`
+and `docs/deployment.md`.
 
 ## Phase 1 outcome (2026-07-31)
 

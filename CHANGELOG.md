@@ -10,6 +10,11 @@ and this project adheres to
 
 ### Changed
 
+- **Docs describe the desktop as cgo-free.** README, `llms.txt`, the Makefile,
+  CONTRIBUTING, the backend debugging notes, and the affected specs now say
+  macOS, Linux and Windows build with `CGO_ENABLED=0` and no C toolchain.
+  iOS/Android and the opt-in `-tags hunspell` / `-tags otoaudio` still need cgo.
+  The API does not change.
 - **BREAKING: macOS needs no cgo, and Intel Macs are not supported (#1323).**
   The Metal renderer (`metal_darwin.m`) is now Go and calls Metal through
   purego. This is the last step of the port that #1304 decided, so the macOS

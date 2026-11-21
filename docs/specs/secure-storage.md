@@ -46,13 +46,14 @@ The hook is an optional interface found by type assertion, as for settings.
 backends embed `keyring.Platform` in their `nativePlatform`, and the package
 asserts the method set at compile time.
 
-| Platform   | Store                                                                                                   |
-| ---------- | ------------------------------------------------------------------------------------------------------- |
-| macOS, iOS | Keychain generic password, service = app ID, account = key (cgo, Security.framework)                    |
-| Windows    | Credential Manager generic credential, target `<app ID>/<key>`, persist local machine (syscall, no cgo) |
-| Linux      | Secret Service over D-Bus (godbus), default collection, attributes `application` and `key`              |
-| Android    | app-bound callback plus app-supplied Kotlin; the demo uses Android Keystore AES-GCM                     |
-| Web        | none: `ErrSecretsUnsupported`                                                                           |
+| Platform | Store                                                                                                   |
+| -------- | ------------------------------------------------------------------------------------------------------- |
+| macOS    | Keychain generic password, service = app ID, account = key (purego, no cgo)                             |
+| iOS      | Keychain generic password, service = app ID, account = key (cgo, Security.framework)                    |
+| Windows  | Credential Manager generic credential, target `<app ID>/<key>`, persist local machine (syscall, no cgo) |
+| Linux    | Secret Service over D-Bus (godbus), default collection, attributes `application` and `key`              |
+| Android  | app-bound callback plus app-supplied Kotlin; the demo uses Android Keystore AES-GCM                     |
+| Web      | none: `ErrSecretsUnsupported`                                                                           |
 
 ### Platform notes
 
