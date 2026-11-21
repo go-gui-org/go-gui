@@ -7,8 +7,9 @@ and native Wayland when `GOGUI_RENDERER=soft` is set or when GL would be a
 software rasterizer). This spec covers the headless entry points and the
 renderer they share; the live present path is
 `docs/specs/live-software-renderer.md`. On Windows `GOGUI_RENDERER=soft` uses it
-too, and so does a process whose first window gets no GL context or cannot bind
-the GL functions (#1310): `docs/specs/windows-software-renderer.md`.
+too, and so does a process that, with the variable unset, gets no GL context for
+its first window or cannot bind the GL functions (#1310):
+`docs/specs/windows-software-renderer.md`.
 
 ## Problem
 
