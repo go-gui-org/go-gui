@@ -568,6 +568,19 @@ jobs:
           cp /mingw64/bin/opengl32.dll build/
           GALLIUM_DRIVER=llvmpipe go run ./tools/glrendertest build
 
+      # GOGUI_RENDERER=soft (#1310). Mesa's opengl32.dll stays beside the
+      # test binary: the soft tests require that it is never loaded.
+      - name: Soft render tests
+        run: go run ./tools/glrendertest -select soft build
+
+      # The runner's own OpenGL, with no Mesa beside the test binary (#1310).
+      # The regression test skips, which fails the step, when that OpenGL
+      # makes no context at all.
+      - name: System GL tests
+        run: |
+          mkdir -p build/system-gl
+          go run ./tools/glrendertest -select system-gl build/system-gl
+
       - name: Build showcase
         run: |
           CGO_ENABLED=0 go build \

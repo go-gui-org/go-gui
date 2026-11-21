@@ -11,7 +11,9 @@
 //     rasterizer (#1265): the frame is drawn here and uploaded through X11
 //     MIT-SHM (core PutImage where the server cannot map it), or committed
 //     in a wl_shm buffer on native Wayland, so a machine without a GPU does
-//     not need Mesa's llvmpipe.
+//     not need Mesa's llvmpipe. The Windows backend uses it when
+//     GOGUI_RENDERER=soft is set (#1310) and copies the frame to the window
+//     from a GDI DIB section, with no OpenGL loaded.
 //
 // Typical use is a screenshot or a pixel-level regression test:
 //

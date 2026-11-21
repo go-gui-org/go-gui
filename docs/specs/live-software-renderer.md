@@ -352,8 +352,9 @@ rectangles and an icon is now at 0 allocations.
   `TestRendererMemImageReregistered`, `TestUpdateTextureRect*`.
 - `gui/backend/gl`, pure: `TestPickSoftVisual`, `TestSoftImageFormatOK`,
   `TestBandRows`, `TestSwizzleBGRA`, `TestModeRefresh`,
-  `TestGPUContextErrorNamesSoftOnLinux`, and for step 3 `TestPickRendererEnv`,
-  `TestAutoPick`, `TestIsSoftwareRasterizer`, `TestSoftVisualRejected`.
+  `TestGPUContextErrorNamesSoft` (Linux and Windows), and for step 3
+  `TestPickRendererEnv`, `TestAutoPick`, `TestIsSoftwareRasterizer`,
+  `TestSoftVisualRejected`.
 - `gui/backend/gl`, against an X server (`tools/glrendertest` runs them in CI
   under Xvfb, one process each): `TestSoftX11NeverTouchesEGL` drives frames, a
   resize, a scale change, Expose and destroy with no EGL state created;
@@ -450,8 +451,9 @@ rectangles and an icon is now at 0 allocations.
 - An X11 soft frame still makes about 13–14 small allocations, all xgb's own
   per-request cost (step 5). A Wayland frame makes about 6 in purego's callback
   path while dispatching events, GL and soft alike (ebitengine/purego#567).
-- Windows has no soft path yet (out of the first round, per the issue). Its
-  design is `docs/specs/windows-software-renderer.md` (#1310), which presents
-  from a DIB section with `BitBlt`, not with `SetDIBitsToDevice`.
+- Windows was out of the first round, per the issue. Its design is
+  `docs/specs/windows-software-renderer.md` (#1310), which presents from a DIB
+  section with `BitBlt`, not with `SetDIBitsToDevice`. Since its phase 2,
+  `GOGUI_RENDERER=soft` selects that path; Windows has no automatic choice yet.
 - An auto-picked soft window keeps the GL driver the probe loaded, about 70 MB
   with llvmpipe, on X11 and Wayland. `GOGUI_RENDERER=soft` loads none.

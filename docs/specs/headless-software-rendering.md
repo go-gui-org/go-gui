@@ -6,8 +6,8 @@ Since #1265 the package also draws live windows (`soft.Renderer`, on Linux X11
 and native Wayland when `GOGUI_RENDERER=soft` is set or when GL would be a
 software rasterizer). This spec covers the headless entry points and the
 renderer they share; the live present path is
-`docs/specs/live-software-renderer.md`. A Windows present path is planned
-(#1310): `docs/specs/windows-software-renderer.md`.
+`docs/specs/live-software-renderer.md`. On Windows `GOGUI_RENDERER=soft` uses it
+too (#1310): `docs/specs/windows-software-renderer.md`.
 
 ## Problem
 

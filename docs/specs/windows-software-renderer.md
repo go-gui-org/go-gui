@@ -1,13 +1,14 @@
 # Windows software renderer
 
-Issue #1310 (follow-up of #1265). Status: **phase 1 of 5 landed** (#1319; phases
-2 to 5 planned).
+Issue #1310 (follow-up of #1265). Status: **phases 1 and 2 of 5 landed** (#1319,
+#1333; phases 3 to 5 planned).
 
 The maintainer accepted this design on the issue on 2026-11-20 (see Decisions).
-Code facts are as of #1319. "Measured" with no machine named means throwaway
-programs on one 16-thread AMD desktop (Windows 11 24H2, Go 1.27.4, a 1920×1080
-screen, median of 10–20 runs); those figures are indicative. "The lab VM" is the
-one machine without a GPU driver that was tested (see Problem).
+Code facts are as of #1319, except where a sentence names phase 2. "Measured"
+with no machine named means throwaway programs on one 16-thread AMD desktop
+(Windows 11 24H2, Go 1.27.4, a 1920×1080 screen, median of 10–20 runs); those
+figures are indicative. "The lab VM" is the one machine without a GPU driver
+that was tested (see Problem).
 
 ## Problem
 
@@ -20,8 +21,8 @@ Without a vendor driver, `opengl32.dll` runs Microsoft's generic implementation:
 ([OpenGL on Windows](https://learn.microsoft.com/en-us/windows/win32/opengl/opengl)).
 It has no `wglCreateContextAttribsARB`, `glAttachShader` or `glGenVertexArrays`
 (measured by forcing a generic pixel format). The backend fails on it in one of
-two ways, and neither message has a remedy for Windows: the
-`GOGUI_RENDERER=soft` hint is Linux-only (`gpuContextError.Error`).
+two ways, and before phase 2 neither message had a remedy for Windows: the
+`GOGUI_RENDERER=soft` hint was Linux-only (`gpuContextError.Error`).
 
 1. **The context is refused.** `createContext` (`gui/backend/gl/wgl_windows.go`)
    returns an error, `New` wraps it with `newGPUContextError`, and `Run` prints
@@ -68,9 +69,11 @@ which of the two ways the machine fails.
 | Mesa's `opengl32.dll` beside the exe                         | the driver Mesa selects: llvmpipe when forced, as CI does          | [mesa-dist-win](https://github.com/pal1000/mesa-dist-win#readme)                                                                                                                                         |
 
 **The Mesa hook.** `initOpenGL32` loads `opengl32.dll` from the executable's
-directory and falls back to System32, in a package variable initializer, so in
-every process. An application ships Mesa there on purpose, typically to keep
-custom shader fills, which the CPU renderer does not draw. CI does it too.
+directory and falls back to System32. Until phase 2 it ran in a package variable
+initializer, so in every process; since phase 2 it runs when a GL attempt starts
+(`openGL32`), and never on soft. An application ships Mesa there on purpose,
+typically to keep custom shader fills, which the CPU renderer does not draw. CI
+does it too.
 
 ## Candidates
 
@@ -206,7 +209,11 @@ window DC.
 - **Resize.** The new DIB is created, then selected into the memory DC. Only
   when `SelectObject` succeeds do the bitmap, its size and its bits pointer
   change, together. If either step fails, the old three stay, so `WM_PAINT`
-  still has the last valid frame; the frame is skipped and logged.
+  still has the last valid frame; the frame is skipped and logged. The present
+  compares the DIB's size with the client size at every frame, so the next frame
+  allocates again. There is no timer-driven retry: a failed `CreateDIBSection`
+  means memory or GDI handles ran out. The DIB is allocated after `Draw`, so a
+  size `Draw` refuses leaves the last frame in place too.
 - **Repaint.** `WM_PAINT` only validates today. On a soft window it blits the
   DIB and flushes between `BeginPaint` and `EndPaint`, and never sleeps. This
   also covers a window shown after a hidden start.
@@ -215,17 +222,21 @@ window DC.
   `WindowCfg.VSyncOff` skips the wait. The interval is the display frequency of
   the window's monitor (`MonitorFromWindow`, then `EnumDisplaySettingsW`), or 60
   Hz when that is 0, 1 or outside 20–1000 Hz. It is re-read on
-  `WM_DISPLAYCHANGE` and when the monitor handle changes, checked on `WM_MOVE`
-  and `WM_SIZE`. Sleep is a best-effort limiter: sixty 16.67 ms sleeps came back
-  4.1 ms late at the median (measured in the design review). A waitable timer is
-  the remedy if phase 5 asks for it.
+  `WM_DISPLAYCHANGE` and when the monitor handle changes, checked at every
+  present (one `MonitorFromWindow` call), so a move needs no `WM_MOVE` handler.
+  The per-frame GDI and user32 calls use `syscall.SyscallN`, because
+  `LazyProc.Call` moves its arguments to the heap. Sleep is a best-effort
+  limiter: sixty 16.67 ms sleeps came back 4.1 ms late at the median (measured
+  in the design review). A waitable timer is the remedy if phase 5 asks for it.
 - **Memory.** Two frames per window, soft's RGBA buffer and the DIB: 16.6 MB at
   1920×1080. After a fallback, the `opengl32.dll` it loaded stays mapped.
 
 ### Window and message-loop integration
 
 Six sites branch on soft. Each is a one-line delegation to a `*Win32` wrapper,
-as the X11 sites delegate to `initSoftX11`, `presentX11` and `resizeX11`.
+as the X11 sites delegate to `initSoftX11`, `presentX11` and `resizeX11`. A
+seventh, `WM_DISPLAYCHANGE`, tells the pacer to re-read the display frequency
+(`displayChangedWin32`); GL ignores it.
 
 | Site                      | GL today                                                      | Soft                                                                                                       |
 | ------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -268,14 +279,27 @@ All in package `gui/backend/gl`, which already imports `soft` on Linux.
 | File                                                                     | Build tag                                   | Content                                                                                                                                |
 | ------------------------------------------------------------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `softpresent_win32.go` (new)                                             | `windows && !js`                            | soft class, DIB section, present, repaint, pacing, the `*Win32` wrappers                                                               |
-| `renderer_pick_win32.go` (new)                                           | `windows && !js`                            | the choice, the process renderer, the fallback and its log text                                                                        |
+| `renderer_pick_win32.go` (new, phase 3)                                  | `windows && !js`                            | the choice, the process renderer, the fallback and its log text                                                                        |
 | `renderer_env.go` (new)                                                  | `((linux && !android) \|\| windows) && !js` | moved, unchanged: `rendererEnv`, `readRendererEnv`, `softInitError`, `newGPUContextErrorNoSoft`, `swizzleBGRA`, `defaultFrameInterval` |
 | `platform_win32.go`, `events_win32.go`, `wgl_windows.go`, `gpu_error.go` | as now                                      | the six branches; lazy `opengl32`; the Windows hint                                                                                    |
 
+Phase 2 moved four of the six shared names; `softInitError` and
+`newGPUContextErrorNoSoft` move with the fallback in phase 3, because Windows
+does not call them before it and the `unused` linter rejects them under
+`GOOS=windows`. `New` keeps the thread lock and the choice in
+`platform_win32.go`, with `openWin32Window` and `finishWin32Window`, the window
+setup both renderers share. The GL attempt (`newGLWin32`) is in
+`wgl_windows.go`, the soft attempt (`newSoftWin32`) in `softpresent_win32.go`:
+`platform_win32.go` was at 798 of its 800 lines.
+
 `glstring.go` is the precedent: #1319 moved `cGoString` and `glRenderer` there
-for both platforms. **Lazy `opengl32`:** today the DLL and four WGL procedures
-are package variables, and `glProc` looks names up in the same DLL. All of them
-go behind one accessor that picks the DLL on first use, in today's order.
+for both platforms. **Lazy `opengl32`:** until phase 2 the DLL and four WGL
+procedures were package variables, and `glProc` looks names up in the same DLL.
+Since phase 2 all of them are behind one accessor, `openGL32`, that picks the
+DLL on first use, in the same order. The GL attempt calls it first, before the
+window and the pixel format: a Mesa beside the exe that is first loaded after
+`SetPixelFormat` gets no context from `wglCreateContext` (measured with Mesa
+26.3.0; the Mesa GL selection fails without the early call).
 
 ## Cost
 
@@ -300,6 +324,22 @@ Layout, the pacing wait, DWM's composition and RDP's encoding are not included.
   and follows the mouse no faster than the frame times above allow.
 - Remote sessions are capped at 30 fps by default
   ([Microsoft](https://learn.microsoft.com/en-us/troubleshoot/windows-server/remote/frame-rate-limited-to-30-fps)).
+- On the lab VM (phase 2; `examples/benchmark` with 100 buttons, timed inside
+  the present path by a throwaway build): a frame costs 4.0 ms of `Draw`, 1.1 ms
+  of swizzle and 0.2 ms of blit at 1024×768 in the console session, and 5.2 ms,
+  2.1 ms and 0.6 ms maximised at 1920×1009 in an RDP session. The loop presents
+  64 to 65 frames a second on the console, whose display reports 64 Hz, and 32
+  to 33 in the RDP session, which reported 32 Hz. An idle window was blocked in
+  the message wait for 69.96 of 70 s. Those frame costs predate #1328 and #1329;
+  with both, `Draw` costs 3.1 ms in the console run and 3.3 ms in the RDP
+  session at either size.
+- Two traps for whoever measures the acceptance bar. Process CPU time is no
+  measure of an animating window on that VM: Windows samples it at the 64 Hz
+  clock tick, the paced loop runs in step with the tick, and the same load read
+  as anything from 0 % to 100 % of a core. And the benchmark's FPS figure counts
+  view runs, not presented frames: it showed 64 while the loop presented 32 to
+  33, because `FrameFn` runs the view a second time in a frame whose view asked
+  for a layout.
 
 **Acceptance bar** (decision 7), measured on a VM without a GPU, 2 vCPUs, in an
 RDP session, desktop 1920×1080 at 100 %, with `examples/benchmark` under
@@ -320,7 +360,7 @@ workload.
 | Phase | Delivers                                                                                             | State          |
 | ----- | ---------------------------------------------------------------------------------------------------- | -------------- |
 | 1     | A GL bring-up failure is a GPU-context failure: no panic, and the message names the GL. No soft code | landed (#1319) |
-| 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | planned        |
+| 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | landed (#1333) |
 | 3     | Automatic fallback when the first window's context or binding fails                                  | planned        |
 | 4     | Transparent frameless windows on soft                                                                | planned        |
 | 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | planned        |
@@ -331,8 +371,9 @@ entry, and updates the table above. The steps, in execution order:
 1. **Phase 1, done in #1319.** `New` reports a glbind failure and a pipeline
    failure through `glBringUpError`. `initGLResources` marks a pipeline failure
    with `pipelineInitError`, so the text-system error stays plain.
-2. **Phase 2.** Move the shared helpers and their tests to `renderer_env.go`,
-   and put `opengl32.dll` and its procedures behind the lazy accessor.
+2. **Phase 2, done in #1333.** Move the shared helpers and their tests to
+   `renderer_env.go`, and put `opengl32.dll` and its procedures behind the lazy
+   accessor.
 3. Register the soft window class. Split `New` into the thread lock and choice,
    a GL attempt and a soft attempt; the GL attempt is today's sequence.
 4. Add `softpresent_win32.go` and the six branches of the integration table.
@@ -363,10 +404,11 @@ platforms (`gpu_error.go`, `gui/backend/soft/doc.go`,
 
 ## Tests
 
-**Selections.** `glrendertest` runs one list per OS, on Windows `commonTests`
-plus `win32Tests`, with Mesa's DLL beside the binary and `GOGUI_RENDERER=gl`
-forced for every test (`startTest`). Phase 2 gives it three selections on
-Windows, each one process per test as now:
+**Selections.** Before phase 2, `glrendertest` ran one list per OS, on Windows
+`commonTests` plus `win32Tests`, with Mesa's DLL beside the binary and
+`GOGUI_RENDERER=gl` forced for every test (`startTest`). Phase 2 gives it three
+selections on Windows, chosen with `-select` (`mesa-gl`, the default, `soft`,
+`system-gl`), each one process per test as before:
 
 | Selection   | Mesa DLL beside the binary | `GOGUI_RENDERER`           | Runs                                               |
 | ----------- | -------------------------- | -------------------------- | -------------------------------------------------- |
@@ -389,8 +431,13 @@ runner's own OpenGL does.
   window DC and compares it with `RenderToImage`; it then paints over a patch,
   invalidates it and requires the real `WM_PAINT` to restore the pixels.
   `TestSoftWin32ResizeKeepsHandles`: the GDI object count holds over repeated
-  resizes, and a failed DIB creation or selection keeps the last frame.
-  `TestSoftWin32OpacityAfterPaint`, `TestSoftWin32PresentAllocs`.
+  resizes, and a failed DIB creation or selection keeps the last frame (bitmap,
+  size and bits unchanged, `WM_PAINT` still shows it, no object leaked), and the
+  next present allocates again. `TestSoftWin32OpacityAfterPaint`: a fade after
+  the first frame keeps that frame, and a later, different frame reaches the
+  layered window. `TestSoftWin32PresentAllocs`: a steady-state present makes no
+  allocation. In a plain `go test` run, where an earlier test may have loaded
+  `opengl32.dll`, `TestSoftWin32LoadsNoGL` reruns itself alone in a subprocess.
 - **Phase 3, fallback.** Each trigger is forced: `TestFallbackOnRefusedContext`
   through the `createContextFunc` seam, `TestFallbackOnGDIGeneric` with the
   pixel format of phase 1's test. Both require a soft window and one log line.
@@ -482,8 +529,15 @@ examples. Session moves are recorded, not fixed (decision 5).
 
 ## Not verified
 
-- The soft path on any machine: it does not exist yet. The lab VM runs cover
-  phase 1 only.
+- The soft path beyond two machines on one Windows version (Windows 11 LTSC
+  2024, build 26100): a workstation with an AMD driver, and the lab VM in its
+  console session and in an RDP session. On both, the phase 2 tests pass one
+  process per test, as glrendertest runs them, and all in one process, and an
+  example app draws, resizes, minimises, restores and closes with
+  `GOGUI_RENDERER=soft` (`examples/get_started` on the workstation, the showcase
+  on the lab VM). On the lab VM no OpenGL module is loaded and an idle window
+  uses no CPU time. On the workstation the three glrendertest selections pass
+  with Mesa 26.3.0 beside the binary. Not run: the CI runner.
 - Why the lab VM refuses the first context and grants the second, and whether
   another Windows version, adapter or hypervisor does the same. What the CI
   runner's own OpenGL does at the first attempt.
@@ -491,11 +545,15 @@ examples. Session moves are recorded, not fixed (decision 5).
   Hyper-V with GPU-P and VirtualBox with Guest Additions have no row: unknown.
 - What a running GL window does when a session connects or disconnects.
 - That a window DC reads back the presented pixels on the CI runner, for a
-  layered window too. The destination-pixel and opacity tests depend on it.
-- That checking the monitor handle on `WM_MOVE`, `WM_SIZE` and
-  `WM_DISPLAYCHANGE` catches every monitor change.
-- `BitBlt` cost above 1920×1080, and all cost inside an RDP session or a VM.
-  Mesa llvmpipe against soft on Windows; the 2.5–3× figure is Linux's.
+  layered window too. The destination-pixel and opacity tests depend on it. It
+  does on the workstation above.
+- That checking the monitor handle at every present and re-reading on
+  `WM_DISPLAYCHANGE` catches every change of display frequency. Only one monitor
+  was tested.
+- `BitBlt` cost above 1920×1080. Cost in a VM and over RDP beyond the one
+  benchmark view under Cost; the acceptance figures of decision 7 are phase 3's
+  to record. Mesa llvmpipe against soft on Windows; the 2.5–3× figure is
+  Linux's.
 - The sleep overshoot and the alpha hit-test results come from the design review
   and were not repeated.
 - That `UpdateLayeredWindow`'s bitmap covers the non-client area; it follows

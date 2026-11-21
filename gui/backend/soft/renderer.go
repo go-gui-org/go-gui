@@ -10,9 +10,10 @@ import (
 )
 
 // Renderer draws a live window's frames on the CPU (#1265). A backend that
-// presents pixels itself — the Linux backend's GOGUI_RENDERER=soft path,
-// which uploads through X11 MIT-SHM or PutImage, or commits a wl_shm buffer
-// on Wayland — keeps one per window.
+// presents pixels itself — the GOGUI_RENDERER=soft path of the Linux
+// backend, which uploads through X11 MIT-SHM or PutImage, or commits a
+// wl_shm buffer on Wayland, and of the Windows backend, which copies a GDI
+// DIB section to the window (#1310) — keeps one per window.
 //
 // It differs from RenderToImage in what it leaves to the caller:
 //
@@ -33,7 +34,7 @@ import (
 // window's text system; call them from the thread that runs FrameFn,
 // between frames.
 //
-// exportaudit:keep — the Linux backend's soft present path (gui/backend/gl)
+// exportaudit:keep — the soft present paths of gui/backend/gl (Linux, Windows)
 type Renderer struct {
 	// w is the window NewRenderer installed tm on; Release detaches tm from
 	// it so the window never keeps a freed text system as its measurer.

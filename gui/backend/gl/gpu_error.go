@@ -17,8 +17,10 @@ import (
 // driver, and Linux without Mesa or driver GL. On Linux X11 with
 // GOGUI_RENDERER unset, an EGL failure opens the window on the CPU
 // renderer instead (#1265), so there it is reported only for
-// GOGUI_RENDERER=gl, or when the CPU renderer cannot run either. Use
-// errors.Is to test for it; errors.Unwrap returns the EGL/WGL/GL cause.
+// GOGUI_RENDERER=gl, or when the CPU renderer cannot run either. On
+// Windows, GOGUI_RENDERER=soft opens the window on the CPU renderer with no
+// WGL at all (#1310), so it is not reported then. Use errors.Is to test for
+// it; errors.Unwrap returns the EGL/WGL/GL cause.
 // exportaudit:keep — matched by errors.Is from app mains, not by import
 var ErrNoGPUContext = errors.New("gl: no GPU context")
 
@@ -34,11 +36,11 @@ type gpuContextError struct {
 }
 
 func (e *gpuContextError) Error() string {
-	// On Linux the CPU renderer needs no GPU context at all (#1265), so it
-	// is the one fix that works without a driver or a package install.
-	// Windows has no soft present path yet.
+	// On Linux (#1265) and Windows (#1310) the CPU renderer needs no GPU
+	// context at all, so it is the one fix that works without a driver or
+	// a package install.
 	soft := ""
-	if runtime.GOOS == "linux" && !e.noSoft {
+	if (runtime.GOOS == "linux" || runtime.GOOS == "windows") && !e.noSoft {
 		soft = ", or set GOGUI_RENDERER=soft"
 	}
 	return fmt.Sprintf("gl: %s: %v — no GPU context "+

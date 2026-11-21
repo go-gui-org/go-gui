@@ -157,35 +157,6 @@ func TestPutImageRequestHeader(t *testing.T) {
 	}
 }
 
-// TestSwizzleBGRA: premultiplied RGBA in, B G R A out. For a depth-24 visual
-// the fourth byte is padding the server ignores; for depth 32 it is the
-// premultiplied alpha the compositor reads, so it is kept either way.
-func TestSwizzleBGRA(t *testing.T) {
-	src := []byte{
-		10, 20, 30, 255,
-		1, 2, 3, 4,
-		0, 0, 0, 0,
-	}
-	dst := make([]byte, len(src))
-	swizzleBGRA(dst, src)
-	want := []byte{
-		30, 20, 10, 255,
-		3, 2, 1, 4,
-		0, 0, 0, 0,
-	}
-	for i := range want {
-		if dst[i] != want[i] {
-			t.Fatalf("byte %d = %d, want %d (got %v)", i, dst[i], want[i], dst)
-		}
-	}
-	// A short dst writes only the whole pixels it can hold.
-	short := make([]byte, 6)
-	swizzleBGRA(short, src)
-	if short[0] != 30 || short[4] != 0 {
-		t.Fatalf("short dst = %v, want first pixel only", short)
-	}
-}
-
 // TestModeRefresh: the frame interval soft paces to comes from the CRTC's
 // mode (dot clock / (htotal * vtotal)). A mode with no timing falls back to
 // 60 Hz, as does an absurd rate.

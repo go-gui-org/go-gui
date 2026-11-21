@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"unsafe"
@@ -67,43 +66,6 @@ func pickRenderer() rendererChoice {
 	}
 	return rendererChoice{}
 }
-
-// rendererEnv is what GOGUI_RENDERER asks for. The X11 path (pickRenderer)
-// and the Wayland path (openWaylandDisplay) read it through one function, so
-// the two cannot disagree on spelling.
-type rendererEnv uint8
-
-const (
-	// rendererEnvAuto: unset or empty; a probe decides.
-	rendererEnvAuto rendererEnv = iota
-	// rendererEnvGL: "gl", or any value that is neither gl nor soft.
-	rendererEnvGL
-	// rendererEnvSoft: "soft".
-	rendererEnvSoft
-)
-
-// readRendererEnv reads GOGUI_RENDERER. Matching is exact and case-sensitive,
-// like GOGUI_WAYLAND. A value that is neither gl nor soft reads as gl, with
-// one warning per process: a typo such as "Soft" must not silently cost a
-// probe or pick a renderer the user did not name.
-func readRendererEnv() rendererEnv {
-	switch v := os.Getenv("GOGUI_RENDERER"); v {
-	case "soft":
-		return rendererEnvSoft
-	case "gl":
-		return rendererEnvGL
-	case "":
-		return rendererEnvAuto
-	default:
-		unknownRendererOnce.Do(func() {
-			log.Printf("gl: GOGUI_RENDERER=%q is not gl or soft; using GL", v)
-		})
-		return rendererEnvGL
-	}
-}
-
-// unknownRendererOnce keeps readRendererEnv's warning to one line per process.
-var unknownRendererOnce sync.Once
 
 // autoProbe caches the probe and the choice made from it. A test that needs
 // a fresh probe resets it with resetAutoProbe.

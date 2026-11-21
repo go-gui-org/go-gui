@@ -257,7 +257,8 @@ backends draw on the CPU with go-gui's own renderer instead of Mesa's llvmpipe;
 `GOGUI_RENDERER=gl` or `soft` overrides the choice. On native Wayland only
 `GOGUI_RENDERER=soft` runs with no GL library installed: with the variable unset
 the backend loads EGL to make the choice, and an EGL that fails to load falls
-back to X11.
+back to X11. On Windows, `GOGUI_RENDERER=soft` draws on the CPU with no OpenGL
+at all, for a VM or RDP session without a GPU driver.
 
 ```bash
 go get github.com/go-gui-org/go-gui
