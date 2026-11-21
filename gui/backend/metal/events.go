@@ -1,11 +1,7 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
-/*
-#include "metal_window.h"
-*/
-import "C"
 import (
 	"unicode/utf8"
 
@@ -22,65 +18,66 @@ var takeMenuKeyEquivalent = nativemenu.TakeKeyEquivalent
 // metalPollEvent) to a gui.Event. Returns the event and true
 // to continue, or false to quit.
 func mapMetalEvent() (gui.Event, bool) {
-	et := C.metalEventType()
+	ev := &pollState.ev
+	et := ev.typ
 	// Claimed for every event, not only key-downs: a record belongs to the
 	// sendEvent: of the poll that produced this event, so taking it here
 	// keeps a record whose key-down was dropped elsewhere (the IME filter)
 	// from lingering to eat a later keystroke.
 	menuKey, menuFired := takeMenuKeyEquivalent()
 	switch et {
-	case C.METAL_EVENT_NONE:
+	case metalEventNone:
 		return gui.Event{}, true
 
-	case C.METAL_EVENT_QUIT:
+	case metalEventQuit:
 		return gui.Event{}, false
 
-	case C.METAL_EVENT_MOUSE_DOWN:
+	case metalEventMouseDown:
 		return gui.Event{
 			Type:        gui.EventMouseDown,
-			MouseX:      float32(C.metalEventMouseX()),
-			MouseY:      float32(C.metalEventMouseY()),
-			MouseButton: mapMetalMouseButton(int(C.metalEventMouseButton())),
-			Modifiers:   mapMetalModifiers(uint32(C.metalEventModifiers())),
+			MouseX:      ev.mouseX,
+			MouseY:      ev.mouseY,
+			MouseButton: mapMetalMouseButton(ev.mouseButton),
+			Modifiers:   mapMetalModifiers(ev.modifiers),
 		}, true
 
-	case C.METAL_EVENT_MOUSE_UP:
+	case metalEventMouseUp:
 		return gui.Event{
 			Type:        gui.EventMouseUp,
-			MouseX:      float32(C.metalEventMouseX()),
-			MouseY:      float32(C.metalEventMouseY()),
-			MouseButton: mapMetalMouseButton(int(C.metalEventMouseButton())),
-			Modifiers:   mapMetalModifiers(uint32(C.metalEventModifiers())),
+			MouseX:      ev.mouseX,
+			MouseY:      ev.mouseY,
+			MouseButton: mapMetalMouseButton(ev.mouseButton),
+			Modifiers:   mapMetalModifiers(ev.modifiers),
 		}, true
 
-	case C.METAL_EVENT_MOUSE_MOVE:
+	case metalEventMouseMove:
 		return gui.Event{
 			Type:      gui.EventMouseMove,
-			MouseX:    float32(C.metalEventMouseX()),
-			MouseY:    float32(C.metalEventMouseY()),
-			MouseDX:   float32(C.metalEventMouseDX()),
-			MouseDY:   float32(C.metalEventMouseDY()),
-			Modifiers: mapMetalModifiers(uint32(C.metalEventModifiers())),
+			MouseX:    ev.mouseX,
+			MouseY:    ev.mouseY,
+			MouseDX:   ev.mouseDX,
+			MouseDY:   ev.mouseDY,
+			Modifiers: mapMetalModifiers(ev.modifiers),
 		}, true
 
-	case C.METAL_EVENT_MOUSE_LEAVE:
+	case metalEventMouseLeave:
 		return gui.Event{Type: gui.EventMouseLeave}, true
 
-	case C.METAL_EVENT_SCROLL_WHEEL:
-		precise := C.metalEventScrollPrecise() != 0
+	case metalEventScrollWheel:
+		precise := ev.scrollPrecise
 		return gui.Event{
 			Type:          gui.EventMouseScroll,
-			MouseX:        float32(C.metalEventMouseX()),
-			MouseY:        float32(C.metalEventMouseY()),
-			ScrollX:       float32(C.metalEventScrollX()),
-			ScrollY:       float32(C.metalEventScrollY()),
+			MouseX:        ev.mouseX,
+			MouseY:        ev.mouseY,
+			ScrollX:       ev.scrollX,
+			ScrollY:       ev.scrollY,
 			ScrollPrecise: precise,
-			Modifiers:     mapMetalModifiers(uint32(C.metalEventModifiers())),
+			Modifiers:     mapMetalModifiers(ev.modifiers),
 		}, true
 
-	case C.METAL_EVENT_KEY_DOWN:
-		kc := mapMacKeyCode(uint16(C.metalEventKeyCode()))
-		mods := mapMetalModifiers(uint32(C.metalEventModifiers()))
+	case metalEventKeyDown:
+		kc := mapMacKeyCode(ev.keyCode)
+		mods := mapMetalModifiers(ev.modifiers)
 		// Cmd+Q → quit. The menu key equivalent path (quit: on
 		// delegate via performKeyEquivalent:) is the primary path.
 		// This check catches Cmd+Q as a fallback when the menu is
@@ -102,36 +99,35 @@ func mapMetalEvent() (gui.Event, bool) {
 		// shortcut shared by the menu item and a command would run
 		// twice. The key code must match: the record is only for
 		// this key.
-		if menuFired && uint16(C.metalEventKeyCode()) == menuKey {
+		if menuFired && ev.keyCode == menuKey {
 			return gui.Event{}, true
 		}
 		return gui.Event{
 			Type:      gui.EventKeyDown,
 			KeyCode:   kc,
 			Modifiers: mods,
-			KeyRepeat: C.metalEventKeyRepeat() != 0,
+			KeyRepeat: ev.keyRepeat,
 		}, true
 
-	case C.METAL_EVENT_KEY_UP:
+	case metalEventKeyUp:
 		return gui.Event{
 			Type:      gui.EventKeyUp,
-			KeyCode:   mapMacKeyCode(uint16(C.metalEventKeyCode())),
-			Modifiers: mapMetalModifiers(uint32(C.metalEventModifiers())),
+			KeyCode:   mapMacKeyCode(ev.keyCode),
+			Modifiers: mapMetalModifiers(ev.modifiers),
 		}, true
 
-	case C.METAL_EVENT_FLAGS_CHANGED:
+	case metalEventFlagsChanged:
 		// Modifier-only key change (Shift, Ctrl, Alt, Cmd).
 		// Emit as a key event so Go can track modifier state.
 		e, ok := flagsChangedEvent(
-			uint16(C.metalEventKeyCode()),
-			uint32(C.metalEventModifiers()))
+			ev.keyCode, ev.modifiers)
 		if !ok {
 			return gui.Event{}, true
 		}
 		return e, true
 
-	case C.METAL_EVENT_CHAR:
-		text := C.GoString(C.metalEventText())
+	case metalEventChar:
+		text := ev.text
 		if len(text) == 0 {
 			return gui.Event{}, true
 		}
@@ -143,16 +139,16 @@ func mapMetalEvent() (gui.Event, bool) {
 			Type:      gui.EventChar,
 			CharCode:  uint32(r),
 			IMEText:   text,
-			Modifiers: mapMetalModifiers(uint32(C.metalEventModifiers())),
+			Modifiers: mapMetalModifiers(ev.modifiers),
 		}, true
 
-	case C.METAL_EVENT_IME_COMP:
-		text := C.GoString(C.metalEventText())
+	case metalEventIMEComp:
+		text := ev.text
 		return gui.Event{
 			Type:      gui.EventIMEComposition,
 			IMEText:   text,
-			IMEStart:  int32(C.metalEventIMEStart()),
-			IMELength: int32(C.metalEventIMELength()),
+			IMEStart:  int32(ev.imeStart),
+			IMELength: int32(ev.imeLength),
 		}, true
 
 	default:

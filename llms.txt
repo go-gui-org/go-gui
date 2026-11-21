@@ -2,7 +2,7 @@
 
 > Go-Gui is a GUI framework for Go. You write the UI, the state and the app in
 > Go only, with no browser, JavaScript, HTML or CSS. It renders with the GPU:
-> Metal on macOS, OpenGL without cgo on Linux and Windows, WebGL/WASM in the
+> Metal on macOS (cgo-free), OpenGL on Linux and Windows (cgo-free), WebGL/WASM in the
 > browser. Import path: `github.com/go-gui-org/go-gui/gui`.
 
 Go-Gui is immediate-mode. A view function runs again each frame and returns a

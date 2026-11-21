@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Changed
 
+- **Docs describe the desktop as cgo-free.** README, `llms.txt`, the Makefile,
+  CONTRIBUTING, the backend debugging notes, and the affected specs now say
+  macOS, Linux and Windows build with `CGO_ENABLED=0` and no C toolchain.
+  iOS/Android and the opt-in `-tags hunspell` / `-tags otoaudio` still need cgo.
+  The API does not change.
+- **BREAKING: macOS needs no cgo, and Intel Macs are not supported (#1323).**
+  The Metal renderer (`metal_darwin.m`) is now Go and calls Metal through
+  purego. This is the last step of the port that #1304 decided, so the macOS
+  backend has no Objective-C and no cgo. A macOS app builds with `CGO_ENABLED=0`
+  and with no C toolchain, and it cross-compiles from Linux or Windows. The cost
+  is darwin/amd64: an app built for an Intel Mac now stops at link with
+  `macOS_requires_arm64__Intel_Macs_are_not_supported`. Migration: build for
+  `GOARCH=arm64`. The release `.dmg` is arm64 only, not universal. The renderer
+  now batches quads: a run of rects or glyphs that use the same state is one
+  draw call, not one call per quad. Encoding a frame of 20,000 quads takes about
+  0.4 ms on the CPU, with no heap allocation. `buildapp -build-pkg` builds macOS
+  with cgo off. The API does not change.
 - **macOS locale, keychain, sounds, keep awake and appearance no longer use cgo
   (#1307).** These five services now call the system frameworks through purego.
   This is step 1 of the port that #1304 decided. The rest of the macOS backend
@@ -27,6 +44,15 @@ and this project adheres to
 - **The macOS accessibility tree no longer uses cgo (#1317).** VoiceOver now
   reads the tree through purego. This is step 4 of the port that #1304 decided.
   The rest of the macOS backend still needs cgo. The API does not change.
+- **The macOS window, events, IME and app delegate no longer use cgo (#1321).**
+  `metal_window_darwin.m` is gone: the window, its content view, the event poll,
+  the input method client, the frame pump and the clipboard call AppKit through
+  purego. This is step 5 of the port that #1304 decided. Only the Metal renderer
+  still needs cgo. The event poll and the wake that the animation loop posts
+  each frame make no heap allocation, as before. One change shows: a window
+  title or clipboard text with bytes that are not valid UTF-8 now has each bad
+  byte replaced by U+FFFD. Before, the title stayed as it was and the clipboard
+  text was dropped. The API does not change.
 
 ### Fixed
 

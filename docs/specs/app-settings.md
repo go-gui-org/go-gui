@@ -70,8 +70,8 @@ the file store without an error.
   saves with no error (see Store selection).
 - **New methods on `NativePlatform`.** Breaks every implementer outside the
   repo; the optional interface does not.
-- **NSUserDefaults on macOS and iOS.** Needs cgo for no gain: the file default
-  is already inside the sandbox container on both.
+- **NSUserDefaults on iOS (formerly macOS too, now purego).** Needs cgo on iOS
+  for no gain: the file default is already inside the sandbox container on both.
 - **gob, XML or TOML.** gob is binary and Go-only, and `localStorage` needs
   strings. XML has no plain mapping for maps. Full TOML needs a new module.
 - **A public `atomicfile` package.** go-edit's document save also follows

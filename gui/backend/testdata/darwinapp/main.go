@@ -1,5 +1,5 @@
-// Command nocgodarwin is the smallest app that calls backend.Run. The
-// test in run_nocgo_test.go links it for darwin with cgo off.
+// Command darwinapp is the smallest app that calls backend.Run. The
+// tests in run_darwin_build_test.go build it for darwin.
 package main
 
 import (

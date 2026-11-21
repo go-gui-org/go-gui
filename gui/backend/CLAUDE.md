@@ -1,15 +1,26 @@
 # Debugging native backends
 
-## CGo boundary blindness
+Desktop is cgo-free (purego on macOS/Linux, syscalls on Windows). CGo remains
+only on mobile (iOS/Android) and under opt-in `-tags hunspell` /
+`-tags otoaudio`. The boundary rules below apply to the purego boundary the same
+way they applied to CGo.
 
-Reading source cannot show whether a value survives the C↔Go boundary. A
-variable set in ObjC (e.g. `_evType`) and read in Go (`C.metalEventType()`)
-looks correct on both sides and can still be lost in the crossing. When a bug
-sits on this boundary:
+## Boundary blindness (CGo / purego)
+
+Reading source cannot show whether a value survives the C↔Go boundary. A value
+set in ObjC and read in Go looks correct on both sides and can still be lost in
+the crossing. When a bug sits on this boundary:
 
 - Add debug logging on **both** sides simultaneously in the first pass. stderr
   in C (`fprintf(stderr, ...); fflush(stderr)`), stderr in Go
   (`fmt.Fprintf(os.Stderr, ...)` or `log.Printf`).
+- The purego boundary is blind in the same way. A send with the wrong argument
+  or result types still runs and gives wrong values. On darwin/arm64,
+  `objc.Send` puts each stack argument (an integer argument after the eighth) in
+  an 8-byte slot, but Apple's ABI packs stack arguments by size, so a BOOL or a
+  `uint16` there reaches AppKit at the wrong offset. Float and NSPoint/NSRect
+  results need `darwinffi.FCaller` or `objc.Send`: `purego.SyscallN` returns
+  only integer registers.
 - If the log on one side never appears, the value was lost or the code path was
   never reached.
 

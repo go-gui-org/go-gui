@@ -196,7 +196,7 @@ func TestCustomShaderBackendsUploadBuiltins(t *testing.T) {
 		"../../gl/draw.go":           "ShaderBuiltinsAt(",
 		"../../web/custom_shader.go": "ShaderBuiltinsAt(",
 		"../../android/draw.go":      "C.glesSetBuiltins(",
-		"../../metal/draw.go":        "C.metalSetCustomBuiltins(",
+		"../../metal/draw.go":        "b.ctx.setFragment0(&builtins)",
 		"../../ios/draw.go":          "C.metalSetCustomBuiltins(",
 	}
 	for path, want := range checks {

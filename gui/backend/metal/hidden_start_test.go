@@ -1,4 +1,4 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
@@ -12,11 +12,11 @@ import (
 // created hidden; any other window is created shown.
 func TestStartHidden(t *testing.T) {
 	w := gui.NewTestWindow(t, gui.WindowCfg{})
-	if got := startHidden(w); got != 0 {
-		t.Errorf("startHidden = %d for a window that was not hidden, want 0", got)
+	if startHidden(w) {
+		t.Error("startHidden = true for a window that was not hidden")
 	}
 	w.Hide()
-	if got := startHidden(w); got != 1 {
-		t.Errorf("startHidden = %d after Hide, want 1", got)
+	if !startHidden(w) {
+		t.Error("startHidden = false after Hide")
 	}
 }

@@ -1,11 +1,6 @@
-//go:build darwin && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
-
-/*
-#include "metal_darwin.h"
-*/
-import "C"
 
 import (
 	"unsafe"
@@ -16,7 +11,7 @@ import (
 
 func (b *windowState) deleteSurfaceTexture(tex metalTexture) {
 	if tex.id != 0 {
-		C.metalDeleteTexture(b.ctx, C.int(tex.id))
+		b.ctx.deleteTexture(int(tex.id))
 	}
 }
 
@@ -28,11 +23,10 @@ func (b *windowState) uploadSurfaceTexture(tex metalTexture, w, h int, pix []byt
 	if tex.id == 0 || tex.w != int32(w) || tex.h != int32(h) {
 		b.deleteSurfaceTexture(tex)
 		tex = createMetalTexture(b.ctx, int32(w), int32(h), pix)
-		C.metalStreamTexture(b.ctx, C.int(tex.id))
+		b.ctx.streamTexture(int(tex.id))
 		return tex
 	}
-	C.metalUpdateStreamTexture(b.ctx, C.int(tex.id),
-		C.int(w), C.int(h), 4, unsafe.Pointer(&pix[0]))
+	b.ctx.updateStreamTexture(int(tex.id), w, h, 4, unsafe.Pointer(&pix[0]))
 	return tex
 }
 

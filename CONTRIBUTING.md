@@ -55,10 +55,9 @@ It flags focusable/scrollable widgets created without an `ID` (a silent no-op
 that never joins the tab order). Escalate with a `//requiredid:ignore` comment
 on the offending line if an ID is genuinely not needed.
 
-Tests exercise layout and widget logic without a display. On macOS, suppress
-harmless duplicate-library warnings with
-`export CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries"` (or use the repo's
-`.envrc` with [direnv](https://direnv.net/)).
+Tests exercise layout and widget logic without a display. No C toolchain is
+needed for desktop development: the desktop backends are cgo-free and load
+system frameworks at run time via purego.
 
 CI also enforces race detector and benchmark regression gates. Run
 `make test-race` locally before pushing (prepush includes it).

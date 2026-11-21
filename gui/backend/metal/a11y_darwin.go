@@ -1,10 +1,8 @@
-//go:build darwin && cgo && !ios
+//go:build darwin && arm64 && !ios
 
 package metal
 
-// The accessibility tree goes through purego (#1317). The file has no
-// cgo of its own. It keeps the cgo build term because the rest of this
-// package still needs cgo, until the last port step.
+// The accessibility tree goes through purego (#1317).
 //
 // Go owns the whole tree. Each node has one GoGuiA11yElement, a
 // subclass of NSAccessibilityElement with no state of its own: its
@@ -163,7 +161,12 @@ var a11ySymbols = sync.OnceValue(func() *a11ySyms {
 
 // a11yClass registers GoGuiA11yElement once. A class can be registered
 // only once per process, so tests and a second window share it.
+//
+// Without cgo nothing links AppKit at load time, so loadObjc opens it
+// first. Before that, NSAccessibilityElement is not a class, the
+// superclass is nil, and the first send to an element stops the app.
 var a11yClass = sync.OnceValue(func() objc.Class {
+	loadObjc()
 	cls, err := objc.RegisterClass("GoGuiA11yElement",
 		objc.GetClass("NSAccessibilityElement"), nil, nil, a11yElementMethods())
 	if err != nil {

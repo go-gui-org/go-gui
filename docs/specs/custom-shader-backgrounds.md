@@ -197,8 +197,8 @@ length mean equal bytes.
 - **Runtime GLSL-to-MSL translation.** It moves a compile-time failure into the
   frame loop: a translator bug ships as a blank container on macOS while Linux
   looks fine. An offline tool emits reviewable Go source.
-- **Vendoring naga or glslang/SPIRV-Cross.** The cgo-free Linux and Windows
-  build is settled policy (`cgo-free-backend-feasibility.md`).
+- **Vendoring naga or glslang/SPIRV-Cross.** The cgo-free desktop build is
+  settled policy (`cgo-free-backend-feasibility.md`).
 - **Reserving `Params` slots for the built-ins.** All 16 floats are app-owned;
   reserving any silently changes the meaning of existing shaders.
 - **Copying the 16 floats into every `RenderCmd`.** It grows every command, of
