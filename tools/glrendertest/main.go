@@ -89,6 +89,14 @@ var x11Tests = []string{
 	"TestAutoPickSoftInitFailureAfterEGLFailure",
 }
 
+// win32Tests run on Windows only, where their file is built. They need a
+// context that reaches initGLResources, so the plain test run on a
+// runner without Mesa skips them (#1310).
+var win32Tests = []string{
+	"TestPipelineFailureIsGPUContextError",
+	"TestTextSystemFailureStaysPlain",
+}
+
 // verdict classifies one test process's output.
 type verdict int
 
@@ -110,7 +118,7 @@ func main() {
 // testList returns the tests for this OS, in run order.
 func testList(windows bool) []string {
 	if windows {
-		return commonTests
+		return append(append([]string{}, commonTests...), win32Tests...)
 	}
 	return append(append([]string{}, commonTests...), x11Tests...)
 }
