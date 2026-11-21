@@ -352,8 +352,9 @@ rectangles and an icon is now at 0 allocations.
   `TestRendererMemImageReregistered`, `TestUpdateTextureRect*`.
 - `gui/backend/gl`, pure: `TestPickSoftVisual`, `TestSoftImageFormatOK`,
   `TestBandRows`, `TestSwizzleBGRA`, `TestModeRefresh`,
-  `TestGPUContextErrorNamesSoftOnLinux`, and for step 3 `TestPickRendererEnv`,
-  `TestAutoPick`, `TestIsSoftwareRasterizer`, `TestSoftVisualRejected`.
+  `TestGPUContextErrorNamesSoft` (Linux and Windows), and for step 3
+  `TestPickRendererEnv`, `TestAutoPick`, `TestIsSoftwareRasterizer`,
+  `TestSoftVisualRejected`.
 - `gui/backend/gl`, against an X server (`tools/glrendertest` runs them in CI
   under Xvfb, one process each): `TestSoftX11NeverTouchesEGL` drives frames, a
   resize, a scale change, Expose and destroy with no EGL state created;

@@ -117,7 +117,7 @@ func TestRunMixed(t *testing.T) {
 		return r.out, r.code
 	}
 	out := captureStdout(t, func() {
-		if code := run(t.TempDir(), false, testList(false), okCompile, runOne); code != 1 {
+		if code := run(t.TempDir(), false, testList(false), causeNoGL, okCompile, runOne); code != 1 {
 			t.Errorf("run() = %d, want 1", code)
 		}
 	})
@@ -133,7 +133,7 @@ func TestRunMixed(t *testing.T) {
 
 func TestRunAllPass(t *testing.T) {
 	out := captureStdout(t, func() {
-		if code := run(t.TempDir(), false, testList(false), okCompile,
+		if code := run(t.TempDir(), false, testList(false), causeNoGL, okCompile,
 			func(_ string, test string) (string, int) {
 				return "--- PASS: " + test + "\n", 0
 			}); code != 0 {
@@ -145,9 +145,30 @@ func TestRunAllPass(t *testing.T) {
 	}
 }
 
+// TestRunSkipNamesSelectionCause pins that a skip is reported with the
+// selection's cause. The soft run uses no GL, so its skips must not blame a
+// missing GL context (#1333 review).
+func TestRunSkipNamesSelectionCause(t *testing.T) {
+	out := captureStdout(t, func() {
+		if code := run(t.TempDir(), true, win32SoftTests[:1], causeNoSoftWindow, okCompile,
+			func(_ string, test string) (string, int) {
+				return "--- SKIP: " + test + "\n", 0
+			}); code != 1 {
+			t.Errorf("run() = %d, want 1", code)
+		}
+	})
+	want := "::error::" + win32SoftTests[0] + " skipped: " + causeNoSoftWindow + "\n"
+	if !strings.Contains(out, want) {
+		t.Errorf("run output missing %q\nfull output:\n%s", want, out)
+	}
+	if strings.Contains(out, "GL context") {
+		t.Errorf("soft skip blames GL:\n%s", out)
+	}
+}
+
 func TestRunCompileFailure(t *testing.T) {
 	out := captureStdout(t, func() {
-		if code := run(t.TempDir(), false, testList(false),
+		if code := run(t.TempDir(), false, testList(false), causeNoGL,
 			func(string) error { return errCompile },
 			func(_ string, _ string) (string, int) {
 				t.Error("runOne called after compile failure")
@@ -194,7 +215,7 @@ func TestRunEndToEnd(t *testing.T) {
 	defer func() { startTest = old }()
 
 	out := captureStdout(t, func() {
-		if code := run(t.TempDir(), false, testList(false), okCompile,
+		if code := run(t.TempDir(), false, testList(false), causeNoGL, okCompile,
 			func(bin, test string) (string, int) { return runOne(bin, test, "gl") }); code != 1 {
 			t.Errorf("run() = %d, want 1 (one FAIL, one SKIP, one crash)", code)
 		}
@@ -246,20 +267,23 @@ func TestSelections(t *testing.T) {
 		windows  bool
 		tests    []string
 		renderer string
+		cause    string
 	}{
-		{"", true, testList(true), "gl"},
-		{"mesa-gl", true, testList(true), "gl"},
-		{"soft", true, win32SoftTests, "soft"},
-		{"system-gl", true, win32SystemGLTests, ""},
-		{"", false, testList(false), "gl"},
+		{"", true, testList(true), "gl", causeNoGL},
+		{"mesa-gl", true, testList(true), "gl", causeNoGL},
+		{"soft", true, win32SoftTests, "soft", causeNoSoftWindow},
+		{"system-gl", true, win32SystemGLTests, "", causeNoGL},
+		{"", false, testList(false), "gl", causeNoGL},
 	}
 	for _, c := range cases {
 		sel, err := selectionFor(c.name, c.windows)
 		if err != nil {
 			t.Fatalf("selectionFor(%q, windows=%v): %v", c.name, c.windows, err)
 		}
-		if strings.Join(sel.tests, ",") != strings.Join(c.tests, ",") || sel.renderer != c.renderer {
-			t.Errorf("selectionFor(%q, windows=%v) = %v with %q", c.name, c.windows, sel.tests, sel.renderer)
+		if strings.Join(sel.tests, ",") != strings.Join(c.tests, ",") || sel.renderer != c.renderer ||
+			sel.skipCause != c.cause {
+			t.Errorf("selectionFor(%q, windows=%v) = %v with %q, cause %q",
+				c.name, c.windows, sel.tests, sel.renderer, sel.skipCause)
 		}
 	}
 	for _, bad := range []struct {

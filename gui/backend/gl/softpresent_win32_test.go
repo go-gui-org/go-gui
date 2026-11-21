@@ -87,3 +87,21 @@ func TestPaceDeadline(t *testing.T) {
 		}
 	}
 }
+
+// TestSoftWin32PresentEmptyFrame: a client area 0 wide or high (a
+// frameless window resized to 0, or a window dragged down to its title bar)
+// has nothing to draw, as GL has an empty viewport. present returns before
+// Draw, so no "frame skipped" line is logged for a state that is not a
+// fault. The nil window proves Draw is not reached: Lock on it would panic.
+func TestSoftWin32PresentEmptyFrame(t *testing.T) {
+	for _, size := range [][2]int32{{0, 0}, {640, 0}, {0, 480}, {-1, 480}} {
+		sp := &softPresentWin32{vsyncOff: true}
+		if sp.present(nil, size[0], size[1]) {
+			t.Errorf("present(%dx%d) = true, want false: nothing reached the window",
+				size[0], size[1])
+		}
+		if sp.skipLogged {
+			t.Errorf("present(%dx%d) logged a skipped frame", size[0], size[1])
+		}
+	}
+}

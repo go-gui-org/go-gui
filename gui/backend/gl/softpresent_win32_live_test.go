@@ -161,9 +161,11 @@ func renderReference(t *testing.T, b *Backend, cfg gui.WindowCfg) []byte {
 	t.Cleanup(func() { soft.Release(ref) })
 	// The window truncates a fractional client size and RenderToImage
 	// rounds it, so at a scale such as 1.33 there is nothing to compare.
-	// Skipped as the X11 test skips a resized window.
+	// Skipped as the X11 test skips a resized window. softWin32Skip makes
+	// it a failure under glrendertest, which reports a bare skip as a
+	// runner fault; the message then names the size mismatch.
 	if want.Rect.Dx() != int(b.physW) || want.Rect.Dy() != int(b.physH) {
-		t.Skipf("window is %dx%d, reference %dx%d at scale %v",
+		softWin32Skip(t, "window is %dx%d, reference %dx%d at scale %v",
 			b.physW, b.physH, want.Rect.Dx(), want.Rect.Dy(), b.dpiScale)
 	}
 	return want.Pix

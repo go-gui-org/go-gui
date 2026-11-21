@@ -309,6 +309,14 @@ func newSoftPresentWin32(hwnd uintptr, w *gui.Window, scale float32) (*softPrese
 // core doing nothing. The DIB's size is compared with the frame's at every
 // present, so the frame after a failed allocation tries again.
 func (sp *softPresentWin32) present(w *gui.Window, physW, physH int32) bool {
+	if physW <= 0 || physH <= 0 {
+		// A client area 0 wide or high has nothing to draw: GL draws an
+		// empty viewport here and logs nothing. Draw would refuse the
+		// size and skip would log it as a fault, so return first. Still
+		// pace, so an animating view does not spin a core on empty frames.
+		sp.pace()
+		return false
+	}
 	sp.checkMonitor()
 	w.Lock()
 	img, err := sp.r.Draw(w, int(physW), int(physH))

@@ -128,11 +128,21 @@ var win32SystemGLTests = []string{
 
 // selection is one run: the tests, in order, and the GOGUI_RENDERER value
 // their processes get. An empty renderer removes the variable, so each
-// test sets it.
+// test sets it. skipCause is what a skipped test in this run most likely
+// means; it goes into the CI annotation.
 type selection struct {
-	tests    []string
-	renderer string
+	tests     []string
+	renderer  string
+	skipCause string
 }
+
+// The skip causes. A GL run skips when the runner has no usable GL context.
+// The soft run uses no GL: it skips when it cannot open or check the soft
+// window, so blaming GL there sends the reader the wrong way.
+const (
+	causeNoGL         = "no usable GL context on this runner"
+	causeNoSoftWindow = "the soft window could not be opened or checked on this runner"
+)
 
 // selectionFor returns the run that -select names (see the package doc).
 func selectionFor(name string, windows bool) (selection, error) {
@@ -141,13 +151,13 @@ func selectionFor(name string, windows bool) (selection, error) {
 		// GOGUI_RENDERER=gl keeps the GL tests on GL: the runner's GL is
 		// llvmpipe, which auto-pick would replace with the CPU renderer
 		// (#1265). The soft and auto-pick tests set the variable themselves.
-		return selection{tests: testList(windows), renderer: "gl"}, nil
+		return selection{tests: testList(windows), renderer: "gl", skipCause: causeNoGL}, nil
 	case !windows:
 		return selection{}, fmt.Errorf("-select %s is a Windows run", name)
 	case name == "soft":
-		return selection{tests: win32SoftTests, renderer: "soft"}, nil
+		return selection{tests: win32SoftTests, renderer: "soft", skipCause: causeNoSoftWindow}, nil
 	case name == "system-gl":
-		return selection{tests: win32SystemGLTests}, nil
+		return selection{tests: win32SystemGLTests, skipCause: causeNoGL}, nil
 	}
 	return selection{}, fmt.Errorf("-select %q: want mesa-gl, soft or system-gl", name)
 }
@@ -175,7 +185,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "glrendertest:", err)
 		os.Exit(2)
 	}
-	os.Exit(run(flag.Arg(0), windows, sel.tests, compileTest,
+	os.Exit(run(flag.Arg(0), windows, sel.tests, sel.skipCause, compileTest,
 		func(bin, test string) (string, int) {
 			return runOne(bin, test, sel.renderer)
 		}))
@@ -203,7 +213,10 @@ func binName(dir string, windows bool) string {
 type compileFunc func(bin string) error
 type runOneFunc func(bin, test string) (output string, code int)
 
-func run(dir string, windows bool, tests []string, compile compileFunc, runOne runOneFunc) int {
+// run compiles the test binary, runs each test and annotates every test that
+// did not pass. skipCause names why a skip happened in this selection.
+func run(dir string, windows bool, tests []string, skipCause string,
+	compile compileFunc, runOne runOneFunc) int {
 	bin := binName(dir, windows)
 	if err := compile(bin); err != nil {
 		return 1
@@ -218,9 +231,9 @@ func run(dir string, windows bool, tests []string, compile compileFunc, runOne r
 			fmt.Printf("::error::%s failed\n", t)
 			status = 1
 		case skip:
-			// A skipped test checked nothing: the runner has no
-			// usable GL context.
-			fmt.Printf("::error::%s skipped: no usable GL context on this runner\n", t)
+			// A skipped test checked nothing. Its own SKIP line, printed
+			// above, says why; skipCause is the usual reason in this run.
+			fmt.Printf("::error::%s skipped: %s\n", t, skipCause)
 			status = 1
 		case crash:
 			fmt.Printf("::error::%s crashed without reporting a verdict (exit %d)\n", t, code)
