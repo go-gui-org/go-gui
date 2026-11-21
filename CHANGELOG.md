@@ -96,6 +96,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Closing one window on X11 no longer freezes the others (#1284).** EGL gives
+  every window of a multi-window app the same display, and closing a window
+  terminated it. Each surviving window then failed every swap with
+  `EGL_NOT_INITIALIZED` and stayed on its last frame. It still took input but
+  never redrew, so it looked covered by an invisible overlay. The X11 backend
+  now counts the windows on the display and terminates it only when the last one
+  closes, as the Wayland backend already did. Windows and macOS were not
+  affected.
 - **A Windows app on Microsoft's generic OpenGL exits with advice instead of a
   panic (#1310).** Without a vendor GPU driver, for example in a VM or an RDP
   session, Windows has only Microsoft's generic OpenGL 1.1 ("GDI Generic"). When

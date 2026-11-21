@@ -269,7 +269,12 @@ func (p *platformState) destroy() {
 			eglDestroySurface(p.eglDpy, p.eglSurface)
 			p.eglSurface = 0
 		}
-		eglTerminate(p.eglDpy)
+		// Only this window's context and surface are gone so far. The
+		// display is shared by every open window (#1284), so it is
+		// terminated by the last one to close.
+		if eglDisplayRelease(p.eglDpy) {
+			eglTerminate(p.eglDpy)
+		}
 		p.eglDpy = 0
 	}
 	if p.conn != nil && p.window != 0 {
