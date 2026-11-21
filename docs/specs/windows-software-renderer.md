@@ -331,7 +331,8 @@ Layout, the pacing wait, DWM's composition and RDP's encoding are not included.
   64 to 65 frames a second on the console, whose display reports 64 Hz, and 32
   to 33 in the RDP session, which reported 32 Hz. An idle window was blocked in
   the message wait for 69.96 of 70 s. Those frame costs predate #1328 and #1329;
-  with both, the console run costs 3.1 ms of `Draw`.
+  with both, `Draw` costs 3.1 ms in the console run and 3.3 ms in the RDP
+  session at either size.
 - Two traps for whoever measures the acceptance bar. Process CPU time is no
   measure of an animating window on that VM: Windows samples it at the 64 Hz
   clock tick, the paced loop runs in step with the tick, and the same load read
