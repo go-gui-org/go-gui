@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 )
 
 const (
@@ -300,30 +301,55 @@ func (b *Backend) drawRect(r *gui.RenderCmd) {
 		return
 	}
 	b.setFillColor(r.Color)
+	x, y, w, h := b.snapLogical(r.X, r.Y, r.W, r.H)
 	if r.Radius > 0 {
-		b.fillRoundedRect(r.X, r.Y, r.W, r.H, r.Radius)
+		b.fillRoundedRect(x, y, w, h, r.Radius)
 	} else {
 		b.ctx2d.Call("fillRect",
-			float64(r.X), float64(r.Y),
-			float64(r.W), float64(r.H))
+			float64(x), float64(y), float64(w), float64(h))
 	}
 }
 
 func (b *Backend) drawStrokeRect(r *gui.RenderCmd) {
+	x, y, w, h := b.snapLogical(r.X, r.Y, r.W, r.H)
+	// An empty or NaN box has no stroke; a zero lineWidth would be
+	// ignored and leave the previous width in force.
+	if !(w > 0 && h > 0) {
+		return
+	}
 	b.setStrokeColor(r.Color)
-	b.ctx2d.Set("lineWidth", max(float64(r.Thickness), 1.0))
+	// Canvas centres a stroke on its path; inset the path by half the
+	// line so the stroke lies inside the box, on whole device pixels,
+	// as the SDF backends draw it (#1334).
+	s := b.snapScale()
+	lw := min(gpu.SnapThickness(max(r.Thickness, 1), s)/s, min(w, h)/2)
+	b.ctx2d.Set("lineWidth", float64(lw))
+	ix, iy := float64(x+lw/2), float64(y+lw/2)
+	iw, ih := float64(w-lw), float64(h-lw)
 	if r.Radius > 0 {
 		b.ctx2d.Call("beginPath")
-		b.roundedRectPath(
-			float64(r.X), float64(r.Y),
-			float64(r.W), float64(r.H),
-			float64(r.Radius))
+		b.roundedRectPath(ix, iy, iw, ih, float64(max(r.Radius-lw/2, 0)))
 		b.ctx2d.Call("stroke")
 	} else {
-		b.ctx2d.Call("strokeRect",
-			float64(r.X), float64(r.Y),
-			float64(r.W), float64(r.H))
+		b.ctx2d.Call("strokeRect", ix, iy, iw, ih)
 	}
+}
+
+// snapScale is the device scale for snapping; 1 until one is known.
+func (b *Backend) snapScale() float32 {
+	if b.dpiScale > 0 {
+		return b.dpiScale
+	}
+	return 1
+}
+
+// snapLogical rounds a logical rect's edges to whole device pixels and
+// returns it in logical units, since the context draws under
+// scale(dpiScale) (#1334).
+func (b *Backend) snapLogical(x, y, w, h float32) (sx, sy, sw, sh float32) {
+	s := b.snapScale()
+	sx, sy, sw, sh = gpu.SnapRect(x, y, w, h, s)
+	return sx / s, sy / s, sw / s, sh / s
 }
 
 func (b *Backend) drawText(r *gui.RenderCmd) {
@@ -471,17 +497,15 @@ func (b *Backend) drawGradient(r *gui.RenderCmd) {
 	}
 
 	b.ctx2d.Set("fillStyle", grad)
+	x, y, w, h := b.snapLogical(r.X, r.Y, r.W, r.H)
 	if r.Radius > 0 {
 		b.ctx2d.Call("beginPath")
-		b.roundedRectPath(
-			float64(r.X), float64(r.Y),
-			float64(r.W), float64(r.H),
+		b.roundedRectPath(float64(x), float64(y), float64(w), float64(h),
 			float64(r.Radius))
 		b.ctx2d.Call("fill")
 	} else {
 		b.ctx2d.Call("fillRect",
-			float64(r.X), float64(r.Y),
-			float64(r.W), float64(r.H))
+			float64(x), float64(y), float64(w), float64(h))
 	}
 }
 
@@ -494,22 +518,20 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 	if len(stops) == 0 {
 		return
 	}
-	th := r.Thickness
 	positions := [4]float32{0.0, 0.25, 0.5, 0.75}
-	type rect struct{ x, y, w, h float32 }
-	rects := [4]rect{
-		{r.X, r.Y, r.W, th},            // top
-		{r.X, r.Y + r.H - th, r.W, th}, // bottom
-		{r.X, r.Y, th, r.H},            // left
-		{r.X + r.W - th, r.Y, th, r.H}, // right
-	}
+	s := b.snapScale()
+	// Top, bottom, left, right, cut in device pixels from one snapped
+	// box and thickness, then drawn in logical units.
+	strips := gpu.SnapBorderStrips(r.X, r.Y, r.W, r.H, r.Thickness, s)
 	for i := range 4 {
+		st := &strips[i]
+		if !(st.W > 0 && st.H > 0) {
+			continue
+		}
 		c := gui.SampleGradientStopColor(stops, positions[i])
 		b.setFillColor(c)
-		rc := rects[i]
-		b.ctx2d.Call("fillRect",
-			float64(rc.x), float64(rc.y),
-			float64(rc.w), float64(rc.h))
+		b.ctx2d.Call("fillRect", float64(st.X/s), float64(st.Y/s),
+			float64(st.W/s), float64(st.H/s))
 	}
 }
 

@@ -144,16 +144,18 @@ func (b *Backend) drawRect(r *gui.RenderCmd) {
 		return
 	}
 	s := b.dpiScale
+	x, y, w, h := gpu.SnapRect(r.X, r.Y, r.W, r.H, s)
 	b.usePipeline(&b.pipelines.solid)
-	b.drawQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
+	b.drawQuad(x, y, w, h,
 		r.Color, r.Radius*s, 0)
 }
 
 func (b *Backend) drawStrokeRect(r *gui.RenderCmd) {
 	s := b.dpiScale
+	x, y, w, h := gpu.SnapRect(r.X, r.Y, r.W, r.H, s)
 	b.usePipeline(&b.pipelines.solid)
-	b.drawQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
-		r.Color, r.Radius*s, r.Thickness*s)
+	b.drawQuad(x, y, w, h,
+		r.Color, r.Radius*s, gpu.SnapThickness(r.Thickness, s))
 }
 
 func (b *Backend) drawCircle(r *gui.RenderCmd) {
@@ -265,10 +267,7 @@ func (b *Backend) drawGradient(w *gui.Window, r *gui.RenderCmd) {
 		return
 	}
 	s := b.dpiScale
-	x := r.X * s
-	y := r.Y * s
-	width := r.W * s
-	h := r.H * s
+	x, y, width, h := gpu.SnapRect(r.X, r.Y, r.W, r.H, s)
 	rad := r.Radius * s
 
 	stops := gui.NormalizeGradientStopsInto(
@@ -299,10 +298,13 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 	}
 	s := b.dpiScale
 	rects := gui.GradientBorderRects(r)
+	strips := gpu.SnapBorderStrips(r.X, r.Y, r.W, r.H, r.Thickness, s)
 	b.usePipeline(&b.pipelines.solid)
 	for i := range 4 {
 		rc := &rects[i]
-		b.drawQuad(rc.X*s, rc.Y*s, rc.W*s, rc.H*s, rc.Color, 0, 0)
+		st := &strips[i]
+		bx, by, bw, bh := st.X, st.Y, st.W, st.H
+		b.drawQuad(bx, by, bw, bh, rc.Color, 0, 0)
 	}
 }
 
