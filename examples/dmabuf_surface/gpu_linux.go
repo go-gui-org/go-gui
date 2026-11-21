@@ -26,8 +26,9 @@ type gpuFrame struct {
 	planes       [2]gui.DMABufPlane
 }
 
-// Release runs on the render thread once the GPU has finished with the
-// frame. It must not block: the pool's channel has room for every frame.
+// Release runs once the GPU has finished with the frame: on a render
+// thread, or inside UpdateDMABuf when the frame was replaced unread. It
+// must not block: the pool's channel has room for every frame.
 func (f *gpuFrame) Release() { f.pool.free <- f }
 
 func newGPUFrames(n int) (*gpuFrames, error) {

@@ -42,8 +42,12 @@ The window's note says which path runs:
   later frame or `Close` replaced it and the GPU finished reading it. Here
   `Release` returns the frame to the pool, and only a frame back in the pool is
   painted again. When all three are still lent, the producer skips a tick.
-- `Release` runs on a render thread and must not block: the pool's channel has
-  room for every frame.
+- `Release` runs on a render thread, or on the producer's own goroutine inside
+  `UpdateDMABuf` when that replaces a frame no renderer read yet. It must not
+  block or call the surface, and must not assume a GL context: here it only
+  returns the frame to the pool, whose channel has room for every frame.
+- A frame the surface refuses stays the producer's. If publishing fails, the
+  producer copies its frames from then on.
 - The shader is the one in `examples/shader_channels`. It reads an imported
   frame and a copied one the same way.
 

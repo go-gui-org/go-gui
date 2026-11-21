@@ -8,14 +8,14 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
-func newTestState(t *testing.T) (*appState, *gui.PixelSurface) {
+func newTestState(t *testing.T) (*App, *gui.PixelSurface) {
 	t.Helper()
 	surface, err := gui.NewPixelSurface(gui.PixelSurfaceCfg{Planes: nv12Planes})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(surface.Close)
-	return &appState{lent: new(atomic.Bool),
+	return &App{lent: new(atomic.Bool),
 		shader: &gui.Shader{GLSL: nv12GLSL, Metal: nv12Metal, Surface: surface}}, surface
 }
 

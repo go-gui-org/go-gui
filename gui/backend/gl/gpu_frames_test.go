@@ -17,6 +17,8 @@ type fakeFence struct {
 	waited                 []uintptr
 	noFence, failed, stuck bool
 	finishes               int
+	// events, when set, records finish and releases in order.
+	events *[]string
 }
 
 func newRetirer(f *fakeFence) *frameRetirer {
@@ -46,14 +48,28 @@ func newRetirer(f *fakeFence) *frameRetirer {
 			f.reached = max(f.reached, s)
 			return true
 		},
-		finish:     func() { f.finishes++; f.reached = f.next },
+		finish: func() {
+			f.finishes++
+			f.reached = f.next
+			if f.events != nil {
+				*f.events = append(*f.events, "finish")
+			}
+		},
 		deleteSync: func(s uintptr) { f.deleted[s] = true },
 	}
 }
 
-type releasedFrame struct{ releases int }
+type releasedFrame struct {
+	releases int
+	events   *[]string // records the release when set
+}
 
-func (r *releasedFrame) Release() { r.releases++ }
+func (r *releasedFrame) Release() {
+	r.releases++
+	if r.events != nil {
+		*r.events = append(*r.events, "release")
+	}
+}
 
 // heldFrame publishes a frame on a fresh surface, holds it as an importing
 // renderer would, and replaces it, so that only the renderer's drop is
@@ -136,15 +152,21 @@ func TestFrameRetirerFinishesWhenFencesFail(t *testing.T) {
 		{"stuck at teardown", func(f *fakeFence) { f.stuck = true }, (*frameRetirer).drain},
 	}
 	for _, c := range cases {
-		f := &fakeFence{}
+		var events []string
+		f := &fakeFence{events: &events}
 		q := newRetirer(f)
 		surface, frame := heldFrame(t)
+		frame.events = &events
 		c.setup(f)
 		q.retire(surface, frame, true)
 		c.end(q)
 		if frame.releases != 1 || f.finishes != 1 || q.pending() {
 			t.Errorf("%s: released %d times after %d finishes, pending %v; want 1, 1, false",
 				c.name, frame.releases, f.finishes, q.pending())
+		}
+		// The GPU must be done before the producer gets its buffer back.
+		if len(events) != 2 || events[0] != "finish" || events[1] != "release" {
+			t.Errorf("%s: events %v, want [finish release]", c.name, events)
 		}
 	}
 }

@@ -19,7 +19,7 @@ import (
 
 const frameWidth, frameHeight = 640, 360
 
-type appState struct {
+type App struct {
 	shader *gui.Shader
 	// gpuErr says why frames cannot go to the GPU (no Linux, no GPU,
 	// no libgbm), or is nil. lent is set once a frame went out as a
@@ -67,13 +67,11 @@ func main() {
 		return
 	}
 	gpu, gpuErr := newGPUFrames(3)
-	state := &appState{gpuErr: gpuErr, lent: new(atomic.Bool),
+	state := &App{gpuErr: gpuErr, lent: new(atomic.Bool),
 		shader: &gui.Shader{GLSL: nv12GLSL, Metal: nv12Metal, Surface: surface}}
-	w := gui.NewWindow(gui.WindowCfg{
-		Title: "DMA-BUF Surface", Width: 720, Height: 520, State: state,
-		OnInit: func(window *gui.Window) { window.SetView(mainView) },
+	w := gui.SimpleWindow("DMA-BUF Surface", 720, 520, state, func(w *gui.Window) {
+		w.SetView(mainView)
 	})
-	w.SetView(mainView)
 	if *screenshot != "" {
 		if err = soft.RenderToPNG(w, 1, *screenshot); err != nil {
 			log.Print(err)
@@ -95,7 +93,7 @@ func main() {
 }
 
 func mainView(w *gui.Window) gui.View {
-	state := gui.State[appState](w)
+	state := gui.State[App](w)
 	note := "Frames in DMA-BUFs, drawn without a copy"
 	switch {
 	case !w.RendersShaders():
@@ -142,14 +140,15 @@ func produce(w *gui.Window, surface *gui.PixelSurface, gpu *gpuFrames, copied *c
 			// A frame is free once the renderer released it; with all
 			// three still on their way back, this tick is skipped.
 			published, err := gpu.publish(surface, n)
-			if err != nil {
-				log.Print(err)
-				return
+			if err == nil {
+				if published && !lent.Swap(true) {
+					w.InvalidateLayout() // the note changes
+				}
+				continue
 			}
-			if published && !lent.Swap(true) {
-				w.InvalidateLayout() // the note changes
-			}
-			continue
+			// Copy from here on: a pool that fails once is not tried again.
+			log.Printf("%v; copying frames from now on", err)
+			gpu = nil
 		}
 		copied.paint(n)
 		if copied.publish(surface) != nil {

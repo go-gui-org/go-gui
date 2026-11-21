@@ -119,6 +119,11 @@ func newGBMFrame(t *testing.T, p *producerThread, dev *gbm.Device, alloc allocat
 // goroutine, and so on another OS thread than the one New made the
 // window's GL context current on.
 func TestDMABufImport(t *testing.T) {
+	// A required import needs a working GL backend too: without this, a
+	// backend that fails to start would skip the test, not fail it.
+	if os.Getenv("GOGUI_REQUIRE_DMABUF") != "" {
+		t.Setenv("GOGUI_REQUIRE_GL", "1")
+	}
 	b := newBatchProbeBackend(t)
 	if b.dmabuf == nil {
 		requireDMABuf(t, "the display does not import DMA-BUFs")

@@ -17,6 +17,8 @@ import (
 // (#1326).
 const (
 	eglExtensions         = 0x3055
+	eglImagePreserved     = 0x30D2 // EGL_IMAGE_PRESERVED_KHR
+	eglTrue               = 1
 	eglHeight             = 0x3056
 	eglWidth              = 0x3057
 	eglLinuxDMABuf        = 0x3270
@@ -55,10 +57,11 @@ type eglDMABuf struct {
 	// external texture (GL_TEXTURE_EXTERNAL_OES), which a channel shader
 	// cannot sample: createImage refuses them.
 	externalOnly map[formatModifier]bool
-	// attribs is the attribute list, filled per call: the size and format,
-	// then up to four memory planes of five attributes, then EGL_NONE. It
-	// lives here so that handing it to the driver allocates nothing.
-	attribs [6 + 4*10 + 1]int32
+	// attribs is the attribute list, filled per call: the size, format and
+	// EGL_IMAGE_PRESERVED_KHR, then up to four memory planes of five
+	// attributes, then EGL_NONE. It lives here so that handing it to the
+	// driver allocates nothing.
+	attribs [8 + 4*10 + 1]int32
 }
 
 // dmabufImporter returns an importer for this window's EGL display, or
@@ -155,7 +158,11 @@ func (e *eglDMABuf) createImage(format gui.PixelFormat, width, height int, buf g
 	a[0], a[1] = eglWidth, int32(width)
 	a[2], a[3] = eglHeight, int32(height)
 	a[4], a[5] = eglLinuxDRMFourCC, int32(fourcc)
-	n := 6
+	// The decoder's pixels must survive the import: without this,
+	// EGL_KHR_image_base leaves an image's contents undefined after
+	// creation.
+	a[6], a[7] = eglImagePreserved, eglTrue
+	n := 8
 	put := func(plane int, fd int, offset, pitch uint32) {
 		names := &eglDMABufPlaneAttribs[plane]
 		a[n], a[n+1] = names[0], int32(fd)
