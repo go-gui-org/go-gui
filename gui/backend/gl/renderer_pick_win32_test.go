@@ -995,6 +995,9 @@ func TestPipelineFailureReportsNoVSync(t *testing.T) {
 			b.Destroy()
 		}
 		skipNoWindow(t, err)
+		if os.Getenv("GOGUI_REQUIRE_GL") != "" {
+			t.Fatalf("GOGUI_REQUIRE_GL is set but no GL here reaches the pipelines: %v", err)
+		}
 		t.Skipf("no GL here reaches the pipelines: %v", err)
 	}
 	if err == nil {
