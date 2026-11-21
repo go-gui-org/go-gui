@@ -29,7 +29,7 @@
     { "id": "pipeline", "type": "backend", "label": "layoutPipeline", "sublabel": "12 passes: widths→heights", "stage": 2, "row": 3, "width": 152, "tag": "Fill / Wrap / Clip" },
     { "id": "measured", "type": "cloud", "label": "Injected services", "sublabel": "TextMeasurer / SvgParser", "stage": 3, "row": 0, "width": 148, "tag": "nil in tests" },
     { "id": "renderLayout", "type": "messagebus", "label": "renderLayout", "sublabel": "walk → w.renderers", "stage": 3, "row": 2, "width": 148, "tag": "[]RenderCmd" },
-    { "id": "backend", "type": "backend", "label": "GPU backend", "sublabel": "Metal / GL dispatch", "stage": 4, "row": 0, "width": 148, "tag": "no CGo on Linux" },
+    { "id": "backend", "type": "backend", "label": "GPU backend", "sublabel": "Metal / GL dispatch", "stage": 4, "row": 0, "width": 148, "tag": "cgo-free desktop" },
     { "id": "windowOut", "type": "frontend", "label": "Window display", "sublabel": "composeLayer + present", "stage": 4, "row": 2, "width": 148, "tag": "FrameFn" }
   ],
   "flows": [

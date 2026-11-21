@@ -24,9 +24,10 @@ LINT_ARGS ?=
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples \
 	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergo-ids ergo-pointeramend ergo-style ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check wayland-selftest
 
-# Desktop builds are cgo-free since the purego GL bindings (#155): the
-# backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
-# Windows. Only macOS (Metal) and the mobile backends need cgo.
+# Desktop builds are cgo-free: backend/gl uses X11/xgb + purego EGL on Linux
+# and Win32 syscalls on Windows (#155), and the Metal backend calls AppKit and
+# Metal through purego with no cgo (#1323). Only the mobile backends and the
+# opt-in `-tags hunspell` / `-tags otoaudio` need cgo.
 # GOOS/GOARCH are explicit: without them a macOS developer running
 # `make release` gets a Mach-O binary in the "linux" tarball.  The
 # purego backend cross-compiles cleanly, so this costs nothing on a
