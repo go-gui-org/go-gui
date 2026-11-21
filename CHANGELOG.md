@@ -53,6 +53,14 @@ and this project adheres to
   title or clipboard text with bytes that are not valid UTF-8 now has each bad
   byte replaced by U+FFFD. Before, the title stayed as it was and the clipboard
   text was dropped. The API does not change.
+- **The CPU renderer draws text faster (#1327).** `soft.Renderer` blended a
+  glyph one pixel at a time through two calls, each of which worked out the
+  atlas and frame offsets again; that was 54 to 66 % of the draw on a text-heavy
+  view. It now takes the atlas row and the frame row once per row. A glyph quad
+  of 16×32 px takes 3.9 µs instead of 5.0 µs, and a frame of 1,000 text widgets
+  takes 8.6 ms instead of 11.1 ms at 1920×1080. Every pixel is the same as
+  before, and a test compares the two paths. X11, Wayland and
+  `soft.RenderToImage` share the gain. The API does not change.
 
 ### Fixed
 

@@ -209,13 +209,41 @@ func (gb *glyphBackend) DrawTexturedQuad(id glyph.TextureID,
 	gb.buf.markDirty(region)
 	invW := 1 / (x1 - x0)
 	invH := 1 / (y1 - y0)
+	// The quad is axis-aligned, so a device row reads one atlas row. Both
+	// row slices are taken once per row and blended in place: blendTexel
+	// and blendPixel work the two offsets out again, and repeat the bounds
+	// tests, for every pixel, which was most of a text-heavy frame (#1327).
+	// The arithmetic is theirs, so the pixels are too.
+	img := gb.buf.img
+	rowLen := region.Dx() * 4
+	tr, tg, tb, ta := uint32(c.R), uint32(c.G), uint32(c.B), uint32(c.A)
 	for py := region.Min.Y; py < region.Max.Y; py++ {
 		v := (float32(py) + 0.5 - y0) * invH
 		sy := int(src.Y + v*src.Height)
+		if sy < 0 || sy >= tex.h {
+			continue
+		}
+		srcRow := tex.pix[sy*tex.w*4 : (sy+1)*tex.w*4]
+		off := img.PixOffset(region.Min.X, py)
+		dstRow := img.Pix[off : off+rowLen]
 		for px := region.Min.X; px < region.Max.X; px++ {
 			u := (float32(px) + 0.5 - x0) * invW
 			sx := int(src.X + u*src.Width)
-			gb.blendTexel(tex, sx, sy, px, py, c)
+			if sx < 0 || sx >= tex.w {
+				continue
+			}
+			p := srcRow[sx*4 : sx*4+4 : sx*4+4]
+			sa := uint32(p[3]) * ta / 255
+			if sa == 0 {
+				continue
+			}
+			i := (px - region.Min.X) * 4
+			d := dstRow[i : i+4 : i+4]
+			inv := 255 - sa
+			d[0] = uint8((uint32(p[0])*tr/255*sa + uint32(d[0])*inv + 127) / 255)
+			d[1] = uint8((uint32(p[1])*tg/255*sa + uint32(d[1])*inv + 127) / 255)
+			d[2] = uint8((uint32(p[2])*tb/255*sa + uint32(d[2])*inv + 127) / 255)
+			d[3] = uint8((sa*255 + uint32(d[3])*inv + 127) / 255)
 		}
 	}
 }
