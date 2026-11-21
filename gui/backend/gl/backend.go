@@ -43,10 +43,13 @@ type Backend struct {
 	surfaces surfacecache.Cache[glTexture]
 	// channels holds the planes custom shaders read (gui.Shader.Surface);
 	// transparentTex stands in for a channel with no plane.
-	channels          surfacecache.Cache[glChannels]
-	transparentTex    glTexture
-	imagePathCache    texcache.Cache[string, string]
-	textSys           *glyph.TextSystem
+	channels       surfacecache.Cache[glChannels]
+	transparentTex glTexture
+	imagePathCache texcache.Cache[string, string]
+	textSys        *glyph.TextSystem
+	// measurer is the window's text measurer. drawFrame flushes its pending
+	// hinting change once this window's GL context is current (#1334).
+	measurer          *textMeasurer
 	filterColorMatrix *[16]float32
 
 	glyphBack    *glyphBackend
@@ -226,7 +229,8 @@ func (b *Backend) attachGLWindow(w *gui.Window) {
 	b.retired = frameRetirer{fence: glFence, check: glCheck, wait: glWait, finish: gogl.Finish, deleteSync: gogl.DeleteSync}
 	// dmabufImporter reads the context's extensions, so it is a GL call.
 	b.dmabuf = b.plat.dmabufImporter()
-	w.SetTextMeasurer(&textMeasurer{textSys: b.textSys})
+	b.measurer = &textMeasurer{textSys: b.textSys}
+	w.SetTextMeasurer(b.measurer)
 	w.SetSvgParser(svg.New())
 	w.SetNativePlatform(&nativePlatform{b: b})
 	gui.SetWindowRendersShaders(w, true)
@@ -293,6 +297,7 @@ func (b *Backend) renderFrame(w *gui.Window) {
 // window, whose contents are undefined after a swap.
 func (b *Backend) drawFrame(w *gui.Window) {
 	b.plat.makeCurrent()
+	b.measurer.flushHinting()
 	bg := w.FrameBackground()
 	gogl.ClearColor(
 		float32(bg.R)/255.0,

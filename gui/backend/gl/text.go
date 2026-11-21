@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/go-gui-org/go-glyph"
@@ -436,6 +437,12 @@ func (gb *glyphBackend) DPIScale() float32 {
 // textMeasurer wraps glyph.TextSystem to implement gui.TextMeasurer.
 type textMeasurer struct {
 	textSys *glyph.TextSystem
+	// hintSink receives the hinting change. nil means textSys. A test sets
+	// it to see when glyph is reached.
+	hintSink interface{ SetHinting(on bool) }
+	// pendingHint holds a hinting change that has not reached glyph:
+	// 0 none, 1 on, 2 off. See SetHinting.
+	pendingHint atomic.Int32
 }
 
 func (tm *textMeasurer) TextWidth(text string, style gui.TextStyle) float32 {
@@ -527,10 +534,38 @@ func (tm *textMeasurer) ListFontFamilies() []string {
 	return tm.textSys.ListFontFamilies()
 }
 
-// SetHinting forwards the window's text-hinting choice to the text system
-// (gui.Window.SetTextHinting, #1334).
+// SetHinting records the window's text-hinting choice (gui.Window.SetTextHinting,
+// #1334). It does not reach glyph yet. glyph purges its atlas on a change, and
+// the purge can allocate a texture in the GL context that is current. Each
+// window owns an unshared context, so a call made while another window's
+// context is current would put the texture in the wrong one. flushHinting
+// applies the change from drawFrame, after the window's own context is current.
 func (tm *textMeasurer) SetHinting(on bool) {
-	tm.textSys.SetHinting(on)
+	v := int32(2)
+	if on {
+		v = 1
+	}
+	tm.pendingHint.Store(v)
+}
+
+// flushHinting gives a recorded hinting change to glyph. The caller makes the
+// window's GL context current first. It is safe on a nil measurer.
+func (tm *textMeasurer) flushHinting() {
+	if tm == nil {
+		return
+	}
+	v := tm.pendingHint.Swap(0)
+	if v == 0 {
+		return
+	}
+	sink := tm.hintSink
+	if sink == nil {
+		if tm.textSys == nil {
+			return
+		}
+		sink = tm.textSys
+	}
+	sink.SetHinting(v == 1)
 }
 
 func guiStyleToGlyphConfig(s gui.TextStyle) glyph.TextConfig {
