@@ -137,6 +137,19 @@ type WindowCfg struct {
 	// no compositor the window renders black, which gui.Debug
 	// reports.
 	Transparent bool
+	// DisableTextHinting turns off stem snapping of glyph outlines
+	// (#1334). By default, vertical stems of text up to 48 px move to
+	// whole pixels, so they show as solid columns. Set this to keep the
+	// exact outline: the text looks softer but more uniform, and stems
+	// and curves have the same weight. Window.SetTextHinting changes the
+	// value at runtime, for example from an app setting. It has no effect
+	// on the web backend.
+	//
+	// Multisample antialiasing (MSAA) does not change text or rectangle
+	// borders. It only smooths the edges of SVG paths and other triangle
+	// meshes, so there is no MSAA setting for crisper text.
+	// exportaudit:keep — caller-facing config (issue #1334)
+	DisableTextHinting bool
 	// FixedSize disables user-driven window resizing when supported
 	// by the active backend.
 	FixedSize bool
@@ -229,6 +242,7 @@ func NewWindow(cfg WindowCfg) *Window {
 		scratch:       newScratchPools(),
 		ctx:           ctx,
 		cancelCtx:     cancel,
+		windowBackend: windowBackend{textHintingOff: cfg.DisableTextHinting},
 		windowAnimation: windowAnimation{
 			animationStop:     make(chan struct{}),
 			animationDone:     make(chan struct{}),

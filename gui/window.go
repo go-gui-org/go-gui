@@ -572,6 +572,7 @@ func (w *Window) SetTextMeasurer(tm TextMeasurer) {
 		}
 	}
 	w.textMeasurer = tm
+	w.applyTextHinting()
 }
 
 // TextMeasurer returns the window's text measurement backend, or nil

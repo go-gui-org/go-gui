@@ -101,7 +101,12 @@ type windowAnimation struct {
 // windowBackend holds backend-injected dependencies. All fields
 // are set once at init by the backend and nil in tests.
 type windowBackend struct {
-	textMeasurer   TextMeasurer
+	textMeasurer TextMeasurer
+	// textHintingOff is the app's text-hinting choice (#1334). It is not
+	// set by the backend: NewWindow seeds it from
+	// WindowCfg.DisableTextHinting and SetTextHinting changes it.
+	// SetTextMeasurer gives it to each measurer that is installed.
+	textHintingOff bool
 	svgParser      SvgParser
 	nativePlatform NativePlatform
 	// titlebarDark is the variant last asked of TitlebarDark, and

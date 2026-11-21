@@ -509,3 +509,28 @@ const wlFrameAllocs = 8
 // background work settles. One round of 20 paced frames takes about 0.35 s
 // on a 60 Hz output, so this waits at most about 3.5 s.
 const wlFrameAllocRounds = 10
+
+// TestWaylandDrawFrameAppliesTextHinting: Window.SetTextHinting reaches glyph
+// on GL only through drawFrame, which flushes the choice once the window's
+// own context is current (#1334). The test fails if drawFrame stops calling
+// flushHinting, because the setting would then never take effect.
+func TestWaylandDrawFrameAppliesTextHinting(t *testing.T) {
+	b := newWaylandTestBackend(t, gui.WindowCfg{Width: 320, Height: 200})
+	defer b.Destroy()
+	w := b.plat.w
+	spy := &hintSpy{}
+	b.measurer.hintSink = spy
+	// Drop the install-time choice so the spy sees only this call.
+	b.measurer.flushHinting()
+	spy.calls = nil
+
+	w.SetTextHinting(false)
+	if len(spy.calls) != 0 {
+		t.Fatalf("SetTextHinting reached glyph before a frame: %v", spy.calls)
+	}
+	w.FrameFn()
+	b.drawFrame(w)
+	if len(spy.calls) != 1 || spy.calls[0] {
+		t.Fatalf("SetHinting calls after drawFrame = %v, want [false]", spy.calls)
+	}
+}

@@ -123,6 +123,12 @@ func (tm *textMeasurer) ListFontFamilies() []string {
 	return tm.textSys.ListFontFamilies()
 }
 
+// SetHinting forwards the window's text-hinting choice to the text system
+// (gui.Window.SetTextHinting, #1334).
+func (tm *textMeasurer) SetHinting(on bool) {
+	tm.textSys.SetHinting(on)
+}
+
 func guiStyleToGlyphConfig(s gui.TextStyle) glyph.TextConfig {
 	return glyphconv.GuiStyleToGlyphConfig(s)
 }
