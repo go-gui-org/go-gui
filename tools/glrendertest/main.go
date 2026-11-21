@@ -30,14 +30,16 @@
 // Windows runs (#1310), which differ in that DLL and in GOGUI_RENDERER:
 //
 //   - mesa-gl, the default: Mesa's DLL; the GL tests, with
-//     GOGUI_RENDERER=gl.
+//     GOGUI_RENDERER=gl, and the tests that a GL that comes up keeps GL with
+//     the variable unset (they unset it themselves).
 //   - soft: Mesa's DLL, which the tests require to stay unloaded; the
 //     GOGUI_RENDERER=soft present tests, with GOGUI_RENDERER=soft.
 //   - system-gl: no DLL in the directory, so the system's own OpenGL; the
-//     GDI Generic regression test, with GOGUI_RENDERER unset (the test
-//     sets it). The test skips, which counts as a failure, when the
-//     system OpenGL makes no context, so the run also shows what the
-//     runner's OpenGL does.
+//     GDI Generic regression test, then the tests of the fallback to the
+//     CPU renderer, with GOGUI_RENDERER unset (each test sets it). The
+//     regression test skips, which counts as a failure, when the system
+//     OpenGL makes no context, so the run also shows what the runner's
+//     OpenGL does.
 //
 // Linux has one run, the default.
 package main
@@ -109,6 +111,17 @@ var x11Tests = []string{
 var win32Tests = []string{
 	"TestPipelineFailureIsGPUContextError",
 	"TestTextSystemFailureStaysPlain",
+	// With GOGUI_RENDERER unset (#1310, phase 3): a GL that comes up keeps
+	// GL, a pipeline failure does not fall back, a later window of a GL
+	// process returns the error, a window opened from an appearance hook
+	// inside the first window's New gets the first window's renderer, on GL
+	// and after a forced fallback, and one opened from the log writer before
+	// the choice does not wait for it. Each unsets the variable itself.
+	"TestUnsetWithMesaKeepsGL",
+	"TestPipelineFailureDoesNotFallBack",
+	"TestLaterWindowGLFailureReturnsError",
+	"TestWindowFromAppearanceHook",
+	"TestWindowFromLogWriter",
 }
 
 // win32SoftTests are the GOGUI_RENDERER=soft present tests (#1310). They
@@ -121,9 +134,21 @@ var win32SoftTests = []string{
 	"TestSoftWin32PresentAllocs",
 }
 
-// win32SystemGLTests run on the system's own OpenGL (#1310).
+// win32SystemGLTests run on the system's own OpenGL (#1310): the GDI Generic
+// regression test, then the first-window fallback. The fallback tests force
+// their trigger through a seam, except TestFallbackOnGDIGeneric, which needs
+// the system DLL.
 var win32SystemGLTests = []string{
 	"TestGDIGenericIsGPUContextError",
+	"TestFallbackOnRefusedContext",
+	"TestFallbackOnGDIGeneric",
+	"TestRendererGLReportsError",
+	"TestFallbackSoftFailure",
+	"TestFallbackKeepsHiddenStart",
+	"TestFallbackKeepsQueuedPlacement",
+	"TestFallbackRunsOnInitOnce",
+	"TestFallbackPublishesWinningReportsOnly",
+	"TestSoftProcessMakesNoGLAttempt",
 }
 
 // selection is one run: the tests, in order, and the GOGUI_RENDERER value

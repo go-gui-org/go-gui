@@ -19,8 +19,15 @@ import (
 // renderer instead (#1265), so there it is reported only for
 // GOGUI_RENDERER=gl, or when the CPU renderer cannot run either. On
 // Windows, GOGUI_RENDERER=soft opens the window on the CPU renderer with no
-// WGL at all (#1310), so it is not reported then. Use errors.Is to test for
-// it; errors.Unwrap returns the EGL/WGL/GL cause.
+// WGL at all (#1310), so it is not reported then; with the variable unset, a
+// first window whose WGL context or GL binding fails reopens on the CPU
+// renderer, so there it is reported for GOGUI_RENDERER=gl, for a pipeline
+// failure, for a later window of a process whose first window is on GL, or
+// when the CPU renderer cannot run either. Use errors.Is to test for it.
+// errors.Unwrap on New's error returns the EGL/WGL/GL cause, except when the
+// CPU renderer could not run either: that error wraps the GPU error and the
+// CPU renderer's cause together, so errors.Unwrap returns nil, and errors.Is
+// and errors.As still find ErrNoGPUContext and both causes.
 // exportaudit:keep — matched by errors.Is from app mains, not by import
 var ErrNoGPUContext = errors.New("gl: no GPU context")
 

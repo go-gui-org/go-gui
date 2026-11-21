@@ -2,10 +2,14 @@
 
 package gl
 
-// GOGUI_RENDERER=soft present path for Windows (#1310, phase 2).
+// CPU renderer present path for Windows (#1310): GOGUI_RENDERER=soft since
+// phase 2, and since phase 3 the fallback of a first window whose GL context
+// or binding fails with the variable unset (renderer_pick_win32.go).
 //
 // A window on this path has no pixel format, no WGL context, no kept window
-// DC and no GL function table, and the process never loads opengl32.dll.
+// DC and no GL function table. With GOGUI_RENDERER=soft the process never
+// loads opengl32.dll; after a fallback, the DLL the GL attempt loaded stays
+// mapped.
 // Each frame is drawn on the CPU by soft.Renderer, swizzled into a top-down
 // 32 bpp DIB section that stays selected into a memory DC, and copied to the
 // window with BitBlt. WM_PAINT copies the same DIB again. Everything else —
@@ -206,10 +210,10 @@ func registerSoftClass(hInstance uintptr) *uint16 {
 }
 
 // reportSoftTransparency reports a WindowCfg.Transparent window on soft,
-// which stays opaque and opens with no error (#1310, decision 3).
-func reportSoftTransparency(w *gui.Window) {
-	w.DebugWindowTransparency("the CPU renderer (GOGUI_RENDERER=soft) " +
-		"draws it opaque on Windows")
+// which stays opaque and opens with no error (#1310, decision 3). The text
+// does not name GOGUI_RENDERER=soft: a fallback from GL lands here too.
+func reportSoftTransparency(report func(string)) {
+	report("the CPU renderer draws it opaque on Windows")
 }
 
 // --- present ---
@@ -250,10 +254,12 @@ type softPresentWin32 struct {
 }
 
 // createDIBSectionFunc and selectObjectFunc are the seams the resize test
-// replaces to make an allocation fail.
+// replaces to make an allocation fail; newSoftPresentWin32Func the one the
+// fallback test replaces to make the soft setup fail.
 var (
-	createDIBSectionFunc = createDIBSection
-	selectObjectFunc     = selectObject
+	createDIBSectionFunc    = createDIBSection
+	selectObjectFunc        = selectObject
+	newSoftPresentWin32Func = newSoftPresentWin32
 )
 
 // createDIBSection creates a DIB section described by bmi and stores its
@@ -474,15 +480,19 @@ func (sp *softPresentWin32) destroy() {
 // --- Backend glue: the sites where the Win32 path branches on soft ---
 
 // newSoftWin32 is New's soft attempt: the window of the soft class, then
-// the CPU renderer in place of WGL and the GL resources.
-func newSoftWin32(w *gui.Window) (*Backend, error) {
-	b, err := openWin32Window(w, true)
+// the CPU renderer in place of WGL and the GL resources. The window setup's
+// degradation reports go to rep. A failure of the renderer's own setup is a
+// softInitError, which a fallback from GL reports after the GPU error.
+// commit is as for newGLWin32: when not nil, it runs once nothing can fail,
+// before application code can run.
+func newSoftWin32(w *gui.Window, rep *windowReports, commit func()) (*Backend, error) {
+	b, err := openWin32Window(w, true, rep)
 	if err != nil {
 		return nil, err
 	}
-	if serr := b.initSoftWin32(w); serr != nil {
+	if serr := b.initSoftWin32(w, commit); serr != nil {
 		b.plat.destroy()
-		return nil, serr
+		return nil, &softInitError{err: serr}
 	}
 	finishWin32Window(w, b)
 	return b, nil
@@ -491,17 +501,22 @@ func newSoftWin32(w *gui.Window) (*Backend, error) {
 // initSoftWin32 stands in for initGLResources on a soft window: the
 // renderer installs the text measurer and SVG parser, and the window is
 // told it cannot run custom shaders (soft has no GLSL; a shader container
-// draws its children and no fill).
-func (b *Backend) initSoftWin32(w *gui.Window) error {
+// draws its children and no fill). commit runs before the native platform
+// attaches, the first point where application code can run.
+func (b *Backend) initSoftWin32(w *gui.Window, commit func()) error {
 	hwnd := b.plat.hwnd
 	b.dpiScale = windowScale(hwnd)
 	b.physW, b.physH = clientSize(hwnd)
-	sp, err := newSoftPresentWin32(hwnd, w, b.dpiScale)
+	sp, err := newSoftPresentWin32Func(hwnd, w, b.dpiScale)
 	if err != nil {
 		return err
 	}
 	b.plat.softMode = true
 	b.plat.soft = sp
+	// Nothing below, or in finishWin32Window, fails.
+	if commit != nil {
+		commit()
+	}
 	w.SetNativePlatform(&nativePlatform{b: b})
 	gui.SetWindowRendersShaders(w, false)
 	return nil

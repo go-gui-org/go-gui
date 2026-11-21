@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -298,6 +299,23 @@ func TestSelections(t *testing.T) {
 	for _, x := range append(append([]string{}, win32SoftTests...), win32SystemGLTests...) {
 		if strings.Contains(","+gl+",", ","+x+",") {
 			t.Errorf("%s is in the Mesa GL run too", x)
+		}
+	}
+	// The phase 3 tests that need a GL that comes up run on Mesa; the one
+	// that needs GDI Generic runs on the system DLL. In the other run each
+	// skips, which glrendertest reports as a failure (#1310).
+	needs := map[string][]string{
+		"mesa-gl": {"TestUnsetWithMesaKeepsGL", "TestPipelineFailureDoesNotFallBack",
+			"TestLaterWindowGLFailureReturnsError", "TestWindowFromAppearanceHook",
+			"TestWindowFromLogWriter"},
+		"system-gl": {"TestFallbackOnGDIGeneric"},
+	}
+	for name, tests := range needs {
+		sel, _ := selectionFor(name, true)
+		for _, x := range tests {
+			if !slices.Contains(sel.tests, x) {
+				t.Errorf("%s is not in the %s run", x, name)
+			}
 		}
 	}
 }

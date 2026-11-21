@@ -68,7 +68,8 @@ These CI checks have no local Makefile equivalent — they either need a differe
 OS runner or a baseline from `main` that only CI can supply:
 
 - OS-matrix test runs on Windows and macOS runners. Windows also runs the
-  showcase smoke test with Mesa's software GL
+  showcase smoke test twice: with Mesa's software GL, where it must stay on GL,
+  and with the runner's own OpenGL, where it must fall back to the CPU renderer
 - Coverage diff on PRs — compares against a baseline cached from `main`
   (`go run ./tools/coverage diff` can run it locally if you supply two profiles)
 - Benchmark regression gate — runs `make bench-gate` on the PR base and on the

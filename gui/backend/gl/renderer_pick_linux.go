@@ -132,13 +132,6 @@ func autoPick(res probeResult) (rendererChoice, string) {
 	return rendererChoice{}, ""
 }
 
-// newGPUContextErrorNoSoft is newGPUContextError for a failure where the CPU
-// renderer was the fallback and could not run either, so advising
-// GOGUI_RENDERER=soft would be wrong.
-func newGPUContextErrorNoSoft(op string, cause error) error {
-	return &gpuContextError{op: op, cause: cause, noSoft: true}
-}
-
 // errNoSoftVisual: the X server has no visual the CPU renderer can write into
 // (a 32 bpp little-endian TrueColor ZPixmap with 8-bit channels).
 var errNoSoftVisual = errors.New("gl: CPU renderer: the X server " +

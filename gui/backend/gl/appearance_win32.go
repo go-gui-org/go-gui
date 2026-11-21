@@ -47,7 +47,7 @@ func querySystemAppearance() (gui.Appearance, bool) {
 
 // SystemAppearance implements gui.NativePlatform.
 func (n *nativePlatform) SystemAppearance() (gui.Appearance, bool) {
-	return querySystemAppearance()
+	return winAppearanceQuery()
 }
 
 // PrefersReducedMotion reports the OS reduce-motion setting

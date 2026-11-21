@@ -2,11 +2,7 @@
 
 package gl
 
-import (
-	"math"
-
-	"github.com/go-gui-org/go-gui/gui"
-)
+import "math"
 
 // SetWindowLongPtrW and GetWindowLongPtrW are 64-bit-only exports; on
 // 32-bit Windows the names are macros for the ...LongW pair and the
@@ -64,16 +60,12 @@ func opacityAlphaByte(opacity float32) byte {
 // composited, not the size of its frame.
 //
 // Best-effort, like every other window-level capability here: a missing
-// export or a refused combination reports through gui.Debug and leaves
-// the window as it was.
-func applyWindowOpacity(w *gui.Window, hwnd uintptr, transparent bool, opacity float32) {
+// export or a refused combination is reported through warn, the window's
+// DebugWindowOpacity or New's collection for the window being opened, and
+// leaves the window as it was.
+func applyWindowOpacity(warn func(string), hwnd uintptr, transparent bool, opacity float32) {
 	if hwnd == 0 {
 		return
-	}
-	warn := func(reason string) {
-		if w != nil {
-			w.DebugWindowOpacity(reason)
-		}
 	}
 	if !layeredOpacityAllowed(transparent) {
 		warn("the window is Transparent; WS_EX_LAYERED and per-pixel " +

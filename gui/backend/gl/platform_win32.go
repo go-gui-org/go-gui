@@ -447,21 +447,21 @@ func loadCursors(p *platformState) {
 // --- lifecycle ---
 
 // New creates the backend of a native Win32 window: OpenGL 3.3 through a
-// WGL context, or with GOGUI_RENDERER=soft the CPU renderer presented with
-// GDI, which loads no opengl32.dll (#1310).
+// WGL context, or the CPU renderer presented with GDI (#1310). With
+// GOGUI_RENDERER=soft it loads no opengl32.dll; unset, a first window whose
+// GL context or binding fails reopens on the CPU renderer, and so does every
+// later window (renderer_pick_win32.go).
 // exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) {
 	runtime.LockOSThread()
-	if readRendererEnv() == rendererEnvSoft {
-		return newSoftWin32(w)
-	}
-	return newGLWin32(w)
+	return openWin32Backend(w, readRendererEnv())
 }
 
 // openWin32Window creates w's window, hidden, and registers it, then does
 // the setup both renderers share. A soft window has its own class, without
-// CS_OWNDC, and stays opaque when WindowCfg.Transparent asks otherwise.
-func openWin32Window(w *gui.Window, soft bool) (*Backend, error) {
+// CS_OWNDC, and stays opaque when WindowCfg.Transparent asks otherwise. The
+// setup's degradation reports go to rep, not to w.
+func openWin32Window(w *gui.Window, soft bool, rep *windowReports) (*Backend, error) {
 	pSetDpiAware.Call(dpiPerMonitorV2) // best-effort; ignore result
 	hInst, _, _ := pGetModuleHandleW.Call(0)
 	class := className
@@ -525,18 +525,18 @@ func openWin32Window(w *gui.Window, soft bool) (*Backend, error) {
 	registerWindow(hwnd, b)
 	if cfg.Transparent {
 		if soft {
-			reportSoftTransparency(w)
+			reportSoftTransparency(rep.addTransparency)
 		} else {
 			// Before the pixel format is set: DWM must already be off the
 			// opaque composition path when the GL surface is bound to the
 			// window, or the first frames composite opaque.
-			enableWindowTransparency(w, hwnd)
+			enableWindowTransparencyFunc(rep.addTransparency, hwnd)
 		}
 	}
 	// Replay a SetWindowOpacity made before the native platform was
 	// attached (in OnInit, or before backend.Run).
 	if o := w.WindowOpacity(); o < 1 {
-		applyWindowOpacity(w, hwnd, b.plat.transparent, o)
+		applyWindowOpacityFunc(rep.addOpacity, hwnd, b.plat.transparent, o)
 	}
 	// Detach the IME until a text widget takes focus and IMEStart
 	// re-attaches it, matching the focus gating on macOS and X11. Without
@@ -580,7 +580,7 @@ func (n *nativePlatform) SetWindowOpacity(opacity float32) {
 	// only filled once Run starts, and a nil there would read as "not
 	// Transparent" and let the guard through on the one window it
 	// exists to refuse.
-	applyWindowOpacity(n.b.plat.w, n.b.plat.hwnd,
+	applyWindowOpacity(n.b.plat.w.DebugWindowOpacity, n.b.plat.hwnd,
 		n.b.plat.transparent, opacity)
 }
 

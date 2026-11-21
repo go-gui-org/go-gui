@@ -6,8 +6,6 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
-
-	"github.com/go-gui-org/go-gui/gui"
 )
 
 var (
@@ -50,11 +48,12 @@ type dwmBlurBehind struct {
 // redirection surface that fights the GL swap chain.
 //
 // Best-effort. A missing dwmapi export or a failed call leaves an
-// opaque window and reports through gui.Debug rather than failing the
-// window creation.
-func enableWindowTransparency(w *gui.Window, hwnd uintptr) {
+// opaque window and goes to report, rather than failing the window
+// creation. New publishes the report to the window's
+// DebugWindowTransparency once the window is the one kept (#1310).
+func enableWindowTransparency(report func(string), hwnd uintptr) {
 	if err := pDwmEnableBlurBehindWindow.Find(); err != nil {
-		w.DebugWindowTransparency(dwmBlurBehindWin + " is unavailable; " +
+		report(dwmBlurBehindWin + " is unavailable; " +
 			"the window stays opaque")
 		return
 	}
@@ -78,7 +77,14 @@ func enableWindowTransparency(w *gui.Window, hwnd uintptr) {
 				pDeleteObject.Call(rgn)
 			}
 		}
-		w.DebugWindowTransparency(dwmBlurBehindWin +
-			" failed; the window stays opaque")
+		report(dwmBlurBehindWin + " failed; the window stays opaque")
 	}
 }
+
+// enableWindowTransparencyFunc and applyWindowOpacityFunc are the seams the
+// fallback report test replaces, to give the GL attempt reports of its own.
+// applyWindowOpacityFunc is the replay in openWin32Window only.
+var (
+	enableWindowTransparencyFunc = enableWindowTransparency
+	applyWindowOpacityFunc       = applyWindowOpacity
+)

@@ -74,16 +74,25 @@ func initOpenGL32() *windows.LazyDLL {
 }
 
 // newGLWin32 is New's GL attempt: the window, then a WGL context on its
-// kept DC, the GL function table and the GL resources.
-func newGLWin32(w *gui.Window) (*Backend, error) {
+// kept DC, the GL function table and the GL resources. The window setup's
+// degradation reports go to rep. commit, when not nil, runs once the last
+// step that can fail has succeeded, just before the window attaches to w,
+// where application code can first run (openAutoWin32).
+//
+// fallback is true when the error is one the first window may fall back on
+// (#1310): the pixel format, context or make-current step, or the binding.
+// Up to the binding the attempt publishes nothing to w, so plat.destroy
+// discards it whole: no GL resource exists yet, the window was never shown,
+// and wndProc routed none of its messages to b, because plat.w is unset.
+func newGLWin32(w *gui.Window, rep *windowReports, commit func()) (b *Backend, fallback bool, err error) {
 	// Pick opengl32.dll before any pixel-format call, as the package
 	// variable initializer did. A Mesa beside the exe that is first loaded
 	// after SetPixelFormat gets no context from wglCreateContext.
 	openGL32()
 
-	b, err := openWin32Window(w, false)
+	b, err = openWin32Window(w, false, rep)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	hwnd := b.plat.hwnd
 	cfg := w.Config
@@ -91,44 +100,50 @@ func newGLWin32(w *gui.Window) (*Backend, error) {
 	hdc, _, _ := pGetDC.Call(hwnd)
 	if hdc == 0 {
 		b.plat.destroy()
-		return nil, errors.New("gl: GetDC failed")
+		return nil, false, errors.New("gl: GetDC failed")
 	}
 	b.plat.hdc = hdc
 
-	hglrc, err := createContextFunc(hdc)
-	if err != nil {
+	hglrc, cerr := createContextFunc(hdc)
+	if cerr != nil {
 		b.plat.destroy()
-		return nil, newGPUContextError("create WGL context", err)
+		return nil, true, newGPUContextError("create WGL context", cerr)
 	}
 	b.plat.hglrc = hglrc
-	// createContext leaves the context current on hdc, which is what
-	// wglSwapIntervalEXT applies to.
-	applyVSync(cfg.VSyncOff, wglSetSwapInterval, w.DebugWindowVSync,
-		"wglSwapIntervalEXT")
 
 	// A legacy context that createContext kept (GDI Generic 1.1) cannot
 	// bind the 3.3 functions: a GPU-context failure, as below (#1310).
 	if berr := gogl.InitWithProcAddrFunc(glProc); berr != nil {
 		gerr := glBringUpError("bind GL functions", berr)
 		b.plat.destroy()
-		return nil, gerr
+		return nil, true, gerr
 	}
+	// createContext leaves the context current on hdc, which is what
+	// wglSwapIntervalEXT applies to. After the binding, the last step that
+	// can fall back, so a discarded attempt reports no swap interval.
+	applyVSync(cfg.VSyncOff, wglSetSwapInterval, w.DebugWindowVSync,
+		"wglSwapIntervalEXT")
 
 	b.dpiScale = windowScale(hwnd)
 	b.physW, b.physH = clientSize(hwnd)
 	b.initCaches(cfg)
 
-	if ierr := b.initGLResources(w); ierr != nil {
+	if ierr := b.prepareGLResources(); ierr != nil {
 		gerr := fmt.Errorf("gl: initGLResources: %w", ierr)
 		if perr, ok := errors.AsType[*pipelineInitError](ierr); ok {
 			gerr = glBringUpError("build GL pipelines", perr.err)
 		}
 		b.Destroy()
-		return nil, gerr
+		return nil, false, gerr
 	}
+	// Nothing below fails.
+	if commit != nil {
+		commit()
+	}
+	b.attachGLWindow(w)
 
 	finishWin32Window(w, b)
-	return b, nil
+	return b, false, nil
 }
 
 type pixelFormatDescriptor struct {

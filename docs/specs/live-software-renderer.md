@@ -454,6 +454,7 @@ rectangles and an icon is now at 0 allocations.
 - Windows was out of the first round, per the issue. Its design is
   `docs/specs/windows-software-renderer.md` (#1310), which presents from a DIB
   section with `BitBlt`, not with `SetDIBitsToDevice`. Since its phase 2,
-  `GOGUI_RENDERER=soft` selects that path; Windows has no automatic choice yet.
+  `GOGUI_RENDERER=soft` selects that path; since its phase 3, with the variable
+  unset, a first window whose WGL context or GL binding fails falls back to it.
 - An auto-picked soft window keeps the GL driver the probe loaded, about 70 MB
   with llvmpipe, on X11 and Wayland. `GOGUI_RENDERER=soft` loads none.

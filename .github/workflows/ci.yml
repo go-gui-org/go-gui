@@ -585,17 +585,46 @@ jobs:
         run: |
           CGO_ENABLED=0 go build \
             -o build/showcase-windows.exe ./examples/showcase/
+          # A copy in a directory with no Mesa DLL beside it.
+          mkdir -p build/showcase-system-gl
+          cp build/showcase-windows.exe build/showcase-system-gl/
 
-      - name: Smoke test showcase
+      # Both smoke tests leave GOGUI_RENDERER unset (#1310). This one is the
+      # real no-GPU start: no Mesa beside the exe, so the runner's own
+      # GDI-generic OpenGL 1.1, which cannot run the backend. The first window
+      # must fall back to the CPU renderer, say so in its log, and stay up:
+      # an exit before the deadline fails the step, whatever its status.
+      # timeout returns 124 when it ended the process at the deadline, and the
+      # process's own status when it exited first.
+      - name: Smoke test showcase (system OpenGL, CPU fallback)
+        run: |
+          LOG=build/showcase-system-gl.log
+          echo "Launching showcase with no Mesa (it must stay up for 10s)..."
+          STATUS=0
+          timeout 10 ./build/showcase-system-gl/showcase-windows.exe 2> "$LOG" || STATUS=$?
+          cat "$LOG"
+          if [ "$STATUS" -ne 124 ]; then
+            echo "::error::the showcase exited with status $STATUS before the 10s deadline; on the CPU fallback it must stay up"
+            exit 1
+          fi
+          echo "Showcase stayed up"
+          if ! grep -q "drawing with the CPU renderer" "$LOG"; then
+            echo "::error::the showcase did not fall back to the CPU renderer on the runner's own OpenGL"
+            exit 1
+          fi
+
+      - name: Smoke test showcase (Mesa, stays on GL)
         run: |
           # The runner has no GPU: system opengl32.dll is GDI-generic
           # OpenGL 1.1, but the native backend needs 3.3. Drop Mesa's
           # software opengl32.dll (llvmpipe) next to the exe so the
-          # app-dir DLL search resolves it first.
+          # app-dir DLL search resolves it first. The GL that comes up must
+          # be kept: no fallback line in the log.
           cp /mingw64/bin/opengl32.dll build/
           export GALLIUM_DRIVER=llvmpipe
+          LOG=build/showcase-mesa.log
           echo "Launching showcase (10s timeout to catch DLL load failures)..."
-          ./build/showcase-windows.exe &
+          ./build/showcase-windows.exe 2> "$LOG" &
           PID=$!
           sleep 10
           if ! kill $PID 2>/dev/null; then
@@ -604,6 +633,11 @@ jobs:
             echo "Showcase exited with code $? (DLL load failures exit non-zero)"
           else
             echo "Showcase started successfully (no DLL failures)"
+          fi
+          cat "$LOG"
+          if grep -q "drawing with the CPU renderer" "$LOG"; then
+            echo "::error::the showcase fell back to the CPU renderer with Mesa beside the exe"
+            exit 1
           fi
 
   android:

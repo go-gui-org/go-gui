@@ -11,8 +11,9 @@ import (
 )
 
 // What the Linux and Windows CPU renderer paths share: how GOGUI_RENDERER is
-// read, the pixel swizzle into the window system's byte order, and the
-// frame interval used when the display's rate is unknown (#1265, #1310).
+// read, the errors of a CPU renderer that cannot run as the fallback either,
+// the pixel swizzle into the window system's byte order, and the frame
+// interval used when the display's rate is unknown (#1265, #1310).
 
 // rendererEnv is what GOGUI_RENDERER asks for. The X11 path (pickRenderer),
 // the Wayland path (openWaylandDisplay) and the Windows New read it through
@@ -20,7 +21,8 @@ import (
 type rendererEnv uint8
 
 const (
-	// rendererEnvAuto: unset or empty; a probe decides.
+	// rendererEnvAuto: unset or empty; a probe decides on Linux, the first
+	// window's GL bring-up on Windows.
 	rendererEnvAuto rendererEnv = iota
 	// rendererEnvGL: "gl", or any value that is neither gl nor soft.
 	rendererEnvGL
@@ -50,6 +52,22 @@ func readRendererEnv() rendererEnv {
 
 // unknownRendererOnce keeps readRendererEnv's warning to one line per process.
 var unknownRendererOnce sync.Once
+
+// softInitError marks a failure of the CPU renderer's own setup, after the
+// window exists. newX11 retries those on GL when auto-pick chose soft; on
+// Windows, after a fallback from GL, it is the soft cause that follows the GPU
+// error.
+type softInitError struct{ err error }
+
+func (e *softInitError) Error() string { return e.err.Error() }
+func (e *softInitError) Unwrap() error { return e.err }
+
+// newGPUContextErrorNoSoft is newGPUContextError for a failure where the CPU
+// renderer was the fallback and could not run either, so advising
+// GOGUI_RENDERER=soft would be wrong.
+func newGPUContextErrorNoSoft(op string, cause error) error {
+	return &gpuContextError{op: op, cause: cause, noSoft: true}
+}
 
 // defaultFrameInterval paces soft frames when the monitor's refresh rate is
 // unknown: no RandR, no CRTC, or a mode without timing on X11; a display
