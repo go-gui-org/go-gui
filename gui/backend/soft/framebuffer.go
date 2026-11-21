@@ -90,15 +90,24 @@ func (b *buffer) markDirty(r image.Rectangle) {
 
 // clear paints the whole buffer with c, ignoring the clip rect. c is
 // straight (non-premultiplied) as every gui.Color is.
+//
+// One pixel is stored and then doubled with copy, which is a memmove. A
+// loop that stored four bytes per pixel was the largest single cost of a
+// simple frame: 36 % of Draw at 1920×1080 (#1327).
 func (b *buffer) clear(c gui.Color) {
 	r, g, bl, a := premul(c)
 	b.dirty = b.img.Bounds()
 	pix := b.img.Pix
-	for i := 0; i < len(pix); i += 4 {
-		pix[i] = r
-		pix[i+1] = g
-		pix[i+2] = bl
-		pix[i+3] = a
+	if len(pix) < 4 {
+		return
+	}
+	if r|g|bl|a == 0 {
+		clear(pix)
+		return
+	}
+	pix[0], pix[1], pix[2], pix[3] = r, g, bl, a
+	for n := 4; n < len(pix); {
+		n += copy(pix[n:], pix[:n])
 	}
 }
 
