@@ -306,8 +306,8 @@ func TestSelections(t *testing.T) {
 	// skips, which glrendertest reports as a failure (#1310).
 	needs := map[string][]string{
 		"mesa-gl": {"TestUnsetWithMesaKeepsGL", "TestPipelineFailureDoesNotFallBack",
-			"TestLaterWindowGLFailureReturnsError", "TestWindowFromAppearanceHook",
-			"TestWindowFromLogWriter"},
+			"TestPipelineFailureReportsNoVSync", "TestLaterWindowGLFailureReturnsError",
+			"TestWindowFromAppearanceHook", "TestWindowFromLogWriter"},
 		"system-gl": {"TestFallbackOnGDIGeneric"},
 	}
 	for name, tests := range needs {

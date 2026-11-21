@@ -285,13 +285,13 @@ func createContextWithFormat(hdc, pf uintptr, pfd *pixelFormatDescriptor) (uintp
 	return core, nil
 }
 
-// wglSetSwapInterval sets the swap interval of the current context. It
-// reports false when the driver lacks WGL_EXT_swap_control or refuses
-// the value.
 // swapIntervalFunc is the seam a test overrides to make the driver refuse
 // the swap interval.
 var swapIntervalFunc = wglSetSwapInterval
 
+// wglSetSwapInterval sets the swap interval of the current context. It
+// reports false when the driver lacks WGL_EXT_swap_control or refuses
+// the value.
 func wglSetSwapInterval(n int32) bool {
 	fn := wglProc("wglSwapIntervalEXT")
 	if fn == 0 {

@@ -112,13 +112,15 @@ var win32Tests = []string{
 	"TestPipelineFailureIsGPUContextError",
 	"TestTextSystemFailureStaysPlain",
 	// With GOGUI_RENDERER unset (#1310, phase 3): a GL that comes up keeps
-	// GL, a pipeline failure does not fall back, a later window of a GL
-	// process returns the error, a window opened from an appearance hook
-	// inside the first window's New gets the first window's renderer, on GL
-	// and after a forced fallback, and one opened from the log writer before
-	// the choice does not wait for it. Each unsets the variable itself.
+	// GL, a pipeline failure does not fall back and reports no swap
+	// interval, a later window of a GL process returns the error, a window
+	// opened from an appearance hook inside the first window's New gets the
+	// first window's renderer, on GL and after a forced fallback, and one
+	// opened from the log writer on a window's warning does not wait on the
+	// choice. Each sets or unsets the variable itself.
 	"TestUnsetWithMesaKeepsGL",
 	"TestPipelineFailureDoesNotFallBack",
+	"TestPipelineFailureReportsNoVSync",
 	"TestLaterWindowGLFailureReturnsError",
 	"TestWindowFromAppearanceHook",
 	"TestWindowFromLogWriter",

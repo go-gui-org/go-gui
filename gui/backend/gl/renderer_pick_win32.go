@@ -86,7 +86,8 @@ func openWin32Backend(w *gui.Window, env rendererEnv) (*Backend, error) {
 // bring-up reaches (a font warning through an application's log writer, an
 // OnSystemAppearance hook when the window attaches) and whatever that code
 // opens. A bad icon's warning is not among them: it is in rep, which
-// openWin32Backend publishes after this returns, with the choice made. A window whose process renderer is chosen opens there. A
+// openWin32Backend publishes after this returns, with the choice made. A
+// window whose process renderer is chosen opens there. A
 // window that finds none chosen and none deciding marks the state deciding
 // and is the deciding window: each of its attempts calls commit just before
 // the window attaches to w, once nothing after it can fail, and commit sets
