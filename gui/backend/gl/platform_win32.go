@@ -540,9 +540,12 @@ func New(w *gui.Window) (*Backend, error) {
 	applyVSync(cfg.VSyncOff, wglSetSwapInterval, w.DebugWindowVSync,
 		"wglSwapIntervalEXT")
 
+	// A legacy context that createContext kept (GDI Generic 1.1) cannot
+	// bind the 3.3 functions: a GPU-context failure, as below (#1310).
 	if err := gogl.InitWithProcAddrFunc(glProc); err != nil {
+		gerr := glBringUpError("bind GL functions", err)
 		b.plat.destroy()
-		return nil, fmt.Errorf("gl: glbind init: %w", err)
+		return nil, gerr
 	}
 
 	b.dpiScale = windowScale(hwnd)
@@ -550,8 +553,12 @@ func New(w *gui.Window) (*Backend, error) {
 	b.initCaches(cfg)
 
 	if err := b.initGLResources(w); err != nil {
+		gerr := fmt.Errorf("gl: initGLResources: %w", err)
+		if perr, ok := errors.AsType[*pipelineInitError](err); ok {
+			gerr = glBringUpError("build GL pipelines", perr.err)
+		}
 		b.Destroy()
-		return nil, fmt.Errorf("gl: initGLResources: %w", err)
+		return nil, gerr
 	}
 
 	loadCursors(&b.plat)

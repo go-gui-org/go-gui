@@ -110,8 +110,8 @@ func basePixelFormat() pixelFormatDescriptor {
 	return pfd
 }
 
-// createContextFunc is the seam the GPU-context error test
-// overrides: assigning a failing func exercises New's wrap path
+// createContextFunc is the seam the GPU-context error tests
+// override: assigning a failing func exercises New's wrap path
 // with no GPU driver and no GL.
 var createContextFunc = createContext
 
@@ -125,7 +125,14 @@ func createContext(hdc uintptr) (uintptr, error) {
 	if pf == 0 {
 		return 0, fmt.Errorf("ChoosePixelFormat: %w", err)
 	}
-	if r, _, e := pSetPixelFormat.Call(hdc, pf, uintptr(unsafe.Pointer(&pfd))); r == 0 {
+	return createContextWithFormat(hdc, pf, &pfd)
+}
+
+// createContextWithFormat is createContext after the pixel format is
+// chosen: it sets pf on hdc and makes the context. Tests call it with an
+// enumerated format, to get the generic implementation on any machine.
+func createContextWithFormat(hdc, pf uintptr, pfd *pixelFormatDescriptor) (uintptr, error) {
+	if r, _, e := pSetPixelFormat.Call(hdc, pf, uintptr(unsafe.Pointer(pfd))); r == 0 {
 		return 0, fmt.Errorf("SetPixelFormat: %w", e)
 	}
 
@@ -198,6 +205,33 @@ func wglProc(name string) uintptr {
 		return 0
 	}
 	return r
+}
+
+// glVersion is GL_VERSION from gl.h.
+const glVersion = 0x1F02
+
+// glIdentity reads GL_VERSION and GL_RENDERER from the current context,
+// for the message of a GL bring-up failure. glGetString is GL 1.1, so it
+// resolves from the opengl32.dll exports even where glbind bound nothing.
+// Only failure paths call it: a context that comes up makes no extra call.
+func glIdentity() string {
+	getString := glProc("glGetString")
+	if getString == 0 {
+		return "glGetString unavailable"
+	}
+	read := func(name uintptr) string {
+		r, _, _ := syscall.SyscallN(getString, name)
+		return cGoString(r)
+	}
+	return fmt.Sprintf("GL_VERSION %q, GL_RENDERER %q",
+		read(glVersion), read(glRenderer))
+}
+
+// glBringUpError reports a GL that came up but cannot run the backend as
+// a GPU-context failure, naming GL_VERSION and GL_RENDERER. The failed
+// window's context must still be current: call it before the destroy.
+func glBringUpError(op string, cause error) error {
+	return newGPUContextError(op, fmt.Errorf("%w; %s", cause, glIdentity()))
 }
 
 // glProc resolves an OpenGL entry point for glbind.InitWithProcAddrFunc.

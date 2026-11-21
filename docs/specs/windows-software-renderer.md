@@ -1,7 +1,7 @@
 # Windows software renderer
 
-Issue #1310 (follow-up of #1265). Status: **planned** (phase 1 of 5 in review as
-#1319; phases 2 to 5 not started).
+Issue #1310 (follow-up of #1265). Status: **phase 1 of 5 landed** (#1319; phases
+2 to 5 planned).
 
 The maintainer accepted this design on the issue on 2026-11-20 (see Decisions).
 Code facts are as of #1319. "Measured" with no machine named means throwaway
@@ -317,13 +317,13 @@ workload.
 
 ## Phases
 
-| Phase | Delivers                                                                                             | State             |
-| ----- | ---------------------------------------------------------------------------------------------------- | ----------------- |
-| 1     | A GL bring-up failure is a GPU-context failure: no panic, and the message names the GL. No soft code | in review (#1319) |
-| 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | planned           |
-| 3     | Automatic fallback when the first window's context or binding fails                                  | planned           |
-| 4     | Transparent frameless windows on soft                                                                | planned           |
-| 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | planned           |
+| Phase | Delivers                                                                                             | State          |
+| ----- | ---------------------------------------------------------------------------------------------------- | -------------- |
+| 1     | A GL bring-up failure is a GPU-context failure: no panic, and the message names the GL. No soft code | landed (#1319) |
+| 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | planned        |
+| 3     | Automatic fallback when the first window's context or binding fails                                  | planned        |
+| 4     | Transparent frameless windows on soft                                                                | planned        |
+| 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | planned        |
 
 Each phase is one pull request, carries its tests, docs and `CHANGELOG.md`
 entry, and updates the table above. The steps, in execution order:
