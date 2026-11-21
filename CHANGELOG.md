@@ -53,17 +53,26 @@ and this project adheres to
   title or clipboard text with bytes that are not valid UTF-8 now has each bad
   byte replaced by U+FFFD. Before, the title stayed as it was and the clipboard
   text was dropped. The API does not change.
-- **The CPU renderer draws text faster (#1327).** `soft.Renderer` blended a
-  glyph one pixel at a time through two calls, each of which worked out the
-  atlas and frame offsets again; that was 54 to 66 % of the draw on a text-heavy
-  view. It now takes the atlas row and the frame row once per row. A glyph quad
-  of 16×32 px takes 3.9 µs instead of 5.0 µs, and a frame of 1,000 text widgets
-  takes 8.6 ms instead of 11.1 ms at 1920×1080. Every pixel is the same as
-  before, and a test compares the two paths. X11, Wayland and
-  `soft.RenderToImage` share the gain. The API does not change.
+- **The CPU renderer clears a frame with a block copy (#1327).** `soft.Renderer`
+  painted the background four bytes at a time, which was the largest single cost
+  of a simple frame: 36 % of the draw at 1920×1080. It now stores one pixel and
+  doubles it with `copy`. The clear itself takes 0.28 ms instead of 1.70 ms at
+  1920×1080 and 1.25 ms instead of 6.75 ms at 3840×2160; a frame of 100 buttons
+  takes 3.5 ms instead of 5.2 ms at 1920×1080. Every pixel is the same as
+  before. X11, Wayland and `soft.RenderToImage` share the gain. The API does not
+  change.
 
 ### Fixed
 
+- **A Windows app on Microsoft's generic OpenGL exits with advice instead of a
+  panic (#1310).** Without a vendor GPU driver, for example in a VM or an RDP
+  session, Windows has only Microsoft's generic OpenGL 1.1 ("GDI Generic"). When
+  the backend got a context from it, binding the OpenGL 3.3 functions failed and
+  `Run` panicked with a stack trace. That failure, and a failure to build the
+  built-in shader pipelines, now return `ErrNoGPUContext`, so the app prints the
+  cause and the "no GPU context" advice and exits non-zero, with no stack trace.
+  The message names the `GL_VERSION` and `GL_RENDERER` the context reported. A
+  machine whose OpenGL works makes the same calls as before.
 - **A macOS VoiceOver announcement with text that is not valid UTF-8 no longer
   stops the app (#1317).** NSString gives nil for such bytes, and the dictionary
   that held the text raised an exception, so `A11yAnnounce` stopped the app. A
