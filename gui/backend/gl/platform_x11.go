@@ -221,6 +221,13 @@ func newX11Pick(w *gui.Window, forced *rendererChoice) (*Backend, rendererChoice
 	b.plat.conn = conn
 	b.plat.window = win
 	b.plat.eglDpy = dpy
+	// The hold starts where the backend takes the display, because every
+	// error return from here on goes through b.plat.destroy, which
+	// releases it. The NewId exits above close only the X connection and
+	// never terminated the display, so they need no release (#1284).
+	if dpy != 0 {
+		eglDisplayAcquire(dpy)
+	}
 	b.plat.eglConfig = config
 	b.plat.scale = scale
 	b.plat.physW = physW
