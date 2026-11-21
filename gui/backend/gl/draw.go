@@ -298,10 +298,12 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 	}
 	s := b.dpiScale
 	rects := gui.GradientBorderRects(r)
+	strips := gpu.SnapBorderStrips(r.X, r.Y, r.W, r.H, r.Thickness, s)
 	b.usePipeline(&b.pipelines.solid)
 	for i := range 4 {
 		rc := &rects[i]
-		bx, by, bw, bh := gpu.SnapRect(rc.X, rc.Y, rc.W, rc.H, s)
+		st := &strips[i]
+		bx, by, bw, bh := st.X, st.Y, st.W, st.H
 		b.drawQuad(bx, by, bw, bh, rc.Color, 0, 0)
 	}
 }

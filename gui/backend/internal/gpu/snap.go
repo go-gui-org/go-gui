@@ -31,6 +31,30 @@ func SnapThickness(th, s float32) float32 {
 	return max(1, round32(th*s))
 }
 
+// Strip is a device-space rect.
+type Strip struct{ X, Y, W, H float32 }
+
+// SnapBorderStrips snaps the box and the thickness once, then cuts the
+// four border strips (top, bottom, left, right, the order of
+// gui.GradientBorderRects) from those device values. Snapping each
+// strip on its own lets opposite edges round to different widths at a
+// fractional scale. A strip never extends past the snapped box. A
+// non-positive box or thickness gives zero strips.
+func SnapBorderStrips(x, y, w, h, th, s float32) [4]Strip {
+	dx, dy, dw, dh := SnapRect(x, y, w, h, s)
+	t := SnapThickness(th, s)
+	if !(dw > 0 && dh > 0 && t > 0) {
+		return [4]Strip{}
+	}
+	th2, tv := min(t, dh), min(t, dw)
+	return [4]Strip{
+		{dx, dy, dw, th2},
+		{dx, dy + dh - th2, dw, th2},
+		{dx, dy, tv, dh},
+		{dx + dw - tv, dy, tv, dh},
+	}
+}
+
 // round32 rounds halves up, not away from zero, so a box keeps its
 // device size as it scrolls across the origin.
 func round32(v float32) float32 {

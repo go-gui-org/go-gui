@@ -136,10 +136,12 @@ and this project adheres to
   rounds the device edges of a rect, a gradient fill and a gradient border to
   whole pixels, and a stroke's device thickness to whole pixels (at least one),
   so a 1px border is one full-strength row on every side at any position and
-  scale. Edges round, not sizes, so boxes that share an edge still meet. Layout
-  geometry, hit testing and the render commands do not change. Two visible
-  effects: a progress bar's fill grows in whole-pixel steps, and on the web
-  backend a stroke now lies inside its box, as it already did on the GPU and
+  scale. A gradient border's four sides share one rounded thickness. The iOS and
+  Android clip now rounds outward like the desktop one, so a snapped edge is not
+  cut off. Edges round, not sizes, so boxes that share an edge still meet.
+  Layout geometry, hit testing and the render commands do not change. Two
+  visible effects: a progress bar's fill grows in whole-pixel steps, and on the
+  web backend a stroke now lies inside its box, as it already did on the GPU and
   soft backends, instead of straddling its edge.
 - **Closing one window on X11 no longer freezes the others (#1284).** EGL gives
   every window of a multi-window app the same display, and closing a window

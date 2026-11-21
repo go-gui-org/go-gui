@@ -79,10 +79,43 @@ func TestSnapThickness(t *testing.T) {
 	}
 }
 
+// Opposite strips share one snapped thickness and stay inside the
+// snapped box at every scale and offset.
+func TestSnapBorderStrips(t *testing.T) {
+	for _, s := range []float32{1, 1.25, 1.5, 1.75, 2} {
+		for _, y := range []float32{10, 10.25, 10.5, 10.75} {
+			for _, th := range []float32{0.25, 1, 2} {
+				st := SnapBorderStrips(10, y, 40, 20, th, s)
+				bx, by, bw, bh := SnapRect(10, y, 40, 20, s)
+				want := SnapThickness(th, s)
+				if st[0].H != want || st[1].H != want ||
+					st[2].W != want || st[3].W != want {
+					t.Errorf("s=%v y=%v th=%v: thickness %v/%v/%v/%v, want %v",
+						s, y, th, st[0].H, st[1].H, st[2].W, st[3].W, want)
+				}
+				for i, r := range st {
+					if r.X < bx || r.Y < by || r.X+r.W > bx+bw || r.Y+r.H > by+bh {
+						t.Errorf("s=%v y=%v th=%v: strip %d %+v outside box (%v,%v,%v,%v)",
+							s, y, th, i, r, bx, by, bw, bh)
+					}
+				}
+			}
+		}
+	}
+	// A box thinner than the line caps the line at the box.
+	if st := SnapBorderStrips(10, 10, 40, 1, 4, 1); st[0].H != 1 || st[1].Y != 10 {
+		t.Errorf("thin box: strips %+v, want 1px top and bottom at y=10", st)
+	}
+	if st := SnapBorderStrips(10, 10, 0, 20, 1, 1); st != [4]Strip{} {
+		t.Errorf("empty box: strips %+v, want none", st)
+	}
+}
+
 func TestSnapAllocs(t *testing.T) {
 	if n := testing.AllocsPerRun(100, func() {
 		SnapRect(10.5, 3.25, 40, 20, 1.25)
 		SnapThickness(1, 1.25)
+		SnapBorderStrips(10.5, 3.25, 40, 20, 1, 1.25)
 	}); n != 0 {
 		t.Errorf("allocs = %v, want 0", n)
 	}

@@ -518,22 +518,20 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 	if len(stops) == 0 {
 		return
 	}
-	th := r.Thickness
 	positions := [4]float32{0.0, 0.25, 0.5, 0.75}
-	type rect struct{ x, y, w, h float32 }
-	rects := [4]rect{
-		{r.X, r.Y, r.W, th},            // top
-		{r.X, r.Y + r.H - th, r.W, th}, // bottom
-		{r.X, r.Y, th, r.H},            // left
-		{r.X + r.W - th, r.Y, th, r.H}, // right
-	}
+	s := b.snapScale()
+	// Top, bottom, left, right, cut in device pixels from one snapped
+	// box and thickness, then drawn in logical units.
+	strips := gpu.SnapBorderStrips(r.X, r.Y, r.W, r.H, r.Thickness, s)
 	for i := range 4 {
+		st := &strips[i]
+		if !(st.W > 0 && st.H > 0) {
+			continue
+		}
 		c := gui.SampleGradientStopColor(stops, positions[i])
 		b.setFillColor(c)
-		rc := rects[i]
-		x, y, w, h := b.snapLogical(rc.x, rc.y, rc.w, rc.h)
-		b.ctx2d.Call("fillRect",
-			float64(x), float64(y), float64(w), float64(h))
+		b.ctx2d.Call("fillRect", float64(st.X/s), float64(st.Y/s),
+			float64(st.W/s), float64(st.H/s))
 	}
 }
 

@@ -95,10 +95,9 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 
 func (b *Backend) drawClip(r *gui.RenderCmd) {
 	s := b.DPIScale
-	x := int32(r.X * s)
-	y := int32(r.Y * s)
-	w := int32(r.W * s)
-	h := int32(r.H * s)
+	// Outward, like the desktop scissor: a snapped edge must not fall
+	// outside a truncated clip.
+	x, y, w, h := gpu.ClipRect(r.X, r.Y, r.W, r.H, s)
 	C.glesSetScissor(C.int(x), C.int(y), C.int(w), C.int(h),
 		C.int(b.PhysH))
 }
@@ -251,10 +250,12 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 	}
 	s := b.DPIScale
 	rects := gui.GradientBorderRects(r)
+	strips := gpu.SnapBorderStrips(r.X, r.Y, r.W, r.H, r.Thickness, s)
 	b.SetPipeline(pipeSolid)
 	for i := range 4 {
 		rc := &rects[i]
-		bx, by, bw, bh := gpu.SnapRect(rc.X, rc.Y, rc.W, rc.H, s)
+		st := &strips[i]
+		bx, by, bw, bh := st.X, st.Y, st.W, st.H
 		verts := gpu.BuildQuad(bx, by, bw, bh,
 			rc.Color, 0, 0)
 		C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))

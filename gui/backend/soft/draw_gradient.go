@@ -101,12 +101,13 @@ func (r *renderer) drawGradientBorder(cmd *gui.RenderCmd) {
 	}
 	s := r.scale
 	rects := gui.GradientBorderRects(cmd)
+	strips := gpu.SnapBorderStrips(cmd.X, cmd.Y, cmd.W, cmd.H, cmd.Thickness, s)
 	for i := range rects {
 		rc := &rects[i]
-		if rc.W <= 0 || rc.H <= 0 || rc.Color.A == 0 {
+		x, y, w, h := strips[i].X, strips[i].Y, strips[i].W, strips[i].H
+		if w <= 0 || h <= 0 || rc.Color.A == 0 {
 			continue
 		}
-		x, y, w, h := gpu.SnapRect(rc.X, rc.Y, rc.W, rc.H, s)
 		region := r.buf.region(x, y, w, h)
 		r.buf.fillPath(region, r.buf.solid(rc.Color),
 			func(z *vector.Rasterizer, ox, oy float32) {

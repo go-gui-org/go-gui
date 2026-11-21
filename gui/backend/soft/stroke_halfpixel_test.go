@@ -116,28 +116,40 @@ func TestFillStaysInsideSnappedBorder(t *testing.T) {
 }
 
 // Gradient border strips snap like a solid border: each edge whole
-// device pixels, no partial rows (#1334).
+// device pixels, no partial rows, and top and bottom the same width
+// at a fractional scale (#1334).
 func TestGradientBorderSnapsToDevicePixels(t *testing.T) {
-	for _, y := range []float32{10, 10.5} {
-		r := newRenderer(80, 60, 1)
-		r.drawAll([]gui.RenderCmd{{Kind: gui.RenderGradientBorder,
-			X: 10, Y: y, W: 40, H: 20, Thickness: 1,
-			Gradient: &gui.GradientDef{Stops: []gui.GradientStop{
-				{Color: gui.RGB(255, 255, 255), Pos: 0},
-				{Color: gui.RGB(255, 255, 255), Pos: 1},
-			}}}})
-		full, partial := 0, 0
-		for py := range 60 {
-			switch _, g, _, _ := at(r.buf.img, 30, py); {
-			case g >= 250:
-				full++
-			case g > 5:
-				partial++
+	for _, s := range []float32{1, 1.25, 1.5} {
+		for _, y := range []float32{10, 10.25, 10.5, 10.75} {
+			r := newRenderer(100, 80, s)
+			r.drawAll([]gui.RenderCmd{{Kind: gui.RenderGradientBorder,
+				X: 10, Y: y, W: 40, H: 20, Thickness: 1,
+				Gradient: &gui.GradientDef{Stops: []gui.GradientStop{
+					{Color: gui.RGB(255, 255, 255), Pos: 0},
+					{Color: gui.RGB(255, 255, 255), Pos: 1},
+				}}}})
+			// Device rows of the top and bottom edges, split at the
+			// box's middle.
+			mid := int((y + 10) * s)
+			var top, bottom, partial int
+			for py := range 80 {
+				switch _, g, _, _ := at(r.buf.img, int(30*s), py); {
+				case g >= 250 && py < mid:
+					top++
+				case g >= 250:
+					bottom++
+				case g > 5:
+					partial++
+				}
 			}
-		}
-		if full != 2 || partial != 0 {
-			t.Errorf("y=%v: %d full, %d partial rows; want 2 full, 0 partial",
-				y, full, partial)
+			want := 1
+			if s == 1.5 {
+				want = 2 // 1.5 px rounds up
+			}
+			if top != want || bottom != want || partial != 0 {
+				t.Errorf("scale %v y=%v: top %d, bottom %d, partial %d rows; want %d, %d, 0",
+					s, y, top, bottom, partial, want, want)
+			}
 		}
 	}
 }

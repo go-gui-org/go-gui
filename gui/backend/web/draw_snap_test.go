@@ -84,3 +84,25 @@ func TestDrawRectSnapsToDevicePixels(t *testing.T) {
 		}
 	}
 }
+
+// Gradient border strips come from one snapped box and thickness: at
+// 1.5 the 1.5 px line is 2 device px on every side, inside the box.
+func TestDrawGradientBorderSnapsOnce(t *testing.T) {
+	b, calls := rectRecorder(t)
+	b.dpiScale = 1.5
+	b.drawGradientBorder(&gui.RenderCmd{Kind: gui.RenderGradientBorder,
+		X: 10, Y: 10, W: 40, H: 20, Thickness: 1,
+		Gradient: &gui.GradientDef{Stops: []gui.GradientStop{
+			{Color: gui.RGB(255, 255, 255), Pos: 0},
+			{Color: gui.RGB(255, 255, 255), Pos: 1},
+		}}})
+	want := []string{
+		"fillRect(10,10,40,1.33333)",
+		"fillRect(10,28.6667,40,1.33333)",
+		"fillRect(10,10,1.33333,20)",
+		"fillRect(48.6667,10,1.33333,20)",
+	}
+	if !slices.Equal(*calls, want) {
+		t.Errorf("calls %q, want %q", *calls, want)
+	}
+}
