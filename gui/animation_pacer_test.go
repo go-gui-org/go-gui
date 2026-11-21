@@ -98,24 +98,38 @@ func waitTick(t *testing.T, anim *countingAnimation) float32 {
 }
 
 // The real loop ticks on frame pulses, not only on the 16 ms watchdog.
-// Each pulse waits for its tick before the next is sent. The watchdog
-// spaces its ticks animationCycle apart, so it can never give 30 ticks
-// in less than 30 cycles; only the pulses can.
+// The test moves the watchdog an hour out, so a pulse is the only thing
+// that can tick. Each pulse waits for its tick before the next is sent;
+// a pulse that does not tick fails waitTick after 1 s.
+//
+// An earlier form left the watchdog at 16 ms and failed when 30 pulses
+// took 30 cycles of wall time. A slow Windows runner went over that with
+// no watchdog tick at all (#1331), so the test checked the runner speed,
+// not which source ticked.
 func TestAnimationLoopTicksOnFramePulse(t *testing.T) {
 	w := newPulseTestWindow()
+	w.animationWatchdog = time.Hour
 	anim := &countingAnimation{ticks: make(chan float32, 1)}
 	w.AnimationAdd(anim)
 	defer w.stopAnimationLoop()
 
 	const pulses = 30
-	begin := time.Now()
 	for range pulses {
 		w.pulseAnimationFrame()
 		waitTick(t, anim)
 	}
-	if took := time.Since(begin); took >= pulses*animationCycle {
-		t.Fatalf("%d pulses took %v: the watchdog, not the pulses, ticked",
-			pulses, took)
+}
+
+// A zero animationWatchdog is the default 16 ms cycle, so a window built
+// without one (every real window) keeps its watchdog timing.
+func TestAnimationWatchdogDefaultsToCycle(t *testing.T) {
+	var w Window
+	if got := w.animationWatchdogCycle(); got != animationCycle {
+		t.Fatalf("zero watchdog = %v, want %v", got, animationCycle)
+	}
+	w.animationWatchdog = time.Hour
+	if got := w.animationWatchdogCycle(); got != time.Hour {
+		t.Fatalf("set watchdog = %v, want %v", got, time.Hour)
 	}
 }
 

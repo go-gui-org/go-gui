@@ -65,6 +65,11 @@ type windowAnimation struct {
 	// (#1018). Buffered(1): FrameFn sends without blocking, and a pulse
 	// the loop has not taken yet already covers the next one.
 	animationPulseCh chan struct{}
+	// animationWatchdog is the time the loop waits for a pulse before it
+	// ticks on its own. Zero means animationCycle; read it through
+	// animationWatchdogCycle. Only a test sets it, to move the watchdog
+	// out of the way so that a pulse is the only source of a tick (#1331).
+	animationWatchdog time.Duration
 	// presentedLast records that the previous FrameFn asked the backend
 	// to present. Main thread only.
 	presentedLast      bool
