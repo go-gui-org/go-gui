@@ -3,7 +3,10 @@
 package gl
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"math/rand/v2"
 	"strings"
 	"testing"
 )
@@ -57,6 +60,73 @@ func TestSwizzleBGRA(t *testing.T) {
 	swizzleBGRA(short, src)
 	if short[0] != 30 || short[4] != 0 {
 		t.Fatalf("short dst = %v, want first pixel only", short)
+	}
+}
+
+// TestSwizzleBGRAMatchesByteLoop: the two-pixel form writes what the
+// per-pixel byte loop it replaced wrote (#1327), for every length around
+// the two-pixel step: none, one odd pixel, bytes past the last whole pixel,
+// a dst shorter or longer than src. Bytes it must not touch keep a guard
+// value. The same lengths run in place, as a caller that owns one buffer
+// may do.
+func TestSwizzleBGRAMatchesByteLoop(t *testing.T) {
+	byteLoop := func(dst, src []byte) {
+		n := min(len(dst), len(src)) &^ 3
+		for i := 0; i < n; i += 4 {
+			dst[i], dst[i+1], dst[i+2], dst[i+3] = src[i+2], src[i+1], src[i], src[i+3]
+		}
+	}
+	const guard = 0xa5
+	// Seeded noise, the same for every call: a regular ramp ties the
+	// channels of a pixel together, and then a wrong mask bit goes unseen.
+	fill := func(n int) []byte {
+		rng := rand.New(rand.NewPCG(1327, uint64(n)))
+		p := make([]byte, n)
+		for i := range p {
+			p[i] = byte(rng.Uint32())
+		}
+		return p
+	}
+	for srcLen := 0; srcLen <= 41; srcLen++ {
+		for _, dstLen := range []int{srcLen, srcLen + 5, max(srcLen-3, 0), max(srcLen-8, 0)} {
+			src := fill(srcLen)
+			got, want := make([]byte, dstLen), make([]byte, dstLen)
+			for i := range got {
+				got[i], want[i] = guard, guard
+			}
+			swizzleBGRA(got, src)
+			byteLoop(want, src)
+			if !bytes.Equal(got, want) {
+				t.Fatalf("src %d bytes, dst %d bytes:\n got %v\nwant %v", srcLen, dstLen, got, want)
+			}
+			if !bytes.Equal(src, fill(srcLen)) {
+				t.Fatalf("src %d bytes, dst %d bytes: src was written", srcLen, dstLen)
+			}
+		}
+		inPlace, want := fill(srcLen), fill(srcLen)
+		swizzleBGRA(inPlace, inPlace)
+		byteLoop(want, fill(srcLen))
+		if !bytes.Equal(inPlace, want) {
+			t.Fatalf("in place, %d bytes:\n got %v\nwant %v", srcLen, inPlace, want)
+		}
+	}
+}
+
+// BenchmarkSwizzleBGRA times the conversion of one frame, which every
+// presented soft frame pays on X11, Wayland and Windows.
+func BenchmarkSwizzleBGRA(b *testing.B) {
+	for _, sz := range [][2]int{{1920, 1080}, {3840, 2160}} {
+		b.Run(fmt.Sprintf("%dx%d", sz[0], sz[1]), func(b *testing.B) {
+			src := make([]byte, sz[0]*sz[1]*4)
+			for i := range src {
+				src[i] = byte(i)
+			}
+			dst := make([]byte, len(src))
+			b.SetBytes(int64(len(src)))
+			for b.Loop() {
+				swizzleBGRA(dst, src)
+			}
+		})
 	}
 }
 
