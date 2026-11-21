@@ -35,8 +35,8 @@ type buffer struct {
 	dirty image.Rectangle
 
 	// uni is the reusable solid-color source. image.NewUniform would
-	// allocate once per draw command; the rasterizer only reads it
-	// during the Draw call, so one instance can be re-pointed.
+	// allocate once per draw command; fillPath only reads it during
+	// the call, so one instance can be re-pointed.
 	uni image.Uniform
 	// col is the color uni.C points at. Storing a color.NRGBA value in
 	// the color.Color interface boxes it, one allocation per solid draw
@@ -45,7 +45,8 @@ type buffer struct {
 	col color.NRGBA
 
 	// mask is the coverage scratch fillPath rasterizes into for every
-	// source that is not a uniform (#1282); see compositeSampled.
+	// source: compositeUniform blends a solid color through it (#1327),
+	// compositeSampled a gradient or an image (#1282).
 	mask maskScratch
 }
 
@@ -160,25 +161,100 @@ func (b *buffer) fillPath(region image.Rectangle, src image.Image,
 	}
 	b.rast.Reset(region.Dx(), region.Dy())
 	emit(&b.rast, float32(region.Min.X), float32(region.Min.Y))
-	// A uniform source onto *image.RGBA is the rasterizer's typed fast
-	// path. Any other source would take its generic loop, which allocates
-	// per pixel (dst.At boxes a color.RGBA, dst.Set converts through
-	// RGBAModel) and once per call (its RGBA64 scratch escapes), so those
-	// go through a coverage mask and compositeSampled instead (#1282).
-	if _, uniform := src.(*image.Uniform); uniform {
-		b.rast.Draw(b.img, region, src, region.Min)
+	// Coverage goes into the 8-bit mask for every source: draw.Src onto
+	// *image.Alpha with an opaque source is the rasterizer's fast path,
+	// which stores coverage without blending. Reset puts DrawOp back to
+	// draw.Over, so every call sets it here.
+	b.rast.DrawOp = draw.Src
+	if uniform, ok := src.(*image.Uniform); ok {
+		// A solid color used to be drawn by the rasterizer itself, onto
+		// the *image.RGBA. That loop blends every pixel of the bounding
+		// box, uncovered and fully covered ones too, and was 65 to 81 %
+		// of Draw on a view of rounded fills and borders (#1327).
+		//
+		// The mask is indexed from zero, not from region.Min: when the
+		// draw rect, the mask's bounds and the rasterizer's bounds are
+		// one rectangle, the rasterizer converts its accumulator straight
+		// into the mask, with SIMD on amd64, instead of accumulating
+		// 16-bit coverage into a scratch first.
+		bounds := b.rast.Bounds()
+		mask := b.mask.reset(bounds)
+		b.rast.Draw(mask, bounds, image.Opaque, image.Point{})
+		b.compositeUniform(region, uniform, mask)
 	} else {
+		// The rasterizer would draw any other source with its generic
+		// loop, which allocates per pixel (#1282). compositeSampled
+		// indexes the mask by device coordinates.
 		mask := b.mask.reset(region)
-		// draw.Src onto *image.Alpha with an opaque source is the
-		// rasterizer's other fast path: it writes coverage straight
-		// into the mask. DrawOp is restored for the uniform path, which
-		// must blend (draw.Over is the Rasterizer's zero value).
-		b.rast.DrawOp = draw.Src
 		b.rast.Draw(mask, region, image.Opaque, image.Point{})
-		b.rast.DrawOp = draw.Over
 		b.compositeSampled(region, src, mask)
 	}
 	b.markDirty(region)
+}
+
+// compositeUniform blends the solid color src over the buffer through
+// mask, inside region. mask is indexed from zero: its (0, 0) is
+// region.Min.
+//
+// The arithmetic is the rasterizer's own uniform draw.Over loop
+// (rasterizeDstRGBASrcUniformOpOver), with the coverage read from the
+// mask and widened as m*0x101, as in compositeSampled. Two mask values
+// skip it, and give the bytes it would: 0 leaves the pixel as it was,
+// and 0xff under an opaque color stores the color. Those are most pixels
+// of a filled shape, which is where the time goes.
+//
+// The mask holds the high byte of the 16-bit coverage the old loop read,
+// so a pixel can see up to 255/65535 less or more coverage than before.
+// That includes the edges of a shape: a mask byte of 0 also stands for a
+// sliver of coverage, which used to tint the pixel, and 0xff for nearly
+// full coverage, which used to let a trace of the background through.
+// One draw moves an antialiased pixel by at most one level per channel.
+// Where antialiased edges overlap, as a border over a fill does, the
+// differences add: two levels is the most seen in the pixel goldens and
+// the benchmark views. Pixels with no coverage or full coverage are
+// exact.
+//
+// All of this is for coverage the rasterizer can hold. A path that winds
+// over one pixel thousands of times (8,192 copies of one triangle)
+// overflows its fixed-point accumulator, before this change and after,
+// and the two paths then store different wrong pixels.
+func (b *buffer) compositeUniform(region image.Rectangle, src *image.Uniform,
+	mask *image.Alpha) {
+
+	// Premultiplied, as RGBA always returns: sr, sg, sb <= sa.
+	sr, sg, sb, sa := src.RGBA()
+	opaque := sa == 0xffff
+	cr, cg, cb := uint8(sr>>8), uint8(sg>>8), uint8(sb>>8)
+	img := b.img
+	// As in compositeSampled: the loop indexes Pix directly, so it clips
+	// to the buffer itself rather than trusting the caller's region.
+	rect := region.Intersect(img.Bounds())
+	width := rect.Dx()
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		mi := mask.PixOffset(rect.Min.X-region.Min.X, y-region.Min.Y)
+		di := img.PixOffset(rect.Min.X, y)
+		coverage := mask.Pix[mi : mi+width]
+		row := img.Pix[di : di+width*4]
+		for x, m := range coverage {
+			if m == 0 {
+				continue
+			}
+			i := x * 4
+			p := row[i : i+4 : i+4]
+			if m == 0xff && opaque {
+				p[0], p[1], p[2], p[3] = cr, cg, cb, 0xff
+				continue
+			}
+			ma := uint32(m) * 0x101
+			a := 0xffff - sa*ma/0xffff
+			// No uint32 overflow, for the reason compositeSampled gives:
+			// d*a + s*ma <= 0xffff*0xffff + 0xfffe.
+			p[0] = uint8((uint32(p[0])*0x101*a + sr*ma) / 0xffff >> 8)
+			p[1] = uint8((uint32(p[1])*0x101*a + sg*ma) / 0xffff >> 8)
+			p[2] = uint8((uint32(p[2])*0x101*a + sb*ma) / 0xffff >> 8)
+			p[3] = uint8((uint32(p[3])*0x101*a + sa*ma) / 0xffff >> 8)
+		}
+	}
 }
 
 // compositeSampled blends src over the buffer through mask, inside
