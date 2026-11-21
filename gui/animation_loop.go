@@ -267,6 +267,8 @@ func (w *Window) animationLoop() {
 	ac := newAnimationCommands(&deferred)
 
 	var pacer animationPacer
+	// Read once: the field does not change while the loop runs.
+	watchdog := w.animationWatchdogCycle()
 	// One timer for the life of the loop, reset rather than replaced, so
 	// a tick allocates nothing. timerCh and pulseCh are nil while parked:
 	// a nil channel never fires, and pulses from frames drawn for other
@@ -286,9 +288,9 @@ func (w *Window) animationLoop() {
 		case <-w.animationResumeCh:
 			if timerCh == nil {
 				if timer == nil {
-					timer = time.NewTimer(animationCycle)
+					timer = time.NewTimer(watchdog)
 				} else {
-					timer.Reset(animationCycle)
+					timer.Reset(watchdog)
 				}
 				timerCh = timer.C
 				pulseCh = w.animationPulseCh
@@ -313,8 +315,17 @@ func (w *Window) animationLoop() {
 			pulseCh = nil
 			continue
 		}
-		timer.Reset(animationCycle)
+		timer.Reset(watchdog)
 	}
+}
+
+// animationWatchdogCycle is the watchdog period of the animation loop:
+// animationWatchdog when a test set it, else animationCycle.
+func (w *Window) animationWatchdogCycle() time.Duration {
+	if w.animationWatchdog > 0 {
+		return w.animationWatchdog
+	}
+	return animationCycle
 }
 
 // animationPacer measures the time between ticks of the animation loop.
