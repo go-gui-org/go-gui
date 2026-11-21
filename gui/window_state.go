@@ -112,6 +112,9 @@ type windowBackend struct {
 	// rendersShaders is set by a backend that runs custom shaders;
 	// see RendersShaders.
 	rendersShaders atomic.Bool
+	// importsDMABuf is set by a backend that draws frames lent by
+	// PixelSurface.UpdateDMABuf; see ImportsDMABuf.
+	importsDMABuf atomic.Bool
 	// soundPlayer renders widget sound cues. Unlike the three above
 	// the backend installs none: the app opts in with
 	// SetSoundPlayer, so the default is silence (issue #446).

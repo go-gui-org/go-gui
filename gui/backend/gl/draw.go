@@ -21,6 +21,7 @@ import (
 func (b *Backend) renderersDraw(w *gui.Window) {
 	b.surfaces.Prune(w.Renderers())
 	b.channels.PruneShaders(w.Renderers())
+	b.retired.poll()
 	b.sweepMemTextures()
 	// Textures drawn last frame stay safe from the byte budget (#1239).
 	b.textures.BeginFrame()
@@ -524,7 +525,13 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 	// Keyed off Shader.Surface, which also chose the channel program, so
 	// that program is never drawn with its channel textures unbound.
 	if r.Shader.Surface != nil {
-		ch, ok := b.channels.ResolvePlanes(r.Shader.Surface, b.uploadChannels)
+		var ch glChannels
+		var ok bool
+		if b.dmabuf != nil {
+			ch, ok = b.channels.ResolveFrame(r.Shader.Surface, b.uploadChannels, b.importChannels)
+		} else {
+			ch, ok = b.channels.ResolvePlanes(r.Shader.Surface, b.uploadChannels)
+		}
 		b.bindChannels(ch, ok)
 	}
 

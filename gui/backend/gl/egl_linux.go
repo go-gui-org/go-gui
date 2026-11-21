@@ -64,6 +64,9 @@ var (
 	eglTerminate           func(uintptr) uint32
 	eglGetProcAddress      func(string) unsafe.Pointer
 	eglGetError            func() int32
+	// eglQueryString lists the display's extensions for the DMA-BUF
+	// import (dmabuf_linux.go). EGL 1.0, so always present.
+	eglQueryString func(uintptr, int32) uintptr
 )
 
 // loadEGL dlopens libEGL (and libGL for desktop-GL symbol fallback) and
@@ -92,6 +95,7 @@ func loadEGL() error {
 		reg(&eglTerminate, "eglTerminate")
 		reg(&eglGetProcAddress, "eglGetProcAddress")
 		reg(&eglGetError, "eglGetError")
+		reg(&eglQueryString, "eglQueryString")
 		// eglGetPlatformDisplay is EGL 1.5. An older libEGL lacks it, and
 		// RegisterLibFunc panics on a missing symbol, so it is optional:
 		// without it there is no Mesa X11 fallback (#916).

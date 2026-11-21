@@ -45,12 +45,16 @@ var (
 	addrBufferData              uintptr
 	addrBufferSubData           uintptr
 	addrClear                   uintptr
+	addrClientWaitSync          uintptr
 	addrColorMask               uintptr
+	addrDeleteSync              uintptr
 	addrDisable                 uintptr
 	addrDrawArrays              uintptr
 	addrDrawElements            uintptr
 	addrEnable                  uintptr
 	addrEnableVertexAttribArray uintptr
+	addrFenceSync               uintptr
+	addrGetError                uintptr
 	addrScissor                 uintptr
 	addrStencilFunc             uintptr
 	addrStencilOp               uintptr
@@ -106,6 +110,28 @@ func BlitFramebuffer(srcX0 int32, srcY0 int32, srcX1 int32, srcY1 int32, dstX0 i
 }
 
 func Clear(mask uint32) { sysN(addrClear, uintptr(mask)) }
+
+// FenceSync, ClientWaitSync and DeleteSync (GL 3.2) let the backend tell
+// when the GPU has finished the commands issued before a fence: a frame
+// imported from a DMA-BUF is handed back to its producer only then (#1326).
+// A GLsync is an opaque driver handle, so it travels as uintptr. They return
+// a value, so they call sysN1.
+
+func FenceSync(condition uint32, flags uint32) uintptr {
+	return sysN1(addrFenceSync, uintptr(condition), uintptr(flags))
+}
+
+// ClientWaitSync waits up to timeout nanoseconds; 0 only polls. The
+// 64-bit timeout fits one register on every target go-gui builds for.
+func ClientWaitSync(sync uintptr, flags uint32, timeout uint64) uint32 {
+	return uint32(sysN1(addrClientWaitSync, sync, uintptr(flags), uintptr(timeout)))
+}
+
+func DeleteSync(sync uintptr) { sysN(addrDeleteSync, sync) }
+
+// GetError returns and clears one recorded GL error. On the raw path
+// because the DMA-BUF import checks every plane it binds, every frame.
+func GetError() uint32 { return uint32(sysN1(addrGetError)) }
 
 func ColorMask(red bool, green bool, blue bool, alpha bool) {
 	sysN(addrColorMask, b2u(red), b2u(green), b2u(blue), b2u(alpha))

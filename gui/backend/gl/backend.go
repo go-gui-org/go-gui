@@ -116,6 +116,17 @@ type Backend struct {
 	scissorOn bool
 
 	customOnce sync.Once
+
+	// dmabuf imports frames lent by gui.PixelSurface.UpdateDMABuf; nil
+	// when this window cannot (#1326). retired holds the imported frames
+	// it stopped drawing until the GPU has finished reading them.
+	// importOnce logs the first refused import, and importRefused marks
+	// one for drawFrame, which then reports that the window does not
+	// import (reportRefusedImport).
+	dmabuf        dmabufImporter
+	retired       frameRetirer
+	importOnce    sync.Once
+	importRefused bool
 }
 
 // mouseDelta returns the logical-point movement since the previous
@@ -207,6 +218,9 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 	w.SetNativePlatform(&nativePlatform{b: b})
 	b.transparentTex = createTexture(1, 1, []byte{0, 0, 0, 0})
 	gui.SetWindowRendersShaders(w, true)
+	b.retired = frameRetirer{fence: glFence, check: glCheck, wait: glWait, finish: gogl.Finish, deleteSync: gogl.DeleteSync}
+	b.dmabuf = b.plat.dmabufImporter()
+	gui.SetWindowImportsDMABuf(w, b.dmabuf != nil)
 	return nil
 }
 
@@ -222,6 +236,11 @@ func (b *Backend) destroyGLResources() {
 	b.textures.DestroyAll()
 	b.surfaces.Clear()
 	b.channels.Clear()
+	// The imported frames go back to their producers only once the GPU
+	// is done; a nil wait means GL was never set up.
+	if b.retired.wait != nil {
+		b.retired.drain()
+	}
 	b.deleteSurfaceTexture(b.transparentTex)
 	b.transparentTex = glTexture{}
 	b.destroyPipelines()
@@ -281,10 +300,33 @@ func (b *Backend) drawFrame(w *gui.Window) {
 	w.BackingScale = b.dpiScale
 	b.renderersDraw(w)
 	w.Unlock()
+	// A retired frame goes back once its fence signals, which a later
+	// frame's poll sees; an idle window must still draw that frame.
+	if b.retired.pending() {
+		w.InvalidateRender()
+	}
+	b.reportRefusedImport(w)
 
 	b.textSys.Commit()
 	b.endMainPass(0)
 	b.finishFrameAlpha()
+}
+
+// reportRefusedImport turns Window.ImportsDMABuf off once the driver has
+// refused a frame's DMA-BUFs. A producer checks the flag and sends its
+// next frames with UpdatePlanes, so a layout this driver cannot import
+// costs one transparent frame, not a blank video. The layout is rebuilt,
+// as for any change of a capability views read. Imports are still tried,
+// for a producer that ignores the flag.
+func (b *Backend) reportRefusedImport(w *gui.Window) {
+	if !b.importRefused {
+		return
+	}
+	b.importRefused = false
+	if w.ImportsDMABuf() {
+		gui.SetWindowImportsDMABuf(w, false)
+		w.InvalidateLayout()
+	}
 }
 
 // finishFrameAlpha sets the alpha of every pixel in the window to 1 when
