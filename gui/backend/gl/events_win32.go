@@ -20,6 +20,7 @@ const (
 	wmClose         = 0x0010
 	wmEraseBkgnd    = 0x0014
 	wmSettingChange = 0x001A
+	wmDisplayChange = 0x007E
 	wmSetCursor     = 0x0020
 	wmKeyDown       = 0x0100
 	wmKeyUp         = 0x0101
@@ -273,7 +274,7 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		// Refresh physical size + DPI, then derive the logical size
 		// from the authoritative client rect rather than lParam's
 		// 16-bit words (which sign-extend past 32767).
-		b.handleResize()
+		b.resizeWin32()
 		lw, lh := b.logicalXY(b.physW, b.physH)
 		b.emit(gui.Event{
 			Type:         gui.EventResized,
@@ -282,7 +283,7 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		})
 		// Repaint live during modal drag-resize.
 		w.FrameFn()
-		b.renderFrame(w)
+		b.presentWin32(w)
 		return 0, true
 
 	case wmDPIChanged:
@@ -309,10 +310,16 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return 0, true
 
 	case wmPaint:
-		pValidateRect.Call(b.plat.hwnd, 0)
+		b.paintWin32()
 		return 0, true
 	case wmEraseBkgnd:
 		return 1, true // avoid background flicker; GL clears each frame
+
+	case wmDisplayChange:
+		// A soft window paces to the display's frequency, which this
+		// changes. Unhandled, so DefWindowProc still sees it.
+		b.displayChangedWin32()
+		return 0, false
 
 	case wmSettingChange:
 		// Theme flips arrive here ("ImmersiveColorSet"). Re-query

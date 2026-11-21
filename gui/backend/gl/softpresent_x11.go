@@ -32,10 +32,6 @@ import (
 // putImageHeader is the fixed part of a core PutImage request, in bytes.
 const putImageHeader = 24
 
-// defaultFrameInterval paces soft frames when the monitor's refresh rate is
-// unknown: no RandR, no CRTC, or a mode without timing.
-const defaultFrameInterval = time.Second / 60
-
 // softPresent is one window's CPU render-and-upload state. Non-nil
 // Backend.soft selects this path.
 type softPresent struct {
@@ -278,19 +274,6 @@ func bandRows(width, maxReq int) int {
 		return 1
 	}
 	return max(1, (maxReq-putImageHeader)/(width*4))
-}
-
-// swizzleBGRA converts premultiplied RGBA to the B, G, R, A byte order of a
-// little-endian 32 bpp TrueColor ZPixmap. Alpha is copied: a depth-24 visual
-// ignores the byte, and a depth-32 one wants it premultiplied, which it is.
-// Only whole pixels that fit both slices are written.
-func swizzleBGRA(dst, src []byte) {
-	n := min(len(dst), len(src)) &^ 3
-	for i := 0; i < n; i += 4 {
-		// One bounds check per pixel instead of four.
-		d, s := dst[i:i+4:i+4], src[i:i+4:i+4]
-		d[0], d[1], d[2], d[3] = s[2], s[1], s[0], s[3]
-	}
 }
 
 // modeFrameInterval is one frame of a RandR mode: htotal * vtotal / dot

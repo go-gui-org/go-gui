@@ -3,7 +3,6 @@
 package gl
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"runtime"
@@ -12,7 +11,6 @@ import (
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
-	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/hicon"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/winkey"
 	"golang.org/x/sys/windows"
@@ -221,6 +219,11 @@ type platformState struct {
 	hdc   uintptr
 	hglrc uintptr
 	hIcon uintptr
+	// softMode: GOGUI_RENDERER=soft chose the CPU renderer (#1310). The
+	// window then has no pixel format, no hglrc and no kept hdc, and soft
+	// draws and presents its frames.
+	softMode bool
+	soft     *softPresentWin32
 	// frameless records DecorationNone: WM_NCCALCSIZE and
 	// WM_GETMINMAXINFO only deviate from the default for such a window.
 	frameless bool
@@ -443,15 +446,30 @@ func loadCursors(p *platformState) {
 
 // --- lifecycle ---
 
-// New creates an OpenGL 3.3 backend backed by a native Win32 window
-// and a WGL context.
+// New creates the backend of a native Win32 window: OpenGL 3.3 through a
+// WGL context, or with GOGUI_RENDERER=soft the CPU renderer presented with
+// GDI, which loads no opengl32.dll (#1310).
 // exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) {
 	runtime.LockOSThread()
+	if readRendererEnv() == rendererEnvSoft {
+		return newSoftWin32(w)
+	}
+	return newGLWin32(w)
+}
 
+// openWin32Window creates w's window, hidden, and registers it, then does
+// the setup both renderers share. A soft window has its own class, without
+// CS_OWNDC, and stays opaque when WindowCfg.Transparent asks otherwise.
+func openWin32Window(w *gui.Window, soft bool) (*Backend, error) {
 	pSetDpiAware.Call(dpiPerMonitorV2) // best-effort; ignore result
 	hInst, _, _ := pGetModuleHandleW.Call(0)
-	registerClass(hInst)
+	class := className
+	if soft {
+		class = registerSoftClass(hInst)
+	} else {
+		registerClass(hInst)
+	}
 
 	cfg := w.Config
 	title := cfg.Title
@@ -487,7 +505,7 @@ func New(w *gui.Window) (*Backend, error) {
 
 	hwnd, _, err := pCreateWindowExW.Call(
 		0,
-		uintptr(unsafe.Pointer(className)),
+		uintptr(unsafe.Pointer(class)),
 		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(title))),
 		style,
 		cwUseDefault, cwUseDefault,
@@ -506,10 +524,14 @@ func New(w *gui.Window) (*Backend, error) {
 	b.plat.maxTrack = maxTrack
 	registerWindow(hwnd, b)
 	if cfg.Transparent {
-		// Before the pixel format is set: DWM must already be off the
-		// opaque composition path when the GL surface is bound to the
-		// window, or the first frames composite opaque.
-		enableWindowTransparency(w, hwnd)
+		if soft {
+			reportSoftTransparency(w)
+		} else {
+			// Before the pixel format is set: DWM must already be off the
+			// opaque composition path when the GL surface is bound to the
+			// window, or the first frames composite opaque.
+			enableWindowTransparency(w, hwnd)
+		}
 	}
 	// Replay a SetWindowOpacity made before the native platform was
 	// attached (in OnInit, or before backend.Run).
@@ -521,46 +543,13 @@ func New(w *gui.Window) (*Backend, error) {
 	// this a composition can begin with nothing to render the preedit.
 	imeAssociate(hwnd, 0)
 	setWindowIcon(hwnd, cfg, &b.plat)
+	return b, nil
+}
 
-	hdc, _, _ := pGetDC.Call(hwnd)
-	if hdc == 0 {
-		b.plat.destroy()
-		return nil, errors.New("gl: GetDC failed")
-	}
-	b.plat.hdc = hdc
-
-	hglrc, err := createContextFunc(hdc)
-	if err != nil {
-		b.plat.destroy()
-		return nil, newGPUContextError("create WGL context", err)
-	}
-	b.plat.hglrc = hglrc
-	// createContext leaves the context current on hdc, which is what
-	// wglSwapIntervalEXT applies to.
-	applyVSync(cfg.VSyncOff, wglSetSwapInterval, w.DebugWindowVSync,
-		"wglSwapIntervalEXT")
-
-	// A legacy context that createContext kept (GDI Generic 1.1) cannot
-	// bind the 3.3 functions: a GPU-context failure, as below (#1310).
-	if err := gogl.InitWithProcAddrFunc(glProc); err != nil {
-		gerr := glBringUpError("bind GL functions", err)
-		b.plat.destroy()
-		return nil, gerr
-	}
-
-	b.dpiScale = windowScale(hwnd)
-	b.physW, b.physH = clientSize(hwnd)
-	b.initCaches(cfg)
-
-	if err := b.initGLResources(w); err != nil {
-		gerr := fmt.Errorf("gl: initGLResources: %w", err)
-		if perr, ok := errors.AsType[*pipelineInitError](err); ok {
-			gerr = glBringUpError("build GL pipelines", perr.err)
-		}
-		b.Destroy()
-		return nil, gerr
-	}
-
+// finishWin32Window is the last part of New for either renderer: cursors,
+// the clipboard and title hooks, and the first show.
+func finishWin32Window(w *gui.Window, b *Backend) {
+	hwnd := b.plat.hwnd
 	loadCursors(&b.plat)
 	b.plat.curCursor = b.plat.cursors[gui.CursorDefault]
 
@@ -571,12 +560,15 @@ func New(w *gui.Window) (*Backend, error) {
 	})
 
 	showAtStart(w, hwnd)
-	return b, nil
 }
 
 // Destroy releases all backend resources.
 func (b *Backend) Destroy() {
-	b.destroyGLResources()
+	if b.plat.softMode {
+		b.destroySoftWin32()
+	} else {
+		b.destroyGLResources()
+	}
 	b.plat.destroy()
 }
 
@@ -645,7 +637,7 @@ func (b *Backend) Run(w *gui.Window) {
 		}
 		rendered := w.FrameFn()
 		if rendered {
-			b.renderFrame(w)
+			b.presentWin32(w)
 		}
 		b.plat.setCursor(w.MouseCursorState())
 		if !rendered {
@@ -783,7 +775,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		for _, b := range backends {
 			w := b.plat.w
 			if w.FrameFn() {
-				b.renderFrame(w)
+				b.presentWin32(w)
 				rendered = true
 			}
 			b.plat.setCursor(w.MouseCursorState())

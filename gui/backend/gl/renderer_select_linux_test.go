@@ -9,29 +9,6 @@ import (
 	"testing"
 )
 
-// TestReadRendererEnv pins how GOGUI_RENDERER is spelled (#1265). Only the
-// exact values "soft" and "gl" name a renderer; matching is case-sensitive,
-// as GOGUI_WAYLAND's is. Unset is auto-pick; anything else reads as gl.
-func TestReadRendererEnv(t *testing.T) {
-	cases := []struct {
-		env  string
-		want rendererEnv
-	}{
-		{"", rendererEnvAuto},
-		{"gl", rendererEnvGL},
-		{"soft", rendererEnvSoft},
-		{"SOFT", rendererEnvGL},
-		{"soft ", rendererEnvGL},
-		{"llvmpipe", rendererEnvGL},
-	}
-	for _, c := range cases {
-		t.Setenv("GOGUI_RENDERER", c.env)
-		if got := readRendererEnv(); got != c.want {
-			t.Errorf("GOGUI_RENDERER=%q: readRendererEnv = %v, want %v", c.env, got, c.want)
-		}
-	}
-}
-
 // TestSoftKeepsWayland: since the Wayland soft path (#1265 step 4),
 // GOGUI_RENDERER=soft no longer declines native Wayland. The windowing
 // backend follows GOGUI_WAYLAND and WAYLAND_DISPLAY alone.
@@ -47,20 +24,6 @@ func TestSoftKeepsWayland(t *testing.T) {
 			t.Errorf("GOGUI_RENDERER=soft GOGUI_WAYLAND=%q: waylandRequested = %v, want %v",
 				c.env, got, c.want)
 		}
-	}
-}
-
-// TestGPUContextErrorNamesSoftOnLinux: on Linux the no-GPU message points at
-// GOGUI_RENDERER=soft, the one fix that needs no driver or package install.
-// It stays a single line (TestGPUContextErrorMessageNamesFix).
-func TestGPUContextErrorNamesSoftOnLinux(t *testing.T) {
-	msg := newGPUContextError("init EGL display",
-		errors.New("eglInitialize failed")).Error()
-	if !strings.Contains(msg, "GOGUI_RENDERER=soft") {
-		t.Fatalf("message %q does not name GOGUI_RENDERER=soft", msg)
-	}
-	if strings.Contains(msg, "\n") {
-		t.Fatalf("message must stay one line, got %q", msg)
 	}
 }
 

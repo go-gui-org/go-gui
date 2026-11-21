@@ -22,15 +22,29 @@
 //
 // Usage:
 //
-//	go run ./tools/glrendertest <dir for the test binary>
+//	go run ./tools/glrendertest [-select mesa-gl|soft|system-gl] <dir for the test binary>
 //
 // On Windows the caller copies opengl32.dll into that directory first:
 // the app directory is the only place Windows looks before System32,
-// whose opengl32.dll is GDI's OpenGL 1.1.
+// whose opengl32.dll is GDI's OpenGL 1.1. -select picks one of three
+// Windows runs (#1310), which differ in that DLL and in GOGUI_RENDERER:
+//
+//   - mesa-gl, the default: Mesa's DLL; the GL tests, with
+//     GOGUI_RENDERER=gl.
+//   - soft: Mesa's DLL, which the tests require to stay unloaded; the
+//     GOGUI_RENDERER=soft present tests, with GOGUI_RENDERER=soft.
+//   - system-gl: no DLL in the directory, so the system's own OpenGL; the
+//     GDI Generic regression test, with GOGUI_RENDERER unset (the test
+//     sets it). The test skips, which counts as a failure, when the
+//     system OpenGL makes no context, so the run also shows what the
+//     runner's OpenGL does.
+//
+// Linux has one run, the default.
 package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -97,6 +111,47 @@ var win32Tests = []string{
 	"TestTextSystemFailureStaysPlain",
 }
 
+// win32SoftTests are the GOGUI_RENDERER=soft present tests (#1310). They
+// need a desktop session, not GL.
+var win32SoftTests = []string{
+	"TestSoftWin32LoadsNoGL",
+	"TestSoftWin32PixelsMatchRenderToImage",
+	"TestSoftWin32ResizeKeepsHandles",
+	"TestSoftWin32OpacityAfterPaint",
+	"TestSoftWin32PresentAllocs",
+}
+
+// win32SystemGLTests run on the system's own OpenGL (#1310).
+var win32SystemGLTests = []string{
+	"TestGDIGenericIsGPUContextError",
+}
+
+// selection is one run: the tests, in order, and the GOGUI_RENDERER value
+// their processes get. An empty renderer removes the variable, so each
+// test sets it.
+type selection struct {
+	tests    []string
+	renderer string
+}
+
+// selectionFor returns the run that -select names (see the package doc).
+func selectionFor(name string, windows bool) (selection, error) {
+	switch {
+	case name == "" || name == "mesa-gl":
+		// GOGUI_RENDERER=gl keeps the GL tests on GL: the runner's GL is
+		// llvmpipe, which auto-pick would replace with the CPU renderer
+		// (#1265). The soft and auto-pick tests set the variable themselves.
+		return selection{tests: testList(windows), renderer: "gl"}, nil
+	case !windows:
+		return selection{}, fmt.Errorf("-select %s is a Windows run", name)
+	case name == "soft":
+		return selection{tests: win32SoftTests, renderer: "soft"}, nil
+	case name == "system-gl":
+		return selection{tests: win32SystemGLTests}, nil
+	}
+	return selection{}, fmt.Errorf("-select %q: want mesa-gl, soft or system-gl", name)
+}
+
 // verdict classifies one test process's output.
 type verdict int
 
@@ -108,11 +163,22 @@ const (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: glrendertest <dir for the test binary>")
+	name := flag.String("select", "", "Windows run: mesa-gl (default), soft or system-gl")
+	flag.Parse()
+	if flag.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: glrendertest [-select mesa-gl|soft|system-gl] <dir for the test binary>")
 		os.Exit(2)
 	}
-	os.Exit(run(os.Args[1], runtime.GOOS == "windows", compileTest, runOne))
+	windows := runtime.GOOS == "windows"
+	sel, err := selectionFor(*name, windows)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "glrendertest:", err)
+		os.Exit(2)
+	}
+	os.Exit(run(flag.Arg(0), windows, sel.tests, compileTest,
+		func(bin, test string) (string, int) {
+			return runOne(bin, test, sel.renderer)
+		}))
 }
 
 // testList returns the tests for this OS, in run order.
@@ -137,13 +203,13 @@ func binName(dir string, windows bool) string {
 type compileFunc func(bin string) error
 type runOneFunc func(bin, test string) (output string, code int)
 
-func run(dir string, windows bool, compile compileFunc, runOne runOneFunc) int {
+func run(dir string, windows bool, tests []string, compile compileFunc, runOne runOneFunc) int {
 	bin := binName(dir, windows)
 	if err := compile(bin); err != nil {
 		return 1
 	}
 	status := 0
-	for _, t := range testList(windows) {
+	for _, t := range tests {
 		out, code := runOne(bin, t)
 		fmt.Println(strings.TrimRight(out, "\n"))
 		switch classify(t, out, code) {
@@ -183,19 +249,34 @@ func compilePkg(pkg, bin string) error {
 // startTest builds one test's subprocess. It is a variable so tests can
 // point it at the test binary itself (TestHelperProcess) instead of a
 // real gl test binary.
-var startTest = func(bin, test string) *exec.Cmd {
-	cmd := exec.Command(bin, "-test.run", "^"+test+"$", "-test.v") // #nosec G204 -- binary this tool just built; test names come from testList
-	// GOGUI_RENDERER=gl keeps the GL tests on GL: the runner's GL is
-	// llvmpipe, which auto-pick would replace with the CPU renderer (#1265).
-	// The soft and auto-pick tests set the variable themselves.
-	cmd.Env = append(os.Environ(), "GOGUI_REQUIRE_GL=1", "GOGUI_RENDERER=gl")
+var startTest = func(bin, test, renderer string) *exec.Cmd {
+	cmd := exec.Command(bin, "-test.run", "^"+test+"$", "-test.v") // #nosec G204 -- binary this tool just built; test names come from the selection
+	cmd.Env = testEnv(os.Environ(), renderer)
 	return cmd
 }
 
-// runOne runs one test in its own process with GOGUI_REQUIRE_GL=1 and
-// returns its combined output and exit code.
-func runOne(bin, test string) (string, int) {
-	out, err := startTest(bin, test).CombinedOutput()
+// testEnv is a test process's environment: base with GOGUI_REQUIRE_GL=1,
+// and with GOGUI_RENDERER set to renderer, or removed when renderer is
+// empty, so a value in the caller's environment cannot reach a test that
+// sets its own.
+func testEnv(base []string, renderer string) []string {
+	env := make([]string, 0, len(base)+2)
+	for _, kv := range base {
+		if !strings.HasPrefix(kv, "GOGUI_RENDERER=") {
+			env = append(env, kv)
+		}
+	}
+	env = append(env, "GOGUI_REQUIRE_GL=1")
+	if renderer != "" {
+		env = append(env, "GOGUI_RENDERER="+renderer)
+	}
+	return env
+}
+
+// runOne runs one test in its own process with GOGUI_REQUIRE_GL=1 and the
+// selection's GOGUI_RENDERER, and returns its combined output and exit code.
+func runOne(bin, test, renderer string) (string, int) {
+	out, err := startTest(bin, test, renderer).CombinedOutput()
 	code := 0
 	if err != nil {
 		code = 1

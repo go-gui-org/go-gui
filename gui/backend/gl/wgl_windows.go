@@ -3,28 +3,60 @@
 package gl
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"unsafe"
 
+	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"golang.org/x/sys/windows"
+
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 var (
-	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
-	opengl32 = initOpenGL32()
+	gdi32 = windows.NewLazySystemDLL("gdi32.dll")
 
 	pChoosePixelFormat = gdi32.NewProc("ChoosePixelFormat")
 	pSetPixelFormat    = gdi32.NewProc("SetPixelFormat")
 	pSwapBuffers       = gdi32.NewProc("SwapBuffers")
-
-	pWglCreateContext  = opengl32.NewProc("wglCreateContext")
-	pWglMakeCurrent    = opengl32.NewProc("wglMakeCurrent")
-	pWglDeleteContext  = opengl32.NewProc("wglDeleteContext")
-	pWglGetProcAddress = opengl32.NewProc("wglGetProcAddress")
 )
+
+// openGL32Procs is opengl32.dll and the WGL procedures the backend calls
+// by name. glProc looks GL 1.1 names up in the same DLL.
+type openGL32Procs struct {
+	dll            *windows.LazyDLL
+	createContext  *windows.LazyProc
+	makeCurrent    *windows.LazyProc
+	deleteContext  *windows.LazyProc
+	getProcAddress *windows.LazyProc
+}
+
+var (
+	openGL32Once sync.Once
+	openGL32Lib  openGL32Procs
+)
+
+// openGL32 picks opengl32.dll on first use and returns it with its WGL
+// procedures. It is not a package variable initializer, so a process that
+// never asks for GL never loads the DLL: with GOGUI_RENDERER=soft a local
+// Mesa is not even mapped (#1310).
+func openGL32() *openGL32Procs {
+	openGL32Once.Do(func() {
+		dll := initOpenGL32()
+		openGL32Lib = openGL32Procs{
+			dll:            dll,
+			createContext:  dll.NewProc("wglCreateContext"),
+			makeCurrent:    dll.NewProc("wglMakeCurrent"),
+			deleteContext:  dll.NewProc("wglDeleteContext"),
+			getProcAddress: dll.NewProc("wglGetProcAddress"),
+		}
+	})
+	return &openGL32Lib
+}
 
 // initOpenGL32 loads opengl32.dll.  It first tries the executable's
 // directory (so that a Mesa software-rendering DLL placed alongside
@@ -39,6 +71,64 @@ func initOpenGL32() *windows.LazyDLL {
 		}
 	}
 	return windows.NewLazySystemDLL("opengl32.dll")
+}
+
+// newGLWin32 is New's GL attempt: the window, then a WGL context on its
+// kept DC, the GL function table and the GL resources.
+func newGLWin32(w *gui.Window) (*Backend, error) {
+	// Pick opengl32.dll before any pixel-format call, as the package
+	// variable initializer did. A Mesa beside the exe that is first loaded
+	// after SetPixelFormat gets no context from wglCreateContext.
+	openGL32()
+
+	b, err := openWin32Window(w, false)
+	if err != nil {
+		return nil, err
+	}
+	hwnd := b.plat.hwnd
+	cfg := w.Config
+
+	hdc, _, _ := pGetDC.Call(hwnd)
+	if hdc == 0 {
+		b.plat.destroy()
+		return nil, errors.New("gl: GetDC failed")
+	}
+	b.plat.hdc = hdc
+
+	hglrc, err := createContextFunc(hdc)
+	if err != nil {
+		b.plat.destroy()
+		return nil, newGPUContextError("create WGL context", err)
+	}
+	b.plat.hglrc = hglrc
+	// createContext leaves the context current on hdc, which is what
+	// wglSwapIntervalEXT applies to.
+	applyVSync(cfg.VSyncOff, wglSetSwapInterval, w.DebugWindowVSync,
+		"wglSwapIntervalEXT")
+
+	// A legacy context that createContext kept (GDI Generic 1.1) cannot
+	// bind the 3.3 functions: a GPU-context failure, as below (#1310).
+	if berr := gogl.InitWithProcAddrFunc(glProc); berr != nil {
+		gerr := glBringUpError("bind GL functions", berr)
+		b.plat.destroy()
+		return nil, gerr
+	}
+
+	b.dpiScale = windowScale(hwnd)
+	b.physW, b.physH = clientSize(hwnd)
+	b.initCaches(cfg)
+
+	if ierr := b.initGLResources(w); ierr != nil {
+		gerr := fmt.Errorf("gl: initGLResources: %w", ierr)
+		if perr, ok := errors.AsType[*pipelineInitError](ierr); ok {
+			gerr = glBringUpError("build GL pipelines", perr.err)
+		}
+		b.Destroy()
+		return nil, gerr
+	}
+
+	finishWin32Window(w, b)
+	return b, nil
 }
 
 type pixelFormatDescriptor struct {
@@ -86,11 +176,11 @@ const (
 )
 
 func wglMakeCurrent(hdc, hglrc uintptr) {
-	pWglMakeCurrent.Call(hdc, hglrc)
+	openGL32().makeCurrent.Call(hdc, hglrc)
 }
 
 func wglDeleteContext(hglrc uintptr) {
-	pWglDeleteContext.Call(hglrc)
+	openGL32().deleteContext.Call(hglrc)
 }
 
 func swapBuffers(hdc uintptr) {
@@ -136,14 +226,15 @@ func createContextWithFormat(hdc, pf uintptr, pfd *pixelFormatDescriptor) (uintp
 		return 0, fmt.Errorf("SetPixelFormat: %w", e)
 	}
 
+	wgl := openGL32()
 	// Legacy context first: required both as a fallback and to load
 	// the wglCreateContextAttribsARB entry point.
-	legacy, _, err := pWglCreateContext.Call(hdc)
+	legacy, _, err := wgl.createContext.Call(hdc)
 	if legacy == 0 {
 		return 0, fmt.Errorf("wglCreateContext: %w", err)
 	}
-	if r, _, e := pWglMakeCurrent.Call(hdc, legacy); r == 0 {
-		pWglDeleteContext.Call(legacy)
+	if r, _, e := wgl.makeCurrent.Call(hdc, legacy); r == 0 {
+		wgl.deleteContext.Call(legacy)
 		return 0, fmt.Errorf("wglMakeCurrent(legacy): %w", e)
 	}
 
@@ -168,10 +259,10 @@ func createContextWithFormat(hdc, pf uintptr, pfd *pixelFormatDescriptor) (uintp
 	}
 
 	// Switch to the core context and drop the legacy one.
-	pWglMakeCurrent.Call(0, 0)
-	pWglDeleteContext.Call(legacy)
-	if r, _, e := pWglMakeCurrent.Call(hdc, core); r == 0 {
-		pWglDeleteContext.Call(core)
+	wgl.makeCurrent.Call(0, 0)
+	wgl.deleteContext.Call(legacy)
+	if r, _, e := wgl.makeCurrent.Call(hdc, core); r == 0 {
+		wgl.deleteContext.Call(core)
 		return 0, fmt.Errorf("wglMakeCurrent(core): %w", e)
 	}
 	// The swap interval is set by the caller (applyVSync), which can
@@ -198,7 +289,7 @@ func wglProc(name string) uintptr {
 	if err != nil {
 		return 0
 	}
-	r, _, _ := pWglGetProcAddress.Call(uintptr(unsafe.Pointer(cname)))
+	r, _, _ := openGL32().getProcAddress.Call(uintptr(unsafe.Pointer(cname)))
 	// wglGetProcAddress may return 1,2,3,-1 for error sentinels.
 	switch r {
 	case 0, 1, 2, 3, ^uintptr(0):
@@ -245,7 +336,7 @@ func glProc(name string) uintptr {
 	if p := wglProc(name); p != 0 {
 		return p
 	}
-	proc := opengl32.NewProc(name)
+	proc := openGL32().dll.NewProc(name)
 	if err := proc.Find(); err != nil {
 		return 0
 	}

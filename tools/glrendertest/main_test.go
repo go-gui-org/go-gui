@@ -117,7 +117,7 @@ func TestRunMixed(t *testing.T) {
 		return r.out, r.code
 	}
 	out := captureStdout(t, func() {
-		if code := run(t.TempDir(), false, okCompile, runOne); code != 1 {
+		if code := run(t.TempDir(), false, testList(false), okCompile, runOne); code != 1 {
 			t.Errorf("run() = %d, want 1", code)
 		}
 	})
@@ -133,7 +133,7 @@ func TestRunMixed(t *testing.T) {
 
 func TestRunAllPass(t *testing.T) {
 	out := captureStdout(t, func() {
-		if code := run(t.TempDir(), false, okCompile,
+		if code := run(t.TempDir(), false, testList(false), okCompile,
 			func(_ string, test string) (string, int) {
 				return "--- PASS: " + test + "\n", 0
 			}); code != 0 {
@@ -147,7 +147,7 @@ func TestRunAllPass(t *testing.T) {
 
 func TestRunCompileFailure(t *testing.T) {
 	out := captureStdout(t, func() {
-		if code := run(t.TempDir(), false,
+		if code := run(t.TempDir(), false, testList(false),
 			func(string) error { return errCompile },
 			func(_ string, _ string) (string, int) {
 				t.Error("runOne called after compile failure")
@@ -186,7 +186,7 @@ func TestHelperProcess(t *testing.T) {
 
 func TestRunEndToEnd(t *testing.T) {
 	old := startTest
-	startTest = func(_, test string) *exec.Cmd {
+	startTest = func(_, test, _ string) *exec.Cmd {
 		cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess", "--", "^"+test+"$")
 		cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
 		return cmd
@@ -194,7 +194,8 @@ func TestRunEndToEnd(t *testing.T) {
 	defer func() { startTest = old }()
 
 	out := captureStdout(t, func() {
-		if code := run(t.TempDir(), false, okCompile, runOne); code != 1 {
+		if code := run(t.TempDir(), false, testList(false), okCompile,
+			func(bin, test string) (string, int) { return runOne(bin, test, "gl") }); code != 1 {
 			t.Errorf("run() = %d, want 1 (one FAIL, one SKIP, one crash)", code)
 		}
 	})
@@ -233,5 +234,69 @@ func TestCompilePkg(t *testing.T) {
 	}
 	if err := compilePkg(mod, filepath.Join(t.TempDir(), "broken.test")); err == nil {
 		t.Error("compilePkg(broken) = nil, want an error")
+	}
+}
+
+// TestSelections pins the three Windows runs (#1310): each names its tests
+// and its GOGUI_RENDERER, the soft and system-GL tests are not also in the
+// GL run, and Linux has only the default.
+func TestSelections(t *testing.T) {
+	cases := []struct {
+		name     string
+		windows  bool
+		tests    []string
+		renderer string
+	}{
+		{"", true, testList(true), "gl"},
+		{"mesa-gl", true, testList(true), "gl"},
+		{"soft", true, win32SoftTests, "soft"},
+		{"system-gl", true, win32SystemGLTests, ""},
+		{"", false, testList(false), "gl"},
+	}
+	for _, c := range cases {
+		sel, err := selectionFor(c.name, c.windows)
+		if err != nil {
+			t.Fatalf("selectionFor(%q, windows=%v): %v", c.name, c.windows, err)
+		}
+		if strings.Join(sel.tests, ",") != strings.Join(c.tests, ",") || sel.renderer != c.renderer {
+			t.Errorf("selectionFor(%q, windows=%v) = %v with %q", c.name, c.windows, sel.tests, sel.renderer)
+		}
+	}
+	for _, bad := range []struct {
+		name    string
+		windows bool
+	}{{"soft", false}, {"system-gl", false}, {"Soft", true}} {
+		if _, err := selectionFor(bad.name, bad.windows); err == nil {
+			t.Errorf("selectionFor(%q, windows=%v) = nil error", bad.name, bad.windows)
+		}
+	}
+	gl := strings.Join(testList(true), ",")
+	for _, x := range append(append([]string{}, win32SoftTests...), win32SystemGLTests...) {
+		if strings.Contains(","+gl+",", ","+x+",") {
+			t.Errorf("%s is in the Mesa GL run too", x)
+		}
+	}
+}
+
+// TestTestEnv: a selection's GOGUI_RENDERER replaces the caller's, and an
+// empty one removes it, so a test that sets its own is not overridden.
+func TestTestEnv(t *testing.T) {
+	base := []string{"PATH=x", "GOGUI_RENDERER=soft"}
+	count := func(env []string, kv string) int {
+		n := 0
+		for _, e := range env {
+			if e == kv || (strings.HasSuffix(kv, "=") && strings.HasPrefix(e, kv)) {
+				n++
+			}
+		}
+		return n
+	}
+	env := testEnv(base, "gl")
+	if count(env, "GOGUI_RENDERER=") != 1 || count(env, "GOGUI_RENDERER=gl") != 1 ||
+		count(env, "GOGUI_REQUIRE_GL=1") != 1 || count(env, "PATH=x") != 1 {
+		t.Errorf("testEnv(gl) = %v", env)
+	}
+	if env = testEnv(base, ""); count(env, "GOGUI_RENDERER=") != 0 {
+		t.Errorf("testEnv(\"\") = %v, want no GOGUI_RENDERER", env)
 	}
 }

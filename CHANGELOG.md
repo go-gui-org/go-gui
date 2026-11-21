@@ -8,6 +8,23 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`GOGUI_RENDERER=soft` runs a Windows app without OpenGL (#1310).** The
+  Windows backend draws with go-gui's own CPU renderer, the one Linux uses, and
+  copies each frame to the window through GDI. The process loads no
+  `opengl32.dll`, not even a Mesa DLL beside the exe, so an app starts on a
+  machine whose OpenGL cannot run it: a VM or RDP session without a GPU driver,
+  where Windows has only its generic OpenGL 1.1. Events, IME, UI Automation, DPI
+  handling and window state are the GL path's own code; a live resize repaints
+  each size, and whole-window opacity works. Frames are paced to the monitor's
+  refresh rate unless `WindowCfg.VSyncOff` is set. A `WindowCfg.Transparent`
+  window is opaque on this path and reports it through `gui.Debug`. Custom
+  shaders draw their children but not their shader fill. The "no GPU context"
+  message on Windows now names `GOGUI_RENDERER=soft`. With the variable unset or
+  `gl`, the backend makes the same calls as before; the automatic fallback is a
+  later step of #1310.
+
 ### Changed
 
 - **Docs describe the desktop as cgo-free.** README, `llms.txt`, the Makefile,

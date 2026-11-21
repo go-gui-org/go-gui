@@ -94,8 +94,8 @@ func genericPixelFormat(hdc uintptr) (uintptr, pixelFormatDescriptor) {
 func TestGDIGenericIsGPUContextError(t *testing.T) {
 	// A local opengl32.dll (Mesa, as glrendertest copies it) replaces
 	// the system DLL for the whole process; it has no GDI Generic.
-	if !opengl32.System {
-		t.Skipf("%s is loaded, not the system opengl32.dll", opengl32.Name)
+	if lib := openGL32().dll; !lib.System {
+		t.Skipf("%s is loaded, not the system opengl32.dll", lib.Name)
 	}
 	t.Setenv("GOGUI_RENDERER", "gl")
 	reached, found, made := false, false, false

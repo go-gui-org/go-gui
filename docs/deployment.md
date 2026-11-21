@@ -104,6 +104,16 @@ native Wayland it commits `wl_shm` buffers, so it needs no `libwayland-egl`.
 `GOGUI_RENDERER=gl` keeps GL without the check, and then a machine with no GPU
 context fails with `ErrNoGPUContext`. Other values keep GL and log a warning.
 
+On Windows, `GOGUI_RENDERER=soft` draws with the same software renderer and
+copies each frame to the window through GDI (#1310). The process then loads no
+`opengl32.dll`, neither the system one nor a Mesa DLL beside the exe, so an app
+starts on a machine whose OpenGL cannot run it: a VM or an RDP session without a
+GPU driver, where Windows has only its generic OpenGL 1.1 and startup otherwise
+fails with `ErrNoGPUContext`. Frames are paced to the monitor's refresh rate. A
+`WindowCfg.Transparent` window is opaque on this path, and custom shaders draw
+their children but not their shader fill. With the variable unset, Windows uses
+GL and does not yet fall back by itself.
+
 On X11 libxkbcommon is optional. Keys, shortcuts and switching between keyboard
 layouts work without it; with it, the X11 backend also types letters of scripts
 with legacy keysyms (Cyrillic, Greek, Hebrew) and capitalizes them under Caps
