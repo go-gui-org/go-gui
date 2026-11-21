@@ -53,6 +53,14 @@ and this project adheres to
   title or clipboard text with bytes that are not valid UTF-8 now has each bad
   byte replaced by U+FFFD. Before, the title stayed as it was and the clipboard
   text was dropped. The API does not change.
+- **The CPU renderer clears a frame with a block copy (#1327).** `soft.Renderer`
+  painted the background four bytes at a time, which was the largest single cost
+  of a simple frame: 36 % of the draw at 1920×1080. It now stores one pixel and
+  doubles it with `copy`. The clear itself takes 0.28 ms instead of 1.70 ms at
+  1920×1080 and 1.25 ms instead of 6.75 ms at 3840×2160; a frame of 100 buttons
+  takes 3.5 ms instead of 5.2 ms at 1920×1080. Every pixel is the same as
+  before. X11, Wayland and `soft.RenderToImage` share the gain. The API does not
+  change.
 
 ### Fixed
 
