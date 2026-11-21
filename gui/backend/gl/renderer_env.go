@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"encoding/binary"
 	"log"
 	"os"
 	"sync"
@@ -60,12 +61,30 @@ const defaultFrameInterval = time.Second / 60
 // BI_RGB DIB section on Windows. Alpha is copied: a depth-24 visual and an
 // opaque Windows window ignore the byte, and a depth-32 one wants it
 // premultiplied, which it is.
-// Only whole pixels that fit both slices are written.
+// Only whole pixels that fit both slices are written. dst and src may be
+// the same slice.
+//
+// Two pixels go through as one 64-bit word: red and blue change places by
+// mask and shift, green and alpha stay (#1327). The word is read and
+// written little-endian by name, so the bytes land the same on any host. A
+// 32-bit word, one pixel a turn, measured slower than the byte loop this
+// replaced.
 func swizzleBGRA(dst, src []byte) {
+	const (
+		greenAlpha = 0xff00ff00_ff00ff00
+		red        = 0x000000ff_000000ff // byte 0 of each pixel
+		blue       = 0x00ff0000_00ff0000 // byte 2 of each pixel
+	)
 	n := min(len(dst), len(src)) &^ 3
-	for i := 0; i < n; i += 4 {
-		// One bounds check per pixel instead of four.
-		d, s := dst[i:i+4:i+4], src[i:i+4:i+4]
-		d[0], d[1], d[2], d[3] = s[2], s[1], s[0], s[3]
+	dst, src = dst[:n], src[:n]
+	for len(src) >= 8 {
+		v := binary.LittleEndian.Uint64(src)
+		binary.LittleEndian.PutUint64(dst, v&greenAlpha|(v&red)<<16|(v&blue)>>16)
+		dst, src = dst[8:], src[8:]
+	}
+	if len(src) == 4 {
+		// The odd pixel. The right side is read before the left is
+		// written, so this is safe in place too.
+		dst[0], dst[1], dst[2], dst[3] = src[2], src[1], src[0], src[3]
 	}
 }

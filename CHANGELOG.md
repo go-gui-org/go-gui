@@ -78,6 +78,21 @@ and this project adheres to
   takes 3.5 ms instead of 5.2 ms at 1920×1080. Every pixel is the same as
   before. X11, Wayland and `soft.RenderToImage` share the gain. The API does not
   change.
+- **The CPU renderer draws text faster (#1327).** `soft.Renderer` blended a
+  glyph one pixel at a time through two calls, each of which worked out the
+  atlas and frame offsets again; that was 54 to 66 % of the draw on a text-heavy
+  view. It now takes the atlas row and the frame row once per row. A glyph quad
+  of 16×32 px takes 3.9 µs instead of 5.0 µs, and a frame of 1,000 text widgets
+  takes 8.6 ms instead of 11.1 ms at 1920×1080. Every pixel is the same as
+  before, and a test compares the two paths. X11, Wayland and
+  `soft.RenderToImage` share the gain. The API does not change.
+- **The CPU renderer converts a frame to the window's byte order faster
+  (#1327).** Each frame the CPU renderer shows is converted from R, G, B, A to
+  the B, G, R, A order that X11, Wayland and a Windows bitmap take. The
+  conversion moved one pixel a step; it now moves two pixels as one 64-bit word.
+  A 1920×1080 frame takes 1.6 ms instead of 2.0 ms, and a 3840×2160 frame 6.6 ms
+  instead of 8.1 ms. Every byte is the same as before, and a test compares the
+  two forms. The API does not change.
 
 ### Fixed
 
