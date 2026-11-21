@@ -1,7 +1,7 @@
 # Windows software renderer
 
-Issue #1310 (follow-up of #1265). Status: **phase 1 of 5 landed** (#1319; phase
-2 in review; phases 3 to 5 planned).
+Issue #1310 (follow-up of #1265). Status: **phases 1 and 2 of 5 landed** (#1319,
+#1333; phases 3 to 5 planned).
 
 The maintainer accepted this design on the issue on 2026-11-20 (see Decisions).
 Code facts are as of #1319, except where a sentence names phase 2. "Measured"
@@ -359,7 +359,7 @@ workload.
 | Phase | Delivers                                                                                             | State          |
 | ----- | ---------------------------------------------------------------------------------------------------- | -------------- |
 | 1     | A GL bring-up failure is a GPU-context failure: no panic, and the message names the GL. No soft code | landed (#1319) |
-| 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | in review      |
+| 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | landed (#1333) |
 | 3     | Automatic fallback when the first window's context or binding fails                                  | planned        |
 | 4     | Transparent frameless windows on soft                                                                | planned        |
 | 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | planned        |
@@ -370,8 +370,9 @@ entry, and updates the table above. The steps, in execution order:
 1. **Phase 1, done in #1319.** `New` reports a glbind failure and a pipeline
    failure through `glBringUpError`. `initGLResources` marks a pipeline failure
    with `pipelineInitError`, so the text-system error stays plain.
-2. **Phase 2.** Move the shared helpers and their tests to `renderer_env.go`,
-   and put `opengl32.dll` and its procedures behind the lazy accessor.
+2. **Phase 2, done in #1333.** Move the shared helpers and their tests to
+   `renderer_env.go`, and put `opengl32.dll` and its procedures behind the lazy
+   accessor.
 3. Register the soft window class. Split `New` into the thread lock and choice,
    a GL attempt and a soft attempt; the GL attempt is today's sequence.
 4. Add `softpresent_win32.go` and the six branches of the integration table.
