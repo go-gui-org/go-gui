@@ -78,6 +78,22 @@ and this project adheres to
   takes 3.5 ms instead of 5.2 ms at 1920×1080. Every pixel is the same as
   before. X11, Wayland and `soft.RenderToImage` share the gain. The API does not
   change.
+- **The CPU renderer fills solid shapes through a coverage mask (#1327).**
+  `soft.Renderer` let `x/image/vector` blend a solid rect, border, circle or
+  line itself, which works out every pixel of the shape's bounding box, even
+  where the shape does not reach it or covers it with an opaque color. On a view
+  of rounded fills and borders that was 65 to 81 % of the draw. The coverage now
+  goes into a reused 8-bit mask, as it already did for gradients and images, and
+  a loop of Go-Gui's own blends it: it skips uncovered pixels, stores an opaque
+  color where coverage is full, and blends the rest with the same 16-bit
+  arithmetic. A frame of 100 buttons takes 1.75 ms instead of 3.39 ms at
+  1920×1080, and a dense page 10.69 ms instead of 37.25 ms; text-heavy frames
+  are unchanged. The mask keeps 8 bits of coverage where the rasterizer read 16,
+  so an antialiased edge pixel of a solid fill can differ from before: by one
+  level per channel under one edge, and by up to two levels in the tested views
+  where edges overlap. Uncovered and fully covered pixels are the same as
+  before. X11, Wayland, Windows and `soft.RenderToImage` share the gain. The API
+  does not change.
 
 ### Fixed
 
