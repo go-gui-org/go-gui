@@ -7,8 +7,8 @@ import (
 
 // sysN calls a resolved GL entry point with integer arguments only.
 //
-// The return values are dropped on purpose. No hot entry point returns a
-// value, and the Errno that syscall.SyscallN reports is the Win32 last-error,
+// The error results are dropped on purpose: sysN1 keeps the result for the
+// few hot entry points that return one (the GL 3.2 fences), and the Errno that syscall.SyscallN reports is the Win32 last-error,
 // which GL does not set — GL errors are retrieved with glGetError, which the
 // backend polls separately.
 //
@@ -19,6 +19,12 @@ import (
 // syscall.SyscallN).
 func sysN(fn uintptr, args ...uintptr) {
 	_, _, _ = syscall.SyscallN(fn, args...)
+}
+
+// sysN1 is sysN for an entry point that returns a value.
+func sysN1(fn uintptr, args ...uintptr) uintptr {
+	r, _, _ := syscall.SyscallN(fn, args...)
+	return r
 }
 
 func BufferData(target uint32, size int, data unsafe.Pointer, usage uint32) {

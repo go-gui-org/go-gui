@@ -10,9 +10,9 @@ import (
 
 // sysN calls a resolved GL entry point with integer arguments only.
 //
-// The return values are dropped on purpose: no hot entry point returns a
-// value, and GL reports errors through glGetError, which the backend polls
-// separately.
+// The error results are dropped on purpose: GL reports errors through
+// glGetError, which the backend polls separately. sysN1 keeps the result,
+// for the few hot entry points that return one (the GL 3.2 fences).
 //
 // Callers must not pass a Go pointer converted to uintptr: see the rules in
 // raw.go. The pointer-carrying entry points below convert inside the
@@ -20,6 +20,12 @@ import (
 // and so keeps the referent alive for the duration of the call.
 func sysN(fn uintptr, args ...uintptr) {
 	_, _, _ = purego.SyscallN(fn, args...)
+}
+
+// sysN1 is sysN for an entry point that returns a value.
+func sysN1(fn uintptr, args ...uintptr) uintptr {
+	r, _, _ := purego.SyscallN(fn, args...)
+	return r
 }
 
 // Unlike syscall.SyscallN on Windows, purego.SyscallN allocates twice on every

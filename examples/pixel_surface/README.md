@@ -36,7 +36,8 @@ Create a `PixelSurface` once, keep it in the window state, and pass it as
 At a fixed size, updates reuse CPU and GPU storage and allocate nothing. A
 surface holds at most 64 MiB of pixels, with an 8192-pixel limit per edge. Each
 renderer keeps its own uploaded copy: these are copies, not native zero-copy
-frames.
+frames. A shader can draw frames that stay on the GPU without a copy:
+[`examples/dmabuf_surface/`](../dmabuf_surface/).
 
 The surface draws on every backend: OpenGL, Metal, WebGL/Canvas2D, Android GLES,
 iOS Metal, the software renderer and PDF export.

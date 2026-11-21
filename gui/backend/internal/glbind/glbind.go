@@ -59,12 +59,13 @@ var (
 	pfnGenRenderbuffers               func(n int32, renderbuffers *uint32)
 	pfnGenTextures                    func(n int32, textures *uint32)
 	pfnGenVertexArrays                func(n int32, arrays *uint32)
-	pfnGetError                       func() uint32
+	pfnFinish                         func()
 	pfnGetIntegerv                    func(pname uint32, data *int32)
 	pfnGetProgramInfoLog              func(program uint32, bufSize int32, length *int32, infoLog *uint8)
 	pfnGetProgramiv                   func(program, pname uint32, params *int32)
 	pfnGetShaderInfoLog               func(shader uint32, bufSize int32, length *int32, infoLog *uint8)
 	pfnGetShaderiv                    func(shader, pname uint32, params *int32)
+	pfnGetStringi                     func(name, index uint32) uintptr
 	pfnGetUniformLocation             func(program uint32, name *uint8) int32
 	pfnLinkProgram                    func(program uint32)
 	pfnReadPixels                     func(x, y, width, height int32, format, xtype uint32, pixels unsafe.Pointer)
@@ -129,9 +130,10 @@ func GenTextures(n int32, textures *uint32) { pfnGenTextures(n, textures) }
 
 func GenVertexArrays(n int32, arrays *uint32) { pfnGenVertexArrays(n, arrays) }
 
-// GetError returns and clears one recorded GL error. Cold path: the backend
-// calls it once per multisample target, not every frame.
-func GetError() uint32 { return pfnGetError() }
+// Finish blocks until the GPU has completed every command issued so far.
+// Cold path: the DMA-BUF import (#1326) calls it only when a fence cannot
+// say whether the GPU is done, before it hands a frame back.
+func Finish() { pfnFinish() }
 
 func GetIntegerv(pname uint32, data *int32) { pfnGetIntegerv(pname, data) }
 
@@ -146,6 +148,11 @@ func GetProgramiv(program uint32, pname uint32, params *int32) {
 func GetShaderInfoLog(shader uint32, bufSize int32, length *int32, infoLog *uint8) {
 	pfnGetShaderInfoLog(shader, bufSize, length, infoLog)
 }
+
+// GetStringi returns the address of a NUL-terminated string the driver
+// owns, such as one extension name; uintptr because it is driver memory,
+// not a Go pointer.
+func GetStringi(name uint32, index uint32) uintptr { return pfnGetStringi(name, index) }
 
 func GetShaderiv(shader uint32, pname uint32, params *int32) {
 	pfnGetShaderiv(shader, pname, params)

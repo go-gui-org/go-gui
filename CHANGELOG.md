@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **Shader inputs from GPU buffers, without a copy (#1326).**
+  `PixelSurface.UpdateDMABuf` publishes a frame that lives in Linux DMA-BUFs,
+  one per plane, as a hardware video decoder exports it. The OpenGL backend on
+  Linux imports the buffers through EGL, and the shader samples them directly.
+  Until now a decoded picture went from the GPU to main memory and back, which
+  cost go-video about two thirds of its playback CPU time. The frame's
+  `GPUFrame.Release` runs once no window draws it and the GPU has finished
+  reading it, so a decoder can reuse the buffer safely. Compressed layouts, such
+  as Intel's media compression, pass their metadata planes in
+  `DMABufPlane.Metadata`. `Window.ImportsDMABuf` tells the producer whether a
+  window imports. Where it does not (other backends, the software renderer, a
+  display without the EGL extensions, or once the driver refused a frame's
+  buffers), the surface draws transparent and the producer calls `UpdatePlanes`
+  instead. `examples/dmabuf_surface` shows a producer with a pool of GBM
+  buffers.
+
 - **A Windows app whose OpenGL cannot run it falls back to the CPU renderer
   (#1310).** With `GOGUI_RENDERER` unset, the first window tries GL. If its WGL
   context is refused, or the GL functions cannot be bound, as on Microsoft's
