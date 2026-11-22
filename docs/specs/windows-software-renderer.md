@@ -330,7 +330,12 @@ measurements below are from the workstation.
   (measured). Creating a layered window at the client size and sending only the
   frame change does not avoid it: `CreateWindowExW` applies the same minimum,
   and the 8×80 window is created 14×80 (measured). The size limits
-  (`trackSizeFor`) are answered only once `Run` has started, as before.
+  (`trackSizeFor`) are answered only once `Run` has started, as before. For a
+  frameless window they are now client sizes with nothing added: the function
+  added the border `AdjustWindowRectExForDpi` counts for `WS_THICKFRAME`, which
+  a frameless window does not have as non-client area, so a `MinWidth` of 200
+  held the client at 214 and a `MaxWidth` of 400 let it reach 414, on GL and on
+  soft (measured; found in the review of #1344).
 - **Resize before the loop.** A `WM_SIZE` that comes between `New` and `Run` (a
   `SetWindowPos` on the window, as the review did) reaches `DefWindowProc`,
   because `wndProc` routes nothing else to the backend until a run loop sets

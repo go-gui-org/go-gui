@@ -187,6 +187,13 @@ and this project adheres to
   as for any other resize. On the CPU renderer this also matters for a
   transparent frameless window, which shows nothing until it gets a frame of its
   own size.
+- **Size limits of a frameless window mean its client area on Windows (#1310).**
+  `MinWidth`, `MinHeight`, `MaxWidth` and `MaxHeight` on a resizable
+  `DecorationNone` window were applied with the resize border added, although
+  such a window has no frame: at 100 % a `MinWidth` of 200 stopped the window at
+  214 px and a `MaxWidth` of 400 let it grow to 414 px, on OpenGL and on the CPU
+  renderer. The limits are now the client sizes asked for, as on a window with a
+  system frame.
 - **Borders and fills land on whole device pixels (#1334).** A rect or a 1px
   border placed at a fractional position — a button centred in a row whose
   leftover height is odd sits at y = n+0.5 — drew its top and bottom edges as
