@@ -102,11 +102,12 @@ type windowAnimation struct {
 // are set once at init by the backend and nil in tests.
 type windowBackend struct {
 	textMeasurer TextMeasurer
-	// textHintingOff is the app's text-hinting choice (#1334). It is not
-	// set by the backend: NewWindow seeds it from
-	// WindowCfg.DisableTextHinting and SetTextHinting changes it.
-	// SetTextMeasurer gives it to each measurer that is installed.
-	textHintingOff bool
+	// textHintingOn is the app's text-hinting choice (#1334). The zero
+	// value is off, which is the default. It is not set by the backend:
+	// NewWindow seeds it from WindowCfg.EnableTextHinting and
+	// SetTextHinting changes it. SetTextMeasurer gives it to each
+	// measurer that is installed.
+	textHintingOn  bool
 	svgParser      SvgParser
 	nativePlatform NativePlatform
 	// titlebarDark is the variant last asked of TitlebarDark, and

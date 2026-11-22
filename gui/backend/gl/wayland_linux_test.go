@@ -524,13 +524,14 @@ func TestWaylandDrawFrameAppliesTextHinting(t *testing.T) {
 	b.measurer.flushHinting()
 	spy.calls = nil
 
-	w.SetTextHinting(false)
+	// Hinting is off by default, so turn it on to send a real change.
+	w.SetTextHinting(true)
 	if len(spy.calls) != 0 {
 		t.Fatalf("SetTextHinting reached glyph before a frame: %v", spy.calls)
 	}
 	w.FrameFn()
 	b.drawFrame(w)
-	if len(spy.calls) != 1 || spy.calls[0] {
-		t.Fatalf("SetHinting calls after drawFrame = %v, want [false]", spy.calls)
+	if len(spy.calls) != 1 || !spy.calls[0] {
+		t.Fatalf("SetHinting calls after drawFrame = %v, want [true]", spy.calls)
 	}
 }

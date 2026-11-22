@@ -10,18 +10,22 @@ and this project adheres to
 
 ### Added
 
-- **Text hinting can be turned off (#1334).** `WindowCfg.DisableTextHinting` and
-  `Window.SetTextHinting(on)` control the stem snapping that go-glyph v1.28.0
-  turned on. With hinting on (the default), vertical stems move to whole pixels
-  and show as solid columns. With hinting off, glyphs keep their exact outlines:
-  the text is softer, but stems and curves have the same weight and the ink
-  stays where the advances put it. An app can offer the choice to its users,
-  because the setter works at runtime and the setting stays in effect when the
-  backend replaces its text measurer, for example on a fall back to the CPU
-  renderer. All native backends obey it; the web backend ignores it. The
-  multisample antialiasing (MSAA) sample count stays fixed at 4x, because it
-  smooths only SVG paths and other triangle meshes, and does not change text or
-  rectangle borders.
+- **Text hinting is a per-window choice, off by default (#1334).**
+  `WindowCfg.EnableTextHinting` and `Window.SetTextHinting(on)` control the stem
+  snapping that go-glyph v1.28.0 turned on. go-gui now turns it off unless the
+  app asks for it. With hinting off (the default), glyphs keep their exact
+  outlines: the text is softer, but stems and curves have the same weight and
+  the ink stays where the advances put it. With hinting on, vertical stems move
+  to whole pixels and show as solid columns, but only the stem moves and not the
+  advance, so straight and curved letters in one word can look out of step
+  (go-gui-org/go-glyph#198). Apps on go-gui v0.98.0 get unhinted text again
+  after the upgrade; set `EnableTextHinting: true` to keep the v0.98 look. An
+  app can offer the choice to its users, because the setter works at runtime and
+  the setting stays in effect when the backend replaces its text measurer, for
+  example on a fall back to the CPU renderer. All native backends obey it; the
+  web backend ignores it. The multisample antialiasing (MSAA) sample count stays
+  fixed at 4x, because it smooths only SVG paths and other triangle meshes, and
+  does not change text or rectangle borders.
 
 - **Shader inputs from GPU buffers, without a copy (#1326).**
   `PixelSurface.UpdateDMABuf` publishes a frame that lives in Linux DMA-BUFs,
