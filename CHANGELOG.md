@@ -183,9 +183,10 @@ and this project adheres to
   frames were drawn at that size until the next resize, on OpenGL and on the CPU
   renderer. `Run` and `RunApp` now check the window's size and scale when they
   take the window, and adopt them before the first frame; the application gets
-  the `EventResized` after `OnInit`, with the window registered, as for any
-  other resize. On the CPU renderer this also matters for a transparent
-  frameless window, which shows nothing until it gets a frame of its own size.
+  the `EventResized` after `OnInit`, and in `RunApp` with the window registered,
+  as for any other resize. On the CPU renderer this also matters for a
+  transparent frameless window, which shows nothing until it gets a frame of its
+  own size.
 - **Borders and fills land on whole device pixels (#1334).** A rect or a 1px
   border placed at a fractional position — a button centred in a row whose
   leftover height is odd sits at y = n+0.5 — drew its top and bottom edges as

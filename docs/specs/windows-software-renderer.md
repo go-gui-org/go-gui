@@ -1,7 +1,7 @@
 # Windows software renderer
 
 Issue #1310 (follow-up of #1265). Status: **phases 1 to 4 of 5 landed** (#1319,
-#1333, #1338, #NNNN; phase 5 planned).
+#1333, #1338, #1344; phase 5 planned).
 
 The maintainer accepted this design on the issue on 2026-11-20 (see Decisions).
 Code facts are as of #1319, except where a sentence names phase 2, 3 or 4.
@@ -381,8 +381,11 @@ measurements below are from the workstation.
   becomes `WM_SIZE`, so the loop draws one frame in between at the old size (292
   of 320 resizes of an animating window from another process did, measured).
   That frame is dropped with no log line and no pacing wait, and the loop's next
-  turn handles `WM_SIZE` and presents at the new size. A second frame in a row
-  that does not fit is a skipped frame, logged.
+  turn handles `WM_SIZE` and presents at the new size. The next frame that does
+  not fit, before one that does, is a skipped frame, logged. A window that draws
+  one frame and then idles therefore logs nothing if its size were wrong for
+  good; the one known cause of that, a resize before the loop starts, is
+  reconciled above.
 - **`WM_PAINT`** only validates on a layered window: the system composes it from
   the last bitmap it was given. It is sent no `WM_PAINT` after a present, a
   resize, or a minimize and restore, but `InvalidateRect` still sends one, with
@@ -502,7 +505,7 @@ workload.
 | 1     | A GL bring-up failure is a GPU-context failure: no panic, and the message names the GL. No soft code | landed (#1319) |
 | 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | landed (#1333) |
 | 3     | Automatic fallback when the first window's context or binding fails                                  | landed (#1338) |
-| 4     | Transparent frameless windows on soft                                                                | landed (#NNNN) |
+| 4     | Transparent frameless windows on soft                                                                | landed (#1344) |
 | 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | planned        |
 
 Each phase is one pull request, carries its tests, docs and `CHANGELOG.md`
@@ -534,7 +537,7 @@ entry, and updates the table above. The steps, in execution order:
    benchmark on a machine without a vendor driver. Record in the pull request:
    the fallback line, a live resize, minimise and restore, and the acceptance
    figures.
-10. **Phase 4, done in #NNNN.** Create a transparent, frameless soft window with
+10. **Phase 4, done in #1344.** Create a transparent, frameless soft window with
     `WS_EX_LAYERED`, skip `enableWindowTransparency`, and present it with
     `UpdateLayeredWindow` from the memory DC, then flush. Raise alpha 0 to 1 on
     that path. Make the client area the whole window before the first frame.

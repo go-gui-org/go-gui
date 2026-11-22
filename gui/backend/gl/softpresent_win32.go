@@ -367,8 +367,9 @@ type softPresentWin32 struct {
 
 	// skipLogged keeps a run of skipped frames to one log line.
 	skipLogged bool
-	// sizeMiss: the last frame was not the layered window's size and was
-	// not sent (errLayeredSize); the next one that does not fit is logged.
+	// sizeMiss: a frame since the last one sent was not the layered
+	// window's size (errLayeredSize); the next one that does not fit is
+	// logged.
 	sizeMiss bool
 }
 
@@ -503,8 +504,8 @@ var errLayeredMinimized = errors.New("the window is minimized")
 // WM_WINDOWPOSCHANGED that becomes WM_SIZE. The loop draws a frame in
 // between, at the old size: with a running animation, 292 of 320 resizes
 // made by another process did (measured). The loop's next turn handles
-// WM_SIZE and presents at the new size. A second frame in a row that does
-// not fit is a fault, and is logged as a skipped frame.
+// WM_SIZE and presents at the new size. The next frame that does not fit,
+// before one that does, is a fault, and is logged as a skipped frame.
 var errLayeredSize = errors.New("the window is not the frame's size")
 
 // skip logs the first of a run of skipped frames and paces.
