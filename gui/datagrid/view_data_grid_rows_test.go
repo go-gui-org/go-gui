@@ -847,7 +847,7 @@ func TestFrozenTopZone(t *testing.T) {
 		ColorBackground: gg.RGBA(255, 255, 255, 255),
 		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 	}
-	v := dataGridFrozenTopZone(cfg, nil, 50, 200, 0)
+	v := dataGridFrozenTopZone(cfg, nil, 50, 200, "g:scroll")
 	if v == nil {
 		t.Fatal("frozen top zone should return a view")
 	}

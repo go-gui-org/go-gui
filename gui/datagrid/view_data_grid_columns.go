@@ -369,6 +369,25 @@ func dataGridClampWidth(col GridColumnCfg, width float32) float32 {
 	return f32Clamp(width, minW, maxW)
 }
 
+// dataGridRowWidth is the width of a row, which the frozen bands take:
+// the columns, plus the row-delete button when CRUD shows one, less one
+// border for each pair of neighbours, because a row's cells overlap by
+// a border (Spacing -SizeBorder). Under RTL a band places its cells from
+// its right edge, as a row does, and a band of another width put every
+// header cell out of line with its column (#1293).
+func dataGridRowWidth(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32, deleteButton bool) float32 {
+	width := dataGridColumnsTotalWidth(columns, columnWidths)
+	cells := len(columns)
+	if deleteButton {
+		width += dataGridRowDeleteWidth
+		cells++
+	}
+	if cells > 1 {
+		width -= float32(cells-1) * cfg.SizeBorder.Or(0)
+	}
+	return width
+}
+
 func dataGridColumnsTotalWidth(columns []GridColumnCfg, columnWidths map[string]float32) float32 {
 	total := float32(0)
 	for _, col := range columns {

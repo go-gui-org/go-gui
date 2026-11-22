@@ -127,7 +127,9 @@ type TableCfg struct {
 	// exportaudit:keep — caller-facing config (issue #1156)
 	RowHeaderWidth float32
 
-	// Sizing
+	// Sizing sizes the table. Unset takes FillFit: the table is as
+	// wide as its parent allows and scrolls sideways when its columns
+	// are wider. A Fit width grows the table to its columns instead.
 	Sizing       Sizing
 	BorderStyle  TableBorderStyle
 	MultiSelect  bool
@@ -375,11 +377,14 @@ func tableView(cfg TableCfg, w *Window) View {
 	// the factory reaches here without one. Declining here beats a
 	// scroll slot shared by every such table.
 	outerCfg.Scrollable = cfg.ID != ""
-	outerCfg.Padding = NewPadding(0, DefaultScrollbarStyle.Size+PadXSmall, 0, 0)
-	outerCfg.ScrollbarCfgX = &ScrollbarCfg{
-		Overflow: ScrollbarHidden,
-	}
+	// Room on the right for the vertical scrollbar and at the bottom for
+	// the horizontal one, as in the frozen-header layout (#1293).
+	gutter := DefaultScrollbarStyle.Size + PadXSmall
+	outerCfg.Padding = NewPadding(0, gutter, gutter, 0)
 	if cfg.Scrollbar != ScrollbarAuto {
+		outerCfg.ScrollbarCfgX = &ScrollbarCfg{
+			Overflow: cfg.Scrollbar,
+		}
 		outerCfg.ScrollbarCfgY = &ScrollbarCfg{
 			Overflow: cfg.Scrollbar,
 		}

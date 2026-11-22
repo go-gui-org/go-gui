@@ -12,6 +12,12 @@ import (
 func layoutArrange(layout *Layout, w *Window) []Layout {
 	ensureLayoutShape(layout)
 	w.arrangePass++
+	// The scroll containers of this frame; layoutAdjustScrollOffsets
+	// fills it for every layer (scroll_link.go).
+	if w.scratch.scrollLive == nil {
+		w.scratch.scrollLive = make(map[string]struct{})
+	}
+	clear(w.scratch.scrollLive)
 	// Record the cursor a real move would end with: the one this pass
 	// chose, or the arrow a move resets to when it chose none
 	// (window_idle_move.go). Deferred: it must see every hook.

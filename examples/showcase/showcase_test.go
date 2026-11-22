@@ -316,19 +316,18 @@ func TestDemoWelcomePanelHasNoBorder(t *testing.T) {
 	}
 }
 
-// The data-source grid fits its contents: columns plus gutter and
-// borders size the grid instead of stretching to the panel (issue
-// #642 keeps the Fill alternative pinned in gui/datagrid for narrow
-// panels; this demo opts into Fit at its catalog width).
-func TestDemoDataSourceGridFitsContent(t *testing.T) {
+// The data-source grid takes the panel's width and scrolls sideways,
+// because its columns are wider than the panel (#1293). It was Fit
+// before, which grew it past a narrow panel (#642).
+func TestDemoDataSourceGridFillsPanel(t *testing.T) {
 	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
 	layout := gui.GenerateViewLayout(demoDataSource(w), w)
 	grid, ok := layout.FindByID("catalog-data-source")
 	if !ok {
 		t.Fatal("catalog-data-source not found")
 	}
-	if grid.Shape.Sizing.Width != gui.FitFit.Width {
-		t.Fatalf("data-source grid width sizing = %v, want Fit",
+	if grid.Shape.Sizing.Width != gui.FillFit.Width {
+		t.Fatalf("data-source grid width sizing = %v, want Fill",
 			grid.Shape.Sizing.Width)
 	}
 }

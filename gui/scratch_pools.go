@@ -192,7 +192,14 @@ func (p *scratchObjPool[T]) reset() {
 
 // scratchPools holds reusable per-frame buffers.
 type scratchPools struct {
-	focusSeen        scratchMap[string, struct{}]
+	focusSeen scratchMap[string, struct{}]
+	// scrollLive holds the keys of the Scrollable containers in the
+	// frame being arranged, filled by layoutAdjustScrollOffsets. A
+	// scroll link applies only an offset whose container is here, not
+	// one left in the store by a container that is gone or stopped
+	// scrolling (scroll_link.go). Cleared, not reallocated, by each
+	// layoutArrange.
+	scrollLive       map[string]struct{}
 	svgAnimStates    scratchMap[uint32, svgAnimState]
 	svgAnimOverrides scratchMap[uint32, SvgAnimAttrOverride]
 	svgAnimByPID     scratchMap[uint32, []float32]
