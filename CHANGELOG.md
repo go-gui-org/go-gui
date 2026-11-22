@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.99.0] - 2026-11-22
+
 ### Added
 
 - **A container can follow another container's sideways scroll (#1293).**
