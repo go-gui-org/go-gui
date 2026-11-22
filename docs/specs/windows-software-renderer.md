@@ -765,9 +765,9 @@ VirtualBox guest with Guest Additions, with 3D off and with 3D on). Builds: "p4"
 is the phase 4 build `c314c1e9` (#1344), "pre" is `main` at `0ec3b7ca`, "fix" is
 `a048d0a4` (#1348 as merged), and `f093009d` is #1348's pull request before its
 last test. The present code is the same in all four; between pre and fix,
-go-glyph v1.29.1 changed hinting at fractional scales only, and every fix row
-ran at 100 %. The p4 rows are the phase 4 runs: their unset launch was that
-phase's transparency check app, not run at 4K.
+go-glyph v1.29.1 restricted enabled text hinting to fractional scales, and the
+benchmark leaves hinting off. The p4 rows are the phase 4 runs: their unset
+launch was that phase's transparency check app, not run at 4K.
 
 The renderer chosen and the test selections. "CPU, context" is a fallback at
 `create WGL context`, "CPU, binding" one at `bind GL functions` with GDI Generic
@@ -848,10 +848,12 @@ Server 2025, 3840×2066 and 3840×2100 on Windows 10. Every other desktop was at
    15.625 ms steps: many one-second samples show no draw or swizzle time and put
    most of the frame's time in the blit. The split between the three stages is
    coarse.
-3. One run, the repeat with a quieter harness, which ran the benchmark only, in
-   a new session; the renderer and tests of this row are from the first session.
-   The first pair of runs stalled about every 8 to 9 s, in step with the
-   harness's polling, and presented 28.7 to 30.2 times a second.
+3. One run, the repeat with a quieter harness, in a new session; the renderer
+   and tests of this row are from the first session. The standard-user repeat
+   also reran the transparency check in both modes; the administrative user's
+   ran the benchmark only. The first pair of runs stalled about every 8 to 9 s,
+   in step with the harness's polling, and presented 28.7 to 30.2 times a
+   second.
 
 What the numbers show:
 
@@ -864,12 +866,12 @@ What the numbers show:
   NVIDIA machine the GL benchmark averaged about 60 swap calls a second in both
   15 s runs (59.75 and 59.76), against 32.5 to 32.6 presents of the forced CPU
   renderer. Those are calls made, not frames that reached the RDP client.
-- **Frame cost.** In the runs of the table the means of the three stages sum to
-  at most 4.4 ms at 1024×768, and to at most 6.1 ms maximised at 1920×1009 to
-  1920×1040. Runs left out can be higher: the second transparent run of the
-  first, disturbed standard-user pair at 1080p on Windows Server 2025 sums to
-  8.66 ms. The transparent window's swizzle, which also applies the alpha floor,
-  is the larger of the two in every row; in the VirtualBox guest with 3D only on
+- **Frame cost.** In the runs of the table the largest sum of the three stage
+  means is 4.36 ms at 1024×768 and 6.12 ms maximised at 1920×1009 to 1920×1040.
+  Runs left out can be higher: the second transparent run of the first,
+  disturbed standard-user pair at 1080p on Windows Server 2025 sums to 8.66 ms.
+  The transparent window's swizzle, which also applies the alpha floor, is the
+  larger of the two in every row; in the VirtualBox guest with 3D only on
   average, the two runs' ranges overlap.
 - **4K at 150 %.** On the Windows 11 lab VM, phase 4 build, from RDP at 1080p to
   RDP at 4K, the swizzle grows from 1.69 to 7.14–7.64 ms (opaque) and from
