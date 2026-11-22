@@ -8,6 +8,13 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.99.1] - 2026-11-22
+
+### Changed
+
+- **Bump go-glyph v1.29.1 to v1.29.2.** Dependency pin updates only; the public
+  API does not change.
+
 ## [v0.99.0] - 2026-11-22
 
 ### Added
