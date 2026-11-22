@@ -73,6 +73,11 @@ const (
 	ulwAlpha   = 0x00000002
 	acSrcOver  = 0x00
 	acSrcAlpha = 0x01
+
+	// swpNoSendChanging is SWP_NOSENDCHANGING: SetWindowPos sends no
+	// WM_WINDOWPOSCHANGING, where DefWindowProc applies the minimum
+	// track size.
+	swpNoSendChanging = 0x0400
 )
 
 // bitmapInfoHeader mirrors BITMAPINFOHEADER.
@@ -304,10 +309,17 @@ func reportSoftTransparency(report func(string)) {
 // (a 320x200 client in a 334x214 window at 100 %, measured). The frame
 // change sends it again, and routeMessage answers it for a layered window
 // before Run.
+//
+// The size change skips WM_WINDOWPOSCHANGING: through it, DefWindowProc
+// holds a WS_THICKFRAME window to its minimum track size, 14x14 at 100 %,
+// so an 8x80 client would become 14x80 (measured). Creating the window at
+// the client size does not avoid that: CreateWindowExW applies the same
+// minimum (measured). The size limits (trackSizeFor) are only answered
+// once Run has started, so they did not apply here before either.
 func fitLayeredFrame(hwnd uintptr) {
 	cw, ch := clientSize(hwnd)
 	pSetWindowPos.Call(hwnd, 0, 0, 0, uintptr(cw), uintptr(ch),
-		swpNoMove|swpNoZOrder|swpNoActivate|swpFrameChanged)
+		swpNoMove|swpNoZOrder|swpNoActivate|swpFrameChanged|swpNoSendChanging)
 }
 
 // --- present ---
@@ -467,9 +479,10 @@ func (sp *softPresentWin32) present(w *gui.Window, physW, physH int32) bool {
 // reach the window.
 var errSoftBlit = errors.New("the copy to the window failed")
 
-// errLayeredMinimized: a minimized layered window is not updated, and that
-// is not a fault to log. Its window rect is the parked icon's, which the
-// frame's size would resize; the WM_SIZE of the restore presents again.
+// errLayeredMinimized: a minimized layered window whose parked size is not
+// the frame's is not updated, and that is not a fault to log. Its window
+// rect is the parked icon's, which the frame's size would resize; the
+// WM_SIZE of the restore presents again.
 var errLayeredMinimized = errors.New("the window is minimized")
 
 // skip logs the first of a run of skipped frames and paces.
@@ -549,8 +562,11 @@ func (sp *softPresentWin32) blitTo(hdc uintptr) bool {
 // minimized one too (both measured). So the window rect is read first, and
 // the frame is sent only when its size is the window's, which
 // fitLayeredFrame, WM_NCCALCSIZE and the frameless maximize clamp keep
-// true: a frame never resizes the window. A minimized window is skipped
-// quietly (errLayeredMinimized); any other difference is a skipped frame.
+// true: a frame never resizes the window. When the sizes differ, a
+// minimized window is skipped quietly (errLayeredMinimized) and any other
+// difference is a skipped frame. IsIconic is asked only then: a minimized
+// window whose parked size happens to equal the frame's is updated, which
+// resizes nothing and is harmless.
 func (sp *softPresentWin32) updateLayered() error {
 	if r, _, e := syscall.SyscallN(pGetWindowRect.Addr(), sp.hwnd,
 		uintptr(unsafe.Pointer(&sp.wr))); r == 0 {

@@ -552,13 +552,13 @@ func TestFallbackPublishesWinningReportsOnly(t *testing.T) {
 	// real refusal.
 	oldOpacity := applyWindowOpacityFunc
 	opacityCalls := 0
-	applyWindowOpacityFunc = func(warn func(string), hwnd uintptr, transparent bool, opacity float32) {
+	applyWindowOpacityFunc = func(warn func(string), hwnd uintptr, refusal string, opacity float32) {
 		opacityCalls++
 		if opacityCalls == 1 {
 			warn(glAttemptOpacity)
 			return
 		}
-		oldOpacity(warn, hwnd, transparent, opacity)
+		oldOpacity(warn, hwnd, refusal, opacity)
 	}
 	t.Cleanup(func() { applyWindowOpacityFunc = oldOpacity })
 	cfg := fallbackCfg()

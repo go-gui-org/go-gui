@@ -323,7 +323,30 @@ measurements below are from the workstation.
   `WM_NCCALCSIZE` for a layered window before `Run`. The client rect then equals
   the window rect from the start, in the normal, resized and maximized states
   (the frameless maximize clamp, `clampMaximizeToWorkArea`), for both frameless
-  styles; `FixedSize`'s plain `WS_POPUP` has no border to remove.
+  styles; `FixedSize`'s plain `WS_POPUP` has no border to remove. The size
+  change is sent with `SWP_NOSENDCHANGING`: in `WM_WINDOWPOSCHANGING`,
+  `DefWindowProc` holds a `WS_THICKFRAME` window to its minimum track size,
+  14×14 at 100 %, which made an 8×80 window 14×80 and a 1×1 window 14×14
+  (measured). Creating a layered window at the client size and sending only the
+  frame change does not avoid it: `CreateWindowExW` applies the same minimum,
+  and the 8×80 window is created 14×80 (measured). The size limits
+  (`trackSizeFor`) are answered only once `Run` has started, as before.
+- **Resize before the loop.** A `WM_SIZE` that comes between `New` and `Run` (a
+  `SetWindowPos` on the window, as the review did) reaches `DefWindowProc`,
+  because `wndProc` routes nothing else to the backend until a run loop sets
+  `plat.w`. The client size and scale `New` read, and the window's logical size,
+  stayed at the creation size. On `main` that is a first frame at the old size,
+  on GL and on soft (measured on `c41eb6b8`: a 304×191 client drawn as 320×200);
+  on a layered window, whose present needs the frame to be the window's size, it
+  was every frame skipped and no window on screen. Both loops now take the
+  window through `attachWin32`, which compares the client rect and the scale
+  with what `New` read and, when they differ, does what the `WM_SIZE` would
+  have: `resizeWin32` and `EventResized`, before `OnInit` and the first frame.
+  GL makes its context current first, because `handleResize` sets the viewport
+  of the current context. A minimized window is left to the `WM_SIZE` of its
+  restore. A queued `Window.SetWindowSize` does not reach this case:
+  `ResizeWindow` posts the request, and the loop handles it after the attach
+  (measured).
 - **Present.** `swizzleBGRALayered` swizzles and applies the alpha floor in one
   pass. Then `UpdateLayeredWindow` from the memory DC: no `pptDst`, `psize` the
   frame's size, `pptSrc` (0, 0), `ULW_ALPHA` with `AC_SRC_OVER`, constant alpha
@@ -335,9 +358,11 @@ measurements below are from the workstation.
   rect, frame included. Without `psize` the call succeeds and shows nothing new;
   a `psize` unlike the window's resizes the window, a minimized one too
   (measured). So the present reads the window rect and sends the frame only when
-  the two sizes are equal: a frame never resizes the window. A minimized window,
-  parked at 160×28, is skipped without a log line, and the `WM_SIZE` of the
-  restore presents. Any other difference is a skipped frame, logged.
+  the two sizes are equal: a frame never resizes the window. When they differ, a
+  minimized window, parked at 160×28, is skipped without a log line, and the
+  `WM_SIZE` of the restore presents; any other difference is a skipped frame,
+  logged. `IsIconic` is asked only then, so a minimized window whose parked size
+  equals the frame's is updated, which resizes nothing.
 - **`WM_PAINT`** only validates on a layered window: the system composes it from
   the last bitmap it was given. It is sent no `WM_PAINT` after a present, a
   resize, or a minimize and restore, but `InvalidateRect` still sends one, with
@@ -354,9 +379,16 @@ measurements below are from the workstation.
   window, which a real click there reaches. The floor costs 2.1 ms against
   swizzleBGRA's 1.7 ms at 1920×1080, and 8.4 ms against 6.2 ms at 3840×2160
   (`BenchmarkSwizzleBGRALayered`); an opaque window keeps `swizzleBGRA`.
-- `SetLayeredWindowAttributes` and `UpdateLayeredWindow` exclude each other, so
-  opacity on a transparent window stays refused, as on GL
-  (`layeredOpacityAllowed`), the replay of a fade set before the start included.
+- **Opacity.** `SetWindowOpacity` stays refused on every transparent window
+  (`layeredOpacityAllowed`), the replay of a fade set before the start included,
+  and `fadeRefusal` says why for each kind. On GL, the fade's `WS_EX_LAYERED`
+  would fight the swap chain of a window made transparent by blur-behind. A
+  layered soft window shows its alpha through `UpdateLayeredWindow`, which fails
+  once `SetLayeredWindowAttributes` has been called on the window (the two
+  exclude each other). A transparent soft window with a system frame is drawn
+  opaque and would take the fade, as any opaque soft window does; it is refused
+  so that the answer does not depend on the renderer, and a fallback from GL
+  does not change it.
 
 ### Where the code lives
 
@@ -580,18 +612,25 @@ runner's own OpenGL does.
   frameless styles: `WS_EX_LAYERED`, a present through `UpdateLayeredWindow`,
   the stored frame equal to `RenderToImage`'s with alpha 0 raised to 1, and the
   window rect equal to the client rect and the frame after a resize, a maximize
-  and a restore; a minimized window skips its frame without a log line.
+  and a restore; a minimized window skips its frame without a log line. A third
+  case, resizable at 8×80, checks that the window is the size asked for.
   `TestSoftWin32LayeredShowsDesktop` reads the screen over an opaque backdrop
   window: the margin shows the backdrop, the card the blend, and the margin
   hit-tests to the layered window, and to the backdrop once its alpha is set
   back to 0; once shown at the start, once hidden at the start and shown with
-  `Show` after its frame. `TestSoftWin32TransparentFramedIsOpaque`: with a
-  system frame, no `WS_EX_LAYERED`, the pixels of the blit and one report.
+  `Show` after its frame. It samples the margin at half the physical inset, so
+  it holds at any device scale (passed at 0.5, 1 and 1.5).
+  `TestWin32ResizeBeforeRun`: a window resized between `New` and the loop draws
+  its first frame at the window's size, and its logical size follows: a layered
+  window in `Run` and in `RunApp` (resized inside `New` through the present
+  seam), and a GL window in `Run`. It is in the Mesa GL selection.
+  `TestSoftWin32TransparentFramedIsOpaque`: with a system frame, no
+  `WS_EX_LAYERED`, the pixels of the blit and one report.
   `TestSoftWin32PresentAllocs` runs on a layered window too. In the system GL
   selection `TestFallbackPublishesWinningReportsOnly` also falls back with a
-  frameless window: it is layered and gets no transparency report. Each of the
-  four live tests passed 20 times in one process and 20 times one process per
-  test on the workstation.
+  frameless window: it is layered and gets no transparency report. Each of these
+  live tests passed 20 times in one process and 20 times one process per test on
+  the workstation.
 
 **Follow-up evidence (phase 5).** Each run records the GL strings, or the
 fallback line and the step that failed, on: Hyper-V without GPU-P; QEMU with std

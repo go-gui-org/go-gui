@@ -89,19 +89,23 @@ func layeredWant(ref []byte) []byte {
 
 // TestSoftWin32LayeredWindow: a Transparent frameless soft window, both
 // frameless styles (WS_POPUP with a resize border, and FixedSize's plain
-// WS_POPUP), is WS_EX_LAYERED, its client area is the whole window, and a
-// present goes through UpdateLayeredWindow and stores RenderToImage's
-// premultiplied pixels with alpha 0 raised to 1. The sizes stay equal over
-// a live resize and a maximize; a minimized window skips its frames
-// without logging, and the restore presents again.
+// WS_POPUP), is WS_EX_LAYERED, its client area is the whole window at the
+// size asked for, and a present goes through UpdateLayeredWindow and
+// stores RenderToImage's premultiplied pixels with alpha 0 raised to 1.
+// The sizes stay equal over a live resize and a maximize; a minimized
+// window skips its frames without logging, and the restore presents
+// again. A resizable window narrower than the resize border's minimum
+// track size (14x14 at 100 %) keeps its size: the frame fit once made an
+// 8x80 window 14x80, which the equality alone does not see.
 func TestSoftWin32LayeredWindow(t *testing.T) {
-	for _, fixed := range []bool{false, true} {
-		name := "resizable"
-		if fixed {
-			name = "fixed"
-		}
-		t.Run(name, func(t *testing.T) {
-			cfg := layeredCfg(fixed)
+	for _, c := range []struct {
+		name          string
+		fixed         bool
+		width, height int
+	}{{"resizable", false, 240, 160}, {"fixed", true, 240, 160}, {"narrow", false, 8, 80}} {
+		t.Run(c.name, func(t *testing.T) {
+			cfg := layeredCfg(c.fixed)
+			cfg.Width, cfg.Height = c.width, c.height
 			b, w := newSoftWin32Test(t, cfg)
 			sp := b.plat.soft
 			ex, _, _ := pGetWindowLongPtrW.Call(b.plat.hwnd, gwlExStyle)
@@ -113,6 +117,12 @@ func TestSoftWin32LayeredWindow(t *testing.T) {
 				t.Fatal("the first present failed")
 			}
 			assertLayeredFits(t, b, "after the first present")
+			if ew, eh := clientExtent(c.width, b.dpiScale), clientExtent(c.height, b.dpiScale); sp.dibW != ew || sp.dibH != eh {
+				t.Fatalf("window and frame %dx%d, want the %dx%d asked for", sp.dibW, sp.dibH, ew, eh)
+			}
+			if c.name == "narrow" {
+				return // no room for the card; the pixels are checked above
+			}
 			ref := renderReference(t, b, cfg)
 			var clear, part int
 			for i := 3; i < len(ref); i += 4 {
@@ -323,7 +333,10 @@ func TestSoftWin32LayeredShowsDesktop(t *testing.T) {
 			}
 			sp := lb.plat.soft
 			pw, ph := sp.dibW, sp.dibH
-			margin := [2]int32{layeredInset / 2, ph / 2}
+			// The margin in physical pixels: at a device scale of 0.5 the
+			// logical inset's half is the first card pixel.
+			inset := int32(float32(layeredInset) * lb.dpiScale)
+			margin := [2]int32{inset / 2, ph / 2}
 			card := [2]int32{pw / 2, ph / 2}
 			pix := func(s []byte, p [2]int32) [3]int {
 				i := (p[1]*pw + p[0]) * 4
@@ -365,13 +378,13 @@ func TestSoftWin32LayeredShowsDesktop(t *testing.T) {
 			}
 			// The control: alpha 0 in the margin lets the point through.
 			for row := range ph {
-				for col := range int32(layeredInset) {
+				for col := range inset {
 					i := (row*pw + col) * 4
 					sp.pix[i], sp.pix[i+1], sp.pix[i+2], sp.pix[i+3] = 0, 0, 0, 0
 				}
 			}
-			if err := sp.updateLayered(); err != nil {
-				t.Fatal(err)
+			if uerr := sp.updateLayered(); uerr != nil {
+				t.Fatal(uerr)
 			}
 			raise(0)
 			if h := windowAt(mx, my); h != back.plat.hwnd {
@@ -380,4 +393,123 @@ func TestSoftWin32LayeredShowsDesktop(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestWin32ResizeBeforeRun: a window resized after New and before its run
+// loop takes it draws its first frame at the new size. The resize's
+// WM_SIZE comes while wndProc still sends the window's messages to
+// DefWindowProc, so only attachWin32 brings the client size the backend
+// keeps, and the window's logical size, up to date. A layered window shows
+// nothing until a frame of the window's size reaches it: before the fix,
+// every frame was skipped, with one log line. Run with SetWindowPos between
+// New and Run, as the review reproduced it; RunApp, which calls New itself,
+// with the resize made inside New after the size is read (the present
+// seam). A GL window had the same stale size before phase 4; its case
+// checks the reconcile with GL's context.
+func TestWin32ResizeBeforeRun(t *testing.T) {
+	const ww, wh = 320, 230 // the window after the resize, physical
+	type seen struct {
+		recorded      bool
+		phys, client  [2]int32
+		window, dib   [2]int32
+		guiW, guiH    int
+		wantW, wantH  int
+		skipped       bool
+		dpiScale      float32
+		layered, soft bool
+	}
+	resize := func(hwnd uintptr) {
+		pSetWindowPos.Call(hwnd, 0, 0, 0, ww, wh, swpNoMove|swpNoZOrder|swpNoActivate)
+	}
+	// open builds the window whose second frame records what the first
+	// frame was drawn with, then closes it.
+	open := func(cfg gui.WindowCfg, s *seen) *gui.Window {
+		view := layeredView
+		if !cfg.Transparent {
+			view = softWin32View
+		}
+		queued := false
+		cfg.OnInit = func(w *gui.Window) {
+			w.SetView(func(*gui.Window) gui.View {
+				if !queued {
+					queued = true
+					w.QueueCommand(func(*gui.Window) {
+						b := w.NativePlatformBackend().(*nativePlatform).b
+						s.recorded = true
+						s.phys = [2]int32{b.physW, b.physH}
+						cw, ch := clientSize(b.plat.hwnd)
+						s.client = [2]int32{cw, ch}
+						var r rectW
+						pGetWindowRect.Call(b.plat.hwnd, uintptr(unsafe.Pointer(&r)))
+						s.window = [2]int32{r.right - r.left, r.bottom - r.top}
+						s.guiW, s.guiH = w.WindowSize()
+						lw, lh := b.logicalXY(cw, ch)
+						s.wantW, s.wantH = int(lw), int(lh)
+						s.dpiScale = b.dpiScale
+						s.layered = b.plat.layered
+						if sp := b.plat.soft; sp != nil {
+							s.soft = true
+							s.dib = [2]int32{sp.dibW, sp.dibH}
+							s.skipped = sp.skipLogged
+						}
+						w.Close()
+					})
+				}
+				return view(w)
+			})
+		}
+		return gui.NewWindow(cfg)
+	}
+	check := func(t *testing.T, s seen) {
+		t.Helper()
+		if !s.recorded {
+			t.Fatal("the loop ended before its second frame")
+		}
+		t.Logf("%+v", s)
+		if s.phys != s.client || s.guiW != s.wantW || s.guiH != s.wantH {
+			t.Errorf("the first frame was drawn at %v, logical %dx%d; the client is %v, logical %dx%d",
+				s.phys, s.guiW, s.guiH, s.client, s.wantW, s.wantH)
+		}
+		if s.layered && (s.window != [2]int32{ww, wh} || s.dib != s.window || s.skipped) {
+			t.Errorf("layered: window %v (want %dx%d), frame %v, skipped %v; want the frame at the window's size, sent",
+				s.window, ww, wh, s.dib, s.skipped)
+		}
+	}
+	runOnce := func(t *testing.T, renderer string, cfg gui.WindowCfg) {
+		t.Setenv("GOGUI_RENDERER", renderer)
+		var s seen
+		w := open(cfg, &s)
+		b, err := New(w)
+		if err != nil {
+			softWin32Skip(t, "no %s window: %v", renderer, err)
+		}
+		defer b.Destroy()
+		resize(b.plat.hwnd)
+		b.Run(w)
+		check(t, s)
+	}
+
+	t.Run("soft-layered/Run", func(t *testing.T) {
+		runOnce(t, "soft", layeredCfg(false))
+	})
+	t.Run("soft-layered/RunApp", func(t *testing.T) {
+		t.Setenv("GOGUI_RENDERER", "soft")
+		old := newSoftPresentWin32Func
+		newSoftPresentWin32Func = func(hwnd uintptr, w *gui.Window, scale float32) (*softPresentWin32, error) {
+			resize(hwnd)
+			return old(hwnd, w, scale)
+		}
+		t.Cleanup(func() { newSoftPresentWin32Func = old })
+		var s seen
+		err := runAppE(gui.NewApp(), open(layeredCfg(false), &s))
+		if err != nil {
+			softWin32Skip(t, "no soft window: %v", err)
+		}
+		check(t, s)
+	})
+	t.Run("gl/Run", func(t *testing.T) {
+		cfg := softWin32Cfg()
+		cfg.Width, cfg.Height = 240, 160
+		runOnce(t, "gl", cfg)
+	})
 }

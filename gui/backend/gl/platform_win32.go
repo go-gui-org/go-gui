@@ -544,7 +544,8 @@ func openWin32Window(w *gui.Window, soft bool, rep *windowReports) (*Backend, er
 	// Replay a SetWindowOpacity made before the native platform was
 	// attached (in OnInit, or before backend.Run).
 	if o := w.WindowOpacity(); o < 1 {
-		applyWindowOpacityFunc(rep.addOpacity, hwnd, b.plat.transparent, o)
+		applyWindowOpacityFunc(rep.addOpacity, hwnd,
+			fadeRefusal(b.plat.transparent, soft, b.plat.layered), o)
 	}
 	// Detach the IME until a text widget takes focus and IMEStart
 	// re-attaches it, matching the focus gating on macOS and X11. Without
@@ -581,15 +582,15 @@ func (b *Backend) Destroy() {
 }
 
 // SetWindowOpacity fades the whole window. Refused on a Transparent
-// window, where the layered-window path and per-pixel alpha do not
-// compose; see layeredOpacityAllowed.
+// window; fadeRefusal says why for each kind.
 func (n *nativePlatform) SetWindowOpacity(opacity float32) {
 	// Transparent comes from plat, not from plat.w.Config: plat.w is
 	// only filled once Run starts, and a nil there would read as "not
 	// Transparent" and let the guard through on the one window it
 	// exists to refuse.
-	applyWindowOpacity(n.b.plat.w.DebugWindowOpacity, n.b.plat.hwnd,
-		n.b.plat.transparent, opacity)
+	p := &n.b.plat
+	applyWindowOpacity(p.w.DebugWindowOpacity, p.hwnd,
+		fadeRefusal(p.transparent, p.softMode, p.layered), opacity)
 }
 
 // showAtStart shows a new window, unless the app hid it before the
@@ -630,7 +631,7 @@ func (n *nativePlatform) HideWindow() {
 // Run starts the event loop. Blocks until the window is closed.
 func (b *Backend) Run(w *gui.Window) {
 	defer w.WindowCleanup()
-	b.plat.w = w
+	b.attachWin32(w)
 	if w.Config.OnInit != nil {
 		w.Config.OnInit(w)
 	}
@@ -709,7 +710,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		if err != nil {
 			return err
 		}
-		b.plat.w = w
+		b.attachWin32(w)
 		register(b, w)
 		w.SetWakeMainFn(b.plat.wake)
 		// App-level wake: OpenWindow from another goroutine must

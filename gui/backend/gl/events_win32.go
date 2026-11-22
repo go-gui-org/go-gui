@@ -149,12 +149,12 @@ func dpiChangedBounds(lparam uintptr) (x, y, cx, cy int32, ok bool) {
 	return rc.left, rc.top, int32(w), int32(h), true
 }
 
-// routeMessage is wndProc's way into the backend. Once Run has set plat.w,
-// every message goes to handleMessage. Before that, only a layered
-// window's WM_NCCALCSIZE is answered, with no non-client area as
-// handleMessage answers it for every frameless window, so the client area
-// is the whole window from the start (fitLayeredFrame). Every other early
-// message goes to DefWindowProc.
+// routeMessage is wndProc's way into the backend. Once a run loop has set
+// plat.w (attachWin32), every message goes to handleMessage. Before that,
+// only a layered window's WM_NCCALCSIZE is answered, with no non-client
+// area as handleMessage answers it for every frameless window, so the
+// client area is the whole window from the start (fitLayeredFrame). Every
+// other early message goes to DefWindowProc.
 func (b *Backend) routeMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 	if b.plat.w != nil {
 		return b.handleMessage(msg, wparam, lparam)
@@ -163,6 +163,37 @@ func (b *Backend) routeMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return 0, true
 	}
 	return 0, false
+}
+
+// attachWin32 is how both run loops take the window: plat.w is set, so
+// from here on wndProc routes every message to handleMessage. A WM_SIZE
+// sent before that, by a resize between New and Run, went to
+// DefWindowProc and left the client size and scale New read, and the
+// window's logical size, at the creation size. They are brought in line
+// with the window here, before the first frame, as that WM_SIZE would
+// have done; without it a layered window, whose present needs the frame
+// to be the window's size, would show nothing until the next resize. A
+// minimized window is left alone: the WM_SIZE of its restore refreshes.
+// GL makes its context current first, because handleResize sets the
+// viewport of whichever context is current.
+func (b *Backend) attachWin32(w *gui.Window) {
+	b.plat.w = w
+	hwnd := b.plat.hwnd
+	cw, ch := clientSize(hwnd)
+	if isIconic(hwnd) ||
+		cw == b.physW && ch == b.physH && windowScale(hwnd) == b.dpiScale {
+		return
+	}
+	if !b.plat.softMode {
+		b.plat.makeCurrent()
+	}
+	b.resizeWin32()
+	lw, lh := b.logicalXY(b.physW, b.physH)
+	b.emit(gui.Event{
+		Type:         gui.EventResized,
+		WindowWidth:  int(lw),
+		WindowHeight: int(lh),
+	})
 }
 
 // handleMessage translates a window message to a gui.Event and
