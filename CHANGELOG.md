@@ -214,6 +214,23 @@ and this project adheres to
 
 ### Fixed
 
+- **The first window gets the machine's OpenGL on Windows (#1348).** The system
+  `opengl32.dll` was loaded by the first `wglCreateContext` call, after the
+  pixel format was set, and on some machines an `opengl32.dll` loaded that late
+  gives no context. There the first WGL context of every process was refused
+  with "The pixel format is invalid.", and since the automatic fall back to the
+  CPU renderer (#1310) every window of the app drew on the CPU, even where
+  OpenGL works: a VirtualBox guest with Guest Additions and 3D acceleration has
+  OpenGL 4.1. With `GOGUI_RENDERER=gl` the first window failed with
+  `ErrNoGPUContext` there. The backend now loads the DLL before the first
+  pixel-format call, as it already did for a Mesa beside the exe; with
+  `GOGUI_RENDERER=soft` it still loads none. On a VM with only Microsoft's
+  generic OpenGL 1.1 the window still falls back, and the log line now names the
+  binding step (`bind GL functions failed`, with `GL_VERSION` and `GL_RENDERER`)
+  instead of `create WGL context failed`. An `opengl32.dll` that cannot be
+  loaded at all now falls back too, or is `ErrNoGPUContext` with
+  `GOGUI_RENDERER=gl`, where it was a panic at the first WGL call.
+
 - **End and the arrow keys show the whole last row of a table (#1293).** A
   focusable `Table` scrolled the active row into a view as tall as the table's
   `Height`. With `FreezeHeader` the rows have less room than that, because the

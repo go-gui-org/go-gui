@@ -4,12 +4,15 @@ package gl
 
 import (
 	"errors"
+	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"testing"
 	"unsafe"
 
 	"github.com/go-gui-org/go-glyph"
+	"golang.org/x/sys/windows"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -133,13 +136,11 @@ func TestGDIGenericIsGPUContextError(t *testing.T) {
 	if !found {
 		t.Fatal("the system opengl32.dll offers no generic pixel format")
 	}
-	// Without a display driver the first WGL context a process asks for
-	// can be refused ("The pixel format is invalid"), and the next one is
-	// GDI Generic: seen on Windows 11 24H2 in a VM, on the console and
-	// over RDP. Only a context that was made can reach the binding.
-	if !made {
-		err = newOnGeneric()
-	}
+	// Only a context that was made can reach the binding. Until #1348 this
+	// retried: while the system opengl32.dll loaded after SetPixelFormat,
+	// the first WGL context of a process was refused on a machine without
+	// a display driver ("The pixel format is invalid."), and the next one
+	// was GDI Generic.
 	if !made {
 		t.Skipf("the generic implementation makes no context here: %v", err)
 	}
@@ -152,6 +153,79 @@ func TestGDIGenericIsGPUContextError(t *testing.T) {
 		}
 	}
 	t.Logf("New: %v", err)
+}
+
+// firstAttemptChildEnv marks the subprocess TestFirstGLAttemptOfProcess
+// starts.
+const firstAttemptChildEnv = "GOGUI_TEST_FIRST_GL_ATTEMPT_CHILD"
+
+// TestFirstGLAttemptOfProcess is the regression test for #1348: the system
+// opengl32.dll was loaded by the first wglCreateContext call, after
+// SetPixelFormat, and that first context of the process was refused ("The
+// pixel format is invalid."), on a GPU-less VM and in a VirtualBox guest
+// whose OpenGL 4.1 works. Later attempts got the context.
+//
+// It needs a process with no opengl32.dll loaded; in one where an earlier
+// test loaded it, it reruns itself alone in a subprocess. It checks first
+// that the DLL openGL32 picked is loaded once it returns, without a call
+// that would load it: before #1348 the system DLL was not, on any machine.
+// Then, with GOGUI_RENDERER=gl, the first GL attempt of the process must end
+// where the second does: both come up, or both fail at the same step. Only
+// a machine without a vendor driver showed a difference: a vendor driver
+// gives a context at either attempt, and a Mesa beside the binary was
+// loaded early already. The outcomes are logged, so the system GL selection
+// records what the runner's OpenGL does at the first attempt.
+func TestFirstGLAttemptOfProcess(t *testing.T) {
+	if openGL32Loaded() {
+		if os.Getenv(firstAttemptChildEnv) != "" {
+			t.Fatal("opengl32.dll was loaded before the test started, in a process that runs only this test")
+		}
+		cmd := exec.Command(os.Args[0], "-test.run", "^TestFirstGLAttemptOfProcess$", "-test.v") // #nosec G204 -- this test binary, a fixed test name
+		cmd.Env = append(os.Environ(), firstAttemptChildEnv+"=1")
+		out, err := cmd.CombinedOutput()
+		t.Logf("opengl32.dll already loaded in this process; ran in a subprocess:\n%s", out)
+		if err == nil && strings.Contains(string(out), "--- SKIP: TestFirstGLAttemptOfProcess") {
+			t.Skip("the subprocess skipped")
+		}
+		if err != nil || !strings.Contains(string(out), "--- PASS: TestFirstGLAttemptOfProcess") {
+			t.Fatalf("subprocess did not pass: %v", err)
+		}
+		return
+	}
+
+	lib := openGL32()
+	if lib.loadErr != nil {
+		t.Fatalf("load %s: %v", lib.dll.Name, lib.loadErr)
+	}
+	// GetModuleHandleW, not lib.dll.Handle, which would load the DLL.
+	if h, _, _ := pGetModuleHandleW.Call(uintptr(unsafe.Pointer(
+		windows.StringToUTF16Ptr(lib.dll.Name)))); h == 0 {
+		t.Fatalf("%s (system %v) is not loaded after openGL32 returned: the first pixel-format call would run before it",
+			lib.dll.Name, lib.dll.System)
+	}
+
+	t.Setenv("GOGUI_RENDERER", "gl")
+	attempt := func() (string, error) {
+		b, err := New(gui.NewWindow(gui.WindowCfg{State: new(int), Width: 200, Height: 200}))
+		if err == nil {
+			b.Destroy()
+			return "came up", nil
+		}
+		skipNoWindow(t, err)
+		gerr, ok := errors.AsType[*gpuContextError](err)
+		if !ok {
+			t.Fatalf("New: %v, not a GPU-context failure", err)
+		}
+		return gerr.op + " failed", err
+	}
+	first, firstErr := attempt()
+	second, secondErr := attempt()
+	t.Logf("%s; attempt 1: %s (%v); attempt 2: %s (%v)",
+		lib.dll.Name, first, firstErr, second, secondErr)
+	if first != second {
+		t.Fatalf("the first GL attempt of the process %s, the second %s: %v",
+			first, second, firstErr)
+	}
 }
 
 // newWithFailingInit runs New on the machine's own GL with a seam set to

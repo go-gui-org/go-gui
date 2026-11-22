@@ -24,13 +24,14 @@ const keepsGLChildEnv = "GOGUI_TEST_KEEPS_GL_CHILD"
 // with GL (see render_backend_cgo_test.go).
 //
 // The window is the first of its process, the automatic attempt, with no
-// opengl32.dll loaded and no context made before it: that is where a Mesa
-// beside the exe gets no context when the DLL loads after SetPixelFormat
-// (#1310, phase 2). In a test process where an earlier test loaded the DLL,
-// the test reruns itself alone in a subprocess. With Mesa beside the binary
-// the context must be Mesa's; with GOGUI_REQUIRE_GL set (the Mesa GL
-// selection) Mesa must be there. Elsewhere it may be the machine's own GL,
-// and a machine whose GL does not come up skips.
+// opengl32.dll loaded and no context made before it: that is where an
+// opengl32.dll that loads after SetPixelFormat gets no context, a Mesa beside
+// the exe (#1310, phase 2) or the system DLL (#1348). In a test process where
+// an earlier test loaded the DLL, the test reruns itself alone in a
+// subprocess. With Mesa beside the binary the context must be Mesa's; with
+// GOGUI_REQUIRE_GL set (the Mesa GL selection) Mesa must be there. Elsewhere
+// it may be the machine's own GL, and a machine whose GL does not come up
+// skips.
 func TestUnsetWithMesaKeepsGL(t *testing.T) {
 	if openGL32Loaded() {
 		if os.Getenv(keepsGLChildEnv) != "" {

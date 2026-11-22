@@ -18,8 +18,10 @@ import (
 // context or make-current step (createContext), or the binding of the GL
 // functions, fails, the attempt is discarded with plat.destroy and the window
 // reopens on the CPU renderer, and every later window of the process opens
-// there with no GL attempt. If it comes up on GL, later windows open on GL,
-// and one whose bring-up fails returns the classified error. A failure to
+// there with no GL attempt. An opengl32.dll that cannot be loaded falls back
+// the same way, before the GL attempt opens a window (#1348). If the first
+// window comes up on GL, later windows open on GL, and one whose bring-up
+// fails returns the classified error. A failure to
 // build the built-in pipelines does not fall back: that is a driver-specific
 // shader bug, which a fallback would hide behind a log line.
 //

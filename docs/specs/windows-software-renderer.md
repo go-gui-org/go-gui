@@ -50,8 +50,27 @@ implementation: an attempt after the first on that machine, or a first attempt
 where a context is given at once, as with a forced generic pixel format on a
 machine with a GPU driver. So phase 1 (#1319) fixes the second way and changes
 nothing for the first. Phase 3 falls back on both; on the lab VM the refused
-context is the trigger, and a process that fell back makes no further GL
-attempt. No test may assume which way the system OpenGL fails.
+context was the trigger until #1348, and a process that fell back makes no
+further GL attempt. No test may assume which way the system OpenGL fails.
+
+**Why the first context was refused** (found in phase 5, fixed in #1348). The
+system `opengl32.dll` was loaded by the first `wglCreateContext` call, after
+`ChoosePixelFormat` and `SetPixelFormat`. A DLL that is first loaded after
+`SetPixelFormat` gets no context, as phase 2 measured for a Mesa beside the exe;
+a second attempt worked because the DLL was loaded by then. Measured on
+2026-11-22, console sessions, with a probe that loaded the system DLL before the
+first attempt (upstream `main` at `0ec3b7ca`):
+
+- On the lab VM the first attempt then gets GDI Generic 1.1.0 and fails at the
+  binding. The fallback still happens; its line names
+  `bind GL functions failed (...)` instead of `create WGL context failed (...)`.
+- In a VirtualBox guest with Guest Additions and 3D acceleration, whose OpenGL
+  4.1 works (Mesa 24.0.2, SVGA3D), the first attempt was refused the same way,
+  so every window fell back to the CPU renderer. With the DLL loaded first, the
+  first attempt gets the 4.1 context and the window stays on GL.
+
+Since #1348 the GL attempt loads the system DLL before the window and the pixel
+format, as it did for Mesa.
 
 **Which machines.** Only the rows marked measured or stated are observations.
 "No vendor GL expected" comes from the adapter's documentation and does not say
@@ -59,9 +78,10 @@ which of the two ways the machine fails.
 
 | Environment                                                  | OpenGL                                                             | Basis                                                                                                                                                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QEMU VM, standard VGA, console session and RDP session       | first context refused; a second attempt gets GDI Generic 1.1.0     | measured on the lab VM (#1319), one Windows version                                                                                                                                                      |
+| QEMU VM, standard VGA, console session and RDP session       | GDI Generic 1.1.0; first context refused before #1348              | measured on the lab VM (#1319), one Windows version; the first attempt since #1348 on the console, with the DLL loaded first by a probe                                                                  |
+| VirtualBox 7.2 guest, VBoxSVGA, Guest Additions, 3D on       | 4.1 core (Mesa 24.0.2, SVGA3D); first context refused before #1348 | measured 2026-11-22 on the console, with and without the DLL loaded first by a probe                                                                                                                     |
 | A generic pixel format forced on a machine with a GPU driver | GDI Generic 1.1.0 at the first attempt                             | measured                                                                                                                                                                                                 |
-| GitHub `windows-latest` runner (Windows Server 2025)         | GDI Generic 1.1; whether the first context is refused is not known | stated in `.github/workflows/ci.yml`, which adds Mesa to start the showcase                                                                                                                              |
+| GitHub `windows-latest` runner (Windows Server 2025)         | GDI Generic 1.1; what the first attempt gives is not known         | stated in `.github/workflows/ci.yml`, which adds Mesa to start the showcase; `TestFirstGLAttemptOfProcess` logs the first attempt in the system GL selection                                             |
 | Hyper-V VM without GPU-P or DDA                              | no vendor GL expected                                              | the "Microsoft Hyper-V Video" adapter is display-only ([GPU-PV](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/gpu-paravirtualization))                                              |
 | QEMU with QXL or virtio-gpu                                  | no vendor GL expected                                              | the Windows virtio-gpu driver is display-only ([QEMU](https://www.qemu.org/docs/master/system/devices/virtio/virtio-gpu.html))                                                                           |
 | RDP session on an RD Session Host, policy unset              | no vendor GL expected; a vendor driver in "all other cases"        | the hardware-adapter [policy](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-admx-terminalserver#ts_dx_use_full_hwgpu) text                                                  |
@@ -71,9 +91,10 @@ which of the two ways the machine fails.
 **The Mesa hook.** `initOpenGL32` loads `opengl32.dll` from the executable's
 directory and falls back to System32. Until phase 2 it ran in a package variable
 initializer, so in every process; since phase 2 it runs when a GL attempt starts
-(`openGL32`), and never on soft. An application ships Mesa there on purpose,
-typically to keep custom shader fills, which the CPU renderer does not draw. CI
-does it too.
+(`openGL32`), and never on soft. Until #1348 it loaded only Mesa there; the
+system DLL was loaded by its first procedure call. An application ships Mesa
+there on purpose, typically to keep custom shader fills, which the CPU renderer
+does not draw. CI does it too.
 
 ## Candidates
 
@@ -447,7 +468,15 @@ Since phase 2 all of them are behind one accessor, `openGL32`, that picks the
 DLL on first use, in the same order. The GL attempt calls it first, before the
 window and the pixel format: a Mesa beside the exe that is first loaded after
 `SetPixelFormat` gets no context from `wglCreateContext` (measured with Mesa
-26.3.0; the Mesa GL selection fails without the early call).
+26.3.0; the Mesa GL selection fails without the early call). The accessor loaded
+only Mesa: for the system DLL it made a lazy handle, which the first
+`wglCreateContext` call loaded, so the first context of a process without Mesa
+was refused the same way (found in phase 5). Since #1348 `openGL32` loads either
+DLL before it returns; a DLL that cannot be loaded is a GPU-context failure that
+the first window falls back on, where the lazy procedures used to panic at the
+first WGL call. `TestFirstGLAttemptOfProcess` checks that the DLL is loaded when
+`openGL32` returns, and that the first GL attempt of a process ends where the
+second does.
 
 ## Cost
 
@@ -570,8 +599,9 @@ selections on Windows, chosen with `-select` (`mesa-gl`, the default, `soft`,
 | system GL   | no                         | unset or `gl`, by the test | phase 1's regression test, then the fallback tests   |
 
 `glrendertest` reports a skip as a failure, and the regression test skips when
-its retry is refused too, so the system GL selection also shows what the
-runner's own OpenGL does.
+its context is refused (until #1348 it retried once, for the refused first
+context), so the system GL selection also shows what the runner's own OpenGL
+does.
 
 - **Phase 1 (#1319).** `TestGDIGenericIsGPUContextError`, the regression test,
   picks a generic pixel format through the `createContextFunc` seam.
@@ -611,13 +641,13 @@ runner's own OpenGL does.
 - **Phase 3, Mesa GL.** `TestUnsetWithMesaKeepsGL`: the window is on GL and a
   custom shader's fill is in the read-back pixels. Its `New` is the process's
   first, the automatic attempt with no `opengl32.dll` loaded before it, where
-  phase 2 had a Mesa beside the exe get no context; in a plain `go test` run
-  where an earlier test loaded the DLL it reruns itself alone in a subprocess.
-  With Mesa beside the binary the loaded DLL must be that one and the context
-  Mesa's, and with `GOGUI_REQUIRE_GL` set Mesa must be there; elsewhere it may
-  be the machine's own GL, and a machine whose GL does not come up skips it.
-  Like the other GL drawing tests it is not built with cgo.
-  `TestLaterWindowGLFailureReturnsError`: no soft window opens.
+  phase 2 had a Mesa beside the exe get no context, and the system DLL did until
+  #1348; in a plain `go test` run where an earlier test loaded the DLL it reruns
+  itself alone in a subprocess. With Mesa beside the binary the loaded DLL must
+  be that one and the context Mesa's, and with `GOGUI_REQUIRE_GL` set Mesa must
+  be there; elsewhere it may be the machine's own GL, and a machine whose GL
+  does not come up skips it. Like the other GL drawing tests it is not built
+  with cgo. `TestLaterWindowGLFailureReturnsError`: no soft window opens.
   `TestWindowFromAppearanceHook`: a first window that follows the system
   appearance opens a second window from its `OnSystemAppearance` hook, inside
   `New`; the second must open, on the first window's renderer, within 30 s, once
@@ -663,6 +693,15 @@ runner's own OpenGL does.
   frameless window: it is layered and gets no transparency report. Each of these
   live tests passed 20 times in one process and 20 times one process per test on
   the workstation.
+- **#1348, system GL.** `TestFirstGLAttemptOfProcess` runs in a process with no
+  `opengl32.dll` loaded (in a plain `go test` run, alone in a subprocess). The
+  DLL that `openGL32` picked must be mapped when it returns, checked with
+  `GetModuleHandleW`, which loads nothing; before #1348 the system DLL was not,
+  on any machine. Then two GL attempts with `GOGUI_RENDERER=gl` must end alike:
+  both up, or both failing at the same step, and the log names both outcomes.
+  Only a machine without a vendor driver showed the difference: a vendor driver
+  gives a context at either attempt. `TestGDIGenericIsGPUContextError` and
+  `TestFallbackOnGDIGeneric` no longer retry a refused first context.
 
 **Follow-up evidence (phase 5).** Each run records the GL strings, or the
 fallback line and the step that failed, on: Hyper-V without GPU-P; QEMU with std
@@ -764,11 +803,13 @@ examples. Session moves are recorded, not fixed (decision 5).
   on the lab VM). On the lab VM no OpenGL module is loaded and an idle window
   uses no CPU time. On the workstation the three glrendertest selections pass
   with Mesa 26.3.0 beside the binary. Not run: the CI runner.
-- Why the lab VM refuses the first context and grants the second, and whether
-  another Windows version, adapter or hypervisor does the same. What the CI
-  runner's own OpenGL does at the first attempt.
-- Every "expected" cell of the environment table. Windows Sandbox with vGPU,
-  Hyper-V with GPU-P and VirtualBox with Guest Additions have no row: unknown.
+- Why the lab VM refused the first context and granted the second is known since
+  #1348: the system DLL was loaded late. Not verified: #1348 itself on the lab
+  VM and in the VirtualBox guest (the measurement loaded the DLL with a probe),
+  an RDP session, other Windows versions, and what the CI runner's own OpenGL
+  does at the first attempt.
+- Every "expected" cell of the environment table. Windows Sandbox with vGPU and
+  Hyper-V with GPU-P have no row: unknown.
 - What a running GL window does when a session connects or disconnects.
 - That a window DC reads back the presented pixels on the CI runner, for a
   layered window too. The destination-pixel and opacity tests depend on it. It
