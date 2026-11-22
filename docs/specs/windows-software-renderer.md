@@ -519,8 +519,9 @@ Layout, the pacing wait, DWM's composition and RDP's encoding are not included.
 | 3840×2160 at 1.5× | 35.7 ms           | 92.8 ms                      | 12.9 ms | —      |
 
 - At 1920×1080 the three components sum to 16–30 ms. No frame rate is derived
-  for 4K: no opaque present was measured above 1920×1080. Phase 5 measured the
-  benchmark at 4K over RDP in VMs (Phase 5 results, under Tests).
+  for 4K from this table: these workstation measurements include no opaque
+  present above 1920×1080. Phase 5 measured the benchmark at 4K over RDP in VMs
+  (Phase 5 results, under Tests).
 - Idle draws nothing, and input costs at most one frame per loop turn: the loop
   drains every pending message before it asks for a frame. A resize is the
   exception. `WM_SIZE` draws inside the message handler, on GL and on soft
@@ -1016,17 +1017,18 @@ What the numbers show:
   Windows Sandbox, not an app exercised that way. Not run: the CI runner.
 - Why the lab VM refused the first context and granted the second is known since
   #1348: the system DLL was loaded late. On `main` before #1348 every machine
-  without a vendor driver that phase 5 ran refused the first context the same
-  way: Windows 10 22H2, the Windows Server 2025 RD Session Host and Hyper-V, on
-  the console and over RDP. The VirtualBox guest refused it on the console in
-  all three states: with 3D on, where the guest's Mesa 4.1 works, and without
-  Guest Additions and with 3D off, where the GL behind the refusal was never
-  identified. A probe that loaded the DLL first reached the binding at the first
-  attempt on the Windows 10 and Server 2025 VMs. With #1348 the first attempt
-  reaches the binding on those machines that ran it (Phase 5 results), and on
-  the CI runner it gets GDI Generic 1.1.0 and fails at the binding, as the
-  second does (the system GL selection of #1348's run). In the VirtualBox guest
-  with 3D, 34 of the 35 GL render tests pass on the guest's own OpenGL 4.1
+  without a vendor driver that phase 5 ran on that build refused the first
+  context the same way: Windows 10 22H2, the Windows Server 2025 RD Session Host
+  and Hyper-V, on the console and over RDP. The virtio-gpu VM and Windows
+  Sandbox without vGPU ran only with #1348. The VirtualBox guest refused it on
+  the console in all three states: with 3D on, where the guest's Mesa 4.1 works,
+  and without Guest Additions and with 3D off, where the GL behind the refusal
+  was never identified. A probe that loaded the DLL first reached the binding at
+  the first attempt on the Windows 10 and Server 2025 VMs. With #1348 the first
+  attempt reaches the binding on those machines that ran it (Phase 5 results),
+  and on the CI runner it gets GDI Generic 1.1.0 and fails at the binding, as
+  the second does (the system GL selection of #1348's run). In the VirtualBox
+  guest with 3D, 34 of the 35 GL render tests pass on the guest's own OpenGL 4.1
   (build `f093009d`); `TestUnsetWithMesaKeepsGL` failed because the run set
   `GOGUI_REQUIRE_GL`, which makes it require Mesa beside the binary, and it was
   not repeated without the variable. Not verified: #1348 in the VirtualBox guest
