@@ -137,19 +137,22 @@ type WindowCfg struct {
 	// no compositor the window renders black, which gui.Debug
 	// reports.
 	Transparent bool
-	// DisableTextHinting turns off stem snapping of glyph outlines
-	// (#1334). By default, vertical stems of text up to 48 px move to
-	// whole pixels, so they show as solid columns. Set this to keep the
-	// exact outline: the text looks softer but more uniform, and stems
-	// and curves have the same weight. Window.SetTextHinting changes the
-	// value at runtime, for example from an app setting. It has no effect
-	// on the web backend.
+	// EnableTextHinting turns on stem snapping of glyph outlines
+	// (#1334). When it is on, vertical stems of text up to 48 px move to
+	// whole pixels, so they show as solid columns. Hinting is off by
+	// default: glyphs keep their exact outline, so the text looks softer
+	// but more uniform, and stems and curves have the same weight. The
+	// snap moves only the x position of a stem and not the advances, so
+	// straight and curved letters in one word can look out of step
+	// (go-glyph#198). Window.SetTextHinting changes the value at runtime,
+	// for example from an app setting. It has no effect on the web
+	// backend.
 	//
 	// Multisample antialiasing (MSAA) does not change text or rectangle
 	// borders. It only smooths the edges of SVG paths and other triangle
 	// meshes, so there is no MSAA setting for crisper text.
 	// exportaudit:keep — caller-facing config (issue #1334)
-	DisableTextHinting bool
+	EnableTextHinting bool
 	// FixedSize disables user-driven window resizing when supported
 	// by the active backend.
 	FixedSize bool
@@ -242,7 +245,7 @@ func NewWindow(cfg WindowCfg) *Window {
 		scratch:       newScratchPools(),
 		ctx:           ctx,
 		cancelCtx:     cancel,
-		windowBackend: windowBackend{textHintingOff: cfg.DisableTextHinting},
+		windowBackend: windowBackend{textHintingOn: cfg.EnableTextHinting},
 		windowAnimation: windowAnimation{
 			animationStop:     make(chan struct{}),
 			animationDone:     make(chan struct{}),

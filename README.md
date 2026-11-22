@@ -264,10 +264,10 @@ context, as in a VM or RDP session without a GPU driver, draws on the CPU with
 the same renderer. `GOGUI_RENDERER=gl` reports the error instead, and
 `GOGUI_RENDERER=soft` draws on the CPU with no OpenGL loaded at all.
 
-Text stems snap to whole pixels by default. To keep the exact glyph outlines,
-set `WindowCfg.DisableTextHinting` or call `Window.SetTextHinting(false)`. The
-4x multisample antialiasing (MSAA) has no setting. It smooths only SVG paths and
-other triangle meshes, and does not change text or rectangle borders.
+Text keeps its exact glyph outlines by default. To snap text stems to whole
+pixels, set `WindowCfg.EnableTextHinting` or call `Window.SetTextHinting(true)`.
+The 4x multisample antialiasing (MSAA) has no setting. It smooths only SVG paths
+and other triangle meshes, and does not change text or rectangle borders.
 
 ```bash
 go get github.com/go-gui-org/go-gui
