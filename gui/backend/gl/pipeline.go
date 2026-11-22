@@ -218,6 +218,8 @@ func (b *Backend) getOrBuildCustomPipeline(s *gui.Shader) (pipeline, error) {
 
 // usePipeline activates a pipeline and uploads the MVP matrix.
 func (b *Backend) usePipeline(p *pipeline) {
+	b.stats.PipelineBind()
+	b.stats.Uniform()
 	gogl.UseProgram(p.program)
 	gogl.UniformMatrix4fv(p.uMVP, 1, false, &b.mvp[0])
 }

@@ -18,6 +18,7 @@ import (
 
 	"github.com/go-gui-org/go-glyph"
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/rstats"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
@@ -76,6 +77,12 @@ type Backend struct {
 	maxImageBytes     int64
 	maxImagePixels    int64
 	mvp               [16]float32
+
+	// stats counts draws, binds and batch causes for GOGUI_RENDER_STATS
+	// (#1303). nil when off; every call on it then returns at once.
+	stats *rstats.Recorder
+	// gpuTimer measures GPU time per frame while stats is on.
+	gpuTimer gpuTimer
 
 	dpiScale float32
 	physW    int32
@@ -195,7 +202,9 @@ func (b *Backend) prepareGLResources() error {
 	b.initSvgBuffers()
 	b.updateProjection()
 
+	b.stats = rstats.FromEnv("gl")
 	b.glyphBack = newGlyphBackend(b.dpiScale)
+	b.glyphBack.stats = b.stats
 	textSys, err := newTextSystemFunc(b.glyphBack)
 	if err != nil {
 		return err
@@ -274,6 +283,7 @@ func (b *Backend) destroyGLResources() {
 	}
 	b.destroyFilterFBO()
 	b.destroyMSAA()
+	b.gpuTimer.destroy()
 	if b.glyphBack != nil {
 		b.glyphBack.destroy()
 	}
@@ -297,6 +307,10 @@ func (b *Backend) renderFrame(w *gui.Window) {
 // window, whose contents are undefined after a swap.
 func (b *Backend) drawFrame(w *gui.Window) {
 	b.plat.makeCurrent()
+	// Submit time covers drawing, not the swap: a swap that waits for
+	// vsync would hide the CPU cost behind the display rate.
+	b.stats.BeginFrame()
+	b.gpuTimer.begin(b.stats)
 	b.measurer.flushHinting()
 	bg := w.FrameBackground()
 	gogl.ClearColor(
@@ -324,6 +338,8 @@ func (b *Backend) drawFrame(w *gui.Window) {
 	b.textSys.Commit()
 	b.endMainPass(0)
 	b.finishFrameAlpha()
+	b.gpuTimer.end()
+	b.stats.EndFrame()
 }
 
 // reportRefusedImport turns Window.ImportsDMABuf off once the driver has

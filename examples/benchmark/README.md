@@ -16,6 +16,16 @@
 go run ./examples/benchmark/
 ```
 
+For a timed run with no input, pass `-seconds`. The window runs for `-warmup`
+seconds unmeasured, then for `-seconds` measured, then prints one CSV row and
+closes. `-type` and `-count` pick the widgets. With `GOGUI_RENDER_STATS=1` the
+backend also prints draw calls, batch causes and GPU time once per second to
+stderr (#1303):
+
+```sh
+GOGUI_RENDER_STATS=1 go run ./examples/benchmark/ -type Mixed -count 5000 -seconds 10
+```
+
 ## What it demonstrates
 
 Renders large batches of widgets to measure frame cost.

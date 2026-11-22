@@ -92,6 +92,49 @@ performance, profile these first:
 | Wrap container layout | `layoutWrapContainers`                | `BenchmarkLayoutWrapContainers` |
 | Focus traversal       | `nextFocusable` (method on `*Layout`) | `BenchmarkFocusTraversal`       |
 
+## GPU submission counters
+
+pprof shows CPU time and allocations. It does not show what the backend sends to
+the GPU. Set `GOGUI_RENDER_STATS=1` and the Metal (macOS) and GL (Linux,
+Windows) backends print one line per second to stderr (#1303):
+
+```text
+rstats backend=metal frames=120 draws=29.1 quads=967.9 ... submit_us_p50=431 gpu_us_p50=635 ... flush_pipeline=24.1 flush_scissor=5.0 ...
+```
+
+Each count is a mean per frame over that second:
+
+- `draws`: draw calls. `quads` and `verts`: quads and triangle-mesh vertices
+  drawn.
+- `pipe_binds`, `tex_binds`, `uniforms`: state calls sent to the driver while
+  drawing. Metal skips a bind whose state is already set, so it counts state
+  changes. GL has no such cache: it sends the program and its projection on
+  every draw, and the count shows that cost. Texture uploads are not counted.
+- `upload_kib`: vertex data copied to the GPU. `grows`: GPU buffers created or
+  grown.
+- `flush_<cause>`: quad batches drawn, by the state change that ended each one.
+  The causes are `pipeline`, `mvp`, `uniform`, `frag0`, `scissor`, `texture`,
+  `sampler`, `stride`, `cap`, `chunk`, `triangles`, `pass`, `text` and `other`.
+  GL batches only glyphs, so its other quads add to `draws` and to no cause.
+- `submit_us_p50`/`_p99`: CPU time from the start of the backend's frame to the
+  commit. It does not include the swap, which can wait for vsync.
+- `gpu_us_p50`/`_p99`: GPU time per frame. Metal reads it from the command
+  buffer. GL uses `GL_TIME_ELAPSED` queries. `-1` means that no time was
+  reported.
+
+The counters cost nothing when the variable is not set. When it is set, Metal
+adds no allocations. GL's timer queries go through purego and allocate a few
+times per frame.
+
+`go run ./tools/renderbaseline` runs a fixed set of example workloads with the
+counters on and prints the median of each field per workload. Add `-csv out.csv`
+to write a CSV file too. `docs/specs/gpu-batching-investigation.md` has the
+baselines and what they mean.
+
+The web backend draws with Canvas2D and does not print these lines. Its
+`goGuiOnFrame` page hook (`examples/web_svg_bench`) reports per-frame command
+and composite counts.
+
 ## Allocation targets
 
 Zero-allocation is the goal on frame-critical hot paths.

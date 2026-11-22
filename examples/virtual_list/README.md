@@ -21,6 +21,14 @@ height derives from the wrapped body text. Nothing — not the app, not the widg
 go run ./examples/virtual_list
 ```
 
+To measure rendering while the list scrolls, pass `-autoscroll` with a step in
+pixels per frame. With `GOGUI_RENDER_STATS=1` the backend prints draw calls,
+batch causes and GPU time once per second (#1303):
+
+```sh
+GOGUI_RENDER_STATS=1 go run ./examples/virtual_list -autoscroll 40
+```
+
 ## What it demonstrates
 
 - **Variable row heights.** `VirtualList` builds only the rows near the

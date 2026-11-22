@@ -59,6 +59,12 @@ var (
 	pfnGenRenderbuffers               func(n int32, renderbuffers *uint32)
 	pfnGenTextures                    func(n int32, textures *uint32)
 	pfnGenVertexArrays                func(n int32, arrays *uint32)
+	pfnGenQueries                     func(n int32, ids *uint32)
+	pfnDeleteQueries                  func(n int32, ids *uint32)
+	pfnBeginQuery                     func(target, id uint32)
+	pfnEndQuery                       func(target uint32)
+	pfnGetQueryObjectiv               func(id, pname uint32, params *int32)
+	pfnGetQueryObjectui64v            func(id, pname uint32, params *uint64)
 	pfnFinish                         func()
 	pfnGetIntegerv                    func(pname uint32, data *int32)
 	pfnGetProgramInfoLog              func(program uint32, bufSize int32, length *int32, infoLog *uint8)
@@ -190,4 +196,22 @@ func TexImage2D(target uint32, level int32, internalformat int32, width int32, h
 
 func TexParameteri(target uint32, pname uint32, param int32) {
 	pfnTexParameteri(target, pname, param)
+}
+
+// The timer-query entry points (GL 3.3 core, from ARB_timer_query) measure
+// the GPU time of a frame for GOGUI_RENDER_STATS (#1303). They stay on the
+// purego path: the backend calls them only when the stats are on, and then
+// a few allocations per frame are an accepted cost of measuring.
+
+func GenQueries(n int32, ids *uint32)    { pfnGenQueries(n, ids) }
+func DeleteQueries(n int32, ids *uint32) { pfnDeleteQueries(n, ids) }
+func BeginQuery(target, id uint32)       { pfnBeginQuery(target, id) }
+func EndQuery(target uint32)             { pfnEndQuery(target) }
+
+func GetQueryObjectiv(id, pname uint32, params *int32) {
+	pfnGetQueryObjectiv(id, pname, params)
+}
+
+func GetQueryObjectui64v(id, pname uint32, params *uint64) {
+	pfnGetQueryObjectui64v(id, pname, params)
 }

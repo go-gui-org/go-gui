@@ -3,7 +3,9 @@
 package metal
 
 import (
+	"io"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -11,6 +13,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/rstats"
 	"github.com/go-gui-org/go-gui/gui/internal/darwinffi"
 )
 
@@ -139,6 +142,35 @@ func TestBatchFlushesOnStateChange(t *testing.T) {
 	}
 }
 
+// TestStatsCountFlushCauses: with GOGUI_RENDER_STATS on, each batched
+// draw is counted once, under the state change that ended it (#1303).
+// Bound state that keeps the batch open adds no draw.
+func TestStatsCountFlushCauses(t *testing.T) {
+	o := newOffscreen(t, 32)
+	o.c.stats = rstats.New("test", io.Discard, time.Now, time.Hour)
+	o.rect(0, 0, 16, 16, gui.RGB(255, 0, 0))
+	o.rect(16, 0, 16, 16, gui.RGB(0, 255, 0))
+	var mvp [16]float32
+	orthoInto(&mvp, 32, 32)
+	o.c.setPipeline(pipeSolid) // already bound: no flush
+	o.c.setMVP(&mvp)           // already bound: no flush
+	o.c.setScissor(16, 16, 16, 16)
+	o.rect(0, 0, 32, 32, gui.RGB(0, 0, 255))
+	o.c.setScissor(0, 0, 0, 0) // an empty clip also ends the batch
+	o.finish(t)
+
+	c := o.c.stats.Counts()
+	if c.Flush[rstats.CauseScissor] != 2 {
+		t.Errorf("scissor flushes = %d, want 2", c.Flush[rstats.CauseScissor])
+	}
+	if c.Draws != 2 || c.Quads != 3 {
+		t.Errorf("draws, quads = %d, %d; want 2, 3", c.Draws, c.Quads)
+	}
+	if want := uint64(3 * 4 * mainStride); c.Upload != want {
+		t.Errorf("upload = %d bytes, want %d", c.Upload, want)
+	}
+}
+
 // TestEmptyClipSuppressesDraws: an empty clip paints nothing. The
 // setter binds no scissor (an out-of-bounds 1x1 sentinel fails Metal
 // validation), and every draw below is a no-op until the next
@@ -205,7 +237,7 @@ func TestBatchedDrawDoesNotAllocate(t *testing.T) {
 	}
 	if n := testing.AllocsPerRun(100, func() {
 		o.rect(1, 1, 2, 2, col)
-		o.c.flush()
+		o.c.flush(rstats.CauseOther)
 	}); n != 0 {
 		t.Errorf("drawMainQuad + flush allocates %v times, want 0", n)
 	}

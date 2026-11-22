@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/rstats"
 
 	"github.com/go-gui-org/go-glyph"
 
@@ -205,6 +206,8 @@ func (b *Backend) drawLine(r *gui.RenderCmd) {
 	gogl.BindBuffer(gogl.ARRAY_BUFFER, b.quadVBO)
 	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
 		4*vertexStride, vertPtr(&verts[0]))
+	b.stats.Draw(1)
+	b.stats.Upload(4 * vertexStride)
 	gogl.DrawElements(gogl.TRIANGLES, 6, gogl.UNSIGNED_SHORT, nil)
 	gogl.BindVertexArray(0)
 }
@@ -334,6 +337,7 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 
 	gogl.ActiveTexture(gogl.TEXTURE0)
 	gogl.BindTexture(gogl.TEXTURE_2D, tex.id)
+	b.stats.TextureBind()
 
 	b.usePipeline(&b.pipelines.imageClip)
 	if b.pipelines.imageClip.uTex >= 0 {
@@ -619,6 +623,7 @@ func (b *Backend) endFilter() {
 			false, &tm[0])
 		gogl.ActiveTexture(gogl.TEXTURE0)
 		gogl.BindTexture(gogl.TEXTURE_2D, b.filterTexA)
+		b.stats.TextureBind()
 		if b.pipelines.filterBlurH.uTex >= 0 {
 			gogl.Uniform1i(b.pipelines.filterBlurH.uTex, 0)
 		}
@@ -635,6 +640,7 @@ func (b *Backend) endFilter() {
 			false, &tm[0])
 		gogl.ActiveTexture(gogl.TEXTURE0)
 		gogl.BindTexture(gogl.TEXTURE_2D, b.filterTexB)
+		b.stats.TextureBind()
 		if b.pipelines.filterBlurV.uTex >= 0 {
 			gogl.Uniform1i(b.pipelines.filterBlurV.uTex, 0)
 		}
@@ -654,6 +660,7 @@ func (b *Backend) endFilter() {
 			false, &b.filterColorMatrix[0])
 		gogl.ActiveTexture(gogl.TEXTURE0)
 		gogl.BindTexture(gogl.TEXTURE_2D, b.filterTexA)
+		b.stats.TextureBind()
 		if b.pipelines.filterColor.uTex >= 0 {
 			gogl.Uniform1i(b.pipelines.filterColor.uTex, 0)
 		}
@@ -670,6 +677,7 @@ func (b *Backend) endFilter() {
 	b.usePipeline(&b.pipelines.filterTex)
 	gogl.ActiveTexture(gogl.TEXTURE0)
 	gogl.BindTexture(gogl.TEXTURE_2D, compositeSrc)
+	b.stats.TextureBind()
 	if b.pipelines.filterTex.uTex >= 0 {
 		gogl.Uniform1i(b.pipelines.filterTex.uTex, 0)
 	}
@@ -750,7 +758,7 @@ func (b *Backend) restoreAfterGlyph() {
 	// stencil and framebuffer still hold (#816). A batch must never
 	// cross into the next RenderCmd.
 	if b.glyphBack != nil {
-		b.glyphBack.flush()
+		b.glyphBack.flush(rstats.CauseText)
 	}
 	// Re-bind the quad VAO in case glyph changed it.
 	gogl.BindVertexArray(0)

@@ -74,3 +74,10 @@ const (
 	TIMEOUT_EXPIRED            = 0x911B
 	WAIT_FAILED                = 0x911D
 )
+
+// Timer-query enums, for the GPU time of GOGUI_RENDER_STATS (#1303).
+const (
+	QUERY_RESULT           = 0x8866
+	QUERY_RESULT_AVAILABLE = 0x8867
+	TIME_ELAPSED           = 0x88BF
+)

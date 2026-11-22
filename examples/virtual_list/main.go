@@ -17,6 +17,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/go-gui-org/go-gui/examples/internal/autoscroll"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
 	"github.com/go-gui-org/go-gui/gui/backend/soft"
@@ -40,6 +42,9 @@ type App struct {
 	// the box text changes or a jump succeeds. "" means clean.
 	JumpErr string
 	Pinned  bool
+
+	// AutoScroll is the -autoscroll step: pixels scrolled per frame, 0 off.
+	AutoScroll float32
 }
 
 // lorem supplies bodies of visibly different lengths.
@@ -68,6 +73,7 @@ func newMessage(i int) message {
 
 func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	auto := flag.Float64("autoscroll", 0, "pixels to scroll per frame, for GOGUI_RENDER_STATS runs (0: off)")
 	flag.Parse()
 
 	const size = 50_000
@@ -79,7 +85,7 @@ func main() {
 	gui.SetTheme(gui.ThemeDark)
 
 	w := gui.NewWindow(gui.WindowCfg{
-		State:  &App{Messages: msgs},
+		State:  &App{Messages: msgs, AutoScroll: float32(*auto)},
 		Title:  "VirtualList — variable row heights",
 		Width:  520,
 		Height: 620,
@@ -134,6 +140,7 @@ func appender(w *gui.Window) {
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	autoscroll.Step(w, listID, app.AutoScroll)
 	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{

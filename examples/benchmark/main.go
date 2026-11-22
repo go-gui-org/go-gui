@@ -54,6 +54,8 @@ type App struct {
 	// Readout is the metrics text, rebuilt every readoutEvery.
 	Readout   [2]string
 	ReadoutAt time.Time
+	// run is the timed measurement of -seconds. nil when interactive.
+	run *run
 }
 
 func (a *App) ResetAvgs() {
@@ -114,6 +116,10 @@ func (a *App) readout(now time.Time) [2]string {
 func main() {
 	pprofAddr := flag.String("pprof", "", "pprof listen address, e.g. localhost:6060 (empty disables)")
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	count := flag.Int("count", 100, "widget count")
+	typ := flag.String("type", typeButton, "widget type: Button, Text, Toggle or Mixed")
+	seconds := flag.Float64("seconds", 0, "measured seconds; writes one CSV row to stdout and exits (0: interactive)")
+	warmup := flag.Float64("warmup", 2, "unmeasured seconds before a timed run")
 	flag.Parse()
 
 	if *pprofAddr != "" {
@@ -127,10 +133,22 @@ func main() {
 		}()
 	}
 
+	if *count < 1 || *count > 100000 {
+		log.Fatalf("-count %d: want 1..100000", *count)
+	}
+	if !validType(*typ) {
+		log.Fatalf("-type %q: want Button, Text, Toggle or Mixed", *typ)
+	}
+	app := &App{WidgetCount: *count, WidgetType: *typ, Running: true}
+	if m := secs(*seconds); m > 0 {
+		app.run = &run{out: os.Stdout, warmup: secs(*warmup), measure: m}
+		fmt.Println(runCSVHeader)
+	}
+
 	gui.SetTheme(gui.ThemeDark)
 
 	w := gui.NewWindow(gui.WindowCfg{
-		State:   &App{WidgetCount: 100, WidgetType: typeButton, Running: true},
+		State:   app,
 		Title:   "Benchmark",
 		Width:   1024,
 		Height:  768,
@@ -169,7 +187,12 @@ func benchView(w *gui.Window) gui.View {
 		// w.Timings() reports the previous frame's phases: the view
 		// runs at the start of the next frame's rebuild, after the
 		// last frame's Update stored them.
-		app.sample(time.Now(), w.Timings())
+		now := time.Now()
+		app.sample(now, w.Timings())
+		if app.run != nil && app.run.step(app, now) {
+			w.Close()
+			return gui.Column(gui.ContainerCfg{})
+		}
 
 		// Re-arm the next frame: the backend loop sleeps while no
 		// refresh is pending, so an uncapped pump must request a
@@ -405,4 +428,13 @@ func commaFloat(f float64) string {
 		return s // too large for int; leave it without commas
 	}
 	return commaInt(whole) + s[dot:]
+}
+
+// validType reports whether typ is one of the widget types.
+func validType(typ string) bool {
+	switch typ {
+	case typeButton, typeText, typeToggle, typeMixed:
+		return true
+	}
+	return false
 }

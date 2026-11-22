@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-gui-org/go-glyph"
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/rstats"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/glyphconv"
@@ -54,6 +55,8 @@ type glyphBackend struct {
 	batchTex uint32 // GL texture the queued quads sample
 	batchCap int    // flush threshold, maxGlyphQuads; tests lower it to 1
 	flushes  int    // draws issued by flush; read by tests as a call count
+	// stats is the backend's GOGUI_RENDER_STATS recorder (#1303), nil when off.
+	stats *rstats.Recorder
 
 	// white is a 1x1 opaque-white texture the fills sample, so the glyph
 	// shader's texel multiply leaves a fill's color unchanged (#835).
@@ -149,24 +152,28 @@ func (gb *glyphBackend) destroy() {
 // batch holds another texture's quads, and after when it is full.
 func (gb *glyphBackend) queue(tex uint32, verts *[4][8]float32) {
 	if gb.batchN > 0 && gb.batchTex != tex {
-		gb.flush()
+		gb.flush(rstats.CauseTexture)
 	}
 	gb.batchTex = tex
 	gb.batch[gb.batchN] = *verts
 	gb.batchN++
 	if gb.batchN >= gb.batchCap {
-		gb.flush()
+		gb.flush(rstats.CauseCap)
 	}
 }
 
 // flush draws the queued quads with one DrawElements and empties the
-// batch. No-op when empty, so callers flush unconditionally.
-func (gb *glyphBackend) flush() {
+// batch. No-op when empty, so callers flush unconditionally. cause is why
+// the batch ends; GOGUI_RENDER_STATS counts batches by it.
+func (gb *glyphBackend) flush(cause rstats.Cause) {
 	n := gb.batchN
 	if n == 0 {
 		return
 	}
 	gb.batchN = 0
+	gb.stats.Flush(cause, n)
+	gb.stats.TextureBind()
+	gb.stats.Upload(n * glyphQuadBytes)
 
 	gogl.ActiveTexture(gogl.TEXTURE0)
 	gogl.BindTexture(gogl.TEXTURE_2D, gb.batchTex)
@@ -185,7 +192,7 @@ func (gb *glyphBackend) flush() {
 // queued: changing them cannot change what the queued quads sample.
 func (gb *glyphBackend) flushIfSampling(tex uint32) {
 	if gb.batchN > 0 && gb.batchTex == tex {
-		gb.flush()
+		gb.flush(rstats.CauseTexture)
 	}
 }
 

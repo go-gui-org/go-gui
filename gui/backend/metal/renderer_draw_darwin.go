@@ -9,6 +9,8 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
+
+	"github.com/go-gui-org/go-gui/gui/backend/internal/rstats"
 )
 
 // ─── Cached state setters ─────────────────────────────────────
@@ -18,8 +20,9 @@ func (c *metalCtx) setPipelineObj(pso objc.ID) {
 	if c.enc == 0 || pso == 0 || c.st.pipe == pso {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CausePipeline)
 	msg(c.enc, rsel.setRenderPipelineState, uintptr(pso))
+	c.stats.PipelineBind()
 	c.st.pipe = pso
 }
 
@@ -36,9 +39,10 @@ func (c *metalCtx) setMVP(m *[16]float32) {
 	if c.enc == 0 || (c.st.mvpOK && c.mvp == *m) {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CauseMVP)
 	c.mvp = *m
 	msg(c.enc, rsel.setVertexBytes, ptr(&c.mvp), 64, 1)
+	c.stats.Uniform()
 	c.st.mvpOK = true
 }
 
@@ -48,9 +52,10 @@ func (c *metalCtx) setTM(m *[16]float32) {
 	if c.enc == 0 || (c.st.tmOK && c.tm == *m) {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CauseUniform)
 	c.tm = *m
 	msg(c.enc, rsel.setVertexBytes, ptr(&c.tm), 64, 2)
+	c.stats.Uniform()
 	c.st.tmOK = true
 }
 
@@ -61,9 +66,10 @@ func (c *metalCtx) setFragment0(m *[16]float32) {
 	if c.enc == 0 || (c.st.frag0OK && c.frag0 == *m) {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CauseFrag0)
 	c.frag0 = *m
 	msg(c.enc, rsel.setFragmentBytes, ptr(&c.frag0), 64, 0)
+	c.stats.Uniform()
 	c.st.frag0OK = true
 }
 
@@ -73,7 +79,7 @@ func (c *metalCtx) setScissorRect(x, y, w, h uint) {
 	if c.st.scissOK && c.st.scissor == r {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CauseScissor)
 	c.scissor = r
 	// MTLScissorRect is 32 bytes of integers: it goes by pointer.
 	msg(c.enc, rsel.setScissorRect, ptr(&c.scissor))
@@ -102,7 +108,7 @@ func (c *metalCtx) setScissor(x, y, w, h int) {
 		h = min(h, c.viewH-y)
 	}
 	if w <= 0 || h <= 0 {
-		c.flush()
+		c.flush(rstats.CauseScissor)
 		c.clipEmpty = true
 		return
 	}
@@ -118,8 +124,9 @@ func (c *metalCtx) setFragmentTex(i int, t objc.ID, bound *objc.ID) {
 	if *bound == t {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CauseTexture)
 	msg(c.enc, rsel.setFragmentTexture, uintptr(t), uintptr(i))
+	c.stats.TextureBind()
 	*bound = t
 }
 
@@ -150,7 +157,7 @@ func (c *metalCtx) setImageFilter(nearest bool) {
 	if bound == s {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CauseSampler)
 	msg(c.enc, rsel.setFragmentSamplerStateAtIndex, uintptr(s), 0)
 	c.st.sampler = s
 }
@@ -184,6 +191,7 @@ func (c *metalCtx) reserve(size uintptr) (ch *vchunk, off uintptr, ok bool) {
 		if buf == 0 {
 			return nil, 0, false
 		}
+		c.stats.Grow()
 		*list = append(*list, vchunk{buf: buf, addr: msg(buf, rsel.contents)})
 	}
 }
@@ -194,18 +202,20 @@ func (c *metalCtx) drawQuad(v unsafe.Pointer, stride uintptr) {
 		return
 	}
 	size := 4 * stride
-	if c.batchN > 0 && (c.batchStride != stride || c.batchN == maxBatchQuads) {
-		c.flush()
+	if c.batchN > 0 && c.batchStride != stride {
+		c.flush(rstats.CauseStride)
+	} else if c.batchN == maxBatchQuads {
+		c.flush(rstats.CauseCap)
 	}
 	ch, off, ok := c.reserve(size)
 	if !ok {
 		// Out of vertex buffers for this frame: draw this quad alone.
-		c.flush()
+		c.flush(rstats.CauseChunk)
 		c.drawInline(uintptr(v), size)
 		return
 	}
 	if c.batchN > 0 && (ch.buf != c.batchBuf || off != c.batchStart+uintptr(c.batchN)*size) {
-		c.flush() // the quad starts a new chunk
+		c.flush(rstats.CauseChunk) // the quad starts a new chunk
 	}
 	if c.batchN == 0 {
 		c.batchBuf, c.batchStart, c.batchStride = ch.buf, off, stride
@@ -216,19 +226,24 @@ func (c *metalCtx) drawQuad(v unsafe.Pointer, stride uintptr) {
 
 // drawInline draws one quad from size bytes at v with setVertexBytes.
 func (c *metalCtx) drawInline(v, size uintptr) {
+	c.stats.Draw(1)
+	c.stats.Upload(int(size))
 	msg(c.enc, rsel.setVertexBytes, v, size, 0)
 	c.st.vbuf = 0
 	msg(c.enc, rsel.drawIndexedPrimitives, mtlPrimitiveTypeTriangle, 6,
 		mtlIndexTypeUInt16, uintptr(c.quadIdx), 0)
 }
 
-// flush draws the open batch with one call.
-func (c *metalCtx) flush() {
+// flush draws the open batch with one call. cause is the state change
+// that ends the batch; GOGUI_RENDER_STATS counts batches by it (#1303).
+func (c *metalCtx) flush(cause rstats.Cause) {
 	if c.batchN == 0 {
 		return
 	}
 	n := c.batchN
 	c.batchN = 0
+	c.stats.Flush(cause, n)
+	c.stats.Upload(n * 4 * int(c.batchStride))
 	if c.st.vbuf == c.batchBuf {
 		msg(c.enc, rsel.setVertexBufferOffset, c.batchStart, 0)
 	} else {
@@ -250,7 +265,7 @@ func (c *metalCtx) drawTriangles(v unsafe.Pointer, numVerts int) {
 	if c.enc == 0 || c.clipEmpty || numVerts <= 0 {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CauseTriangles)
 	size := uintptr(numVerts) * mainStride
 	switch {
 	case size <= maxInlineBytes:
@@ -270,10 +285,14 @@ func (c *metalCtx) drawTriangles(v unsafe.Pointer, numVerts int) {
 		if buf == 0 {
 			return
 		}
+		c.stats.Grow()
 		msg(c.enc, rsel.setVertexBuffer, uintptr(buf), 0, 0)
 		release(buf)
 		c.st.vbuf = 0
 	}
+	// Counted here, after every path that can return without a draw.
+	c.stats.DrawVerts(numVerts)
+	c.stats.Upload(int(size))
 	msg(c.enc, rsel.drawPrimitives, mtlPrimitiveTypeTriangle, 0, uintptr(numVerts))
 }
 

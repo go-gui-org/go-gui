@@ -40,14 +40,14 @@ indexed `DrawElements(TRIANGLES)` per run of quads that sample the same texture.
 
 Each trigger below is required for correctness:
 
-| Trigger                                                  | Why                                                                                                                                          |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Quad from another texture                                | One draw samples one bound page.                                                                                                             |
-| Batch full (`batchN == batchCap`)                        | Capacity. The flush happens right away, so `batchCap = 1` reproduces the old draw-per-quad sequence exactly.                                 |
-| `UpdateTexture` / `UpdateTextureRect` on the queued page | go-glyph evicts a page mid-command (`atlas.go` `resetPage`) and re-uploads it before the next quad. Queued quads must sample the old texels. |
-| `DeleteTexture` of the queued page                       | Queued quads would otherwise sample a deleted texture name.                                                                                  |
-| `DrawFilledRect`                                         | It draws immediately, and it must stay behind the glyphs queued before it.                                                                   |
-| `restoreAfterGlyph`                                      | End of the text command. This is the scope rule above.                                                                                       |
+| Trigger                                                  | Why                                                                                                                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Quad from another texture                                | One draw samples one bound page.                                                                                                                             |
+| Batch full (`batchN == batchCap`)                        | Capacity. The flush happens right away, so `batchCap = 1` reproduces the old draw-per-quad sequence exactly.                                                 |
+| `UpdateTexture` / `UpdateTextureRect` on the queued page | go-glyph evicts a page mid-command (`atlas.go` `resetPage`) and re-uploads it before the next quad. Queued quads must sample the old texels.                 |
+| `DeleteTexture` of the queued page                       | Queued quads would otherwise sample a deleted texture name.                                                                                                  |
+| `DrawFilledRect`                                         | Since #835 a fill queues too, against a 1x1 white texture, so a fill after glyphs is a texture change. (Before #835 it drew at once and had to flush first.) |
+| `restoreAfterGlyph`                                      | End of the text command. This is the scope rule above.                                                                                                       |
 
 An upload to a page other than the queued one leaves the batch alone, because it
 cannot change what the queued quads sample. `NewTexture` does not flush: it
@@ -86,9 +86,9 @@ comparison, because the batch then leaks across the clip change.
 
 ## Out of scope
 
-- `DrawFilledRect` samples whatever texture happens to be bound, and
-  `glyphBackend` has no `DrawFilledRectTransformed`. Both are tracked in #835.
-  This change keeps the existing behavior.
+- `DrawFilledRect` sampled whatever texture happened to be bound, and
+  `glyphBackend` had no `DrawFilledRectTransformed`. #835 fixed both after this
+  change: fills now queue against a white texture.
 - Other backends. Metal has its own text path. Web was batched separately in
   f289e6b9.
 

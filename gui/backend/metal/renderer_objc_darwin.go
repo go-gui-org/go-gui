@@ -135,6 +135,7 @@ var rsel struct {
 	// Command buffer.
 	renderCommandEncoderWithDescriptor, presentDrawable, commit objc.SEL
 	waitUntilScheduled, waitUntilCompleted, status, errorSel    objc.SEL
+	gpuStartTime, gpuEndTime                                    objc.SEL
 	// Encoder.
 	setViewport, setFragmentSamplerStateAtIndex, setRenderPipelineState objc.SEL
 	setVertexBytes, setFragmentBytes, setScissorRect                    objc.SEL
@@ -242,6 +243,8 @@ func loadRenderer() {
 			{&rsel.waitUntilCompleted, "waitUntilCompleted"},
 			{&rsel.status, "status"},
 			{&rsel.errorSel, "error"},
+			{&rsel.gpuStartTime, "GPUStartTime"},
+			{&rsel.gpuEndTime, "GPUEndTime"},
 			{&rsel.setViewport, "setViewport:"},
 			{&rsel.setFragmentSamplerStateAtIndex, "setFragmentSamplerState:atIndex:"},
 			{&rsel.setRenderPipelineState, "setRenderPipelineState:"},

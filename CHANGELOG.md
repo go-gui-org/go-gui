@@ -8,6 +8,23 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`GOGUI_RENDER_STATS=1` prints what the GPU backends send to the driver
+  (#1303).** The Metal and GL backends write one line per second to stderr: draw
+  calls, quads, the state change that ended each quad batch, state binds,
+  uploaded vertex bytes, CPU submit time and GPU time per frame. Before this,
+  only CPU phase times (`WindowCfg.Timings`) could be measured, so it was not
+  possible to say whether a slow frame was CPU-bound, draw-call-bound or
+  GPU-bound. With the variable unset the counters cost nothing. With it set,
+  Metal adds no allocations; GL's timer queries allocate a few times per frame.
+  `go run ./tools/renderbaseline` runs a fixed set of workloads with the
+  counters on and prints their medians. `examples/benchmark` takes `-type`,
+  `-count`, `-seconds` and `-warmup` for a timed run that prints one CSV row,
+  and `examples/virtual_list` and `examples/data_grid_data_source` take
+  `-autoscroll` to scroll themselves. The results and what they mean for
+  batching are in `docs/specs/gpu-batching-investigation.md`.
+
 ## [v0.99.1] - 2026-11-22
 
 ### Changed

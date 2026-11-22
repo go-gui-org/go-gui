@@ -136,3 +136,50 @@ func TestResetAvgs(t *testing.T) {
 		t.Errorf("readout after reset = %q, want warming up…", got)
 	}
 }
+
+// TestTimedRunWritesOneRow drives a timed run with a fake clock: no row in
+// warmup, no row before the measured time, then exactly one row, and the
+// run keeps reporting done after it (Window.Close is asynchronous).
+func TestTimedRunWritesOneRow(t *testing.T) {
+	t.Parallel()
+	var out strings.Builder
+	app := &App{WidgetCount: 5000, WidgetType: typeMixed}
+	app.run = &run{out: &out, warmup: time.Second, measure: time.Second}
+	now := time.Unix(0, 0)
+	frames := 0
+	for !app.run.step(app, now) {
+		app.sample(now, gui.FrameTimings{RenderBuild: 2 * time.Millisecond})
+		now = now.Add(10 * time.Millisecond)
+		frames++
+		if frames > 1000 {
+			t.Fatal("run never finished")
+		}
+	}
+	if !app.run.step(app, now) {
+		t.Fatal("step after done returned false")
+	}
+	row := out.String()
+	if strings.Count(row, "\n") != 1 {
+		t.Fatalf("want one row, got %q", row)
+	}
+	cols := strings.Split(strings.TrimSpace(row), ",")
+	if want := strings.Count(runCSVHeader, ",") + 1; len(cols) != want {
+		t.Fatalf("row has %d columns, header %d: %q", len(cols), want, row)
+	}
+	if cols[0] != typeMixed || cols[1] != "5000" || cols[4] != "100.0" ||
+		cols[5] != "10.000" || cols[10] != "2000.0" {
+		t.Errorf("row = %q, want Mixed,5000,…,fps 100.0,p50 10.000,…,render 2000.0", row)
+	}
+}
+
+func TestValidType(t *testing.T) {
+	t.Parallel()
+	for _, typ := range []string{typeButton, typeText, typeToggle, typeMixed} {
+		if !validType(typ) {
+			t.Errorf("validType(%q) = false", typ)
+		}
+	}
+	if validType("button") {
+		t.Error(`validType("button") = true; types are case-sensitive`)
+	}
+}

@@ -241,6 +241,7 @@ func (b *Backend) bindChannels(c glChannels, ok bool) {
 			id = c.tex[i].id
 		}
 		gogl.BindTexture(gogl.TEXTURE_2D, id)
+		b.stats.TextureBind()
 	}
 	gogl.ActiveTexture(gogl.TEXTURE0)
 }

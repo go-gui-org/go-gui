@@ -334,7 +334,9 @@ Two more variables help with tests and manual runs. `GOGUI_DEVICE_SCALE=2` uses
 that device scale in place of the monitor's, so 2x layout and text bugs show on
 a 1x monitor. `GOGUI_EMULATE_CLIPBOARD=1` keeps the clipboard and the PRIMARY
 selection inside each window, so the system clipboard does not change;
-`GOGUI_CLIPBOARD_TEXT` sets the text it holds at the start. See the
+`GOGUI_CLIPBOARD_TEXT` sets the text it holds at the start.
+`GOGUI_RENDER_STATS=1` prints draw calls, batch causes and GPU time once per
+second; see `docs/profiling.md`. See the
 [Debugging](https://github.com/go-gui-org/go-gui/wiki/Debugging) wiki page.
 
 ## License

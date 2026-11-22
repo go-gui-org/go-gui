@@ -121,6 +121,8 @@ func (b *Backend) flushSvg() {
 	}
 	b.usePipeline(&b.pipelines.solid)
 	b.uploadSvgVerts(b.svgVerts)
+	b.stats.DrawVerts(len(b.svgVerts))
+	b.stats.Upload(len(b.svgVerts) * vertexStride)
 	b.svgVerts = b.svgVerts[:0]
 	b.svgFlushes++
 }

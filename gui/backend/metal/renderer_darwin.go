@@ -33,10 +33,12 @@ package metal
 import (
 	"log"
 	"runtime"
+	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
 
+	"github.com/go-gui-org/go-gui/gui/backend/internal/rstats"
 	"github.com/go-gui-org/go-gui/gui/internal/darwinffi"
 )
 
@@ -79,7 +81,10 @@ type metalCtx struct {
 	// resolves into: the drawable texture in a frame, an offscreen
 	// texture in the edge coverage probe.
 	drawable, target, cmdBuf, enc objc.ID
-	framePool                     uintptr
+	// stats counts draws and batch causes when GOGUI_RENDER_STATS is set
+	// (#1303). It is nil otherwise, and every call on it returns at once.
+	stats     *rstats.Recorder
+	framePool uintptr
 
 	viewW, viewH int
 
@@ -175,7 +180,7 @@ func newMetalCtx(layer objc.ID, src string) *metalCtx {
 	pool := darwinffi.PoolPush()
 	defer darwinffi.PoolPop(pool)
 
-	c := &metalCtx{nextTexID: 1, layer: layer}
+	c := &metalCtx{nextTexID: 1, layer: layer, stats: rstats.FromEnv("metal")}
 	c.device = objc.ID(msgCall(mtlCreateDevice))
 	if c.device == 0 {
 		log.Print("metal: no Metal device")
@@ -613,7 +618,7 @@ func (c *metalCtx) endMainEncoder(resume bool) {
 	if c.enc == 0 {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CausePass)
 	var color uintptr = mtlStoreActionStore
 	if c.msaaTex != 0 {
 		// A pass with a resolve texture must resolve, even when it is
@@ -658,10 +663,22 @@ func (c *metalCtx) beginFrame(r, g, b, a float32) bool {
 	c.slot = (c.slot + 1) % frameRing
 	if cb := c.slotCmdBuf[c.slot]; cb != 0 {
 		msg(cb, rsel.waitUntilCompleted)
+		if c.stats != nil {
+			// The command buffer is complete, so its GPU times are final.
+			// They are seconds on the host clock; the frame's GPU time is
+			// their difference. Read them here, frameRing frames late,
+			// so that measuring adds no wait.
+			start := msgF64(cb, rsel.gpuStartTime)
+			end := msgF64(cb, rsel.gpuEndTime)
+			if end > start {
+				c.stats.GPU(time.Duration((end - start) * float64(time.Second)))
+			}
+		}
 		release(cb)
 		c.slotCmdBuf[c.slot] = 0
 	}
 	c.chunk, c.chunkOff = 0, 0
+	c.stats.BeginFrame()
 
 	c.cmdBuf = objc.ID(msg(c.queue, rsel.commandBuffer))
 	c.slotCmdBuf[c.slot] = retain(c.cmdBuf)
@@ -688,6 +705,10 @@ func (c *metalCtx) endFrame() {
 		}
 	}
 	c.drawable, c.target, c.cmdBuf = 0, 0, 0
+	// Submit time ends after commit (and, with presentsWithTransaction,
+	// after the wait until scheduled), so it is the CPU cost of the
+	// whole frame's encode and hand-off.
+	c.stats.EndFrame()
 	if c.framePool != 0 {
 		msgCall(darwinffi.PoolPopAddr(), c.framePool)
 		c.framePool = 0

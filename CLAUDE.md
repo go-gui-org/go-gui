@@ -244,8 +244,8 @@ go-glyph main, not the `go.mod` pin).
   (`gui/backend/run_darwin_amd64.go`). Do not re-propose cgo on macOS or a
   second `!cgo` backend. On the per-frame paths use `msg`/`darwinffi.FCaller` (0
   allocations); `objc.ID.Send` and `purego.RegisterFunc` allocate on every call.
-  The renderer batches quads and caches encoder state, because a purego send
-  costs ~2.4× a send inside C. iOS and Android keep cgo.
+  The macOS renderer batches quads and caches encoder state, because a purego
+  send costs ~2.4× a send inside C. iOS and Android keep cgo.
 
 Full history and rationale in `docs/specs/cgo-free-backend-feasibility.md`.
 

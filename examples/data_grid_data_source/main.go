@@ -11,6 +11,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/go-gui-org/go-gui/examples/internal/autoscroll"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
 	"github.com/go-gui-org/go-gui/gui/backend/soft"
@@ -26,6 +28,9 @@ type App struct {
 	Columns         []datagrid.GridColumnCfg
 	UseOffset       bool
 	SimulateLatency bool
+
+	// AutoScroll is the -autoscroll step: pixels scrolled per frame, 0 off.
+	AutoScroll float32
 }
 
 // pageLimit is the page size for both the grid view and its data
@@ -34,11 +39,14 @@ const pageLimit = 220
 
 func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	auto := flag.Float64("autoscroll", 0, "pixels to scroll per frame, for GOGUI_RENDER_STATS runs (0: off)")
 	flag.Parse()
 
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
-		State:  &App{SimulateLatency: true},
+		// A scroll run measures rendering, so it turns the simulated
+		// latency off: pages then arrive in the frame that asks for them.
+		State:  &App{SimulateLatency: *auto <= 0, AutoScroll: float32(*auto)},
 		Title:  "Data Grid Data Source Demo",
 		Width:  1240,
 		Height: 760,
@@ -63,6 +71,7 @@ func main() {
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	autoscroll.Step(w, gui.ScopeID("source-grid", "scroll"), app.AutoScroll)
 	stats := datagrid.GetSourceStats(w, "source-grid")
 	theme := gui.CurrentTheme()
 

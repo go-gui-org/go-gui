@@ -77,6 +77,8 @@ func (b *Backend) drawQuad(x, y, w, h float32, c gui.Color,
 	radius, thickness float32) {
 	verts := gpu.BuildQuad(x, y, w, h, c, radius, thickness)
 
+	b.stats.Draw(1)
+	b.stats.Upload(int(unsafe.Sizeof(verts)))
 	gogl.BindVertexArray(b.quadVAO)
 	gogl.BindBuffer(gogl.ARRAY_BUFFER, b.quadVBO)
 	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
@@ -100,6 +102,8 @@ func (b *Backend) drawQuadUV(x, y, w, h float32, c gui.Color,
 		{X: x, Y: y + h, Z: z, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
 
+	b.stats.Draw(1)
+	b.stats.Upload(int(unsafe.Sizeof(verts)))
 	gogl.BindVertexArray(b.quadVAO)
 	gogl.BindBuffer(gogl.ARRAY_BUFFER, b.quadVBO)
 	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
@@ -121,6 +125,8 @@ func (b *Backend) drawQuadTex(x, y, w, h float32, c gui.Color) {
 		{X: x, Y: y + h, Z: 0, U: 0, V: 0, R: cr, G: cg, B: cb, A: ca},
 	}
 
+	b.stats.Draw(1)
+	b.stats.Upload(int(unsafe.Sizeof(verts)))
 	gogl.BindVertexArray(b.quadVAO)
 	gogl.BindBuffer(gogl.ARRAY_BUFFER, b.quadVBO)
 	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
@@ -144,6 +150,7 @@ func (b *Backend) uploadSvgVerts(verts []gpu.Vertex) {
 		gogl.BufferData(gogl.ARRAY_BUFFER, size,
 			unsafe.Pointer(&verts[0]), gogl.DYNAMIC_DRAW)
 		b.svgCap = n
+		b.stats.Grow()
 	} else {
 		gogl.BufferSubData(gogl.ARRAY_BUFFER, 0, size,
 			unsafe.Pointer(&verts[0]))

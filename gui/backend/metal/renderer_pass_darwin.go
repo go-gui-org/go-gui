@@ -11,6 +11,7 @@ import (
 
 	"github.com/ebitengine/purego/objc"
 
+	"github.com/go-gui-org/go-gui/gui/backend/internal/rstats"
 	"github.com/go-gui-org/go-gui/gui/internal/darwinffi"
 )
 
@@ -60,7 +61,7 @@ func (c *metalCtx) deleteCustomPipeline(idx int32) {
 		return
 	}
 	if c.st.pipe == c.customPipelines[idx] {
-		c.flush()
+		c.flush(rstats.CausePipeline)
 	}
 	setTex(&c.customPipelines[idx], 0)
 	if c.freeCustomCount < maxCustomPipelines {
@@ -229,7 +230,7 @@ func (c *metalCtx) endFilter(blurRadius float32, layers int, cm *[16]float32) {
 	}
 	layers = max(layers, 1)
 	w, h := c.filterW, c.filterH
-	c.flush()
+	c.flush(rstats.CausePass)
 	msg(c.enc, rsel.endEncoding)
 	c.enc = 0
 	c.filterActive = false
@@ -289,7 +290,7 @@ func (c *metalCtx) stencilQuad(v unsafe.Pointer, ds objc.ID) {
 	if c.clipEmpty {
 		return
 	}
-	c.flush()
+	c.flush(rstats.CauseOther) // a depth-stencil state change
 	msg(c.enc, rsel.setDepthStencilState, uintptr(ds))
 	c.setPipeline(pipeStencil)
 	c.drawInline(uintptr(v), 4*mainStride)
