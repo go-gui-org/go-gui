@@ -168,27 +168,52 @@ func (b *Backend) routeMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 // attachWin32 is how both run loops take the window: plat.w is set, so
 // from here on wndProc routes every message to handleMessage. A WM_SIZE
 // sent before that, by a resize between New and Run, went to
-// DefWindowProc and left the client size and scale New read, and the
-// window's logical size, at the creation size. They are brought in line
-// with the window here, before the first frame, as that WM_SIZE would
-// have done; without it a layered window, whose present needs the frame
-// to be the window's size, would show nothing until the next resize. A
-// minimized window is left alone: the WM_SIZE of its restore refreshes.
-// GL makes its context current first, because handleResize sets the
-// viewport of whichever context is current.
-func (b *Backend) attachWin32(w *gui.Window) {
+// DefWindowProc and left the client size and scale New read at the
+// creation size. They are brought in line with the window here, before
+// OnInit and the first frame, as that WM_SIZE would have done; without it
+// a layered window, whose present needs the frame to be the window's
+// size, would show nothing until the next resize. A minimized window is
+// left alone: the WM_SIZE of its restore refreshes. GL makes its context
+// current first, because handleResize sets the viewport of whichever
+// context is current.
+//
+// Only the backend's state is corrected here. gui has no way to set the
+// window's logical size without dispatching to the application: it changes
+// only through an EventResized, which runs OnEvent, and that must not run
+// before OnInit, or in RunApp before the window is registered and has its
+// wake hook. So OnInit still reads the creation size, as it did before the
+// reconcile, and the event is held back: the result says whether one is
+// owed, and sendStartResize delivers it once the loop has set the window
+// up.
+func (b *Backend) attachWin32(w *gui.Window) (resized bool) {
 	b.plat.w = w
 	hwnd := b.plat.hwnd
 	cw, ch := clientSize(hwnd)
 	if isIconic(hwnd) ||
 		cw == b.physW && ch == b.physH && windowScale(hwnd) == b.dpiScale {
-		return
+		return false
 	}
 	if !b.plat.softMode {
 		b.plat.makeCurrent()
 	}
 	b.resizeWin32()
+	return true
+}
+
+// sendStartResize delivers the EventResized attachWin32 held back, after
+// OnInit and, in RunApp, the window's registration, and before the first
+// frame. It reports the size current now, so a WM_SIZE handled during
+// OnInit is not undone by an older size; when that WM_SIZE already told
+// the window this size, or the reconcile changed only the scale, the
+// logical size is right and no second event is sent.
+func (b *Backend) sendStartResize(resized bool) {
+	if !resized {
+		return
+	}
 	lw, lh := b.logicalXY(b.physW, b.physH)
+	if gw, gh := b.plat.w.WindowSize(); gw == int(lw) && gh == int(lh) {
+		return
+	}
 	b.emit(gui.Event{
 		Type:         gui.EventResized,
 		WindowWidth:  int(lw),

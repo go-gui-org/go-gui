@@ -490,6 +490,10 @@ const (
 	softTransparency  = "gui: window: Transparent requested but the CPU renderer on Windows draws a window with a system frame opaque; a frameless one (DecorationNone) is transparent"
 	anyTransparency   = "gui: window: Transparent requested"
 	transparentFadeNo = "gui: window: opacity requested but the window is Transparent"
+	// The part of the soft attempt's fade refusal that names its reason,
+	// framed and frameless; GL gives a third (fadeRefusal).
+	framedFadeNo    = "the CPU renderer draws it opaque because it has a system frame"
+	framelessFadeNo = "the CPU renderer shows it with UpdateLayeredWindow"
 )
 
 // TestFallbackPublishesWinningReportsOnly: a Transparent window with a fade
@@ -497,10 +501,12 @@ const (
 // soft attempt, and none of the GL attempt, whose window was discarded:
 // here a transparency and an opacity report the GL attempt alone makes
 // (through the enableWindowTransparencyFunc and applyWindowOpacityFunc
-// seams). Both attempts would otherwise make the same opacity report, which
-// the warn-once filter prints once either way. With a system frame the soft
-// window is opaque and reports that; frameless, it is layered and makes no
-// transparency report. The fade is refused on both.
+// seams). The two attempts refuse the fade with different reasons
+// (fadeRefusal: GL names blur-behind), and the seam gives the GL one a
+// text no real report has. With a system frame the soft window is opaque
+// and reports that; frameless, it is layered and makes no transparency
+// report. The fade is refused on both, each with the CPU renderer's reason
+// for that kind of window, checked by its distinctive part.
 //
 // gui.Debug writes to stderr and keeps no record a test outside gui can
 // read, so the window is opened in a subprocess and its stderr is checked.
@@ -508,8 +514,9 @@ func TestFallbackPublishesWinningReportsOnly(t *testing.T) {
 	if os.Getenv(reportsChildEnv) == "" {
 		for _, c := range []struct {
 			name         string
-			transparency int // the soft attempt's transparency reports
-		}{{"framed", 1}, {"frameless", 0}} {
+			transparency int    // the soft attempt's transparency reports
+			fade         string // the reason its fade refusal gives
+		}{{"framed", 1, framedFadeNo}, {"frameless", 0, framelessFadeNo}} {
 			t.Run(c.name, func(t *testing.T) {
 				cmd := exec.Command(os.Args[0], "-test.run", "^TestFallbackPublishesWinningReportsOnly$", "-test.v") // #nosec G204 -- this test binary, a fixed test name
 				cmd.Env = append(os.Environ(), reportsChildEnv+"="+c.name)
@@ -531,8 +538,9 @@ func TestFallbackPublishesWinningReportsOnly(t *testing.T) {
 					strings.Count(out, softTransparency) != c.transparency {
 					t.Errorf("%d transparency reports, want %d %q", n, c.transparency, softTransparency)
 				}
-				if n := strings.Count(out, transparentFadeNo); n != 1 {
-					t.Errorf("%d reports %q, want 1", n, transparentFadeNo)
+				if n := strings.Count(out, transparentFadeNo); n != 1 ||
+					strings.Count(out, c.fade) != 1 {
+					t.Errorf("%d reports %q, want 1, with %q", n, transparentFadeNo, c.fade)
 				}
 			})
 		}

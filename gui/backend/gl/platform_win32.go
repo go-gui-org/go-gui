@@ -631,11 +631,12 @@ func (n *nativePlatform) HideWindow() {
 // Run starts the event loop. Blocks until the window is closed.
 func (b *Backend) Run(w *gui.Window) {
 	defer w.WindowCleanup()
-	b.attachWin32(w)
+	resized := b.attachWin32(w)
 	if w.Config.OnInit != nil {
 		w.Config.OnInit(w)
 	}
 	w.SetWakeMainFn(b.plat.wake)
+	b.sendStartResize(resized)
 
 	var msg msgW
 	for {
@@ -710,16 +711,16 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		if err != nil {
 			return err
 		}
-		b.attachWin32(w)
+		resized := b.attachWin32(w)
 		register(b, w)
 		w.SetWakeMainFn(b.plat.wake)
-		// App-level wake: OpenWindow from another goroutine must
-		// unblock the idle wait, which cannot observe the pending
-		// channel (issue #405).
+		// App-level wake: OpenWindow from another goroutine must unblock
+		// the idle wait, which cannot observe the pending channel (issue #405).
 		app.SetWakeMainFn(b.plat.wake)
 		if w.Config.OnInit != nil {
 			w.Config.OnInit(w)
 		}
+		b.sendStartResize(resized)
 		return nil
 	}
 

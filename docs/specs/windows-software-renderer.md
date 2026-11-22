@@ -340,13 +340,25 @@ measurements below are from the workstation.
   on a layered window, whose present needs the frame to be the window's size, it
   was every frame skipped and no window on screen. Both loops now take the
   window through `attachWin32`, which compares the client rect and the scale
-  with what `New` read and, when they differ, does what the `WM_SIZE` would
-  have: `resizeWin32` and `EventResized`, before `OnInit` and the first frame.
-  GL makes its context current first, because `handleResize` sets the viewport
-  of the current context. A minimized window is left to the `WM_SIZE` of its
-  restore. A queued `Window.SetWindowSize` does not reach this case:
-  `ResizeWindow` posts the request, and the loop handles it after the attach
-  (measured).
+  with what `New` read and, when they differ, runs `resizeWin32` before
+  `OnInit`. GL makes its context current first, because `handleResize` sets the
+  viewport of the current context. The `EventResized` that `WM_SIZE` would have
+  sent is held back: it runs the application's `OnEvent`, which on `c41eb6b8`
+  never ran before `OnInit`, nor in `RunApp` before the window was registered
+  with the app and had its wake hook. The first version of the reconcile sent it
+  at once, and the review reproduced the cost: a resize handler calling
+  `w.App().OpenWindow` found no app, platform ID 0 and `OnInit` still pending,
+  and the request was lost. `sendStartResize` sends it after `OnInit` (in `Run`
+  after the wake hook is set, in `RunApp` after the registration), before the
+  first frame, with the size current then, so a `WM_SIZE` handled during
+  `OnInit` is not overwritten by an older size. When the window's logical size
+  already matches, after such a `WM_SIZE` or a change of scale alone, no second
+  event is sent. gui has no way to set a window's logical size without
+  dispatching to the application, so `OnInit` reads the creation size, as on
+  `c41eb6b8`; the first frame has the real one. A minimized window is left to
+  the `WM_SIZE` of its restore. A queued `Window.SetWindowSize` does not reach
+  this case: `ResizeWindow` posts the request, and the loop handles it after the
+  attach (measured).
 - **Present.** `swizzleBGRALayered` swizzles and applies the alpha floor in one
   pass. Then `UpdateLayeredWindow` from the memory DC: no `pptDst`, `psize` the
   frame's size, `pptSrc` (0, 0), `ULW_ALPHA` with `AC_SRC_OVER`, constant alpha
@@ -623,9 +635,11 @@ runner's own OpenGL does.
   `TestWin32ResizeBeforeRun`: a window resized between `New` and the loop draws
   its first frame at the window's size, and its logical size follows: a layered
   window in `Run` and in `RunApp` (resized inside `New` through the present
-  seam), and a GL window in `Run`. It is in the Mesa GL selection.
-  `TestSoftWin32TransparentFramedIsOpaque`: with a system frame, no
-  `WS_EX_LAYERED`, the pixels of the blit and one report.
+  seam), and a GL window in `Run`. `OnEvent` gets the `EventResized` after
+  `OnInit`, in `RunApp` with an app and a platform ID, and with the real size
+  (all three cases failed on the first version, which sent it before `OnInit`).
+  It is in the Mesa GL selection. `TestSoftWin32TransparentFramedIsOpaque`: with
+  a system frame, no `WS_EX_LAYERED`, the pixels of the blit and one report.
   `TestSoftWin32PresentAllocs` runs on a layered window too. In the system GL
   selection `TestFallbackPublishesWinningReportsOnly` also falls back with a
   frameless window: it is layered and gets no transparency report. Each of these

@@ -399,15 +399,25 @@ func TestSoftWin32LayeredShowsDesktop(t *testing.T) {
 // loop takes it draws its first frame at the new size. The resize's
 // WM_SIZE comes while wndProc still sends the window's messages to
 // DefWindowProc, so only attachWin32 brings the client size the backend
-// keeps, and the window's logical size, up to date. A layered window shows
-// nothing until a frame of the window's size reaches it: before the fix,
-// every frame was skipped, with one log line. Run with SetWindowPos between
+// keeps up to date, and sendStartResize the window's logical size. A
+// layered window shows nothing until a frame of the window's size reaches
+// it: before the fix, every frame was skipped, with one log line. The
+// application hears of the resize through OnEvent no earlier than it could
+// before the reconcile: after OnInit, and in RunApp with the window
+// registered (an App and a platform ID), with the real size. The first
+// reconcile emitted it before OnInit, ahead of registration in RunApp, so
+// a handler there could not reach the app. Run with SetWindowPos between
 // New and Run, as the review reproduced it; RunApp, which calls New itself,
 // with the resize made inside New after the size is read (the present
 // seam). A GL window had the same stale size before phase 4; its case
 // checks the reconcile with GL's context.
 func TestWin32ResizeBeforeRun(t *testing.T) {
 	const ww, wh = 320, 230 // the window after the resize, physical
+	type resizeSeen struct {
+		afterInit, app bool
+		id             uint32
+		w, h           int
+	}
 	type seen struct {
 		recorded      bool
 		phys, client  [2]int32
@@ -417,6 +427,8 @@ func TestWin32ResizeBeforeRun(t *testing.T) {
 		skipped       bool
 		dpiScale      float32
 		layered, soft bool
+		inited        bool         // OnInit has returned
+		resizes       []resizeSeen // what each OnEvent EventResized saw
 	}
 	resize := func(hwnd uintptr) {
 		pSetWindowPos.Call(hwnd, 0, 0, 0, ww, wh, swpNoMove|swpNoZOrder|swpNoActivate)
@@ -429,7 +441,15 @@ func TestWin32ResizeBeforeRun(t *testing.T) {
 			view = softWin32View
 		}
 		queued := false
+		cfg.OnEvent = func(e *gui.Event, w *gui.Window) {
+			if e.Type == gui.EventResized {
+				s.resizes = append(s.resizes, resizeSeen{afterInit: s.inited,
+					app: w.App() != nil, id: w.PlatformID(),
+					w: e.WindowWidth, h: e.WindowHeight})
+			}
+		}
 		cfg.OnInit = func(w *gui.Window) {
+			defer func() { s.inited = true }()
 			w.SetView(func(*gui.Window) gui.View {
 				if !queued {
 					queued = true
@@ -460,7 +480,7 @@ func TestWin32ResizeBeforeRun(t *testing.T) {
 		}
 		return gui.NewWindow(cfg)
 	}
-	check := func(t *testing.T, s seen) {
+	check := func(t *testing.T, s seen, inApp bool) {
 		t.Helper()
 		if !s.recorded {
 			t.Fatal("the loop ended before its second frame")
@@ -469,6 +489,17 @@ func TestWin32ResizeBeforeRun(t *testing.T) {
 		if s.phys != s.client || s.guiW != s.wantW || s.guiH != s.wantH {
 			t.Errorf("the first frame was drawn at %v, logical %dx%d; the client is %v, logical %dx%d",
 				s.phys, s.guiW, s.guiH, s.client, s.wantW, s.wantH)
+		}
+		if len(s.resizes) == 0 {
+			t.Error("no EventResized reached OnEvent")
+		}
+		for i, r := range s.resizes {
+			if !r.afterInit || (inApp && (!r.app || r.id == 0)) {
+				t.Errorf("EventResized %d: after OnInit %v, app %v, platform ID %d; want after OnInit, registered in RunApp", i, r.afterInit, r.app, r.id)
+			}
+		}
+		if r := s.resizes; len(r) > 0 && (r[0].w != s.wantW || r[0].h != s.wantH) {
+			t.Errorf("the first EventResized reported %dx%d, want the client's %dx%d", r[0].w, r[0].h, s.wantW, s.wantH)
 		}
 		if s.layered && (s.window != [2]int32{ww, wh} || s.dib != s.window || s.skipped) {
 			t.Errorf("layered: window %v (want %dx%d), frame %v, skipped %v; want the frame at the window's size, sent",
@@ -486,7 +517,7 @@ func TestWin32ResizeBeforeRun(t *testing.T) {
 		defer b.Destroy()
 		resize(b.plat.hwnd)
 		b.Run(w)
-		check(t, s)
+		check(t, s, false)
 	}
 
 	t.Run("soft-layered/Run", func(t *testing.T) {
@@ -505,7 +536,7 @@ func TestWin32ResizeBeforeRun(t *testing.T) {
 		if err != nil {
 			softWin32Skip(t, "no soft window: %v", err)
 		}
-		check(t, s)
+		check(t, s, true)
 	})
 	t.Run("gl/Run", func(t *testing.T) {
 		cfg := softWin32Cfg()
