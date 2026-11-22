@@ -70,7 +70,12 @@ first attempt (upstream `main` at `0ec3b7ca`):
   first attempt gets the 4.1 context and the window stays on GL.
 
 Since #1348 the GL attempt loads the system DLL before the window and the pixel
-format, as it did for Mesa.
+format, as it did for Mesa. Measured with that build on 2026-11-22: on the lab
+VM, console session and RDP session, the first attempt of every process fails at
+the binding with GDI Generic 1.1.0 and the window opens on the CPU renderer; in
+the VirtualBox guest, console session, the first attempt gets the 4.1 context
+and `examples/get_started` draws with OpenGL. On a workstation with an AMD
+driver the first attempt got a context with either load order.
 
 **Which machines.** Only the rows marked measured or stated are observations.
 "No vendor GL expected" comes from the adapter's documentation and does not say
@@ -78,8 +83,8 @@ which of the two ways the machine fails.
 
 | Environment                                                  | OpenGL                                                             | Basis                                                                                                                                                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QEMU VM, standard VGA, console session and RDP session       | GDI Generic 1.1.0; first context refused before #1348              | measured on the lab VM (#1319), one Windows version; the first attempt since #1348 on the console, with the DLL loaded first by a probe                                                                  |
-| VirtualBox 7.2 guest, VBoxSVGA, Guest Additions, 3D on       | 4.1 core (Mesa 24.0.2, SVGA3D); first context refused before #1348 | measured 2026-11-22 on the console, with and without the DLL loaded first by a probe                                                                                                                     |
+| QEMU VM, standard VGA, console session and RDP session       | GDI Generic 1.1.0; first context refused before #1348              | measured on the lab VM (#1319), one Windows version; with #1348 the first attempt gets GDI Generic, measured on the console and over RDP                                                                 |
+| VirtualBox 7.2 guest, VBoxSVGA, Guest Additions, 3D on       | 4.1 core (Mesa 24.0.2, SVGA3D); first context refused before #1348 | measured 2026-11-22 on the console, on `main` at `0ec3b7ca` and with #1348                                                                                                                               |
 | A generic pixel format forced on a machine with a GPU driver | GDI Generic 1.1.0 at the first attempt                             | measured                                                                                                                                                                                                 |
 | GitHub `windows-latest` runner (Windows Server 2025)         | GDI Generic 1.1; what the first attempt gives is not known         | stated in `.github/workflows/ci.yml`, which adds Mesa to start the showcase; `TestFirstGLAttemptOfProcess` logs the first attempt in the system GL selection                                             |
 | Hyper-V VM without GPU-P or DDA                              | no vendor GL expected                                              | the "Microsoft Hyper-V Video" adapter is display-only ([GPU-PV](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/gpu-paravirtualization))                                              |
@@ -694,13 +699,14 @@ does.
   live tests passed 20 times in one process and 20 times one process per test on
   the workstation.
 - **#1348, system GL.** `TestFirstGLAttemptOfProcess` runs in a process with no
-  `opengl32.dll` loaded (in a plain `go test` run, alone in a subprocess). The
-  DLL that `openGL32` picked must be mapped when it returns, checked with
-  `GetModuleHandleW`, which loads nothing; before #1348 the system DLL was not,
-  on any machine. Then two GL attempts with `GOGUI_RENDERER=gl` must end alike:
-  both up, or both failing at the same step, and the log names both outcomes.
-  Only a machine without a vendor driver showed the difference: a vendor driver
-  gives a context at either attempt. `TestGDIGenericIsGPUContextError` and
+  `opengl32.dll` loaded (in a plain `go test` run, alone in a subprocess). An
+  `opengl32.dll` must be mapped when `New` reaches the context step, before the
+  first pixel-format call, checked there with `GetModuleHandleW`, which loads
+  nothing; before #1348 the system DLL was not, on any machine. Then two GL
+  attempts with `GOGUI_RENDERER=gl` must end alike: both up, or both failing at
+  the same step, and the log names both outcomes. The lab VM and the VirtualBox
+  guest showed the difference; a workstation with an AMD driver got a context at
+  either attempt. `TestGDIGenericIsGPUContextError` and
   `TestFallbackOnGDIGeneric` no longer retry a refused first context.
 
 **Follow-up evidence (phase 5).** Each run records the GL strings, or the
@@ -804,9 +810,11 @@ examples. Session moves are recorded, not fixed (decision 5).
   uses no CPU time. On the workstation the three glrendertest selections pass
   with Mesa 26.3.0 beside the binary. Not run: the CI runner.
 - Why the lab VM refused the first context and granted the second is known since
-  #1348: the system DLL was loaded late. Not verified: #1348 itself on the lab
-  VM and in the VirtualBox guest (the measurement loaded the DLL with a probe),
-  an RDP session, other Windows versions, and what the CI runner's own OpenGL
+  #1348: the system DLL was loaded late. With #1348 the system GL and soft
+  selections pass on the lab VM (console and RDP) and in the VirtualBox guest
+  (console), where the GL render selection also passes on the guest's own OpenGL
+  4.1. Not verified: other Windows versions, an RDP session into the VirtualBox
+  guest, why an AMD driver is not affected, and what the CI runner's own OpenGL
   does at the first attempt.
 - Every "expected" cell of the environment table. Windows Sandbox with vGPU and
   Hyper-V with GPU-P have no row: unknown.

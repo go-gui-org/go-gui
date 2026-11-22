@@ -239,14 +239,14 @@ func TestFallbackOnGDIGeneric(t *testing.T) {
 
 	w := gui.NewWindow(fallbackCfg())
 	b, err := New(w)
+	if b != nil {
+		t.Cleanup(b.Destroy)
+	}
 	if !reached {
 		skipNoWindow(t, err)
 		t.Skipf("seam not reached: %v", err)
 	}
 	if !found {
-		if b != nil {
-			b.Destroy()
-		}
 		t.Fatal("the system opengl32.dll offers no generic pixel format")
 	}
 	// A refused context falls back too, on the other trigger, and leaves
@@ -255,7 +255,6 @@ func TestFallbackOnGDIGeneric(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	t.Cleanup(b.Destroy)
 	if !made {
 		t.Skipf("the generic implementation makes no context here; log:\n%s", l)
 	}
