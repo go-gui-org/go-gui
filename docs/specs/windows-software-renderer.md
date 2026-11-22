@@ -73,38 +73,42 @@ first attempt (upstream `main` at `0ec3b7ca`):
   first attempt gets the 4.1 context and the window stays on GL.
 
 Since #1348 the GL attempt loads the system DLL before the window and the pixel
-format, as it did for Mesa. Measured with that build on 2026-11-22: on the lab
-VM, console session and RDP session, the first attempt of every process fails at
-the binding with GDI Generic 1.1.0 and the window opens on the CPU renderer; in
-the VirtualBox guest, console session, the first attempt gets the 4.1 context
-and `examples/get_started` draws with OpenGL. On a workstation with an AMD
-driver the first attempt got a context with either load order.
+format, as it did for Mesa. Measured on 2026-11-22 with the pull request's
+earlier build `f093009d`, which has the change but not yet its last test
+(`TestOpenGL32LoadFailure`): on the lab VM, console session and RDP session, the
+first attempt of every process fails at the binding with GDI Generic 1.1.0 and
+the window opens on the CPU renderer; in the VirtualBox guest, console session,
+the first attempt gets the 4.1 context and `examples/get_started` draws with
+OpenGL. On a workstation with an AMD driver the first attempt got a context with
+either load order.
 
-**Which machines.** Only the rows marked measured or stated are observations.
-"No vendor GL expected" comes from the adapter's documentation and does not say
-which of the two ways the machine fails. The phase 5 rows were measured on
-2026-11-22, on `main` at `0ec3b7ca` (before #1348), with #1348 (`a048d0a4`), or
-both; the Basis column names the sessions and the build. Their figures are under
-Phase 5 results.
+**Which machines.** Only the rows whose Basis says measured are observations;
+the others rest on the documentation they cite. "No vendor GL expected" comes
+from that documentation and does not say which of the two ways the machine
+fails. The phase 5 rows were measured on 2026-11-22: on `main` at `0ec3b7ca`
+(before #1348), with #1348 as merged (`a048d0a4`), and on the lab VM and in the
+VirtualBox guest with 3D with the pull request's earlier build `f093009d`; the
+Basis column names the sessions and the build. Their figures are under Phase 5
+results.
 
-| Environment                                                                                             | OpenGL                                                             | Basis                                                                                                                                                                                                                                                                                                                                                                                        |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QEMU VM, standard VGA, Windows 11 LTSC 2024 (the lab VM), console session and RDP session               | GDI Generic 1.1.0; first context refused before #1348              | measured on the lab VM (#1319); with #1348 the first attempt gets GDI Generic, measured on the console and over RDP                                                                                                                                                                                                                                                                          |
-| QEMU VM, standard VGA, Windows 10 Pro 22H2                                                              | GDI Generic 1.1.0; first context refused before #1348              | measured: console, RDP at 1920×1080, and RDP at 3840×2160 with 150 % scaling on `0ec3b7ca`; console and RDP at 1920×1080 with #1348, where the first attempt fails at the binding                                                                                                                                                                                                            |
-| QEMU VM, standard VGA, Windows Server 2025 with the RD Session Host role, hardware-adapter policy unset | GDI Generic 1.1.0; first context refused before #1348              | measured: console, RDP as Administrator, RDP as a standard user while the Administrator's RDP session was connected, and RDP at 3840×2160 with 150 % on `0ec3b7ca`; console and RDP as a standard user with #1348, where the first attempt fails at the binding. The VM has no GPU, so the policy's choice of adapter is not exercised                                                       |
-| QEMU VM, virtio-gpu (Red Hat VirtIO GPU DOD driver), Windows 11 LTSC 2024                               | GDI Generic 1.1.0 at the first attempt                             | measured with #1348 only: console and RDP. Before the driver was installed, on the Microsoft Basic Display Adapter, one launch gave the same. The driver is display-only ([QEMU](https://www.qemu.org/docs/master/system/devices/virtio/virtio-gpu.html))                                                                                                                                    |
-| QEMU with QXL                                                                                           | no vendor GL expected                                              | not measured; phase 5 ran virtio-gpu only                                                                                                                                                                                                                                                                                                                                                    |
-| Hyper-V VM without GPU-P or DDA, Windows 11 LTSC 2024 on a Windows 10 LTSC 2021 host                    | GDI Generic 1.1.0; first context refused before #1348              | measured: console and RDP, on `0ec3b7ca` and with #1348. The "Microsoft Hyper-V Video" adapter is display-only ([GPU-PV](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/gpu-paravirtualization))                                                                                                                                                                         |
-| VirtualBox 7.2 guest, no Guest Additions (Microsoft Basic Display Adapter)                              | first context refused before #1348; the GL behind it not seen      | measured on the console on `0ec3b7ca` only                                                                                                                                                                                                                                                                                                                                                   |
-| VirtualBox 7.2 guest, VBoxSVGA, Guest Additions, 3D off                                                 | first context refused before #1348; the GL behind it not seen      | measured on the console on `0ec3b7ca` only                                                                                                                                                                                                                                                                                                                                                   |
-| VirtualBox 7.2 guest, VBoxSVGA, Guest Additions, 3D on                                                  | 4.1 core (Mesa 24.0.2, SVGA3D); first context refused before #1348 | measured on the console, on `0ec3b7ca` and with #1348                                                                                                                                                                                                                                                                                                                                        |
-| Windows Sandbox with vGPU disabled                                                                      | GDI Generic 1.1.0 at the first attempt                             | measured with #1348, on a Windows 11 LTSC 2024 host with an AMD integrated GPU. The sandbox desktop is a remote session whose only adapter is the Microsoft Remote Display Adapter. The sandbox then renders with WARP ([.wsb docs](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file)) |
-| Windows Sandbox with vGPU                                                                               | the host's AMD driver: 3.3 core (26.5.2), at the first attempt     | measured with #1348, on the same host; a remote session with the AMD adapter and the Microsoft Remote Display Adapter                                                                                                                                                                                                                                                                        |
-| RDP into Windows Server 2022 with an NVIDIA GPU, the logon taking over the console session              | NVIDIA 3.3 core (617.42), at the first attempt                     | measured with #1348 in the remote session, one machine; the RD Session Host role and the hardware-adapter policy were not recorded                                                                                                                                                                                                                                                           |
-| RDP session on an RD Session Host with a GPU, policy unset                                              | no vendor GL expected; a vendor driver in "all other cases"        | the hardware-adapter [policy](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-admx-terminalserver#ts_dx_use_full_hwgpu) text                                                                                                                                                                                                                                      |
-| A generic pixel format forced on a machine with a GPU driver                                            | GDI Generic 1.1.0 at the first attempt                             | measured                                                                                                                                                                                                                                                                                                                                                                                     |
-| GitHub `windows-latest` runner (Windows Server 2025)                                                    | GDI Generic 1.1.0 at the first attempt                             | measured in the CI run of #1348's pull request: `TestFirstGLAttemptOfProcess` logs both attempts in the system GL selection                                                                                                                                                                                                                                                                  |
-| Mesa's `opengl32.dll` beside the exe                                                                    | the driver Mesa selects: llvmpipe when forced, as CI does          | [mesa-dist-win](https://github.com/pal1000/mesa-dist-win#readme)                                                                                                                                                                                                                                                                                                                             |
+| Environment                                                                                             | OpenGL                                                             | Basis                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QEMU VM, standard VGA, Windows 11 LTSC 2024 (the lab VM), console session and RDP session               | GDI Generic 1.1.0; first context refused before #1348              | measured on the lab VM (#1319); with #1348 (build `f093009d`) the first attempt gets GDI Generic, measured on the console and over RDP                                                                                                                                                                                                                                                                                                                                                             |
+| QEMU VM, standard VGA, Windows 10 Pro 22H2                                                              | GDI Generic 1.1.0; first context refused before #1348              | measured: console, RDP at 1920×1080, and RDP at 3840×2160 with 150 % scaling on `0ec3b7ca`; console and RDP at 1920×1080 with #1348, where the first attempt fails at the binding                                                                                                                                                                                                                                                                                                                  |
+| QEMU VM, standard VGA, Windows Server 2025 with the RD Session Host role, hardware-adapter policy unset | GDI Generic 1.1.0; first context refused before #1348              | measured: console, RDP as an administrative user, RDP as a standard user while the administrative user's RDP session was connected, and RDP as a standard user at 3840×2160 with 150 % on `0ec3b7ca`; the console as an administrative user, and RDP as a standard user, with #1348, where the first attempt fails at the binding. The role and the unset policy are from the VM's set-up record, not queried in these runs. The VM has no GPU, so the policy's choice of adapter is not exercised |
+| QEMU VM, virtio-gpu (Red Hat VirtIO GPU DOD driver), Windows 11 LTSC 2024                               | GDI Generic 1.1.0 at the first attempt                             | measured with #1348 only: console and RDP. Before the driver was installed, on the Microsoft Basic Display Adapter, one launch gave the same. The driver is display-only ([QEMU](https://www.qemu.org/docs/master/system/devices/virtio/virtio-gpu.html))                                                                                                                                                                                                                                          |
+| QEMU with QXL                                                                                           | no vendor GL expected                                              | not measured; phase 5 ran virtio-gpu only                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Hyper-V VM without GPU-P or DDA, Windows 11 LTSC 2024 on a Windows 10 LTSC 2021 host                    | GDI Generic 1.1.0; first context refused before #1348              | measured: console and RDP, on `0ec3b7ca` and with #1348. The "Microsoft Hyper-V Video" adapter is display-only ([GPU-PV](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/gpu-paravirtualization))                                                                                                                                                                                                                                                                               |
+| VirtualBox 7.2 guest, no Guest Additions (Microsoft Basic Display Adapter)                              | first context refused before #1348; the GL behind it not seen      | measured on the console on `0ec3b7ca` only                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| VirtualBox 7.2 guest, VBoxSVGA, Guest Additions, 3D off                                                 | first context refused before #1348; the GL behind it not seen      | measured on the console on `0ec3b7ca` only                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| VirtualBox 7.2 guest, VBoxSVGA, Guest Additions, 3D on                                                  | 4.1 core (Mesa 24.0.2, SVGA3D); first context refused before #1348 | measured on the console, on `0ec3b7ca` and with #1348 (build `f093009d`)                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Windows Sandbox with vGPU disabled                                                                      | GDI Generic 1.1.0 at the first attempt                             | measured with #1348, on a Windows 11 LTSC 2024 host with an AMD integrated GPU. The sandbox desktop is a remote session whose only adapter is the Microsoft Remote Display Adapter; the run saw GDI Generic and the CPU fallback. Microsoft documents that the sandbox then renders with WARP ([.wsb docs](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file))                                |
+| Windows Sandbox with vGPU                                                                               | the host's AMD driver: 3.3 core (26.5.2), at the first attempt     | measured with #1348, on the same host; a remote session with the AMD adapter and the Microsoft Remote Display Adapter                                                                                                                                                                                                                                                                                                                                                                              |
+| RDP into Windows Server 2022 with an NVIDIA GPU, the logon taking over the console session              | NVIDIA 3.3 core (617.42), at the first attempt                     | measured with #1348 in the remote session, one machine; the RD Session Host role and the hardware-adapter policy were not recorded                                                                                                                                                                                                                                                                                                                                                                 |
+| RDP session on an RD Session Host with a GPU, policy unset                                              | no vendor GL expected; a vendor driver in "all other cases"        | expected from the hardware-adapter [policy](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-admx-terminalserver#ts_dx_use_full_hwgpu) text, which selects the adapter a session uses and says nothing about OpenGL; not measured                                                                                                                                                                                                                                        |
+| A generic pixel format forced on a machine with a GPU driver                                            | GDI Generic 1.1.0 at the first attempt                             | measured                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| GitHub `windows-latest` runner (Windows Server 2025)                                                    | GDI Generic 1.1.0 at the first attempt                             | measured in the CI run of #1348's pull request: `TestFirstGLAttemptOfProcess` logs both attempts in the system GL selection                                                                                                                                                                                                                                                                                                                                                                        |
+| Mesa's `opengl32.dll` beside the exe                                                                    | the driver Mesa selects: llvmpipe when forced, as CI does          | [mesa-dist-win](https://github.com/pal1000/mesa-dist-win#readme)                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 Hyper-V with GPU-P and VMware have no row: not measured. VMware Workstation
 25.0.0 did not power on a VM on the one host tried, which had the Windows
@@ -732,126 +736,180 @@ does.
   back with one line, `GOGUI_RENDERER=gl` returns `ErrNoGPUContext`, and neither
   reaches the context step.
 
-**Follow-up evidence (phase 5).** Each run records the GL strings, or the
-fallback line and the step that failed, on: Hyper-V without GPU-P; QEMU with std
-VGA and with virtio-gpu, on more than one Windows version; an RD Session Host
-without the hardware-adapter policy; Windows Sandbox with and without vGPU;
-VirtualBox with and without Guest Additions; RDP into a workstation with a GPU.
-Each also covers monitors with different scaling and refresh rates, an IME
-composition, Narrator, the tray, and the hidden-start, frameless and transparent
-examples. Session moves are recorded, not fixed (decision 5).
+**Follow-up evidence (phase 5), as planned.** Each run was to record the GL
+strings, or the fallback line and the step that failed, on: Hyper-V without
+GPU-P; QEMU with std VGA and with virtio-gpu, on more than one Windows version;
+an RD Session Host without the hardware-adapter policy; Windows Sandbox with and
+without vGPU; VirtualBox with and without Guest Additions; RDP into a
+workstation with a GPU. Each was also to cover monitors with different scaling
+and refresh rates, an IME composition, Narrator, the tray, and the hidden-start,
+frameless and transparent examples. Session moves are recorded, not fixed
+(decision 5). What ran is under Phase 5 results, what did not under Not
+verified.
 
-**Phase 5 results** (measured 2026-11-22). Each machine and session ran:
-`examples/get_started` four times with `GOGUI_RENDERER` unset (the stock build
-once, then three times a build that logs the GL strings); the system GL and
-forced soft selections, one process per test, a skip counting as a failure, and,
-where a vendor GL came up, the GL render tests of the Mesa GL selection against
-that GL, without a Mesa DLL; and `examples/benchmark` (100 buttons) with
-`GOGUI_RENDERER=soft`, the opaque window and a transparent frameless variant
-alternated, two runs each, 6 s of warm-up and 20 s measured. A throwaway build
-times the present path once a second: presents per second count presents, not
-view runs, and draw, swizzle and blit (`BitBlt`, or `UpdateLayeredWindow` for
-the transparent window) are means weighted by frames, over the 19 or 20
-one-second samples after the first six. Builds: "p4" is the phase 4 build
-`c314c1e9` (#1344), "pre" is `main` at `0ec3b7ca`, "fix" is `a048d0a4` (#1348).
-The present code is the same in all three; between pre and fix, go-glyph v1.29.1
-changed hinting at fractional scales only, and every fix row ran at 100 %. The
-p4 rows are the phase 4 runs: their unset launch was that phase's transparency
-check app, not run at 4K. The table gives the range over the two runs, or one
-figure when both round to it. "CPU, context" is a fallback at
+**Phase 5 results** (measured 2026-11-22). Each machine and session ran, where
+the tables show it: `examples/get_started` four times with `GOGUI_RENDERER`
+unset (the stock build once, then three times a build that logs the GL strings;
+twice on the `f093009d` rows); the system GL and forced soft selections, one
+process per test, a skip counting as a failure, and, where a vendor GL came up,
+the GL render tests of the Mesa GL selection against that GL, without a Mesa
+DLL; and `examples/benchmark` (100 buttons) with `GOGUI_RENDERER=soft`, the
+opaque window and a transparent frameless variant alternated, two runs each, 6 s
+of warm-up and 20 s measured. A throwaway build times the present path once a
+second. It logs the pacing interval the CPU renderer uses, and counts presents,
+not view runs, in samples whose length it prints to 0.1 s, so presents per
+second are estimates. Draw, swizzle and blit (`BitBlt`, or `UpdateLayeredWindow`
+for the transparent window) are means weighted by frames, over the 18 to 20
+one-second samples after the first six (18 in the first transparent run in the
+VirtualBox guest with Guest Additions, with 3D off and with 3D on). Builds: "p4"
+is the phase 4 build `c314c1e9` (#1344), "pre" is `main` at `0ec3b7ca`, "fix" is
+`a048d0a4` (#1348 as merged), and `f093009d` is #1348's pull request before its
+last test. The present code is the same in all four; between pre and fix,
+go-glyph v1.29.1 changed hinting at fractional scales only, and every fix row
+ran at 100 %. The p4 rows are the phase 4 runs: their unset launch was that
+phase's transparency check app, not run at 4K.
+
+The renderer chosen and the test selections. "CPU, context" is a fallback at
 `create WGL context`, "CPU, binding" one at `bind GL functions` with GDI Generic
-1.1.0. Tests are system GL / forced soft / GL render; "—" is not run.
+1.1.0; "—" is not run. The test counts differ by build: ten system GL tests in
+phase 4, eleven in `f093009d`, twelve in `a048d0a4` (`TestOpenGL32LoadFailure`
+came last).
 
-Client sizes differ, so not every row compares with every other. The benchmark
-opens at 1024×768 (1024×749 for the opaque window in the VirtualBox guest, whose
-desktop was 1024×768). On the QEMU VMs the window was maximised: 1920×1009
-opaque and 1920×1032 transparent on Windows 11 and Windows Server 2025,
-1920×1017 and 1920×1040 on Windows 10. On a 3840×2160 desktop at 150 %:
-3840×2054 and 3840×2088 on Windows 11 and Windows Server 2025, 3840×2066 and
-3840×2100 on Windows 10. Every other desktop was at 100 %.
+| Machine                                           | Session                                             | Build      | `GOGUI_RENDERER` unset | System GL | Forced soft | GL render |
+| ------------------------------------------------- | --------------------------------------------------- | ---------- | ---------------------- | --------- | ----------- | --------- |
+| QEMU std VGA, Windows 11 LTSC 2024 (lab VM)       | console                                             | p4         | CPU, context           | 10/10     | 8/8         | —         |
+|                                                   | RDP 1080p                                           | p4         | CPU, context           | 10/10     | 8/8         | —         |
+|                                                   | RDP 4K at 150 %                                     | p4         | —                      | 10/10     | 8/8         | —         |
+|                                                   | console                                             | `f093009d` | CPU, binding           | 11/11     | 8/8         | —         |
+|                                                   | RDP 1080p                                           | `f093009d` | CPU, binding           | 11/11     | 8/8         | —         |
+| QEMU std VGA, Windows 10 Pro 22H2                 | console                                             | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+|                                                   | RDP 1080p                                           | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+|                                                   | RDP 4K at 150 %                                     | pre        | CPU, context           | —         | 8/8         | —         |
+| QEMU std VGA, Windows Server 2025 RD Session Host | console                                             | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+|                                                   | RDP 1080p, administrative user                      | pre        | CPU, context           | —         | 8/8         | —         |
+|                                                   | RDP 1080p, standard user, a second RDP session open | pre        | CPU, context           | —         | 8/8         | —         |
+|                                                   | RDP 1080p, standard user                            | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+|                                                   | RDP 4K at 150 %, standard user                      | pre        | CPU, context           | —         | 8/8         | —         |
+| QEMU virtio-gpu, Windows 11 LTSC 2024             | console                                             | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+|                                                   | RDP 1080p                                           | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+| Hyper-V without GPU-P, Windows 11 LTSC 2024       | console                                             | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+|                                                   | RDP 1080p                                           | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+| VirtualBox 7.2, no Guest Additions                | console                                             | pre        | CPU, context           | —         | 8/8         | —         |
+| VirtualBox 7.2, Guest Additions, 3D off           | console                                             | pre        | CPU, context           | —         | 8/8         | —         |
+| VirtualBox 7.2, Guest Additions, 3D on            | console                                             | pre        | CPU, context           | —         | 8/8         | —         |
+|                                                   | console                                             | `f093009d` | GL: Mesa 4.1 core      | 11/11     | 8/8         | 34/35     |
+| Windows Sandbox, vGPU disabled                    | remote session                                      | fix        | CPU, binding           | 12/12     | 8/8         | —         |
+| Windows Sandbox, vGPU                             | remote session                                      | fix        | GL: AMD 3.3 core       | 12/12     | 8/8         | 35/35     |
+| Windows Server 2022, NVIDIA RTX 3060              | RDP 1080p taking over the console session           | fix        | GL: NVIDIA 3.3 core    | 12/12     | 8/8         | 35/35     |
 
-| Machine                                           | Session                                                        | Build | `GOGUI_RENDERER` unset                    | Tests               | Opaque: presents/s; draw / swizzle / blit, ms | Transparent frameless: presents/s; draw / swizzle / `UpdateLayeredWindow`, ms |
-| ------------------------------------------------- | -------------------------------------------------------------- | ----- | ----------------------------------------- | ------------------- | --------------------------------------------- | ----------------------------------------------------------------------------- |
-| QEMU std VGA, Windows 11 LTSC 2024 (lab VM)       | console, maximised                                             | p4    | CPU, context                              | 10/10 / 8/8 / —     | 64.5–64.7; 1.89–1.97 / 1.68–1.71 / 0.47       | 64.7; 1.81–1.89 / 2.59–2.68 / 0.58                                            |
-|                                                   | RDP 1080p, maximised                                           | p4    | CPU, context                              | 10/10 / 8/8 / —     | 32.6; 1.79–1.95 / 1.69 / 0.53–0.55            | 32.5; 1.79–2.37 / 2.39–3.07 / 0.68–0.69                                       |
-|                                                   | RDP 4K at 150 %, maximised                                     | p4    | —                                         | 10/10 / 8/8 / —     | 32.6; 4.15–4.40 / 7.14–7.64 / 1.86–2.24       | 32.4; 4.44–4.70 / 10.23–10.53 / 2.17–3.34                                     |
-| QEMU std VGA, Windows 10 Pro 22H2                 | console, maximised                                             | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 64.6; 1.27–1.41 / 0.89–0.97 / 0.49–0.55       | 64.6; 1.34–1.50 / 1.74–1.77 / 0.66–0.68                                       |
-|                                                   | RDP 1080p, maximised                                           | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 32.6–32.7; 0.99 / 0.97 / 0.45 ¹               | 32.5; 0.57–1.90 / 1.14–1.78 / 0.85–0.86                                       |
-|                                                   | RDP 4K at 150 %, maximised                                     | pre   | CPU, context                              | — / 8/8 / —         | 32.5; 0.70–1.32 / 1.62–2.24 / 5.93–7.38 ²     | 31.7–32.1; 2.02–2.52 / 9.92–12.74 / 4.22–5.47                                 |
-| QEMU std VGA, Windows Server 2025 RD Session Host | console, maximised                                             | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 64.6; 1.44–1.45 / 1.04–1.06 / 0.57–0.58       | 64.6–64.8; 1.26–1.27 / 1.43–1.44 / 0.47                                       |
-|                                                   | RDP 1080p, Administrator, maximised                            | pre   | CPU, context                              | — / 8/8 / —         | 32.6; 1.85 / 0.99 / 0.76 ³                    | 32.5; 1.64 / 1.53 / 1.10 ³                                                    |
-|                                                   | RDP 1080p, standard user, a second RDP session open, maximised | pre   | CPU, context                              | — / 8/8 / —         | 32.5; 1.92 / 0.97 / 0.84 ³                    | 32.6; 1.56 / 1.54 / 1.16 ³                                                    |
-|                                                   | RDP 1080p, standard user, maximised                            | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 32.6; 1.76–1.91 / 0.96–0.98 / 0.75–0.82       | 32.4–32.6; 1.77–1.83 / 1.53–1.59 / 1.10–1.21                                  |
-|                                                   | RDP 4K at 150 %, standard user, maximised                      | pre   | CPU, context                              | — / 8/8 / —         | 32.5–32.6; 4.25–4.30 / 4.26–4.27 / 2.33–2.48  | 32.4–32.6; 3.68–3.80 / 5.97–6.02 / 2.57–2.69                                  |
-| QEMU virtio-gpu, Windows 11 LTSC 2024             | console, maximised                                             | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 64.5; 1.99–2.05 / 1.65 / 0.53–0.55            | 64.4–64.6; 1.87 / 2.52–2.53 / 0.61                                            |
-|                                                   | RDP 1080p, maximised                                           | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 32.5–32.6; 1.85–2.46 / 1.69–1.94 / 0.55–0.60  | 32.6–32.7; 1.70–1.76 / 2.37–2.42 / 0.58–1.56                                  |
-| Hyper-V without GPU-P, Windows 11 LTSC 2024       | console, 1024×768                                              | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 64.4–64.6; 1.14–1.25 / 0.32–0.39 / 0.31–0.34  | 64.5; 1.25–1.51 / 0.57–0.58 / 0.17–0.21                                       |
-|                                                   | RDP 1080p, 1024×768                                            | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 32.4–32.5; 1.10–1.11 / 0.34–0.43 / 0.26–0.58  | 32.6–32.7; 1.08–1.18 / 0.55–0.57 / 0.22–0.28                                  |
-| VirtualBox 7.2, no Guest Additions                | console, 1024×768                                              | pre   | CPU, context                              | — / 8/8 / —         | 64.4–64.6; 2.33–2.52 / 0.77–0.83 / 0.58–0.61  | 64.4–64.5; 2.39–2.42 / 1.03–1.18 / 0.65–0.79                                  |
-| VirtualBox 7.2, Guest Additions, 3D off           | console, 1024×768                                              | pre   | CPU, context                              | — / 8/8 / —         | 64.5–64.6; 1.88–1.92 / 0.54–0.58 / 0.35–0.42  | 64.6–64.7; 1.77–1.86 / 0.85–0.86 / 0.55–0.69                                  |
-| VirtualBox 7.2, Guest Additions, 3D on            | console, 1024×768                                              | pre   | CPU, context; GL with #1348 (see Problem) | — / 8/8 / —         | 60.6; 1.49–1.57 / 0.38–0.61 / 0.76–0.99       | 60.4; 1.19–1.39 / 0.58–0.89 / 0.77–0.82                                       |
-| Windows Sandbox, vGPU disabled                    | remote session, 1024×768                                       | fix   | CPU, binding                              | 12/12 / 8/8 / —     | 32.4–32.7; 1.68–1.70 / 0.52–0.57 / 0.24–0.29  | 32.5; 1.64–1.66 / 0.71–0.73 / 0.41–0.44                                       |
-| Windows Sandbox, vGPU                             | remote session, 1024×768                                       | fix   | GL: AMD 3.3 core                          | 12/12 / 8/8 / 35/35 | 32.5–32.6; 1.72–1.73 / 0.51 / 0.40–0.41       | 32.6–32.7; 1.62–1.64 / 0.67–0.72 / 0.35–0.47                                  |
-| Windows Server 2022, NVIDIA RTX 3060              | RDP 1080p taking over the console session, 1024×768            | fix   | GL: NVIDIA 3.3 core                       | 12/12 / 8/8 / 35/35 | 32.5–32.6; 1.79–1.83 / 0.57–0.58 / 0.31–1.40  | 32.6–32.7; 1.73–1.78 / 0.75–0.84 / 0.83–0.86                                  |
+On the same machines with the pre build the four default launches fell back at
+`create WGL context`, and with the fix at `bind GL functions`, in every session
+measured with both (Windows 10, Windows Server 2025, Hyper-V).
 
-1. The second run logged zero for every stage in every sample while it presented
-   32.7 times a second; the stages are those of the first run.
-2. The stage timers of these runs advance in 15.625 ms clock steps: many
-   one-second samples show no draw or swizzle time and put the frame's time in
-   the blit. The split between the three stages is coarse.
-3. One run, the repeat with a quieter harness. The first pair of runs stalled
-   about every 8 to 9 s, in step with the harness's polling, and presented 28.7
-   to 30.2 times a second.
+The timings of the forced CPU renderer. The table gives the range over the two
+runs, or one figure when both round to it. Client sizes differ, so not every row
+compares with every other. The benchmark opens at 1024×768 (1024×749 for the
+opaque window in the VirtualBox guest, whose desktop was 1024×768). On the QEMU
+VMs the window was maximised: 1920×1009 opaque and 1920×1032 transparent on
+Windows 11 and Windows Server 2025, 1920×1017 and 1920×1040 on Windows 10. On a
+3840×2160 desktop at 150 %: 3840×2054 and 3840×2088 on Windows 11 and Windows
+Server 2025, 3840×2066 and 3840×2100 on Windows 10. Every other desktop was at
+100 %.
 
-The test counts differ by build: phase 4 had ten system GL tests, #1348 has
-twelve. On the same machines with the pre build the four default launches fell
-back at `create WGL context`, and with the fix at `bind GL functions`, in every
-session measured with both (Windows 10, Windows Server 2025, Hyper-V).
+| Machine                                           | Session                                             | Build | Window    | Opaque: presents/s; draw / swizzle / blit, ms | Transparent frameless: presents/s; draw / swizzle / `UpdateLayeredWindow`, ms |
+| ------------------------------------------------- | --------------------------------------------------- | ----- | --------- | --------------------------------------------- | ----------------------------------------------------------------------------- |
+| QEMU std VGA, Windows 11 LTSC 2024 (lab VM)       | console                                             | p4    | maximised | 64.5–64.7; 1.89–1.97 / 1.68–1.71 / 0.47       | 64.7; 1.81–1.89 / 2.59–2.68 / 0.58                                            |
+|                                                   | RDP 1080p                                           | p4    | maximised | 32.6; 1.79–1.95 / 1.69 / 0.53–0.55            | 32.5; 1.79–2.37 / 2.39–3.07 / 0.68–0.69                                       |
+|                                                   | RDP 4K at 150 %                                     | p4    | maximised | 32.6; 4.15–4.40 / 7.14–7.64 / 1.86–2.24       | 32.4; 4.44–4.70 / 10.23–10.53 / 2.17–3.34                                     |
+| QEMU std VGA, Windows 10 Pro 22H2                 | console                                             | fix   | maximised | 64.6; 1.27–1.41 / 0.89–0.97 / 0.49–0.55       | 64.6; 1.34–1.50 / 1.74–1.77 / 0.66–0.68                                       |
+|                                                   | RDP 1080p                                           | fix   | maximised | 32.6–32.7; 0.99 / 0.96 / 0.45 ¹               | 32.5; 0.57–1.90 / 1.14–1.78 / 0.84–0.86                                       |
+|                                                   | RDP 4K at 150 %                                     | pre   | maximised | 32.5; 0.70–1.32 / 1.62–2.24 / 5.93–7.38 ²     | 31.7–32.1; 2.01–2.52 / 9.92–12.74 / 4.22–5.47                                 |
+| QEMU std VGA, Windows Server 2025 RD Session Host | console                                             | fix   | maximised | 64.6; 1.44–1.45 / 1.04–1.06 / 0.57–0.58       | 64.6–64.8; 1.26–1.27 / 1.43–1.44 / 0.47                                       |
+|                                                   | RDP 1080p, administrative user                      | pre   | maximised | 32.6; 1.85 / 0.99 / 0.76 ³                    | 32.5; 1.64 / 1.53 / 1.10 ³                                                    |
+|                                                   | RDP 1080p, standard user, a second RDP session open | pre   | maximised | 32.5; 1.92 / 0.97 / 0.84 ³                    | 32.6; 1.56 / 1.54 / 1.16 ³                                                    |
+|                                                   | RDP 1080p, standard user                            | fix   | maximised | 32.6; 1.76–1.91 / 0.96–0.98 / 0.75–0.82       | 32.4–32.6; 1.77–1.83 / 1.53–1.59 / 1.10–1.21                                  |
+|                                                   | RDP 4K at 150 %, standard user                      | pre   | maximised | 32.5–32.6; 4.25–4.30 / 4.26 / 2.33–2.48       | 32.4–32.6; 3.68–3.80 / 5.97–6.02 / 2.57–2.69                                  |
+| QEMU virtio-gpu, Windows 11 LTSC 2024             | console                                             | fix   | maximised | 64.5; 1.99–2.05 / 1.65 / 0.53–0.55            | 64.4–64.6; 1.87 / 2.52–2.53 / 0.61                                            |
+|                                                   | RDP 1080p                                           | fix   | maximised | 32.5–32.6; 1.85–2.46 / 1.69–1.94 / 0.55–0.60  | 32.6–32.7; 1.70–1.76 / 2.37–2.42 / 0.58–1.56                                  |
+| Hyper-V without GPU-P, Windows 11 LTSC 2024       | console                                             | fix   | 1024×768  | 64.4–64.6; 1.14–1.25 / 0.32–0.39 / 0.31–0.34  | 64.5; 1.25–1.51 / 0.57–0.58 / 0.17–0.21                                       |
+|                                                   | RDP 1080p                                           | fix   | 1024×768  | 32.4–32.5; 1.10–1.11 / 0.34–0.43 / 0.26–0.58  | 32.6–32.7; 1.08–1.18 / 0.55–0.57 / 0.22–0.28                                  |
+| VirtualBox 7.2, no Guest Additions                | console                                             | pre   | 1024×768  | 64.4–64.6; 2.33–2.52 / 0.76–0.83 / 0.58–0.61  | 64.4–64.5; 2.39–2.42 / 1.03–1.18 / 0.65–0.79                                  |
+| VirtualBox 7.2, Guest Additions, 3D off           | console                                             | pre   | 1024×768  | 64.5–64.6; 1.88–1.92 / 0.54–0.58 / 0.35–0.42  | 64.6–64.7; 1.77–1.86 / 0.85–0.86 / 0.55–0.69                                  |
+| VirtualBox 7.2, Guest Additions, 3D on            | console                                             | pre   | 1024×768  | 60.6; 1.49–1.56 / 0.38–0.61 / 0.76–0.99       | 60.4; 1.19–1.39 / 0.58–0.89 / 0.77–0.82                                       |
+| Windows Sandbox, vGPU disabled                    | remote session                                      | fix   | 1024×768  | 32.4–32.7; 1.68–1.70 / 0.52–0.57 / 0.24–0.29  | 32.5; 1.63–1.66 / 0.71–0.73 / 0.41–0.44                                       |
+| Windows Sandbox, vGPU                             | remote session                                      | fix   | 1024×768  | 32.5–32.6; 1.72–1.73 / 0.51 / 0.40–0.41       | 32.6–32.7; 1.62–1.64 / 0.67–0.72 / 0.35–0.47                                  |
+| Windows Server 2022, NVIDIA RTX 3060              | RDP 1080p taking over the console session           | fix   | 1024×768  | 32.5–32.6; 1.79–1.83 / 0.57–0.58 / 0.31–1.40  | 32.6–32.7; 1.73–1.78 / 0.75–0.84 / 0.83–0.86                                  |
+
+1. In the second run every sample of the measurement window logged zero for all
+   three stages (a warm-up sample logged 470 µs of draw and 470 µs of blit),
+   while it presented 32.7 times a second; the stages are those of the first
+   run.
+2. The stage values of these runs are consistent with timers that advance in
+   15.625 ms steps: many one-second samples show no draw or swizzle time and put
+   most of the frame's time in the blit. The split between the three stages is
+   coarse.
+3. One run, the repeat with a quieter harness, which ran the benchmark only, in
+   a new session; the renderer and tests of this row are from the first session.
+   The first pair of runs stalled about every 8 to 9 s, in step with the
+   harness's polling, and presented 28.7 to 30.2 times a second.
 
 What the numbers show:
 
-- **Present rate.** The CPU renderer presents at the interval it reads from the
-  display: 15.625 ms (64 Hz) in every console session (64.4 to 64.8 presents a
-  second) except the VirtualBox guest with 3D on, which reads 16.67 ms (60.4 to
-  60.6), and 31.25 ms in every remote session, RDP and both Sandbox desktops
-  (31.7 to 32.7). In the remote session on the machine with the NVIDIA GPU, an
-  OpenGL window of the same benchmark made 57 to 62 `SwapBuffers` calls a
-  second, mostly 60 to 61, over two 15 s runs, against 32.5 to 32.6 presents of
-  the forced CPU renderer. Those are calls made, not frames that reached the RDP
-  client.
-- **Frame cost.** At 1024×768 the three stages sum to at most 4.4 ms in any run;
-  maximised at 1920×1009 to 1920×1040, to at most 6.2 ms. The transparent
-  window's swizzle, which also applies the alpha floor, is the larger of the two
-  in every row; in the VirtualBox guest with 3D only on average, the two runs'
-  ranges overlap.
-- **4K at 150 %.** Against RDP at 1080p on the same VM, the swizzle grows from
-  1.69 to 7.14–7.64 ms (opaque) and from 2.39–3.07 to 10.23–10.53 ms
-  (transparent) on the Windows 11 VM, and from 0.96–0.98 to 4.26–4.27 ms and
-  from 1.53–1.59 to 5.97–6.02 ms on the RD Session Host; the blit from 0.53–0.55
-  to 1.86–2.24 ms and from 0.75–0.82 to 2.33–2.48 ms. The swizzle is the largest
-  stage of a transparent 4K frame on all three VMs (up to 12.74 ms on Windows
-  10). Every 4K run still presented 31.7 to 32.6 times a second, at the 31.25 ms
-  interval of the session.
+- **Present rate.** In the console runs of the table the CPU renderer logged a
+  15.625 ms pacing interval and presented 64.4 to 64.8 times a second, except in
+  the VirtualBox guest with 3D on: 16.67 ms and 60.4 to 60.6. In the selected
+  remote runs (RDP and both Sandbox desktops) it logged a 31.25 ms pacing
+  interval and about 32 presents a second (31.7 to 32.7). The earlier, disturbed
+  runs of footnote 3 averaged 28.71 to 30.16 with the same interval. On the
+  NVIDIA machine the GL benchmark averaged about 60 swap calls a second in both
+  15 s runs (59.75 and 59.76), against 32.5 to 32.6 presents of the forced CPU
+  renderer. Those are calls made, not frames that reached the RDP client.
+- **Frame cost.** In the runs of the table the means of the three stages sum to
+  at most 4.4 ms at 1024×768, and to at most 6.1 ms maximised at 1920×1009 to
+  1920×1040. Runs left out can be higher: the second transparent run of the
+  first, disturbed standard-user pair at 1080p on Windows Server 2025 sums to
+  8.66 ms. The transparent window's swizzle, which also applies the alpha floor,
+  is the larger of the two in every row; in the VirtualBox guest with 3D only on
+  average, the two runs' ranges overlap.
+- **4K at 150 %.** On the Windows 11 lab VM, phase 4 build, from RDP at 1080p to
+  RDP at 4K, the swizzle grows from 1.69 to 7.14–7.64 ms (opaque) and from
+  2.39–3.07 to 10.23–10.53 ms (transparent), and the opaque blit from 0.53–0.55
+  to 1.86–2.24 ms. On the Windows Server 2025 VM, from the fix build at 1080p to
+  the pre build at 4K (the same present code), the swizzle grows from 0.96–0.98
+  to 4.26 ms and from 1.53–1.59 to 5.97–6.02 ms, and the opaque blit from
+  0.75–0.82 to 2.33–2.48 ms; the pre build's own 1080p repeat, with a second
+  session connected, had 0.97 ms of opaque swizzle and 0.84 ms of blit. The
+  swizzle is the largest stage of a transparent 4K frame on all three VMs (up to
+  12.74 ms on Windows 10). Every 4K run logged the 31.25 ms interval and
+  presented about 32 times a second (31.7 to 32.6).
 - **Vendor GL at the first attempt.** With #1348 a vendor OpenGL came up at the
   first attempt wherever one was present: Mesa 4.1 in the VirtualBox guest with
-  3D (34 of 35 GL render tests; see Not verified), the host's AMD driver in
-  Windows Sandbox with vGPU, and the NVIDIA driver in an RDP session (35 of 35
-  each). Before #1348 the VirtualBox guest fell back; the other two were not run
-  on the pre build. Every machine without a vendor driver that ran #1348 fell
-  back at the binding, at the first attempt of every process.
+  3D (build `f093009d`, 34 of 35 GL render tests; see Not verified), the host's
+  AMD driver in Windows Sandbox with vGPU, and the NVIDIA driver in an RDP
+  session (`a048d0a4`, 35 of 35 each). Before #1348 the VirtualBox guest fell
+  back; the other two were not run on the pre build. Every machine without a
+  vendor driver that ran #1348 fell back at the binding, at the first attempt of
+  every process.
 - **A running GL window across session changes** (the NVIDIA machine, the
-  benchmark with the variable unset). When an RDP logon took over the console
-  session, the window made 60 to 61 swaps a second before, 39 and 44 in the two
-  seconds around the change, and 60 to 61 for the 50 s after it, on the same
-  NVIDIA context. When the RDP client went away and the session became
-  disconnected, 47 in that second and 60 to 61 for the 36 s after it. The window
-  logged no error and exited with code 0 each time.
+  benchmark with the variable unset). The build logs the GL strings at start-up
+  and at the first swap, then counts `SwapBuffers` calls once a second without
+  checking their result or the context. When an RDP logon took over the console
+  session, it counted 58 calls in the first second, 60 to 61 a second after
+  that, 39 and 44 in the two seconds around the change, and 60 to 61 for the 50
+  s after it until close. When the RDP client went away and the session became
+  disconnected, it counted 47 in that second and 60 to 61 for the 36 s after it.
+  The same process continued issuing swap calls after both transitions. Counts
+  dipped around each change, then returned to about 60 a second until close.
+  Each run logged nothing else and exited with code 0.
 - **Transparent frameless window.** The phase 4 check ran on the Hyper-V VM
   (console and RDP) and on the Windows 10 and Windows Server 2025 VMs (console
-  and one 1080p RDP session each), forced soft and with the variable unset. The
-  window was see-through and took clicks in its margin on every machine where it
-  was checked. The colour-sample part of the check was unreliable when it was
-  run from the harness.
+  and RDP at 1080p), forced soft and with the variable unset. Every checked
+  machine produced a passing backdrop sample in at least one run; the margin
+  click reached the window in both modes. The runs whose margin missed the
+  backdrop say nothing about Go-Gui: reproduced on the lab VM, the check's
+  backdrop window had lost its place under the app window, and the transparent
+  window showed what lay there instead, mostly the test app's own console
+  window.
 
 ## Rejected approaches
 
@@ -929,50 +987,67 @@ What the numbers show:
 
 ## Not verified
 
-- The phase 3 fallback on a machine without a GPU driver ran for real in phase
-  5, on every machine of Phase 5 results without a vendor driver. Both triggers
-  were forced through seams on the workstation before that. Not recorded here:
-  the CI runner's showcase smoke test without Mesa, the first real start on the
-  runner's own OpenGL.
-- The soft path driven by hand beyond two machines on one Windows version
-  (Windows 11 LTSC 2024, build 26100): a workstation with an AMD driver, and the
-  lab VM in its console session and in an RDP session. On both an example app
-  draws, resizes, minimises, restores and closes with `GOGUI_RENDERER=soft`
+- The phase 3 fallback on a machine without a GPU driver first ran for real on
+  the lab VM on 2026-11-21, with #1338, in the console session and in RDP
+  sessions at 1920×1080 and at 3840×2160 with 150 %: `examples/get_started` with
+  the variable unset logged the refused context and the fallback line, opened
+  its window and exited 0 on close. In the same sessions the showcase with the
+  variable unset used 0.000 s of CPU over 60 s idle, and the benchmark,
+  maximised, presented 32 or 33 frames in every one-second sample over RDP at
+  1920×1009 and at 3840×2054. Phase 5 ran the fallback on every machine of Phase
+  5 results without a vendor driver. Both triggers are also forced through seams
+  on the workstation, where the phase 3 tests pass one process per test and all
+  in one process, and the three glrendertest selections pass with Mesa 26.3.0
+  beside the binary. Not recorded here: the CI runner's showcase smoke test
+  without Mesa, the first real start on the runner's own OpenGL.
+- The soft path exercised through resize, minimise, restore and close beyond two
+  machines on one Windows version (Windows 11 LTSC 2024, build 26100): a
+  workstation with an AMD driver, and the lab VM in its console session and in
+  an RDP session. On both, the phase 2 tests pass one process per test, as
+  glrendertest runs them, and all in one process, and an example app draws,
+  resizes, minimises, restores and closes with `GOGUI_RENDERER=soft`
   (`examples/get_started` on the workstation, the showcase on the lab VM). On
-  the lab VM no OpenGL module is loaded and an idle window uses no CPU time.
-  Phase 5 ran the forced soft selection (8 of 8 on every machine) and the
-  benchmark on Windows 10 22H2, Windows Server 2022 and 2025 and in Windows
-  Sandbox, not an app driven by hand. Not run: the CI runner.
+  the lab VM no OpenGL module is loaded and an idle window uses no CPU time. On
+  the workstation the three glrendertest selections pass with Mesa 26.3.0 beside
+  the binary. Phase 5 ran the forced soft selection (8 of 8 on every machine)
+  and the benchmark on Windows 10 22H2, Windows Server 2022 and 2025 and in
+  Windows Sandbox, not an app exercised that way. Not run: the CI runner.
 - Why the lab VM refused the first context and granted the second is known since
   #1348: the system DLL was loaded late. On `main` before #1348 every machine
   without a vendor driver that phase 5 ran refused the first context the same
-  way: Windows 10 22H2, the Windows Server 2025 RD Session Host and Hyper-V on
-  the console and over RDP, and the VirtualBox guest on the console in all three
-  states. A probe that loaded the DLL first reached the binding at the first
+  way: Windows 10 22H2, the Windows Server 2025 RD Session Host and Hyper-V, on
+  the console and over RDP. The VirtualBox guest refused it on the console in
+  all three states: with 3D on, where the guest's Mesa 4.1 works, and without
+  Guest Additions and with 3D off, where the GL behind the refusal was never
+  identified. A probe that loaded the DLL first reached the binding at the first
   attempt on the Windows 10 and Server 2025 VMs. With #1348 the first attempt
   reaches the binding on those machines that ran it (Phase 5 results), and on
   the CI runner it gets GDI Generic 1.1.0 and fails at the binding, as the
   second does (the system GL selection of #1348's run). In the VirtualBox guest
-  with 3D, 34 of the 35 GL render tests pass on the guest's own OpenGL 4.1;
-  `TestUnsetWithMesaKeepsGL` failed because the run set `GOGUI_REQUIRE_GL`,
-  which makes it require Mesa beside the binary, and it was not repeated without
-  the variable. Not verified: #1348 in the VirtualBox guest without Guest
-  Additions or with 3D off, an RDP session into the VirtualBox guest, and why an
-  AMD driver is not affected.
+  with 3D, 34 of the 35 GL render tests pass on the guest's own OpenGL 4.1
+  (build `f093009d`); `TestUnsetWithMesaKeepsGL` failed because the run set
+  `GOGUI_REQUIRE_GL`, which makes it require Mesa beside the binary, and it was
+  not repeated without the variable. Not verified: #1348 in the VirtualBox guest
+  without Guest Additions or with 3D off, an RDP session into the VirtualBox
+  guest, and why an AMD driver is not affected.
 - Every "expected" cell of the environment table: QEMU with QXL, and an RD
   Session Host with a GPU and the policy unset. Hyper-V with GPU-P and VMware
   have no row: unknown.
 - What a running window does across session changes, beyond one case. On Windows
-  Server 2022 with an NVIDIA GPU a GL window kept its context and its swap rate
-  when an RDP logon took over the console session and when that session was
-  disconnected (Phase 5 results). Not run: a reconnect at the console, a window
-  on the CPU renderer, another GPU vendor, a client version of Windows, and a
-  session change after which new processes get another OpenGL than the window
-  has.
+  Server 2022 with an NVIDIA GPU the process of a GL window continued issuing
+  swap calls, at about 60 a second after a dip, when an RDP logon took over the
+  console session and when that session was disconnected (Phase 5 results).
+  Neither the calls' results nor the context were checked after the first swap.
+  Not run: a reconnect at the console, a window on the CPU renderer, another GPU
+  vendor, a client version of Windows, and a session change after which new
+  processes get another OpenGL than the window has.
 - Not measured in phase 5: Hyper-V with GPU partitioning; VMware; VirtualBox and
   Windows Sandbox over RDP; RDP into a client version of Windows with a GPU, or
   into a machine with another GPU vendor; anything on ARM64; an IME composition;
-  Narrator; the tray; a hidden start on these machines.
+  Narrator; the tray; an example app started hidden. Of a hidden start only the
+  tests ran: the hidden-start case of `TestSoftWin32LayeredShowsDesktop` (forced
+  soft) and `TestFallbackKeepsHiddenStart` (system GL) passed wherever their
+  selection ran (Phase 5 results), the first also on the 4K desktops at 150 %.
 - That a window DC reads back the presented pixels on the CI runner, for a
   layered window too. The destination-pixel and opacity tests depend on it. It
   does on the workstation above.
@@ -982,8 +1057,10 @@ What the numbers show:
   on one desktop were not run.
 - `BitBlt` cost above 1920×1080 in a console session: phase 5 measured it only
   over RDP at 3840×2160, on three VMs (Phase 5 results). Cost beyond the one
-  benchmark view; the acceptance figures of decision 7 are phase 3's to record.
-  Mesa llvmpipe against soft on Windows; the 2.5–3× figure is Linux's.
+  benchmark view. The frame p50 of decision 7's acceptance bar as a percentile:
+  phase 3 recorded presents per second and stage times instead, since the
+  benchmark's own p50 counts view runs (see Cost). Mesa llvmpipe against soft on
+  Windows; the 2.5–3× figure is Linux's.
 - The sleep overshoot comes from the design review and was not repeated. The
   alpha hit-test was repeated in phase 4 for alpha 0 and 1 (`WindowFromPoint`,
   and a real click in a throwaway app); alpha 2 and 255 only in the design
