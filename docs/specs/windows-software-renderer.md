@@ -2,7 +2,7 @@
 
 Issue #1310 (follow-up of #1265). Status: **phases 1 to 4 of 5 landed, phase 5
 measured** (#1319, #1333, #1338, #1344; phase 5: the load-order fix #1348 and
-the matrix in #NNNN). Open: the follow-up issues of step 11, and the machines
+the matrix in #1353). Open: the follow-up issues of step 11, and the machines
 and features under Not verified.
 
 The maintainer accepted this design on the issue on 2026-11-20 (see Decisions).
@@ -567,7 +567,7 @@ workload.
 | 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | landed (#1333)                                      |
 | 3     | Automatic fallback when the first window's context or binding fails                                  | landed (#1338)                                      |
 | 4     | Transparent frameless windows on soft                                                                | landed (#1344)                                      |
-| 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | measured (#1348, #NNNN); follow-up issues not filed |
+| 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | measured (#1348, #1353); follow-up issues not filed |
 
 Each phase is one pull request, carries its tests, docs and `CHANGELOG.md`
 entry, and updates the table above. The steps, in execution order:
@@ -605,7 +605,7 @@ entry, and updates the table above. The steps, in execution order:
 11. **Phase 5.** Run the matrix under Tests and record the numbers here. File
     follow-up issues from what they show (swizzle, HiDPI, timer). The runs found
     the late load of the system `opengl32.dll`, fixed in #1348; the numbers are
-    under Phase 5 results (#NNNN). The follow-up issues are not filed yet.
+    under Phase 5 results (#1353). The follow-up issues are not filed yet.
 
 Docs, in the phase that changes the behaviour: `docs/deployment.md` beside the
 Linux paragraph, one sentence in `README.md`, and the doc comments that name the
