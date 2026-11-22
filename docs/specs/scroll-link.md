@@ -96,6 +96,16 @@ neighbouring cells (`dataGridRowWidth`).
 
 ## Known Limits
 
+- The linked container must be in the same layer as the linking one, or in the
+  main tree when the linking one is in a floating layer. `layoutArrange` runs
+  the main tree's pipeline before each float's, and a float is sized and placed
+  against the main tree's positions, so its offset cannot be clamped before the
+  main tree positions its children. A main-tree container linked into a float
+  gets no offset. Supporting it would need a second positioning pass for the
+  main tree after the floats, after its `AmendLayout` hooks already read the
+  first one. A table or grid inside a dialog has both parts in one layer and
+  works.
+
 - Under RTL a scroll container whose content is wider than itself opens at the
   end of the content (#1345). This is general layout behaviour; the link keeps
   header and rows in step there, but does not move the start.

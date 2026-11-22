@@ -75,6 +75,10 @@ func demoTable(w *gui.Window) gui.View {
 				default:
 					app.TableSortBy = col
 				}
+				// Selection is kept by row index, so a new row order
+				// would select other people.
+				app.TableSelected = nil
+				ctx.Consume()
 			},
 		})
 	}
@@ -158,7 +162,10 @@ func demoTable(w *gui.Window) gui.View {
 								OnClick: func(ctx gui.EventCtx) {
 									a := appState(ctx.Window)
 									a.TableMoreColumns = !a.TableMoreColumns
+									// Back to the unsorted order, which moves the
+									// rows, so the index-keyed selection goes too.
 									a.TableSortBy = 0
+									a.TableSelected = nil
 									ctx.Consume()
 								},
 							}),

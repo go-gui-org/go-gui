@@ -168,9 +168,13 @@ type ContainerCfg struct {
 	// offset is read after it was clamped for the frame, so the two
 	// never drift apart, not even for one frame during a resize. Give
 	// this container the same axis and horizontal padding as the linked
-	// one, so both place their children at the same x. Ignored on a
-	// Scrollable container, and when no Scrollable container in the
-	// frame has that ID, even if one had it before.
+	// one, so both place their children at the same x. Keep both in the
+	// same layer (the main tree, or one Float or dialog), or the linked
+	// one in the main tree: a floating layer is laid out after the main
+	// tree, so a main-tree container cannot follow a container inside a
+	// float. Ignored on a Scrollable container, and when no Scrollable
+	// container laid out before it in the frame has that ID, even if one
+	// had it before.
 	ScrollLinkX string
 	A11YCfg
 

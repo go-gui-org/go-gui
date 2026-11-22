@@ -78,3 +78,40 @@ func TestScrollLinkFollowsLiveTarget(t *testing.T) {
 		t.Fatalf("cell offset in the band = %.0f, want -100", got)
 	}
 }
+
+// A link inside one floating layer works: a table or grid in a dialog
+// has its header and rows in the same layer. A main-tree container
+// linked into a float gets no offset; see docs/specs/scroll-link.md.
+func TestScrollLinkInsideFloat(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Padding: PaddingNone, Content: []View{
+			Column(ContainerCfg{ID: "pop", Float: true, Padding: PaddingNone,
+				Width: 200, Sizing: FixedFit, Content: []View{
+					Column(ContainerCfg{ID: "band", Sizing: FillFit, Clip: true,
+						ScrollLinkX: ScopeID("pop", "body"), Padding: PaddingNone,
+						SizeBorder: NoBorder, Content: []View{
+							Rectangle(RectangleCfg{ID: "cell", Width: 900, Height: 20, Sizing: FixedFixed}),
+						}}),
+					Column(ContainerCfg{ID: "body", Scrollable: true, Sizing: FillFixed,
+						Height: 100, Padding: PaddingNone, SizeBorder: NoBorder, Content: []View{
+							Rectangle(RectangleCfg{Width: 900, Height: 20, Sizing: FixedFixed}),
+						}}),
+				}}),
+		}})
+	})
+	w.TestRender(nil)
+	w.ScrollHorizontalTo(ScopeID("pop", "body"), -100)
+	l := w.TestRender(nil)
+	band, ok := l.FindByID(ScopeID("pop", "band"))
+	if !ok {
+		t.Fatal("band not found")
+	}
+	cell, ok := l.FindByID(ScopeID("pop", "band", "cell"))
+	if !ok {
+		t.Fatal("cell not found")
+	}
+	if got := cell.Shape.X - band.Shape.X; got != -100 {
+		t.Fatalf("cell offset in the band = %.0f, want -100", got)
+	}
+}
