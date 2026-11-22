@@ -51,4 +51,9 @@ which the transparency path deliberately avoids. This example is a transparent
 window, so the slider is refused there and `gui.Debug(true)` says why. See
 `docs/specs/window-opacity.md`.
 
+On Windows with the CPU renderer (`GOGUI_RENDERER=soft`, or the fall back when
+OpenGL cannot run), only a frameless transparent window is see-through. This
+example keeps its system frame, so there it is opaque and `gui.Debug(true)` says
+so. See `docs/deployment.md`.
+
 See `main.go` for the implementation.

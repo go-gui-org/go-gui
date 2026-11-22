@@ -135,7 +135,9 @@ type WindowCfg struct {
 	// Honored by the macOS, Windows and X11 backends; ignored
 	// elsewhere. On X11 it needs a running compositing manager. With
 	// no compositor the window renders black, which gui.Debug
-	// reports.
+	// reports. On Windows with the CPU renderer only a frameless
+	// window (DecorationNone) is transparent; one with a system frame
+	// stays opaque, which gui.Debug reports.
 	Transparent bool
 	// EnableTextHinting turns on stem snapping of glyph outlines
 	// (#1334). When it is on, vertical stems of text up to 48 px move to

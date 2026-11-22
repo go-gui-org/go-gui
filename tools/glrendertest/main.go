@@ -139,6 +139,9 @@ var win32SoftTests = []string{
 	"TestSoftWin32ResizeKeepsHandles",
 	"TestSoftWin32OpacityAfterPaint",
 	"TestSoftWin32PresentAllocs",
+	"TestSoftWin32LayeredWindow",
+	"TestSoftWin32TransparentFramedIsOpaque",
+	"TestSoftWin32LayeredShowsDesktop",
 }
 
 // win32SystemGLTests run on the system's own OpenGL (#1310): the GDI Generic

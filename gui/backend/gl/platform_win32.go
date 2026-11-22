@@ -203,8 +203,8 @@ func lookupWindow(hwnd uintptr) *Backend {
 // Backend, falling back to DefWindowProc for unhandled messages and
 // for messages that arrive before the window is fully wired.
 func wndProc(hwnd, msg, wparam, lparam uintptr) uintptr {
-	if b := lookupWindow(hwnd); b != nil && b.plat.w != nil {
-		if res, handled := b.handleMessage(msg, wparam, lparam); handled {
+	if b := lookupWindow(hwnd); b != nil {
+		if res, handled := b.routeMessage(msg, wparam, lparam); handled {
 			return res
 		}
 	}
@@ -227,6 +227,9 @@ type platformState struct {
 	// frameless records DecorationNone: WM_NCCALCSIZE and
 	// WM_GETMINMAXINFO only deviate from the default for such a window.
 	frameless bool
+	// layered: a Transparent frameless soft window, WS_EX_LAYERED and
+	// presented with UpdateLayeredWindow (softpresent_win32.go).
+	layered bool
 	// transparent records WindowCfg.Transparent, read by the opacity
 	// guard. Kept here rather than reached through w, which is nil
 	// until Run.
@@ -461,8 +464,8 @@ func New(w *gui.Window) (*Backend, error) {
 
 // openWin32Window creates w's window, hidden, and registers it, then does
 // the setup both renderers share. A soft window has its own class, without
-// CS_OWNDC, and stays opaque when WindowCfg.Transparent asks otherwise. The
-// setup's degradation reports go to rep, not to w.
+// CS_OWNDC; a Transparent one is layered when frameless and opaque with a
+// system frame. The setup's degradation reports go to rep, not to w.
 func openWin32Window(w *gui.Window, soft bool, rep *windowReports) (*Backend, error) {
 	pSetDpiAware.Call(dpiPerMonitorV2) // best-effort; ignore result
 	hInst, _, _ := pGetModuleHandleW.Call(0)
@@ -505,8 +508,9 @@ func openWin32Window(w *gui.Window, soft bool, rep *windowReports) (*Backend, er
 	limits := gui.WindowSizeLimits(cfg)
 	minTrack, maxTrack := trackSizeFor(limits, style, dpi, scale)
 
+	exStyle := softExStyle(soft, cfg)
 	hwnd, _, err := pCreateWindowExW.Call(
-		0,
+		exStyle,
 		uintptr(unsafe.Pointer(class)),
 		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(title))),
 		style,
@@ -521,19 +525,21 @@ func openWin32Window(w *gui.Window, soft bool, rep *windowReports) (*Backend, er
 	b := &Backend{}
 	b.plat.hwnd = hwnd
 	b.plat.frameless = cfg.Decorations == gui.DecorationNone
+	b.plat.layered = exStyle&wsExLayered != 0
 	b.plat.transparent = cfg.Transparent
 	b.plat.minTrack = minTrack
 	b.plat.maxTrack = maxTrack
 	registerWindow(hwnd, b)
-	if cfg.Transparent {
-		if soft {
-			reportSoftTransparency(rep.addTransparency)
-		} else {
-			// Before the pixel format is set: DWM must already be off the
-			// opaque composition path when the GL surface is bound to the
-			// window, or the first frames composite opaque.
-			enableWindowTransparencyFunc(rep.addTransparency, hwnd)
-		}
+	switch {
+	case !cfg.Transparent || b.plat.layered:
+		// A layered window's alpha reaches DWM through UpdateLayeredWindow.
+	case soft:
+		reportSoftTransparency(rep.addTransparency)
+	default:
+		// Before the pixel format is set: DWM must already be off the
+		// opaque composition path when the GL surface is bound to the
+		// window, or the first frames composite opaque.
+		enableWindowTransparencyFunc(rep.addTransparency, hwnd)
 	}
 	// Replay a SetWindowOpacity made before the native platform was
 	// attached (in OnInit, or before backend.Run).

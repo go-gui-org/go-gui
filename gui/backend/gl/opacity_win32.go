@@ -32,7 +32,11 @@ const (
 // DwmEnableBlurBehindWindow (see transparency_win32.go). WS_EX_LAYERED
 // adds a redirection surface that fights the GL swap chain, so the two
 // are not combined: the fade is refused and reported rather than
-// risking a window that presents nothing. See #516.
+// risking a window that presents nothing. See #516. On the CPU renderer a
+// Transparent frameless window is already layered and presented with
+// UpdateLayeredWindow, which SetLayeredWindowAttributes excludes, so the
+// fade is refused there too, as it is on a Transparent soft window with a
+// system frame (#1310).
 func layeredOpacityAllowed(transparent bool) bool { return !transparent }
 
 // opacityAlphaByte converts an opacity in [0, 1] to the 0-255 alpha

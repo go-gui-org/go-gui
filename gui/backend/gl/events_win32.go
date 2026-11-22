@@ -149,6 +149,22 @@ func dpiChangedBounds(lparam uintptr) (x, y, cx, cy int32, ok bool) {
 	return rc.left, rc.top, int32(w), int32(h), true
 }
 
+// routeMessage is wndProc's way into the backend. Once Run has set plat.w,
+// every message goes to handleMessage. Before that, only a layered
+// window's WM_NCCALCSIZE is answered, with no non-client area as
+// handleMessage answers it for every frameless window, so the client area
+// is the whole window from the start (fitLayeredFrame). Every other early
+// message goes to DefWindowProc.
+func (b *Backend) routeMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
+	if b.plat.w != nil {
+		return b.handleMessage(msg, wparam, lparam)
+	}
+	if b.plat.layered && msg == wmNcCalcSize && wparam != 0 {
+		return 0, true
+	}
+	return 0, false
+}
+
 // handleMessage translates a window message to a gui.Event and
 // dispatches it. Returns (result, true) when the message is fully
 // handled, or (0, false) to defer to DefWindowProc.

@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **Transparent frameless windows on the CPU renderer on Windows (#1310).** With
+  `GOGUI_RENDERER=soft`, or after the automatic fall back to the CPU renderer, a
+  window with `WindowCfg.Transparent` and `Decorations: gui.DecorationNone` is
+  see-through: it is a layered window updated with `UpdateLayeredWindow`, so the
+  desktop shows through wherever the frame's alpha is below 255, as it does on
+  GL. A fully transparent pixel is drawn with alpha 1, so the window still takes
+  mouse input everywhere, as on GL; what is behind it is darkened by 1/255. A
+  transparent window with a system frame stays opaque on the CPU renderer, and
+  `gui.Debug` now says that a frameless one would be transparent.
+  `SetWindowOpacity` stays refused on a transparent window, as on GL.
+
 - **Text hinting is a per-window choice, off by default (#1334).**
   `WindowCfg.EnableTextHinting` and `Window.SetTextHinting(on)` control the stem
   snapping that go-glyph v1.28.0 turned on. go-gui now turns it off unless the
@@ -73,10 +84,11 @@ and this project adheres to
   handling and window state are the GL path's own code; a live resize repaints
   each size, and whole-window opacity works. Frames are paced to the monitor's
   refresh rate unless `WindowCfg.VSyncOff` is set. A `WindowCfg.Transparent`
-  window is opaque on this path and reports it through `gui.Debug`. Custom
-  shaders draw their children but not their shader fill. The "no GPU context"
-  message on Windows now names `GOGUI_RENDERER=soft`. With the variable unset or
-  `gl`, a machine whose GL comes up makes the same calls as before.
+  window with a system frame is opaque on this path and reports it through
+  `gui.Debug`. Custom shaders draw their children but not their shader fill. The
+  "no GPU context" message on Windows now names `GOGUI_RENDERER=soft`. With the
+  variable unset or `gl`, a machine whose GL comes up makes the same calls as
+  before.
 
 ### Changed
 

@@ -109,6 +109,10 @@ surface that fights the GL swap chain.
 The call runs after `CreateWindowExW` and before the pixel format is set, so DWM
 is already off the opaque path when the GL surface is bound.
 
+The CPU renderer on Windows (#1310) has no swap chain. A transparent frameless
+window there is a layered window updated with `UpdateLayeredWindow`; one with a
+system frame is opaque. See `windows-software-renderer.md`.
+
 ### Degrading
 
 Two things can silently defeat a transparent X11 window: a driver that offers no

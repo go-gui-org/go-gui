@@ -479,7 +479,7 @@ func TestFallbackRunsOnInitOnce(t *testing.T) {
 }
 
 // reportsChildEnv marks the subprocess TestFallbackPublishesWinningReportsOnly
-// starts.
+// starts, and names its case: "framed" or "frameless".
 const reportsChildEnv = "GOGUI_TEST_FALLBACK_REPORTS_CHILD"
 
 // The reports TestFallbackPublishesWinningReportsOnly expects, as gui.Debug
@@ -487,7 +487,8 @@ const reportsChildEnv = "GOGUI_TEST_FALLBACK_REPORTS_CHILD"
 const (
 	glAttemptReport   = "test: the GL attempt's transparency"
 	glAttemptOpacity  = "test: the GL attempt's opacity"
-	softTransparency  = "gui: window: Transparent requested but the CPU renderer draws it opaque on Windows"
+	softTransparency  = "gui: window: Transparent requested but the CPU renderer on Windows draws a window with a system frame opaque; a frameless one (DecorationNone) is transparent"
+	anyTransparency   = "gui: window: Transparent requested"
 	transparentFadeNo = "gui: window: opacity requested but the window is Transparent"
 )
 
@@ -497,32 +498,43 @@ const (
 // here a transparency and an opacity report the GL attempt alone makes
 // (through the enableWindowTransparencyFunc and applyWindowOpacityFunc
 // seams). Both attempts would otherwise make the same opacity report, which
-// the warn-once filter prints once either way.
+// the warn-once filter prints once either way. With a system frame the soft
+// window is opaque and reports that; frameless, it is layered and makes no
+// transparency report. The fade is refused on both.
 //
 // gui.Debug writes to stderr and keeps no record a test outside gui can
 // read, so the window is opened in a subprocess and its stderr is checked.
 func TestFallbackPublishesWinningReportsOnly(t *testing.T) {
 	if os.Getenv(reportsChildEnv) == "" {
-		cmd := exec.Command(os.Args[0], "-test.run", "^TestFallbackPublishesWinningReportsOnly$", "-test.v") // #nosec G204 -- this test binary, a fixed test name
-		cmd.Env = append(os.Environ(), reportsChildEnv+"=1")
-		raw, err := cmd.CombinedOutput()
-		out := string(raw)
-		t.Logf("subprocess:\n%s", out)
-		if err == nil && strings.Contains(out, "--- SKIP: TestFallbackPublishesWinningReportsOnly") {
-			t.Skip("the subprocess skipped")
-		}
-		if err != nil || !strings.Contains(out, "--- PASS: TestFallbackPublishesWinningReportsOnly") {
-			t.Fatalf("subprocess did not pass: %v", err)
-		}
-		for _, gl := range []string{glAttemptReport, glAttemptOpacity} {
-			if strings.Contains(out, gl) {
-				t.Errorf("the discarded GL attempt's report %q reached the window", gl)
-			}
-		}
-		for _, want := range []string{softTransparency, transparentFadeNo} {
-			if n := strings.Count(out, want); n != 1 {
-				t.Errorf("%d reports %q, want 1", n, want)
-			}
+		for _, c := range []struct {
+			name         string
+			transparency int // the soft attempt's transparency reports
+		}{{"framed", 1}, {"frameless", 0}} {
+			t.Run(c.name, func(t *testing.T) {
+				cmd := exec.Command(os.Args[0], "-test.run", "^TestFallbackPublishesWinningReportsOnly$", "-test.v") // #nosec G204 -- this test binary, a fixed test name
+				cmd.Env = append(os.Environ(), reportsChildEnv+"="+c.name)
+				raw, err := cmd.CombinedOutput()
+				out := string(raw)
+				t.Logf("subprocess:\n%s", out)
+				if err == nil && strings.Contains(out, "--- SKIP: TestFallbackPublishesWinningReportsOnly") {
+					t.Skip("the subprocess skipped")
+				}
+				if err != nil || !strings.Contains(out, "--- PASS: TestFallbackPublishesWinningReportsOnly") {
+					t.Fatalf("subprocess did not pass: %v", err)
+				}
+				for _, gl := range []string{glAttemptReport, glAttemptOpacity} {
+					if strings.Contains(out, gl) {
+						t.Errorf("the discarded GL attempt's report %q reached the window", gl)
+					}
+				}
+				if n := strings.Count(out, anyTransparency); n != c.transparency ||
+					strings.Count(out, softTransparency) != c.transparency {
+					t.Errorf("%d transparency reports, want %d %q", n, c.transparency, softTransparency)
+				}
+				if n := strings.Count(out, transparentFadeNo); n != 1 {
+					t.Errorf("%d reports %q, want 1", n, transparentFadeNo)
+				}
+			})
 		}
 		return
 	}
@@ -551,12 +563,20 @@ func TestFallbackPublishesWinningReportsOnly(t *testing.T) {
 	t.Cleanup(func() { applyWindowOpacityFunc = oldOpacity })
 	cfg := fallbackCfg()
 	cfg.Transparent = true
+	frameless := os.Getenv(reportsChildEnv) == "frameless"
+	if frameless {
+		cfg.Decorations = gui.DecorationNone
+	}
 	w := gui.NewWindow(cfg)
 	w.SetWindowOpacity(0.5)
 	b := openFallback(t, w)
 	assertFallback(t, b, w, l, "create WGL context", errRefused.Error())
 	if opacityCalls != 2 {
 		t.Errorf("%d opacity replays, want 2 (the GL attempt, then the soft one)", opacityCalls)
+	}
+	ex, _, _ := pGetWindowLongPtrW.Call(b.plat.hwnd, gwlExStyle)
+	if layered := ex&wsExLayered != 0; layered != frameless || b.plat.layered != frameless {
+		t.Errorf("frameless %v: ex-style %#x, plat.layered %v", frameless, ex, b.plat.layered)
 	}
 }
 

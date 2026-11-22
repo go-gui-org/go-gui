@@ -16,10 +16,17 @@ package gl
 // events, IME, clipboard, DPI, cursors, window state, UI Automation — is the
 // ordinary Win32 platform code, shared with GL.
 //
+// A WindowCfg.Transparent window without a system frame (DecorationNone) is
+// a layered window instead (phase 4): WS_EX_LAYERED, and each frame goes to
+// the system with UpdateLayeredWindow, which takes the DIB's premultiplied
+// alpha, so the desktop shows through where the frame's alpha is below 255.
+// A transparent window with a system frame stays opaque, with a report.
+//
 // The window class has no CS_OWNDC: window DCs are taken per use (GetDC
 // around a present, BeginPaint in WM_PAINT), and the memory DC is kept.
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"log"
@@ -47,6 +54,7 @@ var (
 	pBeginPaint           = user32.NewProc("BeginPaint")
 	pEndPaint             = user32.NewProc("EndPaint")
 	pEnumDisplaySettingsW = user32.NewProc("EnumDisplaySettingsW")
+	pUpdateLayeredWindow  = user32.NewProc("UpdateLayeredWindow")
 )
 
 const (
@@ -58,6 +66,13 @@ const (
 	hgdiError = ^uintptr(0)
 	// enumCurrentSettings is ENUM_CURRENT_SETTINGS, (DWORD)-1.
 	enumCurrentSettings = 0xFFFFFFFF
+
+	// UpdateLayeredWindow's flag and BLENDFUNCTION values: blend the
+	// bitmap over what is behind the window by its own premultiplied
+	// alpha.
+	ulwAlpha   = 0x00000002
+	acSrcOver  = 0x00
+	acSrcAlpha = 0x01
 )
 
 // bitmapInfoHeader mirrors BITMAPINFOHEADER.
@@ -90,6 +105,14 @@ type paintStruct struct {
 	fRestore    int32
 	fIncUpdate  int32
 	rgbReserved [32]byte
+}
+
+// sizeW mirrors SIZE.
+type sizeW struct{ cx, cy int32 }
+
+// blendFunction mirrors BLENDFUNCTION.
+type blendFunction struct {
+	blendOp, blendFlags, sourceConstantAlpha, alphaFormat byte
 }
 
 // monitorInfoExW mirrors MONITORINFOEXW: MONITORINFO and the device name
@@ -126,7 +149,9 @@ type devModeW struct {
 
 // dibHeader describes the frame store: top-down (negative height), so row
 // 0 is the top row as in soft's RGBA buffer, 32 bpp BI_RGB, whose bytes
-// are B, G, R and an unused fourth, the order swizzleBGRA writes.
+// are B, G, R and A, the order swizzleBGRA writes. BitBlt to an opaque
+// window ignores the fourth byte; UpdateLayeredWindow reads it as
+// premultiplied alpha.
 func dibHeader(width, height int32) bitmapInfoHeader {
 	h := bitmapInfoHeader{
 		biWidth:       width,
@@ -137,6 +162,43 @@ func dibHeader(width, height int32) bitmapInfoHeader {
 	}
 	h.biSize = uint32(unsafe.Sizeof(h))
 	return h
+}
+
+// swizzleBGRALayered is swizzleBGRA for a layered window, with the alpha
+// floor of #1310's decision 4 in the same pass: a pixel whose alpha is 0
+// gets alpha 1, and every other alpha is unchanged. A layered window passes
+// the mouse through where alpha is 0 and takes it where alpha is 1 or more,
+// while a transparent GL window takes it everywhere. A premultiplied pixel
+// of alpha 0 has no color, so it becomes (0, 0, 0, 1): 1/255 of black over
+// the desktop.
+//
+// The floor is branch-free on the swizzled word v, two pixels at once.
+// Adding 0x7f to an alpha's low seven bits carries into its top bit exactly
+// when they are not all 0, and cannot carry past the byte, so after OR-ing
+// in v itself and every other bit, t holds bit 31 or 63 where that pixel's
+// alpha is 0; shifted down by seven it is the alpha's low bit. The opaque
+// path keeps swizzleBGRA, without this step.
+func swizzleBGRALayered(dst, src []byte) {
+	const (
+		greenAlpha = 0xff00ff00_ff00ff00
+		red        = 0x000000ff_000000ff
+		blue       = 0x00ff0000_00ff0000
+		alphaLow7  = 0x7f000000_7f000000
+		notAlphaHi = 0x7fffffff_7fffffff
+	)
+	n := min(len(dst), len(src)) &^ 3
+	dst, src = dst[:n], src[:n]
+	for len(src) >= 8 {
+		v := binary.LittleEndian.Uint64(src)
+		v = v&greenAlpha | (v&red)<<16 | (v&blue)>>16
+		t := ^(((v & alphaLow7) + alphaLow7) | v | notAlphaHi)
+		binary.LittleEndian.PutUint64(dst, v|t>>7)
+		dst, src = dst[8:], src[8:]
+	}
+	if len(src) == 4 {
+		// The odd pixel; read before written, as in swizzleBGRA.
+		dst[0], dst[1], dst[2], dst[3] = src[2], src[1], src[0], max(src[3], 1)
+	}
 }
 
 // displayFrameInterval is one frame at a display frequency of hz, as
@@ -192,7 +254,8 @@ var (
 
 // registerSoftClass registers the soft window class once and returns its
 // name. It is the GL class without CS_OWNDC: a soft window keeps no window
-// DC, and CS_OWNDC excludes WS_EX_LAYERED, which phase 4 needs.
+// DC, and CS_OWNDC excludes WS_EX_LAYERED, which a transparent frameless
+// soft window has.
 func registerSoftClass(hInstance uintptr) *uint16 {
 	softClassOnce.Do(func() {
 		wc := wndClassExW{
@@ -209,11 +272,42 @@ func registerSoftClass(hInstance uintptr) *uint16 {
 	return softClassName
 }
 
-// reportSoftTransparency reports a WindowCfg.Transparent window on soft,
-// which stays opaque and opens with no error (#1310, decision 3). The text
-// does not name GOGUI_RENDERER=soft: a fallback from GL lands here too.
+// softExStyle is the extended style of a new window: WS_EX_LAYERED for a
+// Transparent frameless soft window, which is presented with
+// UpdateLayeredWindow, and none otherwise. UpdateLayeredWindow's bitmap is
+// the whole window, so a window with a system frame is not layered: it
+// stays opaque (reportSoftTransparency).
+func softExStyle(soft bool, cfg gui.WindowCfg) uintptr {
+	if soft && cfg.Transparent && cfg.Decorations == gui.DecorationNone {
+		return wsExLayered
+	}
+	return 0
+}
+
+// reportSoftTransparency reports a WindowCfg.Transparent window with a
+// system frame on soft, which stays opaque and opens with no error (#1310,
+// decision 3). The text does not name GOGUI_RENDERER=soft: a fallback from
+// GL lands here too.
 func reportSoftTransparency(report func(string)) {
-	report("the CPU renderer draws it opaque on Windows")
+	report("the CPU renderer on Windows draws a window with a system frame " +
+		"opaque; a frameless one (DecorationNone) is transparent")
+}
+
+// fitLayeredFrame makes a layered window's client area the whole window,
+// at the client size it was created with. UpdateLayeredWindow's bitmap
+// covers the whole window and the frame is drawn at the client size, so
+// the two must be equal, or the frame would be offset from the mouse
+// coordinates and could not be sent without resizing the window. A
+// frameless window answers WM_NCCALCSIZE with no non-client area, but the
+// first one comes inside CreateWindowExW, before the window is registered,
+// and DefWindowProc gives a WS_THICKFRAME window its resize border there
+// (a 320x200 client in a 334x214 window at 100 %, measured). The frame
+// change sends it again, and routeMessage answers it for a layered window
+// before Run.
+func fitLayeredFrame(hwnd uintptr) {
+	cw, ch := clientSize(hwnd)
+	pSetWindowPos.Call(hwnd, 0, 0, 0, uintptr(cw), uintptr(ch),
+		swpNoMove|swpNoZOrder|swpNoActivate|swpFrameChanged)
 }
 
 // --- present ---
@@ -237,6 +331,16 @@ type softPresentWin32 struct {
 
 	// ps is BeginPaint's output, kept so a WM_PAINT allocates nothing.
 	ps paintStruct
+
+	// layered: the window is WS_EX_LAYERED and each frame goes to it with
+	// UpdateLayeredWindow. The call's arguments are kept here, as ps is,
+	// so a present allocates nothing: wr is the window rect read before
+	// the call, size the size passed, src the DIB's origin.
+	layered bool
+	wr      rectW
+	size    sizeW
+	src     pointW
+	blend   blendFunction
 
 	// Frame pacing stands in for wglSwapIntervalEXT(1): without it, a view
 	// that invalidates every frame would redraw as fast as the CPU allows.
@@ -335,11 +439,24 @@ func (sp *softPresentWin32) present(w *gui.Window, physW, physH int32) bool {
 		sp.skip(aerr)
 		return false
 	}
-	swizzleBGRA(sp.pix, img.Pix)
-	if !sp.blit() {
-		// The frame is in the DIB, so a WM_PAINT can still show it.
-		sp.skip(errSoftBlit)
-		return false
+	if sp.layered {
+		swizzleBGRALayered(sp.pix, img.Pix)
+		if lerr := sp.updateLayered(); lerr != nil {
+			// The frame is in the DIB; the next present sends it again.
+			if errors.Is(lerr, errLayeredMinimized) {
+				sp.pace()
+			} else {
+				sp.skip(lerr)
+			}
+			return false
+		}
+	} else {
+		swizzleBGRA(sp.pix, img.Pix)
+		if !sp.blit() {
+			// The frame is in the DIB, so a WM_PAINT can still show it.
+			sp.skip(errSoftBlit)
+			return false
+		}
 	}
 	sp.skipLogged = false
 	sp.pace()
@@ -349,6 +466,11 @@ func (sp *softPresentWin32) present(w *gui.Window, physW, physH int32) bool {
 // errSoftBlit: GetDC, BitBlt or GdiFlush failed, so the frame did not
 // reach the window.
 var errSoftBlit = errors.New("the copy to the window failed")
+
+// errLayeredMinimized: a minimized layered window is not updated, and that
+// is not a fault to log. Its window rect is the parked icon's, which the
+// frame's size would resize; the WM_SIZE of the restore presents again.
+var errLayeredMinimized = errors.New("the window is minimized")
 
 // skip logs the first of a run of skipped frames and paces.
 func (sp *softPresentWin32) skip(err error) {
@@ -419,13 +541,55 @@ func (sp *softPresentWin32) blitTo(hdc uintptr) bool {
 	return r != 0 && f != 0
 }
 
+// updateLayered sends the DIB to the layered window: UpdateLayeredWindow
+// from the memory DC, blended by the bitmap's premultiplied alpha, then a
+// flush, as blitTo flushes. The position is left as it is (no pptDst).
+// The size cannot be left out: without psize the call succeeds and shows
+// nothing new, and a psize unlike the window's resizes the window, a
+// minimized one too (both measured). So the window rect is read first, and
+// the frame is sent only when its size is the window's, which
+// fitLayeredFrame, WM_NCCALCSIZE and the frameless maximize clamp keep
+// true: a frame never resizes the window. A minimized window is skipped
+// quietly (errLayeredMinimized); any other difference is a skipped frame.
+func (sp *softPresentWin32) updateLayered() error {
+	if r, _, e := syscall.SyscallN(pGetWindowRect.Addr(), sp.hwnd,
+		uintptr(unsafe.Pointer(&sp.wr))); r == 0 {
+		return fmt.Errorf("GetWindowRect: %w", e)
+	}
+	ww, wh := sp.wr.right-sp.wr.left, sp.wr.bottom-sp.wr.top
+	if ww != sp.dibW || wh != sp.dibH {
+		if r, _, _ := syscall.SyscallN(pIsIconic.Addr(), sp.hwnd); r != 0 {
+			return errLayeredMinimized
+		}
+		return fmt.Errorf("the window is %dx%d and the frame %dx%d; "+
+			"UpdateLayeredWindow would resize the window", ww, wh, sp.dibW, sp.dibH)
+	}
+	sp.size = sizeW{cx: sp.dibW, cy: sp.dibH}
+	r, _, e := syscall.SyscallN(pUpdateLayeredWindow.Addr(), sp.hwnd, 0, 0,
+		uintptr(unsafe.Pointer(&sp.size)), sp.memDC, uintptr(unsafe.Pointer(&sp.src)),
+		0, uintptr(unsafe.Pointer(&sp.blend)), ulwAlpha)
+	f, _, _ := syscall.SyscallN(pGdiFlush.Addr())
+	if r == 0 {
+		return fmt.Errorf("UpdateLayeredWindow: %w", e)
+	}
+	if f == 0 {
+		return errors.New("GdiFlush failed after UpdateLayeredWindow")
+	}
+	return nil
+}
+
 // paint answers WM_PAINT: it copies the last frame to the invalid area and
 // validates it. It never draws a new frame and never sleeps. Before the
-// first frame it only validates; that frame covers the window.
+// first frame it only validates; that frame covers the window. A layered
+// window only validates: the system composes it from the bitmap the last
+// UpdateLayeredWindow gave it, which no window DC paints. It is sent no
+// WM_PAINT after a present, a resize or a minimize and restore, but an
+// InvalidateRect still sends one, with an empty paint rect (measured), and
+// an unvalidated window would be sent it again and again.
 func (sp *softPresentWin32) paint() {
 	hdc, _, _ := syscall.SyscallN(pBeginPaint.Addr(), sp.hwnd,
 		uintptr(unsafe.Pointer(&sp.ps)))
-	if hdc != 0 && sp.bmp != 0 {
+	if hdc != 0 && sp.bmp != 0 && !sp.layered {
 		sp.blitTo(hdc)
 	}
 	syscall.SyscallN(pEndPaint.Addr(), sp.hwnd, uintptr(unsafe.Pointer(&sp.ps)))
@@ -505,11 +669,19 @@ func newSoftWin32(w *gui.Window, rep *windowReports, commit func()) (*Backend, e
 // attaches, the first point where application code can run.
 func (b *Backend) initSoftWin32(w *gui.Window, commit func()) error {
 	hwnd := b.plat.hwnd
+	if b.plat.layered {
+		fitLayeredFrame(hwnd)
+	}
 	b.dpiScale = windowScale(hwnd)
 	b.physW, b.physH = clientSize(hwnd)
 	sp, err := newSoftPresentWin32Func(hwnd, w, b.dpiScale)
 	if err != nil {
 		return err
+	}
+	if b.plat.layered {
+		sp.layered = true
+		sp.blend = blendFunction{blendOp: acSrcOver, sourceConstantAlpha: 255,
+			alphaFormat: acSrcAlpha}
 	}
 	b.plat.softMode = true
 	b.plat.soft = sp
@@ -530,7 +702,8 @@ func (b *Backend) destroySoftWin32() {
 }
 
 // presentWin32 is the frame call of both loops and of WM_SIZE: GL draws
-// and swaps, soft draws on the CPU and blits.
+// and swaps, soft draws on the CPU and blits it or updates the layered
+// window.
 func (b *Backend) presentWin32(w *gui.Window) {
 	if sp := b.plat.soft; sp != nil {
 		sp.present(w, b.physW, b.physH)
@@ -559,7 +732,7 @@ func (b *Backend) resizeWin32() {
 }
 
 // paintWin32 answers WM_PAINT. A GL window only validates: its next swap
-// repaints. A soft window copies its last frame back.
+// repaints. A soft window copies its last frame back, unless it is layered.
 func (b *Backend) paintWin32() {
 	if sp := b.plat.soft; sp != nil {
 		sp.paint()
