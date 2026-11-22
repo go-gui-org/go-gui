@@ -86,7 +86,7 @@ which of the two ways the machine fails.
 | QEMU VM, standard VGA, console session and RDP session       | GDI Generic 1.1.0; first context refused before #1348              | measured on the lab VM (#1319), one Windows version; with #1348 the first attempt gets GDI Generic, measured on the console and over RDP                                                                 |
 | VirtualBox 7.2 guest, VBoxSVGA, Guest Additions, 3D on       | 4.1 core (Mesa 24.0.2, SVGA3D); first context refused before #1348 | measured 2026-11-22 on the console, on `main` at `0ec3b7ca` and with #1348                                                                                                                               |
 | A generic pixel format forced on a machine with a GPU driver | GDI Generic 1.1.0 at the first attempt                             | measured                                                                                                                                                                                                 |
-| GitHub `windows-latest` runner (Windows Server 2025)         | GDI Generic 1.1; what the first attempt gives is not known         | stated in `.github/workflows/ci.yml`, which adds Mesa to start the showcase; `TestFirstGLAttemptOfProcess` logs the first attempt in the system GL selection                                             |
+| GitHub `windows-latest` runner (Windows Server 2025)         | GDI Generic 1.1.0 at the first attempt                             | measured in the CI run of #1348's pull request: `TestFirstGLAttemptOfProcess` logs both attempts in the system GL selection                                                                              |
 | Hyper-V VM without GPU-P or DDA                              | no vendor GL expected                                              | the "Microsoft Hyper-V Video" adapter is display-only ([GPU-PV](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/gpu-paravirtualization))                                              |
 | QEMU with QXL or virtio-gpu                                  | no vendor GL expected                                              | the Windows virtio-gpu driver is display-only ([QEMU](https://www.qemu.org/docs/master/system/devices/virtio/virtio-gpu.html))                                                                           |
 | RDP session on an RD Session Host, policy unset              | no vendor GL expected; a vendor driver in "all other cases"        | the hardware-adapter [policy](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-admx-terminalserver#ts_dx_use_full_hwgpu) text                                                  |
@@ -708,6 +708,9 @@ does.
   guest showed the difference; a workstation with an AMD driver got a context at
   either attempt. `TestGDIGenericIsGPUContextError` and
   `TestFallbackOnGDIGeneric` no longer retry a refused first context.
+  `TestOpenGL32LoadFailure` sets the recorded load error: the first window falls
+  back with one line, `GOGUI_RENDERER=gl` returns `ErrNoGPUContext`, and neither
+  reaches the context step.
 
 **Follow-up evidence (phase 5).** Each run records the GL strings, or the
 fallback line and the step that failed, on: Hyper-V without GPU-P; QEMU with std
@@ -813,9 +816,13 @@ examples. Session moves are recorded, not fixed (decision 5).
   #1348: the system DLL was loaded late. With #1348 the system GL and soft
   selections pass on the lab VM (console and RDP) and in the VirtualBox guest
   (console), where the GL render selection also passes on the guest's own OpenGL
-  4.1. Not verified: other Windows versions, an RDP session into the VirtualBox
-  guest, why an AMD driver is not affected, and what the CI runner's own OpenGL
-  does at the first attempt.
+  4.1. On the CI runner the first attempt gets GDI Generic 1.1.0 and fails at
+  the binding, as the second does (the system GL selection of #1348's run). On
+  `main`, a Windows 10 22H2 VM and a Windows Server 2025 RD Session Host refused
+  the first context the same way, on the console and over RDP, and a probe that
+  loaded the DLL first reached the binding at the first attempt there too. Not
+  verified: #1348 itself on those two, an RDP session into the VirtualBox guest,
+  and why an AMD driver is not affected.
 - Every "expected" cell of the environment table. Windows Sandbox with vGPU and
   Hyper-V with GPU-P have no row: unknown.
 - What a running GL window does when a session connects or disconnects.

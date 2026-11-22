@@ -212,6 +212,41 @@ func TestFallbackOnRefusedContext(t *testing.T) {
 	assertFallback(t, b, w, l, "create WGL context", errRefused.Error())
 }
 
+// TestOpenGL32LoadFailure: an opengl32.dll that could not be loaded (#1348)
+// is a GPU-context failure before any WGL call. With the variable unset the
+// first window opens on the CPU renderer with one line; with GOGUI_RENDERER=gl
+// New returns ErrNoGPUContext. Neither reaches the context step.
+func TestOpenGL32LoadFailure(t *testing.T) {
+	cause := errors.New("test: opengl32.dll cannot be loaded")
+	lib := openGL32()
+	old := lib.loadErr
+	lib.loadErr = cause
+	t.Cleanup(func() { lib.loadErr = old })
+	calls := refuseContexts(t)
+
+	t.Run("unset", func(t *testing.T) {
+		l := newAutoProcess(t)
+		w := gui.NewWindow(fallbackCfg())
+		b := openFallback(t, w)
+		assertFallback(t, b, w, l, "load opengl32.dll", cause.Error())
+	})
+	t.Run("gl", func(t *testing.T) {
+		resetProcessRenderer(t)
+		t.Setenv("GOGUI_RENDERER", "gl")
+		b, err := New(gui.NewWindow(fallbackCfg()))
+		if err == nil {
+			b.Destroy()
+			t.Fatal("New without an opengl32.dll returned no error")
+		}
+		if !errors.Is(err, ErrNoGPUContext) || !errors.Is(err, cause) {
+			t.Fatalf("New error = %v, want ErrNoGPUContext with the cause", err)
+		}
+	})
+	if *calls != 0 {
+		t.Errorf("%d context attempts, want 0", *calls)
+	}
+}
+
 // TestFallbackOnGDIGeneric: the first window gets Microsoft's generic OpenGL
 // 1.1, through the pixel format of phase 1's regression test. The binding
 // fails, so the window opens on the CPU renderer and the line names the GL.

@@ -157,6 +157,7 @@ var win32SystemGLTests = []string{
 	"TestGDIGenericIsGPUContextError",
 	"TestFirstGLAttemptOfProcess",
 	"TestFallbackOnRefusedContext",
+	"TestOpenGL32LoadFailure",
 	"TestFallbackOnGDIGeneric",
 	"TestRendererGLReportsError",
 	"TestFallbackSoftFailure",
