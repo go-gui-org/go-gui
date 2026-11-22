@@ -160,6 +160,7 @@ func tableBuildRows(
 		capacity = len(cfg.Data) * 2
 	}
 	rows := make([]View, 0, capacity)
+	sepWidth := tableRowWidth(columnWidths, cellBorder, rh)
 
 	// Top spacer for virtualization.
 	if virtualize && first > dataStart && rowHeight > 0 {
@@ -194,11 +195,7 @@ func tableBuildRows(
 		}
 
 		if needsSep {
-			rows = append(rows, Rectangle(RectangleCfg{
-				Color:  cfg.Colors.Border,
-				Height: sepHeight,
-				Sizing: FillFixed,
-			}))
+			rows = append(rows, tableSeparator(cfg, sepHeight, sepWidth))
 		}
 	}
 
@@ -213,6 +210,37 @@ func tableBuildRows(
 	}
 
 	return rows
+}
+
+// tableRowWidth is the width of a full row: every column plus the row
+// header, less the overlap of the collapsed cell borders.
+func tableRowWidth(columnWidths []float32, cellBorder float32, rh tableRowHeader) float32 {
+	var width float32
+	cells := len(columnWidths)
+	for _, cw := range columnWidths {
+		width += cw
+	}
+	if rh.on {
+		width += rh.width
+		cells++
+	}
+	if cells > 1 {
+		width -= float32(cells-1) * cellBorder
+	}
+	return width
+}
+
+// tableSeparator is the line between two rows. It fills the table's
+// width, but is never narrower than a row: in a table scrolled sideways
+// a line only as wide as the table stopped short of the last columns
+// (#1293).
+func tableSeparator(cfg *TableCfg, height, rowWidth float32) View {
+	return Rectangle(RectangleCfg{
+		Color:  cfg.Colors.Border,
+		Width:  rowWidth,
+		Height: height,
+		Sizing: FillFixed,
+	})
 }
 
 // tableFreezeLayout builds the split layout: fixed header zone
@@ -246,34 +274,44 @@ func tableFreezeLayout(
 		needsSep = true
 	}
 	if needsSep {
-		headerViews = append(headerViews, Rectangle(RectangleCfg{
-			Color:  cfg.Colors.Border,
-			Height: sepHeight,
-			Sizing: FillFixed,
-		}))
+		headerViews = append(headerViews, tableSeparator(cfg, sepHeight,
+			tableRowWidth(columnWidths, cellBorder, rh)))
 	}
 
+	// The body keeps room on the right for the vertical scrollbar and
+	// at the bottom for the horizontal one, so neither covers a cell.
+	gutter := DefaultScrollbarStyle.Size + PadXSmall
+
+	// The header zone clips, so its row of columns no longer sets the
+	// table's minimum width: the table fits its parent and the body
+	// scrolls sideways. The zone follows the body's X offset
+	// (scroll_link.go), so the header moves with the columns but stays
+	// frozen above the rows (#1293). It keeps the body's side gutter,
+	// so both start and clip at the same x; RTL moves the gutter to the
+	// left in both.
 	headerZone := Column(ContainerCfg{
-		Sizing:     FillFit,
-		Padding:    NoPadding,
-		Spacing:    SpacingPx(rowSpacing),
-		SizeBorder: NoBorder,
-		Content:    headerViews,
+		Sizing:      FillFit,
+		Padding:     NewPadding(0, gutter, 0, 0),
+		Spacing:     SpacingPx(rowSpacing),
+		SizeBorder:  NoBorder,
+		Clip:        true,
+		ScrollLinkX: scrollID,
+		Content:     headerViews,
 	})
 
 	bodyCfg := ContainerCfg{
 		Sizing:     FillFill,
-		Padding:    NewPadding(0, DefaultScrollbarStyle.Size+PadXSmall, 0, 0),
+		Padding:    NewPadding(0, gutter, gutter, 0),
 		Spacing:    SpacingPx(rowSpacing),
 		SizeBorder: NoBorder,
 		ID:         scrollID,
 		Scrollable: true,
 		Content:    bodyRows,
-		ScrollbarCfgX: &ScrollbarCfg{
-			Overflow: ScrollbarHidden,
-		},
 	}
 	if cfg.Scrollbar != ScrollbarAuto {
+		bodyCfg.ScrollbarCfgX = &ScrollbarCfg{
+			Overflow: cfg.Scrollbar,
+		}
 		bodyCfg.ScrollbarCfgY = &ScrollbarCfg{
 			Overflow: cfg.Scrollbar,
 		}

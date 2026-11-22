@@ -157,6 +157,21 @@ type ContainerCfg struct {
 	// Title renders a group-box label in the top border. See the
 	// type doc for the room it takes, and TitleBG.
 	Title string
+
+	// ScrollLinkX is the effective ID of a Scrollable container whose
+	// horizontal offset this container follows. Its children move
+	// sideways with that container's content, but this container does
+	// not scroll itself: a frozen header above the rows of a grid uses
+	// it, so each header stays above its column (#1293). Set Clip as
+	// well, or the children are drawn past the edges. A wheel or
+	// trackpad scroll over this container scrolls the linked one. The
+	// offset is read after it was clamped for the frame, so the two
+	// never drift apart, not even for one frame during a resize. Give
+	// this container the same axis and horizontal padding as the linked
+	// one, so both place their children at the same x. Ignored on a
+	// Scrollable container, and when no Scrollable container in the
+	// frame has that ID, even if one had it before.
+	ScrollLinkX string
 	A11YCfg
 
 	// Content holds the child views displayed inside this container.
@@ -449,7 +464,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnHover == nil && !c.Hover.isSet() && c.OnGesture == nil &&
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
 		c.OnScroll == nil && c.OnMouseScroll == nil &&
-		c.AmendLayout == nil &&
+		c.AmendLayout == nil && c.ScrollLinkX == "" &&
 		!c.AcceptsTextInput &&
 		c.Sound == SoundNone {
 		return eventHandlers{}, false
@@ -474,6 +489,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		amendOnRender: c.amendOnRender,
 		hoverStatic:   c.hoverStatic,
 		pointerAmend:  c.pointerAmend,
+		scrollLinkX:   c.ScrollLinkX,
 		clickOnSpace:  c.ClickOnSpace,
 		clickOnEnter:  c.ClickOnEnter,
 		soundCue:      c.Sound,

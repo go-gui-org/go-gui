@@ -99,6 +99,14 @@ func layoutChildStartPos(
 		if v, ok := sy.Get(id); ok {
 			y += v
 		}
+	} else if v, ok := scrollLinkedX(layout.Shape, w); ok {
+		// Follows another container's X offset (scroll_link.go), the
+		// same way that container moves its own children.
+		if isRTL && axis == axisLeftToRight {
+			x -= v
+		} else {
+			x += v
+		}
 	}
 	return x, y
 }
@@ -348,6 +356,9 @@ func layoutAdjustScrollOffsetsDepth(layout *Layout, w *Window, depth int) {
 	}
 	id := layout.Shape.idKey()
 	if layout.Shape.Scrollable && id != "" {
+		if w.scratch.scrollLive != nil {
+			w.scratch.scrollLive[id] = struct{}{}
+		}
 		sx := w.scrollX()
 		sy := w.scrollY()
 		maxOffsetX := f32Min(0, layout.Shape.Width-layout.Shape.paddingWidth()-contentWidth(layout))

@@ -18,6 +18,8 @@ StrokeRect xy=39.00,65.20 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
 Text xy=45.00,68.20 wh=0.00,0.00 color=#1a1d21ff text="beta" size=14.00
 StrokeRect xy=98.00,65.20 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
 Text xy=104.00,68.20 wh=0.00,0.00 color=#1a1d21ff text="7" size=14.00
+Clip xy=16.00,92.80 wh=277.00,7.00
+Clip xy=16.00,16.00 wh=277.00,74.80
 Clip xy=295.00,16.00 wh=7.00,74.80
 Clip xy=16.00,16.00 wh=277.00,74.80
 Clip xy=0.00,0.00 wh=320.00,240.00

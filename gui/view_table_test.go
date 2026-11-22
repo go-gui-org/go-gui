@@ -595,9 +595,9 @@ func TestTableFreezeHeader(t *testing.T) {
 		t.Errorf("header zone children = %d, want 1",
 			len(headerZone.Children))
 	}
-	// Body zone: 2 data rows + scrollbar.
-	if len(bodyZone.Children) != 3 {
-		t.Errorf("body zone children = %d, want 3",
+	// Body zone: 2 data rows + the horizontal and vertical scrollbars.
+	if len(bodyZone.Children) != 4 {
+		t.Errorf("body zone children = %d, want 4",
 			len(bodyZone.Children))
 	}
 }
@@ -628,9 +628,9 @@ func TestTableFreezeHeaderWithSeparator(t *testing.T) {
 		t.Errorf("header zone children = %d, want 2",
 			len(headerZone.Children))
 	}
-	// Body zone: 2 body rows + scrollbar.
-	if len(bodyZone.Children) != 3 {
-		t.Errorf("body zone children = %d, want 3",
+	// Body zone: 2 body rows + the horizontal and vertical scrollbars.
+	if len(bodyZone.Children) != 4 {
+		t.Errorf("body zone children = %d, want 4",
 			len(bodyZone.Children))
 	}
 }

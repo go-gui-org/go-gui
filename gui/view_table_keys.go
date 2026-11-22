@@ -190,7 +190,22 @@ func tableOnKeyDown(
 
 	if scrollID != "" && rowH > 0 && listH > 0 {
 		scrollEnsureVisible(scrollID,
-			max(next-bodyRowOffset, 0), rowH, listH, w)
+			max(next-bodyRowOffset, 0), rowH,
+			tableViewportHeight(w, scrollID, listH), w)
 	}
 	e.IsHandled = true
+}
+
+// tableViewportHeight is the height the scroll body shows rows in: the
+// arranged body less its padding. That leaves out the frozen header
+// and the strip kept for the horizontal scrollbar, which the table's
+// Height includes; scrolling by Height left the last row partly under
+// them (#1293). listH is the fallback before a frame arranged the body.
+func tableViewportHeight(w *Window, scrollID string, listH float32) float32 {
+	if ly, ok := w.layout.findByID(scrollID); ok && ly.Shape != nil {
+		if h := ly.Shape.Height - ly.Shape.paddingHeight(); h > 0 {
+			return h
+		}
+	}
+	return listH
 }

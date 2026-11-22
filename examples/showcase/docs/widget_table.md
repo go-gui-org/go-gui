@@ -63,6 +63,22 @@ Renders only visible rows. The table always scrolls, so `Height` or
 cfg.MaxHeight = 260
 ```
 
+## Wide Tables
+
+A table takes the width its `Sizing` gives it; the default is `FillFit`, the
+width of its parent. When its columns are wider, it scrolls sideways on its own
+and shows a horizontal scrollbar. With `FreezeHeader`, the header stays at the
+top but moves sideways with the rows, so each header stays above its column, and
+the vertical scrollbar stays at the right edge of the table. A wheel or trackpad
+scroll over the header scrolls the rows. A `Fit` width grows the table to its
+columns instead, so it never scrolls sideways; use the default, another `Fill`
+sizing or a fixed width.
+
+```go
+cfg.Sizing = gui.FillFit
+cfg.FreezeHeader = true
+```
+
 ## Stdlib Data Binding
 
 Set `RawData` for CSV-style string data. First row is the header:
@@ -101,16 +117,16 @@ When `RawData` is set, `Data` is ignored.
 | AlignHead          | HorizontalAlign   | Header row alignment          |
 | MultiSelect        | bool              | Allow multi-row selection     |
 | Selected           | map[int]bool      | Selected row indices          |
-| Scrollbar          | ScrollbarOverflow | Scrollbar overflow mode       |
+| Scrollbar          | ScrollbarOverflow | Overflow mode, both bars      |
 | BorderStyle        | TableBorderStyle  | Cell border style             |
-| Sizing             | Sizing            | Combined axis sizing mode     |
+| Sizing             | Sizing            | Axis sizing, default FillFit  |
 | Width              | float32           | Fixed width                   |
 | Height             | float32           | Fixed height                  |
 | MinWidth           | float32           | Minimum width                 |
 | MaxWidth           | float32           | Maximum width                 |
 | MinHeight          | float32           | Minimum height                |
 | MaxHeight          | float32           | Maximum height                |
-| FreezeHeader       | bool              | Pin header outside the scroll |
+| FreezeHeader       | bool              | Pin header above the rows     |
 | Focusable          | bool              | Opt in to keyboard focus      |
 | Sound              | SoundCue          | Row-activation cue            |
 | SoundDisabled      | bool              | Suppress row sounds           |

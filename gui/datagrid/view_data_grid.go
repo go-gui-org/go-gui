@@ -719,14 +719,12 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		w:            w,
 	}
 	dctx.rowClick = newDataGridRowClickCtx(dctx)
-	totalWidth := dataGridColumnsTotalWidth(columns, columnWidths)
+	totalWidth := dataGridRowWidth(&resolvedCfg, columns, columnWidths, rowDeleteEnabled)
 	headerView := dataGridHeaderRow(&resolvedCfg, columns, columnWidths, focusID,
 		hoveredColID, resizingColID, focusedColID)
 	headerHeight := dataGridHeaderHeight(&resolvedCfg)
 	frozenTopViews, frozenTopDisplayRows := dataGridFrozenTopViews(dctx,
 		frozenTopIndices, rowDeleteEnabled)
-	// Default 0: absent entry means no horizontal scroll offset.
-	scrollX := w.ScrollX().GetOr(scrollID, 0)
 
 	// Visible range for virtualization.
 	firstVisible, lastVisible := 0, len(presentation.Rows)-1
@@ -757,7 +755,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 
 	// Final assembly.
 	content := dataGridFinalContent(dctx, scrollBody, headerView,
-		headerHeight, totalWidth, scrollX, gridHeight, staticTop,
+		headerHeight, totalWidth, gridHeight, staticTop,
 		frozenTopViews, frozenTopDisplayRows, crudEnabled, crudState,
 		sourceCaps, hasSource, pagerEnabled, sourcePagerEnabled,
 		pageIndex, pageCount, pageStart, pageEnd, presentation,

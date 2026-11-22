@@ -28,6 +28,10 @@ type eventHandlers struct {
 	OnDraw func(*DrawContext)
 	// versionFn is DrawCanvasCfg.VersionFn (here, not on Shape, to keep Shape small).
 	versionFn func() uint64
+	// scrollLinkX is ContainerCfg.ScrollLinkX: the key of the scroll
+	// container whose X offset this one follows (scroll_link.go). Here,
+	// not on Shape, to keep Shape small.
+	scrollLinkX string
 
 	// Click filters — set by widget factories to avoid the per-frame
 	// closure allocation a wrapper callback would cost.

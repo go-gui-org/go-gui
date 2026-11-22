@@ -311,6 +311,10 @@ func (c *dataGridCellIDs) next(colID string) string {
 	return id
 }
 
+// dataGridRowDeleteWidth is the width of the CRUD row-delete button at
+// the end of a row. The frozen header band counts it too (#1293).
+const dataGridRowDeleteWidth = dataGridHeaderControlWidth + 10
+
 // dataGridRowDeleteButton builds the CRUD row-delete button.
 func dataGridRowDeleteButton(dctx dataGridCtx, rowID string) gg.View {
 	cfg := dctx.cfg
@@ -323,7 +327,7 @@ func dataGridRowDeleteButton(dctx dataGridCtx, rowID string) gg.View {
 	focusID := dctx.focusID
 	return gg.Button(gg.ButtonCfg{
 		ID:         gg.ScopeID(gridID, "row-delete", rowID),
-		Width:      dataGridHeaderControlWidth + 10,
+		Width:      dataGridRowDeleteWidth,
 		Sizing:     gg.FixedFill,
 		Padding:    gg.NoPadding,
 		SizeBorder: gg.NoBorder,
@@ -576,11 +580,18 @@ func dataGridScrollGutter() float32 {
 
 // --- Frozen top rows ---
 
-func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, totalWidth, scrollX float32) gg.View {
-	return gg.Row(gg.ContainerCfg{
+// dataGridFrozenTopZone is a band above the scrolling rows: the header,
+// the quick filter or the frozen top rows. It follows the rows' X
+// offset through ScrollLinkX, which reads the offset after this frame's
+// clamp, so the band never lags the rows during a resize (#1293). It is
+// a Column with the body's padding, like the body, so both place their
+// content at the same x, under RTL too.
+func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, totalWidth float32, scrollID string) gg.View {
+	return gg.Column(gg.ContainerCfg{
 		Height:      zoneHeight,
 		Sizing:      gg.FillFixed,
 		Clip:        true,
+		ScrollLinkX: scrollID,
 		Color:       cfg.ColorBackground,
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.NoBorder,
@@ -588,7 +599,6 @@ func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, tot
 		Spacing:     gg.NoSpacing,
 		Content: []gg.View{
 			gg.Column(gg.ContainerCfg{
-				X:           scrollX,
 				Width:       totalWidth,
 				Sizing:      gg.FixedFill,
 				Color:       gg.ColorTransparent,
