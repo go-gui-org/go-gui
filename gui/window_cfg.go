@@ -140,15 +140,18 @@ type WindowCfg struct {
 	// stays opaque, which gui.Debug reports.
 	Transparent bool
 	// EnableTextHinting turns on stem snapping of glyph outlines
-	// (#1334). When it is on, vertical stems of text up to 48 px move to
-	// whole pixels, so they show as solid columns. Hinting is off by
-	// default: glyphs keep their exact outline, so the text looks softer
-	// but more uniform, and stems and curves have the same weight. The
-	// snap moves only the x position of a stem and not the advances, so
-	// straight and curved letters in one word can look out of step
-	// (go-glyph#198). Window.SetTextHinting changes the value at runtime,
-	// for example from an app setting. It has no effect on the web
-	// backend.
+	// (#1334). When it is on and the display scale is fractional, such
+	// as 125% or 150%, vertical stems of text up to 48 px move to whole
+	// pixels, so they show as solid columns. At a whole scale (100%,
+	// 200%) it does nothing. Hinting is off by default: glyphs keep
+	// their exact outline, so the text looks softer but more uniform,
+	// and stems and curves have the same weight. The snap moves only
+	// the x position of a stem and not the advances, so straight and
+	// curved letters in one word can look out of step, and the gap
+	// between two letters can be up to about 1 px off the font's
+	// spacing (go-glyph#198). Window.SetTextHinting changes the value
+	// at runtime, for example from an app setting. It has no effect on
+	// the web backend.
 	//
 	// Multisample antialiasing (MSAA) does not change text or rectangle
 	// borders. It only smooths the edges of SVG paths and other triangle

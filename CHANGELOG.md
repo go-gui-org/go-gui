@@ -103,6 +103,13 @@ and this project adheres to
 
 ### Changed
 
+- **Text hinting runs only at fractional scales (go-gui-org/go-glyph#198).**
+  go-glyph is now v1.29.1. With `EnableTextHinting` on, stems snap only when the
+  display scale is fractional, such as 125% or 150%. At a whole scale (100%,
+  200%) text keeps its exact outline, which looked better there. Hinted bowls
+  such as "o" no longer lean: both edges of a stem now snap. Hinted letter
+  spacing stays uneven by up to about 1 px, a documented limit.
+
 - **A table with a frozen header scrolls sideways on its own (#1293).** A
   `Table` with `FreezeHeader` used to grow as wide as its columns, so in a
   narrower parent the last columns and the vertical scrollbar were out of reach.
