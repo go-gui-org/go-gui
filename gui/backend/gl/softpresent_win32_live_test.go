@@ -443,37 +443,48 @@ func softWin32AltView(_ *gui.Window) gui.View {
 }
 
 // TestSoftWin32PresentAllocs pins what a steady-state soft frame costs the
-// heap: nothing. Draw is at 0 (soft.TestRendererDrawAllocs); the swizzle
-// writes into the DIB, and every GDI call takes scalars or a pointer into
-// the present state, which lives on the heap already.
+// heap: nothing, on an opaque window and on a layered one. Draw is at 0
+// (soft.TestRendererDrawAllocs); the swizzle writes into the DIB, and every
+// GDI and user32 call takes scalars or pointers into the present state,
+// which lives on the heap already.
 func TestSoftWin32PresentAllocs(t *testing.T) {
 	if raceEnabled {
 		t.Skip("allocation counts include the race runtime's own under -race")
 	}
-	b, w := newSoftWin32Test(t, softWin32Cfg())
-	sp := b.plat.soft
-	sp.vsyncOff = true
-	w.FrameFn()
-	for range 3 {
-		if !sp.present(w, b.physW, b.physH) {
-			t.Fatal("present failed")
-		}
-	}
-	const frames = 30
-	// Best of a few rounds: the counters are process-wide, and go-glyph's
-	// background warm runs beside us.
-	best := math.Inf(1)
-	for range 5 {
-		var m0, m1 runtime.MemStats
-		runtime.ReadMemStats(&m0)
-		for range frames {
-			sp.present(w, b.physW, b.physH)
-		}
-		runtime.ReadMemStats(&m1)
-		best = min(best, float64(m1.Mallocs-m0.Mallocs)/frames)
-	}
-	t.Logf("%.2f allocations per frame", best)
-	if best > 0 {
-		t.Fatalf("%.2f allocations per frame, want 0", best)
+	for _, c := range []struct {
+		name string
+		cfg  gui.WindowCfg
+	}{{"opaque", softWin32Cfg()}, {"layered", layeredCfg(false)}} {
+		t.Run(c.name, func(t *testing.T) {
+			b, w := newSoftWin32Test(t, c.cfg)
+			sp := b.plat.soft
+			if sp.layered != (c.name == "layered") {
+				t.Fatalf("layered = %v", sp.layered)
+			}
+			sp.vsyncOff = true
+			w.FrameFn()
+			for range 3 {
+				if !sp.present(w, b.physW, b.physH) {
+					t.Fatal("present failed")
+				}
+			}
+			const frames = 30
+			// Best of a few rounds: the counters are process-wide, and
+			// go-glyph's background warm runs beside us.
+			best := math.Inf(1)
+			for range 5 {
+				var m0, m1 runtime.MemStats
+				runtime.ReadMemStats(&m0)
+				for range frames {
+					sp.present(w, b.physW, b.physH)
+				}
+				runtime.ReadMemStats(&m1)
+				best = min(best, float64(m1.Mallocs-m0.Mallocs)/frames)
+			}
+			t.Logf("%.2f allocations per frame", best)
+			if best > 0 {
+				t.Fatalf("%.2f allocations per frame, want 0", best)
+			}
+		})
 	}
 }

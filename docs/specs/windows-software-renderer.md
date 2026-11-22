@@ -1,10 +1,10 @@
 # Windows software renderer
 
-Issue #1310 (follow-up of #1265). Status: **phases 1 to 3 of 5 landed** (#1319,
-#1333, #1338; phases 4 and 5 planned).
+Issue #1310 (follow-up of #1265). Status: **phases 1 to 4 of 5 landed** (#1319,
+#1333, #1338, #1344; phase 5 planned).
 
 The maintainer accepted this design on the issue on 2026-11-20 (see Decisions).
-Code facts are as of #1319, except where a sentence names phase 2 or phase 3.
+Code facts are as of #1319, except where a sentence names phase 2, 3 or 4.
 "Measured" with no machine named means throwaway programs on one 16-thread AMD
 desktop (Windows 11 24H2, Go 1.27.4, a 1920×1080 screen, median of 10–20 runs);
 those figures are indicative. "The lab VM" is the one machine without a GPU
@@ -237,7 +237,8 @@ window DC.
 - **Frame store.** One top-down 32 bpp `BI_RGB` DIB section per window, selected
   into the memory DC. Its byte order is B, G, R, A, which is what `swizzleBGRA`
   writes. DWM composes an opaque window opaque, so the alpha byte soft leaves
-  below 255 is ignored and there is no `finishFrameAlpha` step.
+  below 255 is ignored and there is no `finishFrameAlpha` step. A layered window
+  (phase 4, below) reads the byte as premultiplied alpha.
 - **Frame.** `soft.Renderer.Draw` under the window lock, as
   `softPresent.present` does on X11; swizzle into the DIB after the unlock;
   `BitBlt(SRCCOPY)` to the window DC. A frame `Draw` refuses is skipped, logged
@@ -287,7 +288,7 @@ seventh, `WM_DISPLAYCHANGE`, tells the pacer to re-read the display frequency
 | `Run`, the frame call     | `renderFrame`                                                 | `presentWin32`                                                                                             |
 | `runAppE`, the frame call | `renderFrame`                                                 | `presentWin32`                                                                                             |
 | `WM_SIZE`                 | `handleResize` sets the GL viewport, then `renderFrame`       | `resizeWin32`: size, `applyDPIScale`, `Renderer.SetScale`; then `presentWin32`. Live resize keeps working  |
-| `WM_PAINT`                | validate                                                      | `BeginPaint`, blit the DIB, flush, `EndPaint`                                                              |
+| `WM_PAINT`                | validate                                                      | `BeginPaint`, blit the DIB, flush, `EndPaint`; a layered window only validates (phase 4)                   |
 
 No change is needed for per-monitor DPI (the `WM_SIZE` that follows
 `WM_DPICHANGED` adopts the scale), multiple windows (each backend owns its DIB
@@ -296,23 +297,126 @@ and message handling only), IME and UI Automation (window messages and
 `nativePlatform`, which soft installs), or whole-window opacity
 (`SetLayeredWindowAttributes` redirects GDI painting too).
 
-**Transparent windows** (`WindowCfg.Transparent`) are phase 4. The GL path makes
+**Transparent windows** (`WindowCfg.Transparent`, phase 4). The GL path makes
 DWM honour the framebuffer's alpha with `DwmEnableBlurBehindWindow` and avoids
 `WS_EX_LAYERED` because it fights the swap chain (`transparency_win32.go`). Soft
 has no swap chain, and the documented route for a bitmap with per-pixel alpha is
 a layered window updated with
 [`UpdateLayeredWindow`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatelayeredwindow)
-and `AC_SRC_ALPHA`, which takes premultiplied 32 bpp: the DIB above.
+and `AC_SRC_ALPHA`, which takes premultiplied 32 bpp: the DIB above. The
+measurements below are from the workstation.
 
-- The bitmap is the whole window, so this fits a frameless window, whose client
-  area is the window. With a system frame the window stays opaque (decision 3),
-  as every transparent soft window does until phase 4, with the same report.
-- A layered window passes mouse input through where alpha is 0 (probed in the
-  design review: alpha 1, 2 and 255 do not); the GL path takes input everywhere.
-  Hence the alpha floor of decision 4.
-- `SetLayeredWindowAttributes` and `UpdateLayeredWindow` exclude each other, so
-  opacity on a transparent window stays refused, as on GL
-  (`layeredOpacityAllowed`).
+- **Which windows.** A soft window that is `Transparent` and `DecorationNone` is
+  created with `WS_EX_LAYERED` (`softExStyle`), on the soft class, which has no
+  `CS_OWNDC`. `enableWindowTransparency` is not called for it, and it makes no
+  transparency report. The bitmap is the whole window, so a transparent window
+  with a system frame stays opaque (decision 3), with one report: "the CPU
+  renderer on Windows draws a window with a system frame opaque; a frameless one
+  (DecorationNone) is transparent". After a fallback, the GL attempt's
+  `enableWindowTransparency` call and its report go with the discarded window.
+- **Client area is the window.** A frameless window answers `WM_NCCALCSIZE` with
+  no non-client area, but the first one comes inside `CreateWindowExW`, before
+  the window is registered, and `DefWindowProc` gives a `WS_THICKFRAME` window
+  its resize border there: a 320×200 client in a 334×214 window at 100 %. For a
+  layered window, `fitLayeredFrame` sends a frame change and sets the window to
+  the client size it was created with, and `routeMessage` answers
+  `WM_NCCALCSIZE` for a layered window before `Run`. The client rect then equals
+  the window rect from the start, in the normal, resized and maximized states
+  (the frameless maximize clamp, `clampMaximizeToWorkArea`), for both frameless
+  styles; `FixedSize`'s plain `WS_POPUP` has no border to remove. The size
+  change is sent with `SWP_NOSENDCHANGING`: in `WM_WINDOWPOSCHANGING`,
+  `DefWindowProc` holds a `WS_THICKFRAME` window to its minimum track size,
+  14×14 at 100 %, which made an 8×80 window 14×80 and a 1×1 window 14×14
+  (measured). Creating a layered window at the client size and sending only the
+  frame change does not avoid it: `CreateWindowExW` applies the same minimum,
+  and the 8×80 window is created 14×80 (measured). The size limits
+  (`trackSizeFor`) are answered only once `Run` has started, as before. For a
+  frameless window they are now client sizes with nothing added: the function
+  added the border `AdjustWindowRectExForDpi` counts for `WS_THICKFRAME`, which
+  a frameless window does not have as non-client area, so a `MinWidth` of 200
+  held the client at 214 and a `MaxWidth` of 400 let it reach 414, on GL and on
+  soft (measured; found in the review of #1344).
+- **Resize before the loop.** A `WM_SIZE` that comes between `New` and `Run` (a
+  `SetWindowPos` on the window, as the review did) reaches `DefWindowProc`,
+  because `wndProc` routes nothing else to the backend until a run loop sets
+  `plat.w`. The client size and scale `New` read, and the window's logical size,
+  stayed at the creation size. On `main` that is a first frame at the old size,
+  on GL and on soft (measured on `c41eb6b8`: a 304×191 client drawn as 320×200);
+  on a layered window, whose present needs the frame to be the window's size, it
+  was every frame skipped and no window on screen. Both loops now take the
+  window through `attachWin32`, which compares the client rect and the scale
+  with what `New` read and, when they differ, runs `resizeWin32` before
+  `OnInit`. GL makes its context current first, because `handleResize` sets the
+  viewport of the current context. The `EventResized` that `WM_SIZE` would have
+  sent is held back: it runs the application's `OnEvent`, which on `c41eb6b8`
+  never ran before `OnInit`, nor in `RunApp` before the window was registered
+  with the app and had its wake hook. The first version of the reconcile sent it
+  at once, and the review reproduced the cost: a resize handler calling
+  `w.App().OpenWindow` found no app, platform ID 0 and `OnInit` still pending,
+  and the request was lost. `sendStartResize` sends it after `OnInit` (in `Run`
+  after the wake hook is set, in `RunApp` after the registration), before the
+  first frame, with the size current then, so a `WM_SIZE` handled during
+  `OnInit` is not overwritten by an older size. When the window's logical size
+  already matches, after such a `WM_SIZE` or a change of scale alone, no second
+  event is sent. gui has no way to set a window's logical size without
+  dispatching to the application, so `OnInit` reads the creation size, as on
+  `c41eb6b8`; the first frame has the real one. A minimized window is left to
+  the `WM_SIZE` of its restore. A queued `Window.SetWindowSize` does not reach
+  this case: `ResizeWindow` posts the request, and the loop handles it after the
+  attach (measured).
+- **Present.** `swizzleBGRALayered` swizzles and applies the alpha floor in one
+  pass. Then `UpdateLayeredWindow` from the memory DC: no `pptDst`, `psize` the
+  frame's size, `pptSrc` (0, 0), `ULW_ALPHA` with `AC_SRC_OVER`, constant alpha
+  255 and `AC_SRC_ALPHA`; then `GdiFlush`, on the window's thread. A failed call
+  is a skipped frame, logged once with the Win32 error and still paced; the
+  frame stays in the DIB and the next present sends it. The call's structs live
+  in `softPresentWin32`, so a present allocates nothing.
+- **Size.** `psize` is the window's new size, and the bitmap covers the window
+  rect, frame included. Without `psize` the call succeeds and shows nothing new;
+  a `psize` unlike the window's resizes the window, a minimized one too
+  (measured). So the present reads the window rect and sends the frame only when
+  the two sizes are equal: a frame never resizes the window. When they differ, a
+  minimized window, parked at 160×28, is skipped without a log line, and the
+  `WM_SIZE` of the restore presents. `IsIconic` is asked only then, so a
+  minimized window whose parked size equals the frame's is updated, which
+  resizes nothing. Any other difference is expected for one frame and a fault
+  after that: when another thread or process resizes the window, the system
+  changes the window rect once this thread has answered `WM_WINDOWPOSCHANGING`
+  and `WM_NCCALCSIZE`, and only then sends the `WM_WINDOWPOSCHANGED` that
+  becomes `WM_SIZE`, so the loop draws one frame in between at the old size (292
+  of 320 resizes of an animating window from another process did, measured).
+  That frame is dropped with no log line and no pacing wait, and the loop's next
+  turn handles `WM_SIZE` and presents at the new size. The next frame that does
+  not fit, before one that does, is a skipped frame, logged. A window that draws
+  one frame and then idles therefore logs nothing if its size were wrong for
+  good; the one known cause of that, a resize before the loop starts, is
+  reconciled above.
+- **`WM_PAINT`** only validates on a layered window: the system composes it from
+  the last bitmap it was given. It is sent no `WM_PAINT` after a present, a
+  resize, or a minimize and restore, but `InvalidateRect` still sends one, with
+  an empty paint rect.
+- **First frame and hidden start.** A layered window that was never updated
+  shows nothing. `showAtStart` shows it, and the loop's first frame puts it on
+  screen. A frame sent while the window is hidden is kept, and shows when
+  `Window.Show` shows the window.
+- **Alpha floor** (decision 4). A layered window passes mouse input through
+  where alpha is 0; the GL path takes input everywhere. A pixel of alpha 0 gets
+  alpha 1, so a premultiplied (0, 0, 0, 0) becomes (0, 0, 0, 1) and darkens what
+  is behind it by 1/255. A point of a margin left at alpha 0 hit-tests
+  (`WindowFromPoint`) to the window behind, and with the floor to the layered
+  window, which a real click there reaches. The floor costs 2.1 ms against
+  swizzleBGRA's 1.7 ms at 1920×1080, and 8.4 ms against 6.2 ms at 3840×2160
+  (`BenchmarkSwizzleBGRALayered`); an opaque window keeps `swizzleBGRA`.
+- **Opacity.** `SetWindowOpacity` stays refused on every transparent window
+  (`layeredOpacityAllowed`), the replay of a fade set before the start included,
+  and `fadeRefusal` says why for each kind. On GL, the fade's `WS_EX_LAYERED`
+  would fight the swap chain of a window made transparent by blur-behind. A
+  layered soft window shows its alpha through `UpdateLayeredWindow`, which fails
+  once `SetLayeredWindowAttributes` has been called on the window (the two
+  exclude each other). A transparent soft window with a system frame is drawn
+  opaque and would take the fade, as any opaque soft window does; it is refused
+  so that the answer does not depend on the renderer, and a fallback from GL
+  does not change it.
 
 ### Where the code lives
 
@@ -406,7 +510,7 @@ workload.
 | 1     | A GL bring-up failure is a GPU-context failure: no panic, and the message names the GL. No soft code | landed (#1319) |
 | 2     | `GOGUI_RENDERER=soft` on Windows, opaque windows                                                     | landed (#1333) |
 | 3     | Automatic fallback when the first window's context or binding fails                                  | landed (#1338) |
-| 4     | Transparent frameless windows on soft                                                                | planned        |
+| 4     | Transparent frameless windows on soft                                                                | landed (#1344) |
 | 5     | Follow-up evidence: the wider machine matrix, the numbers recorded here, follow-up issues            | planned        |
 
 Each phase is one pull request, carries its tests, docs and `CHANGELOG.md`
@@ -438,10 +542,10 @@ entry, and updates the table above. The steps, in execution order:
    benchmark on a machine without a vendor driver. Record in the pull request:
    the fallback line, a live resize, minimise and restore, and the acceptance
    figures.
-10. **Phase 4.** Create a transparent, frameless soft window with
+10. **Phase 4, done in #1344.** Create a transparent, frameless soft window with
     `WS_EX_LAYERED`, skip `enableWindowTransparency`, and present it with
     `UpdateLayeredWindow` from the memory DC, then flush. Raise alpha 0 to 1 on
-    that path.
+    that path. Make the client area the whole window before the first frame.
 11. **Phase 5.** Run the matrix under Tests and record the numbers here. File
     follow-up issues from what they show (swizzle, HiDPI, timer).
 
@@ -529,8 +633,36 @@ runner's own OpenGL does.
   lock. A New that blocks in either test ends the test binary with the reason
   and every goroutine's stack, since the stuck goroutine would also keep the
   test from ending.
-- **Phase 4.** `TestLayeredAlphaFloor` (pure: 0 becomes 1, 2 stays 2);
-  `UpdateLayeredWindow` succeeding on a real window.
+- **Phase 4.** Pure: `TestLayeredAlphaFloor` (0 becomes 1, 2 stays 2, in both
+  halves of a word and in the odd pixel) and
+  `TestSwizzleBGRALayeredMatchesByteLoop` (a byte loop, on seeded noise and on
+  every pair of alphas). Forced soft: `TestSoftWin32LayeredWindow`, for both
+  frameless styles: `WS_EX_LAYERED`, a present through `UpdateLayeredWindow`,
+  the stored frame equal to `RenderToImage`'s with alpha 0 raised to 1, and the
+  window rect equal to the client rect and the frame after a resize, a maximize
+  and a restore; a minimized window skips its frame without a log line, and so
+  does one frame of another size than the window's, while a second in a row is
+  logged and neither resizes the window. A third case, resizable at 8×80, checks
+  that the window is the size asked for. `TestSoftWin32LayeredShowsDesktop`
+  reads the screen over an opaque backdrop window: the margin shows the
+  backdrop, the card the blend, and the margin hit-tests to the layered window,
+  and to the backdrop once its alpha is set back to 0; once shown at the start,
+  once hidden at the start and shown with `Show` after its frame. It samples the
+  margin at half the physical inset, so it holds at any device scale (passed at
+  0.5, 1 and 1.5). `TestWin32ResizeBeforeRun`: a window resized between `New`
+  and the loop draws its first frame at the window's size, and its logical size
+  follows: a layered window in `Run` and in `RunApp` (resized inside `New`
+  through the present seam), and a GL window in `Run`. `OnEvent` gets the
+  `EventResized` after `OnInit`, in `RunApp` with an app and a platform ID, and
+  with the real size (all three cases failed on the first version, which sent it
+  before `OnInit`). It is in the Mesa GL selection.
+  `TestSoftWin32TransparentFramedIsOpaque`: with a system frame, no
+  `WS_EX_LAYERED`, the pixels of the blit and one report.
+  `TestSoftWin32PresentAllocs` runs on a layered window too. In the system GL
+  selection `TestFallbackPublishesWinningReportsOnly` also falls back with a
+  frameless window: it is layered and gets no transparency report. Each of these
+  live tests passed 20 times in one process and 20 times one process per test on
+  the workstation.
 
 **Follow-up evidence (phase 5).** Each run records the GL strings, or the
 fallback line and the step that failed, on: Hyper-V without GPU-P; QEMU with std
@@ -601,8 +733,16 @@ examples. Session moves are recorded, not fixed (decision 5).
   lower animation rate and possible judder, but no tearing.
 - A process that fell back does not return to GL, at the console after an RDP
   start either. In a GL process a later window whose GL fails returns an error.
-- A transparent window on soft is opaque until phase 4, and afterwards only a
-  frameless one is transparent, with the alpha floor.
+- A transparent window on soft is transparent only when it is frameless. With a
+  system frame it is opaque, and black where the frame is clear: the clear color
+  is `ColorTransparent`, premultiplied (0, 0, 0, 0), which an opaque window
+  shows as black.
+- The alpha floor darkens what is behind a fully transparent pixel by 1/255.
+- Pre-existing, not changed: a resizable frameless window that is not layered
+  (on GL, or opaque on soft) starts with its resize border as non-client area,
+  because the first `WM_NCCALCSIZE` reaches `DefWindowProc`, and its first
+  resize after `Run` makes the client area the whole window: 14 px wider and
+  higher at 100 % (measured on soft; GL routes the message the same way).
 - The GL window class has `CS_OWNDC`, and `applyWindowOpacity` sets
   `WS_EX_LAYERED` on it, which the style documentation excludes. Pre-existing,
   not changed here: #1316.
@@ -640,7 +780,17 @@ examples. Session moves are recorded, not fixed (decision 5).
   benchmark view under Cost; the acceptance figures of decision 7 are phase 3's
   to record. Mesa llvmpipe against soft on Windows; the 2.5–3× figure is
   Linux's.
-- The sleep overshoot and the alpha hit-test results come from the design review
-  and were not repeated.
-- That `UpdateLayeredWindow`'s bitmap covers the non-client area; it follows
-  from the documentation's wording.
+- The sleep overshoot comes from the design review and was not repeated. The
+  alpha hit-test was repeated in phase 4 for alpha 0 and 1 (`WindowFromPoint`,
+  and a real click in a throwaway app); alpha 2 and 255 only in the design
+  review.
+- Phase 4 beyond the workstation: transparent frameless windows were tested
+  there only, at 100 % scaling on one monitor, with the phase 4 tests and a
+  throwaway app (see the pull request): the desktop shows through and the card
+  blends, a click in the clear margin reaches the window, a hidden start, a
+  minimize and restore, a maximize and a live resize keep the frame on screen,
+  and the same app with a system frame is opaque. Not run: the lab VM, an RDP
+  session, the CI runner, a second monitor or another scale.
+- Phase 4 settles that `UpdateLayeredWindow`'s bitmap covers the whole window
+  rect, non-client area included: the `psize` it is given becomes the window's
+  size (measured). A layered soft window has no non-client area.

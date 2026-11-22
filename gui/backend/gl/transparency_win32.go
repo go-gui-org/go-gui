@@ -45,7 +45,9 @@ type dwmBlurBehind struct {
 // region.
 //
 // WS_EX_LAYERED is deliberately not used: it composites through a
-// redirection surface that fights the GL swap chain.
+// redirection surface that fights the GL swap chain. The CPU renderer has
+// no swap chain, and presents a Transparent frameless window as a layered
+// window instead of calling this (softpresent_win32.go).
 //
 // Best-effort. A missing dwmapi export or a failed call leaves an
 // opaque window and goes to report, rather than failing the window

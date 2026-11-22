@@ -35,20 +35,28 @@ This is plain transparency, with no blur. For the blurred macOS backdrop, see
 
 ## Platform notes
 
-| Platform          | Transparency                                          | Fade                                         |
-| ----------------- | ----------------------------------------------------- | -------------------------------------------- |
-| macOS             | Non-opaque `NSWindow` and `CAMetalLayer`              | `NSWindow.alphaValue`                        |
-| Windows           | `DwmEnableBlurBehindWindow` with an empty blur region | `WS_EX_LAYERED`, not on a transparent window |
-| X11               | Depth-32 ARGB visual; needs a compositing manager     | `_NET_WM_WINDOW_OPACITY`                     |
-| web, iOS, Android | Ignored                                               | Ignored                                      |
+| Platform              | Transparency                                            | Fade                                         |
+| --------------------- | ------------------------------------------------------- | -------------------------------------------- |
+| macOS                 | Non-opaque `NSWindow` and `CAMetalLayer`                | `NSWindow.alphaValue`                        |
+| Windows, OpenGL       | `DwmEnableBlurBehindWindow` with an empty blur region   | `WS_EX_LAYERED`, not on a transparent window |
+| Windows, CPU renderer | Frameless only: a layered window, `UpdateLayeredWindow` | `WS_EX_LAYERED`, not on a transparent window |
+| X11                   | Depth-32 ARGB visual; needs a compositing manager       | `_NET_WM_WINDOW_OPACITY`                     |
+| web, iOS, Android     | Ignored                                                 | Ignored                                      |
 
 On X11 with no compositing manager running, the window renders black.
 `gui.Debug(true)` reports that, and also reports a driver that offered no
 depth-32 visual.
 
-On Windows the two features do not compose: the fade needs `WS_EX_LAYERED`,
-which the transparency path deliberately avoids. This example is a transparent
-window, so the slider is refused there and `gui.Debug(true)` says why. See
-`docs/specs/window-opacity.md`.
+On Windows the fade is refused on every transparent window, so the slider is
+refused in this example and `gui.Debug(true)` says why. The reason depends on
+the renderer. With OpenGL, the fade needs `WS_EX_LAYERED`, which the
+transparency path deliberately avoids. See `docs/specs/window-opacity.md`.
+
+With the CPU renderer (`GOGUI_RENDERER=soft`, or the fall back when OpenGL
+cannot run), only a frameless transparent window is see-through: it is a layered
+window updated with `UpdateLayeredWindow`, which fails once the fade's
+`SetLayeredWindowAttributes` has been called. This example keeps its system
+frame, so there it is opaque and `gui.Debug(true)` says so; the fade is refused
+on it too, as on OpenGL. See `docs/deployment.md`.
 
 See `main.go` for the implementation.

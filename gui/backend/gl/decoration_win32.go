@@ -171,11 +171,19 @@ func trackSizeFor(limits gui.SizeLimits, style uintptr, dpi uint32, scale float3
 		return minTrack, maxTrack
 	}
 	// The frame overhead is the same for both bounds, so it is measured
-	// once against an empty client rect rather than per bound.
-	var rc rectW
-	pAdjustRectDpi.Call(uintptr(unsafe.Pointer(&rc)), style, 0, 0, uintptr(dpi))
-	frameW := rc.right - rc.left
-	frameH := rc.bottom - rc.top
+	// once against an empty client rect rather than per bound. A frameless
+	// window (WS_POPUP) has none: WM_NCCALCSIZE gives it no non-client
+	// area, so its client area is the whole window, while
+	// AdjustWindowRectExForDpi still counts the resize border of
+	// WS_THICKFRAME. With that border added, a MinWidth of 200 stopped
+	// the client at 214 at 100 % (measured).
+	var frameW, frameH int32
+	if style&wsPopup == 0 {
+		var rc rectW
+		pAdjustRectDpi.Call(uintptr(unsafe.Pointer(&rc)), style, 0, 0, uintptr(dpi))
+		frameW = rc.right - rc.left
+		frameH = rc.bottom - rc.top
+	}
 
 	// SizeLimits.Scaled owns the logical -> physical conversion for
 	// every backend, so a MinWidth resolves to the same client size

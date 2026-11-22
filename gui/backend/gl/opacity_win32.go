@@ -28,12 +28,47 @@ const (
 // layeredOpacityAllowed reports whether WS_EX_LAYERED may be set on
 // this window.
 //
-// A Transparent window already composites through
+// On GL a Transparent window composites through
 // DwmEnableBlurBehindWindow (see transparency_win32.go). WS_EX_LAYERED
 // adds a redirection surface that fights the GL swap chain, so the two
 // are not combined: the fade is refused and reported rather than
-// risking a window that presents nothing. See #516.
+// risking a window that presents nothing. See #516. The CPU renderer
+// refuses it on a Transparent window too (#1310); fadeRefusal says why
+// for each kind of window.
 func layeredOpacityAllowed(transparent bool) bool { return !transparent }
+
+// fadeRefusal is the reason the fade is refused on a window, or "" when
+// layeredOpacityAllowed lets it through. soft is the CPU renderer, and
+// layered its Transparent frameless window.
+//
+//   - GL: the window is transparent through DWM's blur-behind, which the
+//     fade's WS_EX_LAYERED would fight (layeredOpacityAllowed).
+//   - Layered: the window already has WS_EX_LAYERED and shows its per-pixel
+//     alpha through UpdateLayeredWindow. The two calls exclude each other:
+//     once SetLayeredWindowAttributes has been called on a layered window,
+//     UpdateLayeredWindow fails on it (documented), so the fade would
+//     stop every later frame.
+//   - A system frame: the CPU renderer draws the window opaque, and the
+//     fade would work on it as on any opaque soft window. It is refused
+//     anyway, so whether a Transparent window takes a fade does not depend
+//     on the renderer: the same window refuses it on GL, and a fallback
+//     from GL does not change the answer.
+func fadeRefusal(transparent, soft, layered bool) string {
+	switch {
+	case layeredOpacityAllowed(transparent):
+		return ""
+	case layered:
+		return "the window is Transparent and frameless: the CPU renderer " +
+			"shows it with UpdateLayeredWindow, which fails once " +
+			setLayeredWindowAttributesFn + " has been called"
+	case soft:
+		return "the window is Transparent; the CPU renderer draws it opaque " +
+			"because it has a system frame, and refuses the fade on a " +
+			"Transparent window as OpenGL does"
+	}
+	return "the window is Transparent; on OpenGL it composites through " +
+		"DWM blur-behind, and the fade's WS_EX_LAYERED would fight the swap chain"
+}
 
 // opacityAlphaByte converts an opacity in [0, 1] to the 0-255 alpha
 // SetLayeredWindowAttributes takes. Pure, so it is tested without a
@@ -62,14 +97,14 @@ func opacityAlphaByte(opacity float32) byte {
 // Best-effort, like every other window-level capability here: a missing
 // export or a refused combination is reported through warn, the window's
 // DebugWindowOpacity or New's collection for the window being opened, and
-// leaves the window as it was.
-func applyWindowOpacity(warn func(string), hwnd uintptr, transparent bool, opacity float32) {
+// leaves the window as it was. refusal is fadeRefusal's answer for the
+// window: when it is not empty, the fade is refused with it.
+func applyWindowOpacity(warn func(string), hwnd uintptr, refusal string, opacity float32) {
 	if hwnd == 0 {
 		return
 	}
-	if !layeredOpacityAllowed(transparent) {
-		warn("the window is Transparent; WS_EX_LAYERED and per-pixel " +
-			"alpha do not compose on Windows")
+	if refusal != "" {
+		warn(refusal)
 		return
 	}
 	if err := pSetLayeredWindowAttributes.Find(); err != nil {

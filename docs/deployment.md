@@ -110,8 +110,11 @@ copies each frame to the window through GDI (#1310). The process then loads no
 starts on a machine whose OpenGL cannot run it: a VM or an RDP session without a
 GPU driver, where Windows has only its generic OpenGL 1.1 and startup otherwise
 fails with `ErrNoGPUContext`. Frames are paced to the monitor's refresh rate. A
-`WindowCfg.Transparent` window is opaque on this path, and custom shaders draw
-their children but not their shader fill.
+`WindowCfg.Transparent` window without a system frame (`DecorationNone`) is
+transparent on this path: it is a layered window, the desktop shows through
+where the frame's alpha is below 255, and the whole window takes mouse input, as
+on GL. One with a system frame is opaque, and `gui.Debug` reports it. Custom
+shaders draw their children but not their shader fill.
 
 With the variable unset, Windows tries GL for the first window. If that window
 gets no WGL context, or cannot bind the GL functions the backend needs, as on

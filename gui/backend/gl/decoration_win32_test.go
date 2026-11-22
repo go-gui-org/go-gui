@@ -181,6 +181,24 @@ func TestTrackSizeForAddsFrameAndScale(t *testing.T) {
 	}
 }
 
+// A frameless window's client area is the whole window, so its track
+// sizes are the client bounds with nothing added, for the resizable style
+// (WS_THICKFRAME, whose border AdjustWindowRectExForDpi would count) and
+// the fixed one alike. With the border added, a MinWidth of 200 held the
+// client at 214.
+func TestTrackSizeForFramelessAddsNoFrame(t *testing.T) {
+	t.Parallel()
+	limits := gui.SizeLimits{MinW: 200, MinH: 150, MaxW: 400, MaxH: 300}
+	for _, fixed := range []bool{false, true} {
+		style := windowStyleFor(gui.WindowCfg{Decorations: gui.DecorationNone, FixedSize: fixed})
+		minT, maxT := trackSizeFor(limits, style, 96, 1)
+		if minT != (pointL{x: 200, y: 150}) || maxT != (pointL{x: 400, y: 300}) {
+			t.Errorf("FixedSize %v: track %+v to %+v, want the client bounds 200x150 to 400x300",
+				fixed, minT, maxT)
+		}
+	}
+}
+
 // With GOGUI_DEVICE_SCALE set, the client bound follows the effective
 // scale, not the monitor DPI: the content is laid out at that scale, so
 // a MinWidth of 400 is 800 client pixels at scale 2 on a 96 DPI monitor.

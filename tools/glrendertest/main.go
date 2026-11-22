@@ -129,6 +129,9 @@ var win32Tests = []string{
 	"TestLaterWindowGLFailureReturnsError",
 	"TestWindowFromAppearanceHook",
 	"TestWindowFromLogWriter",
+	// A window resized between New and its run loop (#1310): two layered
+	// soft windows and a GL one, which needs the GL here.
+	"TestWin32ResizeBeforeRun",
 }
 
 // win32SoftTests are the GOGUI_RENDERER=soft present tests (#1310). They
@@ -139,6 +142,9 @@ var win32SoftTests = []string{
 	"TestSoftWin32ResizeKeepsHandles",
 	"TestSoftWin32OpacityAfterPaint",
 	"TestSoftWin32PresentAllocs",
+	"TestSoftWin32LayeredWindow",
+	"TestSoftWin32TransparentFramedIsOpaque",
+	"TestSoftWin32LayeredShowsDesktop",
 }
 
 // win32SystemGLTests run on the system's own OpenGL (#1310): the GDI Generic
