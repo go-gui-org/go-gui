@@ -367,6 +367,9 @@ type softPresentWin32 struct {
 
 	// skipLogged keeps a run of skipped frames to one log line.
 	skipLogged bool
+	// sizeMiss: the last frame was not the layered window's size and was
+	// not sent (errLayeredSize); the next one that does not fit is logged.
+	sizeMiss bool
 }
 
 // createDIBSectionFunc and selectObjectFunc are the seams the resize test
@@ -455,13 +458,20 @@ func (sp *softPresentWin32) present(w *gui.Window, physW, physH int32) bool {
 		swizzleBGRALayered(sp.pix, img.Pix)
 		if lerr := sp.updateLayered(); lerr != nil {
 			// The frame is in the DIB; the next present sends it again.
-			if errors.Is(lerr, errLayeredMinimized) {
+			switch {
+			case errors.Is(lerr, errLayeredMinimized):
 				sp.pace()
-			} else {
+			case errors.Is(lerr, errLayeredSize) && !sp.sizeMiss:
+				// The first frame of another size than the window's: the
+				// resize's WM_SIZE is still on its way (errLayeredSize).
+				// No wait, so the loop takes it and draws at the new size.
+				sp.sizeMiss = true
+			default:
 				sp.skip(lerr)
 			}
 			return false
 		}
+		sp.sizeMiss = false
 	} else {
 		swizzleBGRA(sp.pix, img.Pix)
 		if !sp.blit() {
@@ -484,6 +494,18 @@ var errSoftBlit = errors.New("the copy to the window failed")
 // rect is the parked icon's, which the frame's size would resize; the
 // WM_SIZE of the restore presents again.
 var errLayeredMinimized = errors.New("the window is minimized")
+
+// errLayeredSize: the window is not the frame's size, so the frame is not
+// sent. One such frame is expected and not logged. When another thread or
+// process resizes the window (a window manager tool, SetWindowPos from a
+// script), the system changes the window rect once this thread has answered
+// WM_WINDOWPOSCHANGING and WM_NCCALCSIZE, and only then sends the
+// WM_WINDOWPOSCHANGED that becomes WM_SIZE. The loop draws a frame in
+// between, at the old size: with a running animation, 292 of 320 resizes
+// made by another process did (measured). The loop's next turn handles
+// WM_SIZE and presents at the new size. A second frame in a row that does
+// not fit is a fault, and is logged as a skipped frame.
+var errLayeredSize = errors.New("the window is not the frame's size")
 
 // skip logs the first of a run of skipped frames and paces.
 func (sp *softPresentWin32) skip(err error) {
@@ -564,9 +586,10 @@ func (sp *softPresentWin32) blitTo(hdc uintptr) bool {
 // fitLayeredFrame, WM_NCCALCSIZE and the frameless maximize clamp keep
 // true: a frame never resizes the window. When the sizes differ, a
 // minimized window is skipped quietly (errLayeredMinimized) and any other
-// difference is a skipped frame. IsIconic is asked only then: a minimized
-// window whose parked size happens to equal the frame's is updated, which
-// resizes nothing and is harmless.
+// difference is errLayeredSize, which present logs from the second frame
+// in a row. IsIconic is asked only then: a minimized window whose parked
+// size happens to equal the frame's is updated, which resizes nothing and
+// is harmless.
 func (sp *softPresentWin32) updateLayered() error {
 	if r, _, e := syscall.SyscallN(pGetWindowRect.Addr(), sp.hwnd,
 		uintptr(unsafe.Pointer(&sp.wr))); r == 0 {
@@ -577,8 +600,9 @@ func (sp *softPresentWin32) updateLayered() error {
 		if r, _, _ := syscall.SyscallN(pIsIconic.Addr(), sp.hwnd); r != 0 {
 			return errLayeredMinimized
 		}
-		return fmt.Errorf("the window is %dx%d and the frame %dx%d; "+
-			"UpdateLayeredWindow would resize the window", ww, wh, sp.dibW, sp.dibH)
+		return fmt.Errorf("%w: the window is %dx%d and the frame %dx%d; "+
+			"UpdateLayeredWindow would resize the window",
+			errLayeredSize, ww, wh, sp.dibW, sp.dibH)
 	}
 	sp.size = sizeW{cx: sp.dibW, cy: sp.dibH}
 	r, _, e := syscall.SyscallN(pUpdateLayeredWindow.Addr(), sp.hwnd, 0, 0,

@@ -372,9 +372,17 @@ measurements below are from the workstation.
   (measured). So the present reads the window rect and sends the frame only when
   the two sizes are equal: a frame never resizes the window. When they differ, a
   minimized window, parked at 160×28, is skipped without a log line, and the
-  `WM_SIZE` of the restore presents; any other difference is a skipped frame,
-  logged. `IsIconic` is asked only then, so a minimized window whose parked size
-  equals the frame's is updated, which resizes nothing.
+  `WM_SIZE` of the restore presents. `IsIconic` is asked only then, so a
+  minimized window whose parked size equals the frame's is updated, which
+  resizes nothing. Any other difference is expected for one frame and a fault
+  after that: when another thread or process resizes the window, the system
+  changes the window rect once this thread has answered `WM_WINDOWPOSCHANGING`
+  and `WM_NCCALCSIZE`, and only then sends the `WM_WINDOWPOSCHANGED` that
+  becomes `WM_SIZE`, so the loop draws one frame in between at the old size (292
+  of 320 resizes of an animating window from another process did, measured).
+  That frame is dropped with no log line and no pacing wait, and the loop's next
+  turn handles `WM_SIZE` and presents at the new size. A second frame in a row
+  that does not fit is a skipped frame, logged.
 - **`WM_PAINT`** only validates on a layered window: the system composes it from
   the last bitmap it was given. It is sent no `WM_PAINT` after a present, a
   resize, or a minimize and restore, but `InvalidateRect` still sends one, with
@@ -624,22 +632,24 @@ runner's own OpenGL does.
   frameless styles: `WS_EX_LAYERED`, a present through `UpdateLayeredWindow`,
   the stored frame equal to `RenderToImage`'s with alpha 0 raised to 1, and the
   window rect equal to the client rect and the frame after a resize, a maximize
-  and a restore; a minimized window skips its frame without a log line. A third
-  case, resizable at 8×80, checks that the window is the size asked for.
-  `TestSoftWin32LayeredShowsDesktop` reads the screen over an opaque backdrop
-  window: the margin shows the backdrop, the card the blend, and the margin
-  hit-tests to the layered window, and to the backdrop once its alpha is set
-  back to 0; once shown at the start, once hidden at the start and shown with
-  `Show` after its frame. It samples the margin at half the physical inset, so
-  it holds at any device scale (passed at 0.5, 1 and 1.5).
-  `TestWin32ResizeBeforeRun`: a window resized between `New` and the loop draws
-  its first frame at the window's size, and its logical size follows: a layered
-  window in `Run` and in `RunApp` (resized inside `New` through the present
-  seam), and a GL window in `Run`. `OnEvent` gets the `EventResized` after
-  `OnInit`, in `RunApp` with an app and a platform ID, and with the real size
-  (all three cases failed on the first version, which sent it before `OnInit`).
-  It is in the Mesa GL selection. `TestSoftWin32TransparentFramedIsOpaque`: with
-  a system frame, no `WS_EX_LAYERED`, the pixels of the blit and one report.
+  and a restore; a minimized window skips its frame without a log line, and so
+  does one frame of another size than the window's, while a second in a row is
+  logged and neither resizes the window. A third case, resizable at 8×80, checks
+  that the window is the size asked for. `TestSoftWin32LayeredShowsDesktop`
+  reads the screen over an opaque backdrop window: the margin shows the
+  backdrop, the card the blend, and the margin hit-tests to the layered window,
+  and to the backdrop once its alpha is set back to 0; once shown at the start,
+  once hidden at the start and shown with `Show` after its frame. It samples the
+  margin at half the physical inset, so it holds at any device scale (passed at
+  0.5, 1 and 1.5). `TestWin32ResizeBeforeRun`: a window resized between `New`
+  and the loop draws its first frame at the window's size, and its logical size
+  follows: a layered window in `Run` and in `RunApp` (resized inside `New`
+  through the present seam), and a GL window in `Run`. `OnEvent` gets the
+  `EventResized` after `OnInit`, in `RunApp` with an app and a platform ID, and
+  with the real size (all three cases failed on the first version, which sent it
+  before `OnInit`). It is in the Mesa GL selection.
+  `TestSoftWin32TransparentFramedIsOpaque`: with a system frame, no
+  `WS_EX_LAYERED`, the pixels of the blit and one report.
   `TestSoftWin32PresentAllocs` runs on a layered window too. In the system GL
   selection `TestFallbackPublishesWinningReportsOnly` also falls back with a
   frameless window: it is layered and gets no transparency report. Each of these

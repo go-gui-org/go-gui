@@ -94,7 +94,9 @@ func layeredWant(ref []byte) []byte {
 // stores RenderToImage's premultiplied pixels with alpha 0 raised to 1.
 // The sizes stay equal over a live resize and a maximize; a minimized
 // window skips its frames without logging, and the restore presents
-// again. A resizable window narrower than the resize border's minimum
+// again. One frame of another size than the window's is dropped without a
+// log line, a second in a row is logged, and neither resizes the window.
+// A resizable window narrower than the resize border's minimum
 // track size (14x14 at 100 %) keeps its size: the frame fit once made an
 // 8x80 window 14x80, which the equality alone does not see.
 func TestSoftWin32LayeredWindow(t *testing.T) {
@@ -158,6 +160,23 @@ func TestSoftWin32LayeredWindow(t *testing.T) {
 			if !sp.present(w, b.physW, b.physH) {
 				t.Fatal("present after the restore failed")
 			}
+
+			// A frame of another size than the window's, as the loop draws
+			// one between a resize from another process and its WM_SIZE.
+			ww, wh, _, _ := windowAndClient(b.plat.hwnd)
+			if sp.present(w, b.physW-8, b.physH) || sp.skipLogged {
+				t.Fatalf("one frame of another size was sent or logged (logged %v)", sp.skipLogged)
+			}
+			if sp.present(w, b.physW-8, b.physH) || !sp.skipLogged {
+				t.Fatalf("a second frame of another size in a row was sent or not logged (logged %v)", sp.skipLogged)
+			}
+			if nw, nh, _, _ := windowAndClient(b.plat.hwnd); nw != ww || nh != wh {
+				t.Fatalf("a frame of another size resized the window from %dx%d to %dx%d", ww, wh, nw, nh)
+			}
+			if !sp.present(w, b.physW, b.physH) || sp.skipLogged {
+				t.Fatalf("present at the window's size failed or left the skip logged (logged %v)", sp.skipLogged)
+			}
+			assertLayeredFits(t, b, "after frames of another size")
 		})
 	}
 }
