@@ -26,9 +26,12 @@ var (
 )
 
 // openGL32Procs is opengl32.dll and the WGL procedures the backend calls
-// by name. glProc looks GL 1.1 names up in the same DLL.
+// by name. glProc looks GL 1.1 names up in the same DLL. loadErr is why the
+// DLL could not be loaded; the procedures then panic when called, so
+// newGLWin32 reports it before it calls one.
 type openGL32Procs struct {
 	dll            *windows.LazyDLL
+	loadErr        error
 	createContext  *windows.LazyProc
 	makeCurrent    *windows.LazyProc
 	deleteContext  *windows.LazyProc
@@ -40,15 +43,17 @@ var (
 	openGL32Lib  openGL32Procs
 )
 
-// openGL32 picks opengl32.dll on first use and returns it with its WGL
-// procedures. It is not a package variable initializer, so a process that
-// never asks for GL never loads the DLL: with GOGUI_RENDERER=soft a local
-// Mesa is not even mapped (#1310).
+// openGL32 loads opengl32.dll on first use and returns it with its WGL
+// procedures. When it returns, the DLL is loaded, or loadErr says why not.
+// It is not a package variable initializer, so a process that never asks
+// for GL never loads the DLL: with GOGUI_RENDERER=soft neither the system
+// DLL nor a local Mesa is mapped (#1310).
 func openGL32() *openGL32Procs {
 	openGL32Once.Do(func() {
-		dll := initOpenGL32()
+		dll, err := initOpenGL32()
 		openGL32Lib = openGL32Procs{
 			dll:            dll,
+			loadErr:        err,
 			createContext:  dll.NewProc("wglCreateContext"),
 			makeCurrent:    dll.NewProc("wglMakeCurrent"),
 			deleteContext:  dll.NewProc("wglDeleteContext"),
@@ -61,16 +66,18 @@ func openGL32() *openGL32Procs {
 // initOpenGL32 loads opengl32.dll.  It first tries the executable's
 // directory (so that a Mesa software-rendering DLL placed alongside
 // the binary on headless CI runners is discovered), then falls back to
-// the restricted System32 search for security.
-func initOpenGL32() *windows.LazyDLL {
+// the restricted System32 search for security. The system DLL is loaded
+// here too, not on its first procedure call (#1348): see newGLWin32.
+func initOpenGL32() (*windows.LazyDLL, error) {
 	if exe, err := os.Executable(); err == nil {
 		local := filepath.Join(filepath.Dir(exe), "opengl32.dll")
 		dll := windows.NewLazyDLL(local)
 		if err := dll.Load(); err == nil {
-			return dll
+			return dll, nil
 		}
 	}
-	return windows.NewLazySystemDLL("opengl32.dll")
+	dll := windows.NewLazySystemDLL("opengl32.dll")
+	return dll, dll.Load()
 }
 
 // newGLWin32 is New's GL attempt: the window, then a WGL context on its
@@ -80,15 +87,23 @@ func initOpenGL32() *windows.LazyDLL {
 // where application code can first run (openAutoWin32).
 //
 // fallback is true when the error is one the first window may fall back on
-// (#1310): the pixel format, context or make-current step, or the binding.
+// (#1310): loading opengl32.dll, the pixel format, context or make-current
+// step, or the binding.
 // Up to the binding the attempt publishes nothing to w, so plat.destroy
 // discards it whole: no GL resource exists yet, the window was never shown,
 // and wndProc routed none of its messages to b, because plat.w is unset.
 func newGLWin32(w *gui.Window, rep *windowReports, commit func()) (b *Backend, fallback bool, err error) {
-	// Pick opengl32.dll before any pixel-format call, as the package
-	// variable initializer did. A Mesa beside the exe that is first loaded
-	// after SetPixelFormat gets no context from wglCreateContext.
-	openGL32()
+	// Load opengl32.dll before any pixel-format call. An opengl32.dll that
+	// is first loaded after SetPixelFormat gets no context from
+	// wglCreateContext ("The pixel format is invalid."): a Mesa beside the
+	// exe (#1310, phase 2), and the system DLL, which until #1348 loaded on
+	// the first wglCreateContext call, so the first context of a process
+	// was refused. No WGL means no GL, so a DLL that cannot be loaded is a
+	// GPU-context failure the first window may fall back on, not a panic
+	// at the first WGL call.
+	if lerr := openGL32().loadErr; lerr != nil {
+		return nil, true, newGPUContextError("load opengl32.dll", lerr)
+	}
 
 	b, err = openWin32Window(w, false, rep)
 	if err != nil {
@@ -223,7 +238,8 @@ var createContextFunc = createContext
 // createContext sets a pixel format on hdc and creates an OpenGL 3.3
 // core-profile context via wglCreateContextAttribsARB, falling back to
 // a legacy context if the ARB extension is unavailable. On success the
-// returned context is current on hdc.
+// returned context is current on hdc. The caller has loaded opengl32.dll
+// (openGL32) before, as newGLWin32 does before it calls createContextFunc.
 func createContext(hdc uintptr) (uintptr, error) {
 	pfd := basePixelFormat()
 	pf, _, err := pChoosePixelFormat.Call(hdc, uintptr(unsafe.Pointer(&pfd)))
@@ -235,7 +251,8 @@ func createContext(hdc uintptr) (uintptr, error) {
 
 // createContextWithFormat is createContext after the pixel format is
 // chosen: it sets pf on hdc and makes the context. Tests call it with an
-// enumerated format, to get the generic implementation on any machine.
+// enumerated format, to get the generic implementation on any machine,
+// from the createContextFunc seam, so after newGLWin32 loaded opengl32.dll.
 func createContextWithFormat(hdc, pf uintptr, pfd *pixelFormatDescriptor) (uintptr, error) {
 	if r, _, e := pSetPixelFormat.Call(hdc, pf, uintptr(unsafe.Pointer(pfd))); r == 0 {
 		return 0, fmt.Errorf("SetPixelFormat: %w", e)

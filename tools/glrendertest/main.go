@@ -35,8 +35,9 @@
 //   - soft: Mesa's DLL, which the tests require to stay unloaded; the
 //     GOGUI_RENDERER=soft present tests, with GOGUI_RENDERER=soft.
 //   - system-gl: no DLL in the directory, so the system's own OpenGL; the
-//     GDI Generic regression test, then the tests of the fallback to the
-//     CPU renderer, with GOGUI_RENDERER unset (each test sets it). The
+//     GDI Generic regression test, the test that the first GL attempt of a
+//     process ends where the second does, then the tests of the fallback to
+//     the CPU renderer, with GOGUI_RENDERER unset (each test sets it). The
 //     regression test skips, which counts as a failure, when the system
 //     OpenGL makes no context, so the run also shows what the runner's
 //     OpenGL does.
@@ -148,12 +149,15 @@ var win32SoftTests = []string{
 }
 
 // win32SystemGLTests run on the system's own OpenGL (#1310): the GDI Generic
-// regression test, then the first-window fallback. The fallback tests force
-// their trigger through a seam, except TestFallbackOnGDIGeneric, which needs
-// the system DLL.
+// regression test, the first GL attempt of a process with the system DLL
+// (#1348), then the first-window fallback. The fallback tests force their
+// trigger through a seam, except TestFallbackOnGDIGeneric, which needs the
+// system DLL.
 var win32SystemGLTests = []string{
 	"TestGDIGenericIsGPUContextError",
+	"TestFirstGLAttemptOfProcess",
 	"TestFallbackOnRefusedContext",
+	"TestOpenGL32LoadFailure",
 	"TestFallbackOnGDIGeneric",
 	"TestRendererGLReportsError",
 	"TestFallbackSoftFailure",

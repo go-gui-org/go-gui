@@ -31,7 +31,8 @@ import (
 // fallbackMarker is in the fallback's log line and in no other.
 const fallbackMarker = "drawing with the CPU renderer"
 
-// errRefused is the refusal the lab VM gives the first context of a process.
+// errRefused is the refusal the lab VM gave the first context of a process,
+// while the system opengl32.dll loaded after SetPixelFormat (#1348).
 var errRefused = errors.New("wglCreateContext: test: the pixel format is invalid")
 
 // setProcessRenderer forgets or sets the process renderer, with no
@@ -87,12 +88,6 @@ func (l *logCapture) String() string {
 	return l.buf.String()
 }
 
-func (l *logCapture) reset() {
-	l.mu.Lock()
-	l.buf.Reset()
-	l.mu.Unlock()
-}
-
 // fallbackLines returns the logged lines that announce a fallback.
 func (l *logCapture) fallbackLines() []string {
 	var lines []string
@@ -122,8 +117,8 @@ func newAutoProcess(t *testing.T) *logCapture {
 	return captureLog(t)
 }
 
-// refuseContexts makes every WGL context creation fail, as the lab VM fails
-// the first, and returns the number of attempts made.
+// refuseContexts makes every WGL context creation fail, as the lab VM failed
+// the first (#1348), and returns the number of attempts made.
 func refuseContexts(t *testing.T) *int {
 	t.Helper()
 	calls := new(int)
@@ -204,7 +199,8 @@ func assertFallback(t *testing.T, b *Backend, w *gui.Window, l *logCapture, step
 }
 
 // TestFallbackOnRefusedContext: the first window's context is refused, as
-// on the lab VM, so it opens on the CPU renderer and logs one line.
+// it was on the lab VM (#1348), so it opens on the CPU renderer and logs one
+// line.
 func TestFallbackOnRefusedContext(t *testing.T) {
 	l := newAutoProcess(t)
 	calls := refuseContexts(t)
@@ -214,6 +210,41 @@ func TestFallbackOnRefusedContext(t *testing.T) {
 		t.Errorf("%d context attempts, want 1", *calls)
 	}
 	assertFallback(t, b, w, l, "create WGL context", errRefused.Error())
+}
+
+// TestOpenGL32LoadFailure: an opengl32.dll that could not be loaded (#1348)
+// is a GPU-context failure before any WGL call. With the variable unset the
+// first window opens on the CPU renderer with one line; with GOGUI_RENDERER=gl
+// New returns ErrNoGPUContext. Neither reaches the context step.
+func TestOpenGL32LoadFailure(t *testing.T) {
+	cause := errors.New("test: opengl32.dll cannot be loaded")
+	lib := openGL32()
+	old := lib.loadErr
+	lib.loadErr = cause
+	t.Cleanup(func() { lib.loadErr = old })
+	calls := refuseContexts(t)
+
+	t.Run("unset", func(t *testing.T) {
+		l := newAutoProcess(t)
+		w := gui.NewWindow(fallbackCfg())
+		b := openFallback(t, w)
+		assertFallback(t, b, w, l, "load opengl32.dll", cause.Error())
+	})
+	t.Run("gl", func(t *testing.T) {
+		resetProcessRenderer(t)
+		t.Setenv("GOGUI_RENDERER", "gl")
+		b, err := New(gui.NewWindow(fallbackCfg()))
+		if err == nil {
+			b.Destroy()
+			t.Fatal("New without an opengl32.dll returned no error")
+		}
+		if !errors.Is(err, ErrNoGPUContext) || !errors.Is(err, cause) {
+			t.Fatalf("New error = %v, want ErrNoGPUContext with the cause", err)
+		}
+	})
+	if *calls != 0 {
+		t.Errorf("%d context attempts, want 0", *calls)
+	}
 }
 
 // TestFallbackOnGDIGeneric: the first window gets Microsoft's generic OpenGL
@@ -241,37 +272,24 @@ func TestFallbackOnGDIGeneric(t *testing.T) {
 	}
 	t.Cleanup(func() { createContextFunc = old })
 
-	open := func() (*Backend, *gui.Window, error) {
-		w := gui.NewWindow(fallbackCfg())
-		b, err := New(w)
-		return b, w, err
+	w := gui.NewWindow(fallbackCfg())
+	b, err := New(w)
+	if b != nil {
+		t.Cleanup(b.Destroy)
 	}
-	b, w, err := open()
 	if !reached {
 		skipNoWindow(t, err)
 		t.Skipf("seam not reached: %v", err)
 	}
 	if !found {
-		if b != nil {
-			b.Destroy()
-		}
 		t.Fatal("the system opengl32.dll offers no generic pixel format")
 	}
-	// Without a display driver the first context of a process can be
-	// refused, which falls back on the other trigger. The next one is GDI
-	// Generic (phase 1's regression test retries for the same reason).
-	if !made {
-		if b != nil {
-			b.Destroy()
-		}
-		setProcessRenderer(win32RendererUndecided)
-		l.reset()
-		b, w, err = open()
-	}
+	// A refused context falls back too, on the other trigger, and leaves
+	// made false. Until #1348 the lab VM refused the first context of a
+	// process, and this test retried.
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	t.Cleanup(b.Destroy)
 	if !made {
 		t.Skipf("the generic implementation makes no context here; log:\n%s", l)
 	}
