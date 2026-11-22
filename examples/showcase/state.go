@@ -298,6 +298,7 @@ type ShowcaseApp struct {
 	TableMultiSelect  bool
 	TableFreezeHeader bool
 	TableRowHeader    bool
+	TableMoreColumns  bool
 	ThemeGenPickText  bool
 }
 

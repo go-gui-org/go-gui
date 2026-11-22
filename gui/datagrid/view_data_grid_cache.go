@@ -516,7 +516,7 @@ func dataGridScrollBodyRows(
 
 func dataGridFinalContent(
 	dctx dataGridCtx,
-	scrollBody, headerView gg.View, headerHeight, totalWidth, scrollX float32,
+	scrollBody, headerView gg.View, headerHeight, totalWidth float32,
 	gridHeight, staticTop float32,
 	frozenTopViews []gg.View, frozenTopDisplayRows int,
 	crudEnabled bool,
@@ -538,16 +538,16 @@ func dataGridFinalContent(
 		qfHeight := dataGridQuickFilterHeight(cfg)
 		content = append(content, dataGridFrozenTopZone(cfg,
 			[]gg.View{dataGridQuickFilterRow(cfg, dctx.w)},
-			qfHeight, totalWidth, scrollX))
+			qfHeight, totalWidth, dctx.scrollID))
 	}
 	if boolDefault(cfg.ShowHeader, true) && cfg.FreezeHeader {
 		content = append(content, dataGridFrozenTopZone(cfg,
-			[]gg.View{headerView}, headerHeight, totalWidth, scrollX))
+			[]gg.View{headerView}, headerHeight, totalWidth, dctx.scrollID))
 	}
 	if frozenTopDisplayRows > 0 {
 		frozenHeight := float32(frozenTopDisplayRows) * dctx.RowHeight
 		content = append(content, dataGridFrozenTopZone(cfg,
-			frozenTopViews, frozenHeight, totalWidth, scrollX))
+			frozenTopViews, frozenHeight, totalWidth, dctx.scrollID))
 	}
 	content = append(content, scrollBody)
 	if pagerEnabled {

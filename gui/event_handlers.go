@@ -663,7 +663,9 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 	// wheels (ScrollPrecise == false) ease toward their target via
 	// scrollSmoothBy; trackpad/precise deltas already carry OS
 	// momentum and scroll instantly.
-	if layout.Shape.Scrollable {
+	// A container with a scroll link (a frozen table header) passes
+	// the wheel to the container it follows (scroll_link.go).
+	if sc := scrollWheelTarget(layout, w); sc != nil {
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
 			switch e.Modifiers & modKeyboard {
 			case ModShift:
@@ -685,10 +687,10 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 				// Shift to extend a list selection would stop the wheel from
 				// scrolling the list. AppKit moves the wheel's ScrollY into
 				// ScrollX unchanged, so the sign still means up or down.
-				if !e.ScrollPrecise && layout.Shape.ScrollMode == ScrollVerticalOnly {
+				if !e.ScrollPrecise && sc.Shape.ScrollMode == ScrollVerticalOnly {
 					axis = scrollAxisY
 				}
-				e.IsHandled = scrollAxisBy(w, layout, axis, dx, e.ScrollPrecise)
+				e.IsHandled = scrollAxisBy(w, sc, axis, dx, e.ScrollPrecise)
 			case ModNone:
 				// Move every axis the delta names. A trackpad reports a
 				// sideways or diagonal swipe as ScrollX with no modifier
@@ -699,8 +701,8 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 				// at a boundary, so a vertical-only list ignores the X
 				// part. Both calls run even when the first moves: neither
 				// short-circuits.
-				movedX := scrollAxisBy(w, layout, scrollAxisX, e.ScrollX, e.ScrollPrecise)
-				movedY := scrollAxisBy(w, layout, scrollAxisY, e.ScrollY, e.ScrollPrecise)
+				movedX := scrollAxisBy(w, sc, scrollAxisX, e.ScrollX, e.ScrollPrecise)
+				movedY := scrollAxisBy(w, sc, scrollAxisY, e.ScrollY, e.ScrollPrecise)
 				e.IsHandled = movedX || movedY
 			}
 		}

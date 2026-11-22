@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **A container can follow another container's sideways scroll (#1293).**
+  `ContainerCfg.ScrollLinkX` names a `Scrollable` container by its effective ID.
+  The children of the linking container move sideways with that container's
+  content, while the linking container itself does not scroll. A frozen header
+  above the rows of a grid uses it, so each header stays above its column. The
+  offset is read after it was clamped for the frame, so the header never lags
+  the rows, not even for one frame during a window resize, which reading
+  `Window.ScrollX` while building the view could not avoid. A wheel or trackpad
+  scroll over the linking container scrolls the linked one. `Table` and
+  `datagrid` use it for their frozen headers.
+
 - **Text hinting is a per-window choice, off by default (#1334).**
   `WindowCfg.EnableTextHinting` and `Window.SetTextHinting(on)` control the stem
   snapping that go-glyph v1.28.0 turned on. go-gui now turns it off unless the
@@ -79,6 +90,23 @@ and this project adheres to
   `gl`, a machine whose GL comes up makes the same calls as before.
 
 ### Changed
+
+- **A table with a frozen header scrolls sideways on its own (#1293).** A
+  `Table` with `FreezeHeader` used to grow as wide as its columns, so in a
+  narrower parent the last columns and the vertical scrollbar were out of reach.
+  It now fits the width its `Sizing` gives it. When the columns are wider, the
+  rows show a horizontal scrollbar, the header moves sideways together with the
+  rows while it stays frozen at the top, and the vertical scrollbar stays at the
+  visible right edge. A wheel or trackpad scroll over the header scrolls the
+  rows. A table without `FreezeHeader` already fitted its parent and scrolled
+  sideways, but its horizontal scrollbar was hidden; it now shows. `Scrollbar`
+  applies to both scrollbars of every table. Like the strip on the right for the
+  vertical scrollbar, every table now keeps a strip at the bottom for the
+  horizontal one, so the last row is never covered; a table that sizes to its
+  rows is that much taller. The frozen header keeps the same side gutter as the
+  rows, so the columns stay in line. Wrapping the table in a sideways-scrolling
+  `Column` is no longer needed: the table now fits inside such a wrapper, which
+  then has nothing to scroll.
 
 - **Docs describe the desktop as cgo-free.** README, `llms.txt`, the Makefile,
   CONTRIBUTING, the backend debugging notes, and the affected specs now say
@@ -164,6 +192,23 @@ and this project adheres to
   two forms. The API does not change.
 
 ### Fixed
+
+- **End and the arrow keys show the whole last row of a table (#1293).** A
+  focusable `Table` scrolled the active row into a view as tall as the table's
+  `Height`. With `FreezeHeader` the rows have less room than that, because the
+  header sits above them, so End left the last row partly hidden under the
+  bottom edge. Keys now scroll by the height the rows are really shown in, which
+  also leaves out the new strip for the horizontal scrollbar.
+
+- **A data grid's frozen header stays in line with its columns (#1293).** With
+  `FreezeHeader`, the header, the quick filter and the frozen top rows took the
+  rows' sideways scroll offset while the view was built, before the offset was
+  clamped for the frame. When the grid got wider while scrolled to the end, as
+  in a window resize, the header sat out of line with the columns for one frame,
+  by as much as the grid grew. They now follow the rows through
+  `ContainerCfg.ScrollLinkX`. Under a right-to-left locale the header showed
+  other columns than the rows below it; it now lines up there too. A wheel or
+  trackpad scroll over the header scrolls the rows.
 
 - **Borders and fills land on whole device pixels (#1334).** A rect or a 1px
   border placed at a fractional position — a button centred in a row whose

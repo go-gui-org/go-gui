@@ -65,6 +65,15 @@ datagrid.New(w, datagrid.DataGridCfg{
 })
 ```
 
+## Wide Grids
+
+A grid takes the width its `Sizing` gives it; the default is `FillFill`. When
+its columns are wider, it scrolls sideways and shows a horizontal scrollbar.
+With `FreezeHeader`, the header, the quick filter and the frozen top rows stay
+at the top but move sideways with the rows, so each header stays above its
+column. A wheel or trackpad scroll over the header scrolls the rows. A `Fit`
+width grows the grid to its columns instead, so it never scrolls sideways.
+
 ## Key Properties
 
 | Property               | Type                | Description                                                                            |
@@ -86,7 +95,7 @@ datagrid.New(w, datagrid.DataGridCfg{
 | ShowFilterRow          | bool                | Show per-column filters                                                                |
 | ShowColumnChooser      | bool                | Show column visibility picker                                                          |
 | ShowCRUDToolbar        | bool                | Show create/delete toolbar                                                             |
-| FreezeHeader           | bool                | Sticky header during scroll                                                            |
+| FreezeHeader           | bool                | Header stays on top, scrolls sideways with the rows                                    |
 | MultiSort              | *bool               | Allow multi-column sort                                                                |
 | MultiSelect            | *bool               | Allow multi-row selection                                                              |
 | RangeSelect            | *bool               | Allow shift-click range select                                                         |
@@ -101,7 +110,7 @@ datagrid.New(w, datagrid.DataGridCfg{
 | Scrollable             | bool                | Opt into the scroll system (state keyed by ID)                                         |
 | Disabled               | bool                | Disable interaction                                                                    |
 | Invisible              | bool                | Hide without removing from layout                                                      |
-| Sizing                 | Sizing              | Combined axis sizing mode                                                              |
+| Sizing                 | Sizing              | Axis sizing, default FillFill                                                          |
 | Width                  | float32             | Fixed width                                                                            |
 | Height                 | float32             | Fixed height                                                                           |
 | MinWidth               | float32             | Minimum width                                                                          |

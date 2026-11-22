@@ -27,10 +27,12 @@ const showcaseDataGridFeaturesSource = `# Data Grid Features
 
 func demoTable(w *gui.Window) gui.View {
 	app := appState(w)
-	rows := showcaseTableRowsSorted(app.TableSortBy)
+	rows := showcaseTableRowsSorted(app.TableSortBy, app.TableMoreColumns)
 	cfg := gui.TableCfgFromData(rows)
 	cfg.ID = "catalog-table"
-	cfg.Sizing = gui.FitFit
+	// The table takes the page's width. Columns wider than that scroll
+	// sideways inside the table, the header with them (#1293).
+	cfg.Sizing = gui.FillFit
 	cfg.MaxHeight = 260
 	cfg.SizeBorder = 1
 	cfg.SizeBorderHeader = 2
@@ -73,6 +75,10 @@ func demoTable(w *gui.Window) gui.View {
 				default:
 					app.TableSortBy = col
 				}
+				// Selection is kept by row index, so a new row order
+				// would select other people.
+				app.TableSelected = nil
+				ctx.Consume()
 			},
 		})
 	}
@@ -98,6 +104,10 @@ func demoTable(w *gui.Window) gui.View {
 				Sizing:  gui.FillFit,
 				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
+				// Wraps in a narrow window, so the row does not make the
+				// page wider than the window and push the table's
+				// vertical scrollbar out of view.
+				Wrap: true,
 				Content: []gui.View{
 					gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
 						ID:      "demo_data_demo_table",
@@ -145,6 +155,20 @@ func demoTable(w *gui.Window) gui.View {
 									appState(ctx.Window).TableRowHeader = !app.TableRowHeader
 								},
 							}),
+							gui.Toggle(gui.ToggleCfg{
+								ID:       "showcase_table_more_columns",
+								Label:    "10 columns",
+								Selected: app.TableMoreColumns,
+								OnClick: func(ctx gui.EventCtx) {
+									a := appState(ctx.Window)
+									a.TableMoreColumns = !a.TableMoreColumns
+									// Back to the unsorted order, which moves the
+									// rows, so the index-keyed selection goes too.
+									a.TableSortBy = 0
+									a.TableSelected = nil
+									ctx.Consume()
+								},
+							}),
 						},
 					}),
 				},
@@ -153,7 +177,7 @@ func demoTable(w *gui.Window) gui.View {
 				Text: "Selected: " + selectedText,
 			}),
 			gui.Text(gui.TextCfg{
-				Text:      "Click a column header to sort. Scroll to see all rows.",
+				Text:      "Click a column header to sort. Scroll to see all rows, and sideways to see all columns.",
 				TextStyle: gui.CurrentTheme().TextStyleCaption,
 			}),
 			w.Table(cfg),
@@ -179,14 +203,15 @@ func demoDataGrid(w *gui.Window) gui.View {
 				Text: fmt.Sprintf("Rows: %d  Selected: %d", len(rows), len(app.DataGridSelection.SelectedRowIDs)),
 			}),
 			datagrid.New(w, datagrid.DataGridCfg{
-				ID:                "catalog-data-grid",
-				Sizing:            gui.FitFit,
+				ID: "catalog-data-grid",
+				// The grid takes the page's width and scrolls sideways
+				// when its columns are wider.
+				Sizing:            gui.FillFit,
 				Columns:           showcaseDataGridColumns(),
 				Rows:              rows,
 				Query:             app.DataGridQuery,
 				Selection:         app.DataGridSelection,
 				HiddenColumnIDs:   app.DataGridHidden,
-				Scrollbar:         gui.ScrollbarHidden,
 				MaxHeight:         260,
 				ShowQuickFilter:   true,
 				ShowFilterRow:     true,
@@ -231,10 +256,9 @@ func demoDataSource(w *gui.Window) gui.View {
 			}),
 			datagrid.New(w, datagrid.DataGridCfg{
 				ID: "catalog-data-source",
-				// Fit width: the grid hugs its columns plus
-				// gutter and borders instead of stretching
-				// to the panel.
-				Sizing:          gui.FitFit,
+				// The grid takes the page's width and scrolls
+				// sideways when its columns are wider.
+				Sizing:          gui.FillFit,
 				Columns:         showcaseDataSourceColumns(),
 				DataSource:      app.DataSource,
 				PaginationKind:  datagrid.GridPaginationCursor,
@@ -350,6 +374,11 @@ func showcaseDataSourceColumns() []datagrid.GridColumnCfg {
 		{ID: "name", Title: "Name", Width: gui.SomeF(180), Sortable: true, Filterable: true, Reorderable: true, Editable: true, DefaultValue: "New"},
 		{ID: "team", Title: "Team", Width: gui.SomeF(140), Sortable: true, Filterable: true, Reorderable: true, Editable: true, Editor: datagrid.GridCellEditorSelect, EditorOptions: []string{"Core", "Data", "Platform", "R&D", "Web", "Security"}, DefaultValue: "Core"},
 		{ID: "status", Title: "Status", Width: gui.SomeF(120), Sortable: true, Filterable: true, Reorderable: true, Editable: true, Editor: datagrid.GridCellEditorSelect, EditorOptions: []string{"Open", "Paused", "Closed"}, DefaultValue: "Open"},
+		// More columns than the page is wide, so the grid scrolls
+		// sideways (#1293).
+		{ID: "email", Title: "Email", Width: gui.SomeF(220), Sortable: true, Filterable: true, Reorderable: true, Editable: true},
+		{ID: "city", Title: "City", Width: gui.SomeF(140), Sortable: true, Filterable: true, Reorderable: true, Editable: true},
+		{ID: "start", Title: "Start date", Width: gui.SomeF(120), Sortable: true, Filterable: true, Reorderable: true, Editable: true},
 	}
 }
 
@@ -358,16 +387,22 @@ func showcaseDataGridColumns() []datagrid.GridColumnCfg {
 		{ID: "name", Title: "Name", Width: gui.SomeF(180), Sortable: true, Filterable: true, Reorderable: true},
 		{ID: "team", Title: "Team", Width: gui.SomeF(140), Sortable: true, Filterable: true, Reorderable: true},
 		{ID: "status", Title: "Status", Width: gui.SomeF(120), Sortable: true, Filterable: true, Reorderable: true},
+		// More columns than the page is wide, so the grid scrolls
+		// sideways (#1293).
+		{ID: "email", Title: "Email", Width: gui.SomeF(220), Sortable: true, Filterable: true, Reorderable: true},
+		{ID: "city", Title: "City", Width: gui.SomeF(140), Sortable: true, Filterable: true, Reorderable: true},
+		{ID: "role", Title: "Role", Width: gui.SomeF(140), Sortable: true, Filterable: true, Reorderable: true},
+		{ID: "start", Title: "Start date", Width: gui.SomeF(120), Sortable: true, Filterable: true, Reorderable: true},
 	}
 }
 
 func showcaseDataGridRows() []datagrid.GridRow {
 	return []datagrid.GridRow{
-		{ID: "1", Cells: map[string]string{"name": "Alex", "team": "Core", "status": "Active"}},
-		{ID: "2", Cells: map[string]string{"name": "Mina", "team": "Data", "status": "Active"}},
-		{ID: "3", Cells: map[string]string{"name": "Noah", "team": "Platform", "status": "Paused"}},
-		{ID: "4", Cells: map[string]string{"name": "Priya", "team": "Core", "status": "Active"}},
-		{ID: "5", Cells: map[string]string{"name": "Sam", "team": "Security", "status": "Offline"}},
+		{ID: "1", Cells: map[string]string{"name": "Alex", "team": "Core", "status": "Active", "email": "alex@example.com", "city": "Austin", "role": "Designer", "start": "2024-02-08"}},
+		{ID: "2", Cells: map[string]string{"name": "Mina", "team": "Data", "status": "Active", "email": "mina@example.com", "city": "San Diego", "role": "Engineer", "start": "2023-11-15"}},
+		{ID: "3", Cells: map[string]string{"name": "Noah", "team": "Platform", "status": "Paused", "email": "noah@example.com", "city": "Boston", "role": "Designer", "start": "2025-04-22"}},
+		{ID: "4", Cells: map[string]string{"name": "Priya", "team": "Core", "status": "Active", "email": "priya@example.com", "city": "Chicago", "role": "Engineer", "start": "2022-06-01"}},
+		{ID: "5", Cells: map[string]string{"name": "Sam", "team": "Security", "status": "Offline", "email": "sam@example.com", "city": "Denver", "role": "QA", "start": "2025-09-30"}},
 	}
 }
 
@@ -435,8 +470,34 @@ func showcaseTableRows() [][]string {
 	}
 }
 
-func showcaseTableRowsSorted(sortBy int) [][]string {
+// showcaseTableMoreColumns adds columns to showcaseTableRows, so the
+// table is wider than the page and scrolls sideways.
+func showcaseTableMoreColumns(rows [][]string) [][]string {
+	more := make([][]string, len(rows))
+	for i, r := range rows {
+		if i == 0 {
+			more[i] = append(slices.Clone(r),
+				"Email", "Phone", "Office", "Manager", "Start date", "Project")
+			continue
+		}
+		name := r[0]
+		more[i] = append(slices.Clone(r),
+			strings.ToLower(name)+"@example.com",
+			fmt.Sprintf("+1 555 01%02d", i),
+			"Floor "+strconv.Itoa(1+i%4),
+			rows[1+(i%(len(rows)-1))][0],
+			fmt.Sprintf("2025-%02d-%02d", 1+i%12, 1+(i*7)%28),
+			[]string{"Atlas", "Beacon", "Compass", "Delta"}[i%4],
+		)
+	}
+	return more
+}
+
+func showcaseTableRowsSorted(sortBy int, moreColumns bool) [][]string {
 	rows := append([][]string(nil), showcaseTableRows()...)
+	if moreColumns {
+		rows = showcaseTableMoreColumns(rows)
+	}
 	if sortBy == 0 || len(rows) <= 2 {
 		return rows
 	}
@@ -470,15 +531,20 @@ func showcaseDataSourceRows() []datagrid.GridRow {
 	names := []string{"Ada", "Grace", "Alan", "Katherine", "Barbara", "Linus", "Margaret", "Edsger"}
 	teams := []string{"Core", "Data", "Platform", "R&D", "Web", "Security"}
 	statuses := []string{"Open", "Paused", "Closed"}
+	cities := []string{"Austin", "Boston", "Chicago", "Denver", "Miami"}
 	rows := make([]datagrid.GridRow, 0, 200)
 	for i := range 200 {
 		id := i + 1
+		name := names[i%len(names)]
 		rows = append(rows, datagrid.GridRow{
 			ID: strconv.Itoa(id),
 			Cells: map[string]string{
-				"name":   fmt.Sprintf("%s %d", names[i%len(names)], id),
+				"name":   fmt.Sprintf("%s %d", name, id),
 				"team":   teams[(i/30)%len(teams)],
 				"status": statuses[i%len(statuses)],
+				"email":  fmt.Sprintf("%s.%d@example.com", strings.ToLower(name), id),
+				"city":   cities[i%len(cities)],
+				"start":  fmt.Sprintf("2025-%02d-%02d", 1+i%12, 1+i%28),
 			},
 		})
 	}
