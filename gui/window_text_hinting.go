@@ -7,11 +7,12 @@ type textHinter interface {
 }
 
 // SetTextHinting turns stem snapping of glyph outlines on or off for this
-// window (#1334). When it is on, vertical stems move to whole pixels, so
-// they show as solid columns. Hinting is off by default: glyphs keep their
-// exact outline, so the text looks softer but more uniform. The change
-// clears the glyph cache and redraws the window. It has no effect on the
-// web backend.
+// window (#1334). When it is on and the display scale is fractional, such as
+// 125% or 150%, vertical stems move to whole pixels, so they show as solid
+// columns. At a whole scale (100%, 200%) it does nothing. Hinting is off by
+// default: glyphs keep their exact outline, so the text looks softer but
+// more uniform. The change clears the glyph cache and redraws the window. It
+// has no effect on the web backend.
 //
 // Call it on the main goroutine (OnInit, an event callback). From another
 // goroutine, use QueueCommand. WindowCfg.EnableTextHinting sets the start

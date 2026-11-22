@@ -41,13 +41,15 @@ and this project adheres to
   to whole pixels and show as solid columns, but only the stem moves and not the
   advance, so straight and curved letters in one word can look out of step
   (go-gui-org/go-glyph#198). Apps on go-gui v0.98.0 get unhinted text again
-  after the upgrade; set `EnableTextHinting: true` to keep the v0.98 look. An
-  app can offer the choice to its users, because the setter works at runtime and
-  the setting stays in effect when the backend replaces its text measurer, for
-  example on a fall back to the CPU renderer. All native backends obey it; the
-  web backend ignores it. The multisample antialiasing (MSAA) sample count stays
-  fixed at 4x, because it smooths only SVG paths and other triangle meshes, and
-  does not change text or rectangle borders.
+  after the upgrade. Set `EnableTextHinting: true` to hint at fractional display
+  scales (125%, 150%); at a whole scale (100%, 200%) text keeps its exact
+  outline, so the v0.98 stem snapping does not come back there. An app can offer
+  the choice to its users, because the setter works at runtime and the setting
+  stays in effect when the backend replaces its text measurer, for example on a
+  fall back to the CPU renderer. All native backends obey it; the web backend
+  ignores it. The multisample antialiasing (MSAA) sample count stays fixed at
+  4x, because it smooths only SVG paths and other triangle meshes, and does not
+  change text or rectangle borders.
 
 - **Shader inputs from GPU buffers, without a copy (#1326).**
   `PixelSurface.UpdateDMABuf` publishes a frame that lives in Linux DMA-BUFs,
@@ -102,6 +104,13 @@ and this project adheres to
   before.
 
 ### Changed
+
+- **Text hinting runs only at fractional scales (go-gui-org/go-glyph#198).**
+  go-glyph is now v1.29.1. With `EnableTextHinting` on, stems snap only when the
+  display scale is fractional, such as 125% or 150%. At a whole scale (100%,
+  200%) text keeps its exact outline, which looked better there. Hinted bowls
+  such as "o" no longer lean: both edges of a stem now snap. Hinted letter
+  spacing stays uneven by up to about 1 px, a documented limit.
 
 - **A table with a frozen header scrolls sideways on its own (#1293).** A
   `Table` with `FreezeHeader` used to grow as wide as its columns, so in a
