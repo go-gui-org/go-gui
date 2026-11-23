@@ -295,7 +295,7 @@ type svgDimEntry struct {
 // load each visible SVG every frame, under the frame lock. A
 // check per frame puts EvalSymlinks and two Stat calls (syscalls
 // and allocations) in the render pass. An edit shows up within
-// this interval instead.
+// this interval instead, on the window clock (clockNow).
 const svgFileRecheckInterval = 500 * time.Millisecond
 
 // freshSvgFingerprint returns the file fingerprint recorded for
@@ -492,7 +492,7 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 	// fingerprint, so neither touches the file system on a hit.
 	inline := strings.HasPrefix(svgSrc, "<")
 	srcHash := w.svgSrcHash(svgSrc)
-	now := time.Now()
+	now := w.clockNow()
 	var contentHash uint64
 	known := inline
 	if !inline {
@@ -658,7 +658,7 @@ func (w *Window) GetSvgDimensions(svgSrc string) (float32, float32, error) {
 	// so a recently confirmed file makes no file system call.
 	inline := strings.HasPrefix(svgSrc, "<")
 	srcHash := w.svgSrcHash(svgSrc)
-	now := time.Now()
+	now := w.clockNow()
 	dimCache := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
 	if inline {
 		if dimCache != nil {

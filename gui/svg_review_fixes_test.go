@@ -57,6 +57,7 @@ func TestLoadSvg_FileEditInvalidatesCache(t *testing.T) {
 		t.Fatalf("write file: %v", err)
 	}
 	w := NewWindow(WindowCfg{})
+	w.startManualClock() // the recheck interval must not run on wall time
 	parser := &countingFileSvgParser{width: 10, height: 10}
 	w.SetSvgParser(parser)
 	if _, err := w.LoadSvg(path, 10, 10); err != nil {
@@ -83,7 +84,7 @@ func TestLoadSvg_FileEditInvalidatesCache(t *testing.T) {
 		t.Fatalf("throttled load parsed %d times, want 1 (hit)",
 			parser.fileParses)
 	}
-	expireSvgFileCheck(w, path)
+	expireSvgFileCheck(w)
 	if _, err := w.LoadSvg(path, 10, 10); err != nil {
 		t.Fatalf("post-edit LoadSvg: %v", err)
 	}
@@ -93,18 +94,11 @@ func TestLoadSvg_FileEditInvalidatesCache(t *testing.T) {
 	}
 }
 
-// expireSvgFileCheck ages the recorded file check for src past
-// svgFileRecheckInterval, so the next load stats the file again.
-func expireSvgFileCheck(w *Window, src string) {
-	dc := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
-	if dc == nil {
-		return
-	}
-	srcHash := hashString(src)
-	if entry, ok := dc.Get(srcHash); ok {
-		entry.checkedAt = entry.checkedAt.Add(-2 * svgFileRecheckInterval)
-		dc.Set(srcHash, entry)
-	}
+// expireSvgFileCheck moves w's manual clock past
+// svgFileRecheckInterval, so the next load stats the file again. A load
+// that reads the wall clock instead does not see the step.
+func expireSvgFileCheck(w *Window) {
+	w.manualOffset.Add(int64(svgFileRecheckInterval))
 }
 
 // A repeat load of a cached file source runs every frame from the
@@ -118,6 +112,7 @@ func TestLoadSvg_FileCacheHitNoAllocs(t *testing.T) {
 		t.Fatalf("write file: %v", err)
 	}
 	w := NewWindow(WindowCfg{})
+	w.startManualClock() // the recheck interval must not run on wall time
 	w.SetSvgParser(&countingFileSvgParser{width: 10, height: 10})
 	if _, err := w.LoadSvg(path, 10, 10); err != nil {
 		t.Fatalf("first LoadSvg: %v", err)
@@ -146,6 +141,7 @@ func TestLoadSvg_EvictedDimEntryRestoredOnHit(t *testing.T) {
 		t.Fatalf("write file: %v", err)
 	}
 	w := NewWindow(WindowCfg{})
+	w.startManualClock() // the recheck interval must not run on wall time
 	parser := &countingFileSvgParser{width: 10, height: 10}
 	w.SetSvgParser(parser)
 	if _, err := w.LoadSvg(path, 10, 10); err != nil {
@@ -226,6 +222,7 @@ func TestGetSvgDimensions_FileEditAfterRecheck(t *testing.T) {
 		t.Fatalf("write file: %v", err)
 	}
 	w := NewWindow(WindowCfg{})
+	w.startManualClock() // the recheck interval must not run on wall time
 	parser := &countingFileSvgParser{width: 10, height: 10}
 	w.SetSvgParser(parser)
 	if gw, _, err := w.GetSvgDimensions(path); err != nil || gw != 10 {
@@ -239,7 +236,7 @@ func TestGetSvgDimensions_FileEditAfterRecheck(t *testing.T) {
 	if gw, _, _ := w.GetSvgDimensions(path); gw != 10 {
 		t.Fatalf("throttled dims: got %v, want cached 10", gw)
 	}
-	expireSvgFileCheck(w, path)
+	expireSvgFileCheck(w)
 	if gw, _, err := w.GetSvgDimensions(path); err != nil || gw != 20 {
 		t.Fatalf("post-edit dims: got (%v, %v), want 20", gw, err)
 	}

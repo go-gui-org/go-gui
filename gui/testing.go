@@ -195,9 +195,11 @@ func (w *Window) TestRender(view func(*Window) View) *Layout {
 // animation goroutine. From then on, time in the window moves only
 // when TestStep is called: tweens, springs, keyframes, Animate delays,
 // the caret blink, tooltip delays, double-click timing, SVG
-// animations and the accessibility sync throttle all read it. Ten minutes of a session therefore run in
-// as much wall time as the frames cost, and the same inputs give the
-// same frames. tools/soak drives a whole app this way (#1262).
+// animations, the recheck of an SVG file for edits and the
+// accessibility sync throttle all read it. Ten minutes of a session
+// therefore run in as much wall time as the frames cost, and the same
+// inputs give the same frames. tools/soak drives a whole app this way
+// (#1262).
 //
 // The switch is one-way. TestStep is for headless tests only: on a
 // window a backend runs, it stops the animations from playing.
