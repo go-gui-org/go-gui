@@ -392,6 +392,7 @@ func Input(cfg InputCfg) View {
 		Radius:      RadiusPx(radius),
 		Sizing:      cfg.Sizing,
 		Scrollable:  cfg.Scrollable,
+		inkScrollX:  true, // sideways overflow is ink on the right (scrollMirrorsX)
 		Spacing:     NoSpacing,
 		OnChar:      makeInputOnChar(hcfg),
 		OnKeyDown:   makeInputOnKeyDown(hcfg),

@@ -291,8 +291,8 @@ func scrollbarAmendLayout(
 			offset = f32Clamp(
 				(scrollOffset/(cWidth-viewW))*availWidth,
 				0, availWidth)
-			// The gutter is drawn left to right whichever way the row runs,
-			// but an RTL row's start is its right edge (scrollMirrorsX), so
+			// The gutter is drawn left to right whichever way the content runs,
+			// but an RTL container's start is its right edge (scrollMirrorsX), so
 			// the unscrolled thumb belongs at the right end.
 			if scrollMirrorsX(parent.Shape) {
 				offset = availWidth - offset
@@ -482,7 +482,7 @@ func offsetMouseChangeX(sx *BoundedMap[string, float32], layout *Layout, mouseDX
 	if travel <= 0 {
 		return oldOffset
 	}
-	// An RTL row's thumb travels toward the overflow as it moves left
+	// An RTL container's thumb travels toward the overflow as it moves left
 	// (scrollMirrorsX), so the drag delta arrives mirrored.
 	if scrollMirrorsX(layout.Shape) {
 		mouseDX = -mouseDX

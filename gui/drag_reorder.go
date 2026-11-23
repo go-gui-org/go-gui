@@ -578,6 +578,18 @@ func dragReorderCancel(dragKey string, w *Window) {
 
 // --- auto-scroll ---
 
+// dragReorderScrollX scrolls a container so its content moves delta
+// pixels right on screen. An RTL container's offset runs against the
+// screen (scrollMirrorsX), so there the delta is mirrored; without it a
+// drag near the left edge of an RTL row scrolled toward its start, away
+// from the overflow it was meant to reveal (#1345).
+func dragReorderScrollX(scrollID string, delta float32, w *Window) {
+	if ly, ok := findScrollLayout(w, scrollID); ok && scrollMirrorsX(ly.Shape) {
+		delta = -delta
+	}
+	w.ScrollHorizontalBy(scrollID, delta)
+}
+
 // dragReorderAutoScroll checks if the cursor is near the edge
 // of a scrollable container and scrolls accordingly.
 func dragReorderAutoScroll(
@@ -600,7 +612,7 @@ func dragReorderAutoScroll(
 			case dragReorderVertical:
 				w.ScrollVerticalBy(scrollID, delta)
 			case dragReorderHorizontal:
-				w.ScrollHorizontalBy(scrollID, delta)
+				dragReorderScrollX(scrollID, delta, w)
 			}
 			return true
 		}
@@ -612,7 +624,7 @@ func dragReorderAutoScroll(
 			case dragReorderVertical:
 				w.ScrollVerticalBy(scrollID, delta)
 			case dragReorderHorizontal:
-				w.ScrollHorizontalBy(scrollID, delta)
+				dragReorderScrollX(scrollID, delta, w)
 			}
 			return true
 		}

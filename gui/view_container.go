@@ -62,6 +62,12 @@ type ContainerCfg struct {
 	// (WithTooltip's enter and leave test). A move into or out of the
 	// shape then rebuilds, so the hook sees it.
 	pointerAmend bool
+	// inkScrollX marks a scroll container whose sideways overflow is
+	// only ink that an unbreakable text run paints past the right edge
+	// of its box (Shape.inkOverflowW). That ink is on the right in
+	// either direction, so the X offset is not mirrored under RTL
+	// (scrollMirrorsX). Input sets it on its field.
+	inkScrollX bool
 	// inert takes the container and everything in it out of input, the
 	// way the HTML inert attribute does: no hit tests, no tab stops, no
 	// accessibility nodes. It still draws. FlipPanel sets it on the face
@@ -472,7 +478,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
 		c.OnScroll == nil && c.OnMouseScroll == nil &&
 		c.AmendLayout == nil && c.ScrollLinkX == "" &&
-		!c.AcceptsTextInput &&
+		!c.inkScrollX && !c.AcceptsTextInput &&
 		c.Sound == SoundNone {
 		return eventHandlers{}, false
 	}
@@ -497,6 +503,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		hoverStatic:   c.hoverStatic,
 		pointerAmend:  c.pointerAmend,
 		scrollLinkX:   c.ScrollLinkX,
+		inkScrollX:    c.inkScrollX,
 		clickOnSpace:  c.ClickOnSpace,
 		clickOnEnter:  c.ClickOnEnter,
 		soundCue:      c.Sound,

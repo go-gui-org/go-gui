@@ -242,10 +242,16 @@ func dragPanOnMouseMove(ctx EventCtx) {
 		w.viewState.dragPan = st
 		return
 	}
-	// Physical deltas: the content follows the pointer, so no RTL
-	// mirror and no scroll multiplier — a 1:1 drag, not a wheel.
+	// Physical deltas: the content follows the pointer, so no scroll
+	// multiplier — a 1:1 drag, not a wheel. An RTL container's offset
+	// runs against the screen (scrollMirrorsX), so dx is mirrored there,
+	// as the touch pan does in scrollHorizontalPixels; without it an RTL
+	// row panned the wrong way (#1345).
 	if dx != 0 && f32IsFinite(dx) &&
 		ly.Shape.ScrollMode != ScrollVerticalOnly {
+		if scrollMirrorsX(ly.Shape) {
+			dx = -dx
+		}
 		w.ScrollHorizontalBy(st.scrollID, dx)
 	}
 	if dy != 0 && f32IsFinite(dy) &&

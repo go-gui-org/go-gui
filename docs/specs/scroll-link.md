@@ -28,7 +28,7 @@ the named container's content.
 
 - **Read at positioning.** `layoutChildStartPos` applies the linked offset to
   the linking container's children, with the same arithmetic a scroll container
-  uses for its own children (an RTL row subtracts it). This runs after
+  uses for its own children (an RTL container subtracts it). This runs after
   `layoutAdjustScrollOffsets`, so the offset is the clamped one of this frame,
   and the header can never lag the rows.
 - **Live targets only.** The offset store keeps an entry after its container is
@@ -48,9 +48,10 @@ the named container's content.
 
 The linking container must clip (`Clip: true`), or its children draw past its
 edges. It must also have the same axis and horizontal padding as the linked
-container, so both place their children at the same x. A Row and a Column place
-a wider child differently under RTL: a Row starts at its right edge, a Column
-pins it at its left edge.
+container, so both place their children at the same x. Under RTL a Row starts
+its content at its right edge, and since #1345 a Column pins a wider child at
+its right edge too (`docs/specs/rtl-scroll-start.md`). Before that the Column
+pinned it at its left edge.
 
 ### Table
 

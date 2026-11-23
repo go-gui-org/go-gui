@@ -32,6 +32,20 @@ and this project adheres to
   so a list of horizontal sliders still scrolls up and down. This applies to the
   stock `Slider`, a `Slider` with a `Look`, and the `Splitter` handle. iOS and
   Android behave the same way.
+- **Under RTL, a scroll container opens at the start of content wider than
+  itself (#1345).** A right-to-left `Column` or `Stack` pinned a child wider
+  than itself at its left edge, which under RTL is the end. A wide `Table` or
+  `datagrid` opened at its last column, and a narrow `Tree` hid its expand
+  arrows off screen. Now the child starts at the right edge and sticks out on
+  the left, as on a web page with `dir="rtl"`, and the scrollbar thumb starts at
+  the right. The horizontal offset of an RTL column counts from its right edge,
+  as it already did for an RTL row: `ScrollHorizontalTo(id, 0)` shows the start,
+  and a negative offset moves toward the left. An app that scrolled an RTL
+  column to its far end to show the start should drop that workaround. A
+  `DragScroll` pan in an RTL row moved against the pointer, and a
+  drag-to-reorder held near the left edge of an RTL row scrolled the wrong way;
+  both now follow the pointer. A `Canvas` and a multiline `Input` still count
+  their horizontal offset from the left edge, as before.
 
 ## [v0.99.1] - 2026-11-22
 
