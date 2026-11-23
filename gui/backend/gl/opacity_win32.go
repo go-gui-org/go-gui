@@ -99,6 +99,16 @@ func opacityAlphaByte(opacity float32) byte {
 // DebugWindowOpacity or New's collection for the window being opened, and
 // leaves the window as it was. refusal is fadeRefusal's answer for the
 // window: when it is not empty, the fade is refused with it.
+//
+// The GL window class has CS_OWNDC (registerClass), and Microsoft's
+// documentation of WS_EX_LAYERED says the style cannot be used with it
+// (#1316). The fade relies on that combination anyway. On a hardware
+// driver it rests on one manual check: Windows 10 19045 with an Intel HD
+// 4000, where TestGLWin32FadeOnOwnDCClass passed. CI runs that test on
+// Mesa's llvmpipe only, which presents with GDI copies rather than a
+// vendor swap, so a vendor-driver break would still pass there. A report
+// of a wrong or missing fade on GL starts here; the soft class has no
+// CS_OWNDC and is not affected.
 func applyWindowOpacity(warn func(string), hwnd uintptr, refusal string, opacity float32) {
 	if hwnd == 0 {
 		return

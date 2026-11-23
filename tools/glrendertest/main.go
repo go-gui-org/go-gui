@@ -133,6 +133,9 @@ var win32Tests = []string{
 	// A window resized between New and its run loop (#1310): two layered
 	// soft windows and a GL one, which needs the GL here.
 	"TestWin32ResizeBeforeRun",
+	// The fade on the GL window class, which has CS_OWNDC (#1316): a soft
+	// backdrop and a faded GL window, read back from the screen.
+	"TestGLWin32FadeOnOwnDCClass",
 }
 
 // win32SoftTests are the GOGUI_RENDERER=soft present tests (#1310). They
