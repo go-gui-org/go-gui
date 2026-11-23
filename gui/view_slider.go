@@ -221,6 +221,9 @@ func Slider(cfg SliderCfg) View {
 		HAlign:    HAlignCenter,
 		VAlign:    VAlignMiddle,
 		axis:      wrapperAxis,
+		// A touch pan along the track drags, also in a page that
+		// scrolls on that axis (#1226).
+		touchDragAxis: sliderDragAxis(vertical),
 		OnClick: sliderPressHandler(sliderID, onChange, value,
 			minVal, maxVal, vertical, roundValue, sliderLookSlots{}),
 		AmendLayout: amendAll(
@@ -283,6 +286,14 @@ func Slider(cfg SliderCfg) View {
 		},
 	})
 	return labelledField(cfg.Label, TextStyle{}, HAlignLeft, cfg.Sizing, field)
+}
+
+// sliderDragAxis is the axis a slider's handle moves along.
+func sliderDragAxis(vertical bool) ScrollbarOrientation {
+	if vertical {
+		return ScrollbarVertical
+	}
+	return ScrollbarHorizontal
 }
 
 // sliderPressHandler sets the value under a press and starts the drag.
@@ -409,6 +420,8 @@ func (v sliderLookView) GenerateLayout(w *Window) Layout {
 		HAlign:     HAlignCenter,
 		VAlign:     VAlignMiddle,
 		axis:       v.axis,
+		// As on the stock slider (#1226).
+		touchDragAxis: sliderDragAxis(vertical),
 		OnClick: sliderPressHandler(cfg.ID, onChange, value,
 			minVal, maxVal, vertical, roundValue, slots),
 		AmendLayout: func(ctx EventCtx) {

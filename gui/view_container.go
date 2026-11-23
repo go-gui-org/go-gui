@@ -321,6 +321,9 @@ type ContainerCfg struct {
 	axis                 Axis
 	shapeType            shapeType // zero = shapeRectangle
 	scrollbarOrientation ScrollbarOrientation
+	// touchDragAxis is the axis a drag control moves along (Slider,
+	// Splitter handle). See Shape.touchDragAxis.
+	touchDragAxis ScrollbarOrientation
 }
 
 func applyContainerDefaults(cfg *ContainerCfg) (spacing, sizeBorder, radius float32, padding Padding) {
@@ -561,6 +564,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		Focusable:            cfg.Focusable,
 		Axis:                 cfg.axis,
 		scrollbarOrientation: cfg.scrollbarOrientation,
+		touchDragAxis:        cfg.touchDragAxis,
 		X:                    cfg.X,
 		Y:                    cfg.Y,
 		Width:                cfg.Width,

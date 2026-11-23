@@ -140,7 +140,11 @@ type Shape struct {
 	VAlign               VerticalAlign
 	ScrollMode           ScrollMode
 	scrollbarOrientation ScrollbarOrientation
-	TextDir              TextDirection
+	// touchDragAxis is the axis a drag control under a touch moves
+	// along. A touch pan along it goes to the control, also inside a
+	// scrollable that scrolls on that axis (touchPressOnPan, #1226).
+	touchDragAxis ScrollbarOrientation
+	TextDir       TextDirection
 
 	// FloatAnchor is the attachment point on the floating element.
 	// Combined with FloatTieOff to position the element relative

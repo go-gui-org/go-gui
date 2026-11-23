@@ -22,6 +22,17 @@ and this project adheres to
   marker. It moves only the marker: a focusable table's active row and arrow-key
   position do not change.
 
+### Fixed
+
+- **A touch drag on a slider or a splitter handle drags it inside a page that
+  scrolls on the same axis (#1226).** Before, a touch pan along a horizontal
+  slider in a container that scrolls sideways scrolled the container, and the
+  thumb did not move. Only a tap set the value. Now a pan that runs more along
+  the control than across it goes to the control. A pan across it still scrolls,
+  so a list of horizontal sliders still scrolls up and down. This applies to the
+  stock `Slider`, a `Slider` with a `Look`, and the `Splitter` handle. iOS and
+  Android behave the same way.
+
 ## [v0.99.1] - 2026-11-22
 
 ### Changed
