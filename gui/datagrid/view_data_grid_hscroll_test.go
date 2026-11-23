@@ -128,11 +128,32 @@ func gridFrozenHeaderInLineRTL(t *testing.T, crud bool) {
 	for col := range 8 {
 		assertGridColumnInLine(t, l, col, "RTL not scrolled")
 	}
+	// The unscrolled grid shows its first column, at the right edge
+	// (#1345); it used to open at the last one.
+	assertGridColumnVisible(t, l, 0, "RTL not scrolled")
 	scroll := gg.ScopeID("g", "scroll")
 	w.ScrollHorizontalTo(scroll, -100000)
 	l = w.TestRender(nil)
 	for col := range 8 {
 		assertGridColumnInLine(t, l, col, "RTL scrolled to the end")
+	}
+	assertGridColumnVisible(t, l, 7, "RTL scrolled to the end")
+}
+
+// assertGridColumnVisible fails unless column col's first body cell lies
+// within the body's width.
+func assertGridColumnVisible(t *testing.T, l *gg.Layout, col int, when string) {
+	t.Helper()
+	_, cell := hscrollHeaderAndCell(t, l, col)
+	scroll := gg.ScopeID("g", "scroll")
+	body, ok := l.FindByID(scroll)
+	if !ok {
+		t.Fatalf("%s: body %q not found", when, scroll)
+	}
+	c, b := cell.Shape, body.Shape
+	if c.X < b.X || c.X+c.Width > b.X+b.Width {
+		t.Fatalf("%s: column c%d spans x=%.0f..%.0f, outside the body %.0f..%.0f",
+			when, col, c.X, c.X+c.Width, b.X, b.X+b.Width)
 	}
 }
 

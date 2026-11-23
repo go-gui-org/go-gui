@@ -35,10 +35,10 @@ func layoutPositionsDepth(layout *Layout, offsetX, offsetY float32, w *Window, d
 		case axisStack:
 			// Both axes are a cross axis in a Stack, so each child is
 			// aligned on both.
-			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, layoutW)
+			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, isRTL, layoutW)
 			yAlign = childCrossAxisVAlign(child, layout.Shape, layoutH)
 		default:
-			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, layoutW)
+			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, isRTL, layoutW)
 		}
 
 		if isRTL && axis == axisLeftToRight {
@@ -86,11 +86,12 @@ func layoutChildStartPos(
 		sy := w.scrollY()
 		id := layout.Shape.idKey()
 		if v, ok := sx.Get(id); ok {
-			// An RTL row starts at the right edge and runs leftward, so the
-			// offset — a distance from that start edge — moves the children
-			// back to the right (scrollMirrorsX). Adding it here pushed the
+			// An RTL container starts its content at the right edge, so
+			// what does not fit is off the left, and the offset — a
+			// distance from that start edge — moves the children back to
+			// the right (scrollMirrorsX). Adding it here pushed the
 			// overflow further off the left, where nothing could reach it.
-			if isRTL && axis == axisLeftToRight {
+			if scrollMirrorsX(layout.Shape) {
 				x -= v
 			} else {
 				x += v
@@ -99,14 +100,10 @@ func layoutChildStartPos(
 		if v, ok := sy.Get(id); ok {
 			y += v
 		}
-	} else if v, ok := scrollLinkedX(layout.Shape, w); ok {
+	} else if dx, ok := scrollLinkedX(layout.Shape, w); ok {
 		// Follows another container's X offset (scroll_link.go), the
 		// same way that container moves its own children.
-		if isRTL && axis == axisLeftToRight {
-			x -= v
-		} else {
-			x += v
-		}
+		x += dx
 	}
 	return x, y
 }
@@ -215,12 +212,22 @@ func childCrossAxisVAlign(
 
 // childCrossAxisHAlign computes the horizontal offset to center or
 // right-align a child within a vertical layout (AxisTopToBottom).
+//
+// A child wider than the layout has no room to align in, so it is
+// pinned at the start edge: the left one, or under RTL the right one,
+// with the rest sticking out past the end edge as a browser does with
+// dir="rtl". That is also where an RTL scroll container's offset 0 is
+// (scrollMirrorsX), so the unscrolled view shows the child's start
+// (#1345). A Canvas (axisNone) is not pinned: its children carry an X.
 func childCrossAxisHAlign(
 	child *Layout, parent *Shape,
-	hAlign HorizontalAlign, layoutW float32,
+	hAlign HorizontalAlign, isRTL bool, layoutW float32,
 ) (xAlign float32) {
 	remaining := layoutW - child.Shape.Width -
 		parent.paddingWidth()
+	if remaining < 0 && isRTL && parent.Axis != axisNone {
+		return remaining
+	}
 	if remaining > 0 {
 		switch hAlign {
 		case HAlignLeft:
@@ -357,7 +364,7 @@ func layoutAdjustScrollOffsetsDepth(layout *Layout, w *Window, depth int) {
 	id := layout.Shape.idKey()
 	if layout.Shape.Scrollable && id != "" {
 		if w.scratch.scrollLive != nil {
-			w.scratch.scrollLive[id] = struct{}{}
+			w.scratch.scrollLive[id] = scrollMirrorsX(layout.Shape)
 		}
 		sx := w.scrollX()
 		sy := w.scrollY()

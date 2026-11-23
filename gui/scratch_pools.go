@@ -197,9 +197,10 @@ type scratchPools struct {
 	// frame being arranged, filled by layoutAdjustScrollOffsets. A
 	// scroll link applies only an offset whose container is here, not
 	// one left in the store by a container that is gone or stopped
-	// scrolling (scroll_link.go). Cleared, not reallocated, by each
-	// layoutArrange.
-	scrollLive       map[string]struct{}
+	// scrolling (scroll_link.go). The value reports whether the container
+	// mirrors its X offset (scrollMirrorsX). Cleared, not reallocated, by
+	// each layoutArrange.
+	scrollLive       map[string]bool
 	svgAnimStates    scratchMap[uint32, svgAnimState]
 	svgAnimOverrides scratchMap[uint32, SvgAnimAttrOverride]
 	svgAnimByPID     scratchMap[uint32, []float32]

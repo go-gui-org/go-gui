@@ -32,6 +32,10 @@ type eventHandlers struct {
 	// container whose X offset this one follows (scroll_link.go). Here,
 	// not on Shape, to keep Shape small.
 	scrollLinkX string
+	// inkScrollX is ContainerCfg.inkScrollX: the container scrolls
+	// sideways only to reach ink painted past the right edge of a text
+	// box, so its X offset is never mirrored (scrollMirrorsX).
+	inkScrollX bool
 
 	// Click filters — set by widget factories to avoid the per-frame
 	// closure allocation a wrapper callback would cost.

@@ -431,7 +431,11 @@ func dragReorderOnMouseMove(
 			startScroll = state.startScrollX
 		}
 		scrolledSinceStart = scrollVal != startScroll
-		mouseMain -= (scrollVal - startScroll)
+		shift := scrollVal - startScroll
+		if axis == dragReorderHorizontal && dragReorderMirrorsX(state.scrollID, w) {
+			shift = -shift
+		}
+		mouseMain -= shift
 	}
 
 	newIndex := -1
@@ -578,6 +582,25 @@ func dragReorderCancel(dragKey string, w *Window) {
 
 // --- auto-scroll ---
 
+// dragReorderMirrorsX reports whether the X offset of the container
+// scrollID names runs against the screen (scrollMirrorsX). The edge
+// scroll and the pointer mapping of a drag both mirror by it (#1345).
+func dragReorderMirrorsX(scrollID string, w *Window) bool {
+	ly, ok := findScrollLayout(w, scrollID)
+	return ok && scrollMirrorsX(ly.Shape)
+}
+
+// dragReorderScrollX scrolls a container so its content moves delta
+// pixels right on screen. Without the mirrored delta a drag near the
+// left edge of an RTL row scrolled toward its start, away from the
+// overflow it was meant to reveal.
+func dragReorderScrollX(scrollID string, delta float32, w *Window) {
+	if dragReorderMirrorsX(scrollID, w) {
+		delta = -delta
+	}
+	w.ScrollHorizontalBy(scrollID, delta)
+}
+
 // dragReorderAutoScroll checks if the cursor is near the edge
 // of a scrollable container and scrolls accordingly.
 func dragReorderAutoScroll(
@@ -600,7 +623,7 @@ func dragReorderAutoScroll(
 			case dragReorderVertical:
 				w.ScrollVerticalBy(scrollID, delta)
 			case dragReorderHorizontal:
-				w.ScrollHorizontalBy(scrollID, delta)
+				dragReorderScrollX(scrollID, delta, w)
 			}
 			return true
 		}
@@ -612,7 +635,7 @@ func dragReorderAutoScroll(
 			case dragReorderVertical:
 				w.ScrollVerticalBy(scrollID, delta)
 			case dragReorderHorizontal:
-				w.ScrollHorizontalBy(scrollID, delta)
+				dragReorderScrollX(scrollID, delta, w)
 			}
 			return true
 		}

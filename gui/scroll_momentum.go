@@ -145,7 +145,7 @@ func scrollMomentumStart(w *Window, id string, axis scrollAxis, velocity float32
 	if !ok || !f32IsFinite(displayed) || !f32IsFinite(lo) {
 		return false
 	}
-	// The velocity is physical; an RTL row's offset runs the other way,
+	// The velocity is physical; an RTL container's offset runs the other way,
 	// as for the pan itself (scrollHorizontalPixels).
 	if axis == scrollAxisX && scrollMirrorsX(ly.Shape) {
 		velocity = -velocity

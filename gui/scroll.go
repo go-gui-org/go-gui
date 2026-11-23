@@ -217,20 +217,32 @@ func scrollMaxOffsetY(layout *Layout) float32 {
 // scrollMirrorsX reports whether a scrollable's horizontal offset runs
 // against the arrangement of its children.
 //
-// An RTL row starts at the right edge and lays its children leftward, so
-// what does not fit sits off the left. The stored offset stays in
-// [maxOffset, 0] and keeps its meaning — a distance from the start edge —
-// but every physical input names the opposite direction to the one it
-// names in an LTR row: a wheel delta, a thumb drag and a gutter click all
-// arrive mirrored, and layoutChildStartPos subtracts the offset instead of
-// adding it.
+// An RTL container starts its content at the right edge, so what does
+// not fit sits off the left: a row lays its children leftward, and a
+// column or stack pins a child wider than itself at its right edge
+// (childCrossAxisHAlign). The stored offset stays in [maxOffset, 0] and
+// keeps its meaning — a distance from the start edge — but every
+// physical input names the opposite direction to the one it names in an
+// LTR container: a wheel delta, a thumb drag, a gutter click and a drag
+// pan all arrive mirrored, and layoutChildStartPos subtracts the offset
+// instead of adding it.
 //
-// Only a row mirrors. An RTL column arranges top to bottom and overflows
-// to the right like any other column, so its horizontal offset is
-// unchanged.
+// A row, a column and a stack mirror. Until #1345 only a row did, and
+// an RTL column opened at the end of a wider child.
+//
+// A Canvas (axisNone) does not: its children carry an X of their own and
+// its content width is the furthest X plus width, so its range still runs
+// from the left edge.
+//
+// Nor does a container marked inkScrollX: Input's field, which scrolls
+// sideways only to reach ink that an unbreakable run paints past the
+// right edge of its text box. That ink is on the right in either
+// direction, so the offset keeps its LTR meaning there, which the caret
+// follow (inputScrollCursorIntoViewX) and the drag hit test rely on.
 func scrollMirrorsX(shape *Shape) bool {
-	return shape != nil && shape.Axis == axisLeftToRight &&
-		effectiveTextDir(shape) == TextDirRTL
+	return shape != nil && shape.Axis != axisNone &&
+		effectiveTextDir(shape) == TextDirRTL &&
+		(shape.events == nil || !shape.events.inkScrollX)
 }
 
 // scrollHorizontal scrolls a scrollable layout horizontally by delta
@@ -259,7 +271,7 @@ func scrollHorizontalPixels(layout *Layout, delta float32, w *Window) bool {
 	if !f32IsFinite(delta) {
 		return false
 	}
-	// delta is a physical content displacement, and an RTL row's offset
+	// delta is a physical content displacement, and an RTL container's offset
 	// runs the other way (scrollMirrorsX).
 	if scrollMirrorsX(layout.Shape) {
 		delta = -delta
@@ -395,7 +407,10 @@ func (w *Window) ScrollHorizontalBy(effectiveID string, delta float32) {
 }
 
 // ScrollHorizontalTo scrolls the given scrollable to offset
-// (negative).
+// (negative). 0 shows the start of the content: its left edge, or its
+// right edge in an RTL row, column or stack, where a more negative
+// offset reveals what is off the left. A Canvas and a multiline Input
+// count from the left edge in either direction.
 //
 // effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
@@ -437,7 +452,9 @@ func (w *Window) ScrollHorizontalToSmooth(effectiveID string, offset float32) {
 }
 
 // ScrollHorizontalToPct scrolls to a horizontal percentage.
-// pct: 0.0 = left, 1.0 = right. Clamped to [0, 1].
+// pct: 0.0 = start, 1.0 = end. Clamped to [0, 1]. The start is the
+// left edge, or the right edge in an RTL row, column or stack. A Canvas
+// and a multiline Input start at the left edge in either direction.
 // No-op if the scroll id is not found or content fits viewport.
 //
 // effectiveID is the widget's effective ID: a leaf under an ID-bearing
@@ -592,8 +609,10 @@ func (w *Window) ScrollVerticalPct(effectiveID string) float32 {
 }
 
 // ScrollHorizontalOffset returns the current horizontal scroll offset
-// of the given scrollable: <= 0, where 0 is the left edge. Unknown ids
-// read as 0 (unscrolled).
+// of the given scrollable: <= 0, where 0 is the start edge (the left
+// edge, or the right edge in an RTL row, column or stack; a Canvas and
+// a multiline Input count from the left edge in either direction).
+// Unknown ids read as 0 (unscrolled).
 //
 // effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
@@ -617,7 +636,9 @@ func scrollReadOffset(m *BoundedMap[string, float32], effectiveID string) float3
 }
 
 // ScrollHorizontalPct returns the current horizontal scroll
-// position as a percentage (0.0 = left, 1.0 = right).
+// position as a percentage (0.0 = start, 1.0 = end; the start is the
+// right edge in an RTL row, column or stack, but the left edge of a
+// Canvas or a multiline Input in either direction).
 // Returns 0 if not found or content fits viewport.
 //
 // effectiveID is the widget's effective ID: a leaf under an ID-bearing

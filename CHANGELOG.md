@@ -22,6 +22,19 @@ and this project adheres to
   marker. It moves only the marker: a focusable table's active row and arrow-key
   position do not change.
 
+### Changed
+
+- **BREAKING: the horizontal scroll offset of an RTL `Column` or `Stack` counts
+  from its right edge (#1345).** It counted from the left edge. Now it works as
+  it already did for an RTL `Row`: `ScrollHorizontalTo(id, 0)` and
+  `ScrollHorizontalToPct(id, 0)` show the start of the content, a negative
+  offset moves toward the left, and `ScrollHorizontalOffset` and
+  `ScrollHorizontalPct` report the same. LTR, a `Canvas` and a multiline `Input`
+  do not change. Migration: an app that scrolled an RTL column to its far end to
+  show the start should drop that call. An app that stored such an offset, or
+  computes one from the left edge, should count from the right edge: the new
+  offset is the most negative offset allowed, minus the old one.
+
 ### Fixed
 
 - **A touch drag on a slider or a splitter handle drags it inside a page that
@@ -32,6 +45,14 @@ and this project adheres to
   so a list of horizontal sliders still scrolls up and down. This applies to the
   stock `Slider`, a `Slider` with a `Look`, and the `Splitter` handle. iOS and
   Android behave the same way.
+- **Under RTL, a scroll container opens at the start of content wider than
+  itself (#1345).** A right-to-left `Column` or `Stack` pinned a child wider
+  than itself at its left edge, which under RTL is the end. A wide `Table` or
+  `datagrid` opened at its last column, and a narrow `Tree` hid its expand
+  arrows off screen. Now the child starts at the right edge and sticks out on
+  the left, as on a web page with `dir="rtl"`, and the scrollbar thumb starts at
+  the right. A `DragScroll` pan in an RTL row moved against the pointer and now
+  follows it.
 
 ## [v0.99.1] - 2026-11-22
 

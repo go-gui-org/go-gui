@@ -186,9 +186,8 @@ func TestTableFreezeHeaderWheelScrollsBody(t *testing.T) {
 
 // Under an RTL locale the body moves its scrollbar gutter to the left;
 // the header zone mirrors the same gutter, so the columns stay in line.
-// Where the unscrolled view starts is not asserted: a scrolling RTL
-// Column pins a wider Row at its left edge, which shows the row's end
-// first. That is general layout behaviour, not the table's.
+// The unscrolled table shows its first column at the right edge, and
+// scrolling to the end brings the last one to the left edge (#1345).
 func TestTableFreezeWideRTLInLine(t *testing.T) {
 	saved := CurrentLocale()
 	t.Cleanup(func() { SetLocale(saved) })
@@ -203,11 +202,29 @@ func TestTableFreezeWideRTLInLine(t *testing.T) {
 	ly := w.TestRender(nil)
 	_, headRow, body, bodyRow := hscrollParts(t, w, ly)
 	assertColumnsInLine(t, headRow, bodyRow, "RTL not scrolled")
+	cells := hscrollCells(bodyRow)
+	if len(cells) == 0 {
+		t.Fatal("body row has no cells")
+	}
+	left, right := contentBoxX(body.Shape)
+	if first := cells[0].Shape; first.X+first.Width < left || first.X+first.Width > right {
+		t.Fatalf("RTL not scrolled: first column ends at x=%.0f, outside the viewport %.0f..%.0f",
+			first.X+first.Width, left, right)
+	}
 
 	w.ScrollHorizontalTo(body.Shape.idKey(), -100000)
 	ly = w.TestRender(nil)
-	_, headRow, _, bodyRow = hscrollParts(t, w, ly)
+	_, headRow, body, bodyRow = hscrollParts(t, w, ly)
 	assertColumnsInLine(t, headRow, bodyRow, "RTL scrolled to the end")
+	cells = hscrollCells(bodyRow)
+	if len(cells) == 0 {
+		t.Fatal("body row has no cells after scrolling to the end")
+	}
+	left, right = contentBoxX(body.Shape)
+	if last := cells[len(cells)-1].Shape; last.X < left || last.X > right {
+		t.Fatalf("RTL scrolled to the end: last column starts at x=%.0f, outside the viewport %.0f..%.0f",
+			last.X, left, right)
+	}
 }
 
 // A table whose columns fit keeps its width and has nothing to scroll.

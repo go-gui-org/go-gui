@@ -26,21 +26,30 @@ func (s *Shape) scrollLinkX() string {
 	return s.events.scrollLinkX
 }
 
-// scrollLinkedX returns the current X offset of the container s
-// follows. ok is false when s follows none, when that container is not
-// a Scrollable container of this frame, or when its offset is unset.
+// scrollLinkedX returns how far right on screen the container s follows
+// has moved its content: its X offset, negated when that container
+// mirrors (scrollMirrorsX). The sign is the followed container's, not
+// s's: the two can differ in axis or direction, and s moves with the
+// content it follows. ok is false when s follows none, when that
+// container is not a Scrollable container of this frame, or when its
+// offset is unset.
 // The store keeps an offset after its container is gone, so the frame's
 // set of scroll containers (layoutAdjustScrollOffsets) decides, not the
 // store.
-func scrollLinkedX(s *Shape, w *Window) (offset float32, ok bool) {
+func scrollLinkedX(s *Shape, w *Window) (dx float32, ok bool) {
 	key := s.scrollLinkX()
 	if key == "" || w == nil {
 		return 0, false
 	}
-	if _, live := w.scratch.scrollLive[key]; !live {
+	mirrors, live := w.scratch.scrollLive[key]
+	if !live {
 		return 0, false
 	}
-	return w.scrollX().Get(key)
+	dx, ok = w.scrollX().Get(key)
+	if mirrors {
+		dx = -dx
+	}
+	return dx, ok
 }
 
 // scrollWheelTarget returns the container a wheel over layout scrolls:
