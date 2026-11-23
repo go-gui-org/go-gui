@@ -1,0 +1,24 @@
+# go-gui-golden v1
+Clip xy=16.00,16.00 wh=277.00,102.24
+StrokeRect xy=16.00,16.00 wh=24.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=24.85,21.45 wh=0.00,0.00 color=#1a1d21ff text="◢" size=10.50
+StrokeRect xy=39.00,16.00 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=60.60,19.00 wh=0.00,0.00 color=#1a1d21ff text="ID" size=14.00
+StrokeRect xy=98.00,16.00 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=111.20,19.00 wh=0.00,0.00 color=#1a1d21ff text="Name" size=14.00
+StrokeRect xy=16.00,40.60 wh=24.00,39.32 color=#d8dde4ff thickness=1.00
+StrokeRect xy=39.00,40.60 wh=60.00,39.32 color=#d8dde4ff thickness=1.00
+Text xy=45.00,43.60 wh=0.00,0.00 color=#1a1d21ff text="1" size=23.80
+StrokeRect xy=98.00,40.60 wh=60.00,39.32 color=#d8dde4ff thickness=1.00
+Text xy=104.00,43.60 wh=0.00,0.00 color=#1a1d21ff text="Alice" size=23.80
+StrokeRect xy=16.00,78.92 wh=24.00,39.32 color=#d8dde4ff thickness=1.00
+Text xy=24.85,91.23 wh=0.00,0.00 color=#1a1d21ff text=">" size=10.50
+StrokeRect xy=39.00,78.92 wh=60.00,39.32 color=#d8dde4ff thickness=1.00
+Text xy=45.00,81.92 wh=0.00,0.00 color=#1a1d21ff text="2" size=23.80
+StrokeRect xy=98.00,78.92 wh=60.00,39.32 color=#d8dde4ff thickness=1.00
+Text xy=104.00,81.92 wh=0.00,0.00 color=#1a1d21ff text="Bob" size=23.80
+Clip xy=16.00,120.24 wh=277.00,7.00
+Clip xy=16.00,16.00 wh=277.00,102.24
+Clip xy=295.00,16.00 wh=7.00,102.24
+Clip xy=16.00,16.00 wh=277.00,102.24
+Clip xy=0.00,0.00 wh=320.00,240.00

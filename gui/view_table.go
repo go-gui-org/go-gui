@@ -127,6 +127,32 @@ type TableCfg struct {
 	// exportaudit:keep — caller-facing config (issue #1156)
 	RowHeaderWidth float32
 
+	// RowHeaderTextStyle styles the row header glyphs: the current-row
+	// marker and the corner. Zero keeps the defaults: the marker takes
+	// TextStyle and the corner takes TextStyleHead. Use it when
+	// TextStyle is large to set the row height and the marker must stay
+	// small. The cell centres the glyph vertically, so a smaller style
+	// does not change the row height. A taller one makes every row
+	// taller, and the virtualized row estimate counts it.
+	// exportaudit:keep — caller-facing config (issue #1156)
+	RowHeaderTextStyle TextStyle
+
+	// RowHeaderMarker is the glyph the current row shows in its row
+	// header cell. Empty takes "▶". A glyph wider than the default cell
+	// needs a larger RowHeaderWidth.
+	// exportaudit:keep — caller-facing config (issue #1156)
+	RowHeaderMarker string
+
+	// CurrentRow, when set, is the cfg.Data index that shows the row
+	// header marker. It wins over the row a click or arrow key went to
+	// last, so an app whose keyboard navigation lives outside the table
+	// can move the marker. -1, or an index outside Data, shows no
+	// marker. Unset keeps the table's own current row. It moves only
+	// the marker: a focusable table's active row and arrow-key position
+	// stay its own.
+	// exportaudit:keep — caller-facing config (issue #1156)
+	CurrentRow Opt[int]
+
 	// Sizing sizes the table. Unset takes FillFit: the table is as
 	// wide as its parent allows and scrolls sideways when its columns
 	// are wider. A Fit width grows the table to its columns instead.

@@ -38,7 +38,14 @@ type tableRowHeader struct {
 	// join the tab order. The header cell consumes the press, so the
 	// table below it never sees the press that would focus it.
 	focusID string
-	width   float32
+	// marker is the glyph the current row shows (RowHeaderMarker, or
+	// the default).
+	marker string
+	// ts and tsHead style the marker and the corner glyph. Both are
+	// RowHeaderTextStyle when the caller set it, else TextStyle and
+	// TextStyleHead.
+	ts, tsHead TextStyle
+	width      float32
 	// current is the cfg.Data index that shows the marker, or -1 for
 	// none.
 	current int
@@ -68,9 +75,29 @@ func tableRowHeaderOf(cfg *TableCfg, activeRowIdx int, w *Window) tableRowHeader
 			current = StateReadOr(w, nsTableFocus, cfg.ID, -1)
 		}
 	}
+	// An app-owned current row wins over the stored one. Any value
+	// outside Data, -1 included, means no marker, so a stale index
+	// after Data shrinks reads as "none".
+	if v, ok := cfg.CurrentRow.Value(); ok {
+		current = -1
+		if v >= 0 && v < len(cfg.Data) {
+			current = v
+		}
+	}
+	marker := cfg.RowHeaderMarker
+	if marker == "" {
+		marker = tableRowHeaderCurrent
+	}
+	ts, tsHead := cfg.TextStyle, cfg.TextStyleHead
+	if cfg.RowHeaderTextStyle != (TextStyle{}) {
+		ts, tsHead = cfg.RowHeaderTextStyle, cfg.RowHeaderTextStyle
+	}
 	rh := tableRowHeader{
 		data:    cfg.Data,
 		key:     cfg.ID,
+		marker:  marker,
+		ts:      ts,
+		tsHead:  tsHead,
 		width:   width,
 		current: current,
 		on:      true,
@@ -173,12 +200,12 @@ func tableRowHeaderCell(
 	isHeader := tableIsHeaderRow(r)
 
 	var glyph, label string
-	ts := cfg.TextStyle
+	ts := rh.ts
 	var onClick func(EventCtx)
 	if isHeader {
 		glyph = tableRowHeaderCorner
 		label = "Select all rows"
-		ts = cfg.TextStyleHead
+		ts = rh.tsHead
 		// Single select cannot hold every row, so the corner is a
 		// plain cell there.
 		if onSelect != nil && multiSelect {
@@ -192,7 +219,7 @@ func tableRowHeaderCell(
 		}
 	} else {
 		if rowIdx == rh.current {
-			glyph = tableRowHeaderCurrent
+			glyph = rh.marker
 		}
 		label = "Select row"
 		if onSelect != nil {
@@ -221,6 +248,9 @@ func tableRowHeaderCell(
 		Padding: NewPadding(cfg.CellPadding.Top, 0, cfg.CellPadding.Bottom, 0),
 		Radius:  NoRadius,
 		HAlign:  HAlignCenter,
+		// Centred vertically: the cell fills the row's height, so a glyph
+		// in a smaller RowHeaderTextStyle sits mid-row, not at the top.
+		VAlign:  VAlignMiddle,
 		Sizing:  FixedFill,
 		Width:   rh.width,
 		OnClick: onClick,

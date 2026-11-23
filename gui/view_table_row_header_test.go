@@ -3,6 +3,7 @@ package gui
 import (
 	"maps"
 	"math"
+	"slices"
 	"testing"
 )
 
@@ -452,5 +453,184 @@ func TestTableRowHeaderClickNoFocusWhenNotFocusable(t *testing.T) {
 	clickRowHeader(t, &rows[1], w, ModLMB)
 	if got := w.FocusID(); got != "" {
 		t.Errorf("focus = %q, want none", got)
+	}
+}
+
+// rowHeaderCellStyle returns the text style of a row's leading header
+// cell glyph.
+func rowHeaderCellStyle(t *testing.T, row *Layout) TextStyle {
+	t.Helper()
+	tc := row.Children[0].Children[0].Shape.TC
+	if tc == nil || tc.TextStyle == nil {
+		t.Fatal("header cell has no text style")
+	}
+	return *tc.TextStyle
+}
+
+// RowHeaderMarker replaces the default glyph on the current row; an
+// empty value keeps the default (issue #1156 follow-up).
+func TestTableRowHeaderMarker(t *testing.T) {
+	for _, tc := range []struct {
+		name, marker, want string
+	}{
+		{"default", "", tableRowHeaderCurrent},
+		{"custom", ">", ">"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := &Window{}
+			layout := generateViewLayout(Table(TableCfg{
+				ID:              "rh-marker",
+				RowHeader:       true,
+				RowHeaderMarker: tc.marker,
+				CurrentRow:      Some(2),
+				Data:            rowHeaderTestData(),
+			}), w)
+			rows := tableRows(&layout)
+			if got := rowHeaderCellText(t, &rows[2]); got != tc.want {
+				t.Errorf("marker = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// RowHeaderTextStyle styles the marker and the corner glyph. Left
+// zero, the marker takes TextStyle and the corner TextStyleHead, as
+// before the field existed.
+func TestTableRowHeaderTextStyle(t *testing.T) {
+	body := TextStyle{Size: 28, Color: RGB(1, 2, 3)}
+	head := TextStyle{Size: 30, Color: RGB(4, 5, 6)}
+	small := TextStyle{Size: 10, Color: RGB(7, 8, 9)}
+	build := func(rhs TextStyle) []Layout {
+		w := &Window{}
+		layout := generateViewLayout(Table(TableCfg{
+			ID:                 "rh-style",
+			RowHeader:          true,
+			RowHeaderTextStyle: rhs,
+			TextStyle:          body,
+			TextStyleHead:      head,
+			CurrentRow:         Some(1),
+			Data:               rowHeaderTestData(),
+		}), w)
+		return tableRows(&layout)
+	}
+
+	rows := build(TextStyle{})
+	if got := rowHeaderCellStyle(t, &rows[1]); got != body {
+		t.Errorf("unset: marker style = %+v, want TextStyle", got)
+	}
+	if got := rowHeaderCellStyle(t, &rows[0]); got != head {
+		t.Errorf("unset: corner style = %+v, want TextStyleHead", got)
+	}
+
+	rows = build(small)
+	if got := rowHeaderCellStyle(t, &rows[1]); got != small {
+		t.Errorf("set: marker style = %+v, want RowHeaderTextStyle", got)
+	}
+	if got := rowHeaderCellStyle(t, &rows[0]); got != small {
+		t.Errorf("set: corner style = %+v, want RowHeaderTextStyle", got)
+	}
+}
+
+// The header cell centres its glyph vertically, so a glyph smaller than
+// the row sits in the middle rather than at the top.
+func TestTableRowHeaderCellCentred(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(Table(TableCfg{
+		ID:        "rh-valign",
+		RowHeader: true,
+		Data:      rowHeaderTestData(),
+	}), w)
+	rows := tableRows(&layout)
+	for i := range rows {
+		if got := rows[i].Children[0].Shape.VAlign; got != VAlignMiddle {
+			t.Errorf("row %d header VAlign = %v, want VAlignMiddle", i, got)
+		}
+	}
+}
+
+// CurrentRow lets the app own the marker row: it wins over the row a
+// click stored, on a focusable table or not. -1 or an index past the
+// data shows no marker.
+func TestTableRowHeaderCurrentRow(t *testing.T) {
+	markers := func(rows []Layout) []int {
+		var at []int
+		for i := 1; i < len(rows); i++ {
+			if rowHeaderCellText(t, &rows[i]) != "" {
+				at = append(at, i)
+			}
+		}
+		return at
+	}
+	for _, focusable := range []bool{false, true} {
+		for _, tc := range []struct {
+			name    string
+			current Opt[int]
+			want    []int
+		}{
+			{"unset follows click", Opt[int]{}, []int{1}},
+			{"set overrides click", Some(3), []int{3}},
+			{"minus one hides", Some(-1), nil},
+			{"past data hides", Some(99), nil},
+			{"negative hides", Some(-5), nil},
+		} {
+			name := tc.name
+			if focusable {
+				name += " focusable"
+			}
+			t.Run(name, func(t *testing.T) {
+				w := &Window{}
+				cfg := TableCfg{
+					ID:         "rh-current",
+					RowHeader:  true,
+					Focusable:  focusable,
+					CurrentRow: tc.current,
+					Data:       rowHeaderTestData(),
+					OnSelect:   func(map[int]bool, int, EventCtx) {},
+				}
+				layout := generateViewLayout(Table(cfg), w)
+				rows := tableRows(&layout)
+				// A click stores row 1 as current.
+				clickRowHeader(t, &rows[1], w, ModLMB)
+				layout = generateViewLayout(Table(cfg), w)
+				rows = tableRows(&layout)
+				if got := markers(rows); !slices.Equal(got, tc.want) {
+					t.Errorf("marker rows = %v, want %v", got, tc.want)
+				}
+			})
+		}
+	}
+}
+
+// A RowHeaderTextStyle taller than TextStyle makes the header cell set
+// the row height, so the virtualization estimate must count it. A
+// smaller one, or a table with no row header, leaves the estimate at
+// TextStyle.
+func TestTableEstimateRowHeightCountsRowHeaderStyle(t *testing.T) {
+	body := TextStyle{Size: 14}
+	big := TextStyle{Size: 30}
+	small := TextStyle{Size: 8}
+	pad := NewPadding(2, 0, 3, 0)
+	for _, tc := range []struct {
+		name      string
+		rowHeader bool
+		rhs       TextStyle
+		want      float32
+	}{
+		{"no row header ignores style", false, big, 14 + 5},
+		{"taller style wins", true, big, 30 + 5},
+		{"smaller style ignored", true, small, 14 + 5},
+		{"unset style", true, TextStyle{}, 14 + 5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tableEstimateRowHeight(&TableCfg{
+				TextStyle:          body,
+				CellPadding:        pad,
+				RowHeader:          tc.rowHeader,
+				RowHeaderTextStyle: tc.rhs,
+			}, nil)
+			if got != tc.want {
+				t.Errorf("estimate = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
