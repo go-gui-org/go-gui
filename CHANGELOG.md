@@ -53,6 +53,12 @@ and this project adheres to
   the left, as on a web page with `dir="rtl"`, and the scrollbar thumb starts at
   the right. A `DragScroll` pan in an RTL row moved against the pointer and now
   follows it.
+- **`Window.TestStep` also drives the recheck of SVG files (#1360).** A
+  file-backed SVG is checked for edits at most every 500 ms. In a test on the
+  manual clock that interval ran on wall time, so what a test saw depended on
+  how fast the machine was. It now follows the window clock, as animations and
+  tooltip delays do. A test that edits an SVG file steps the clock past the
+  interval. A live window behaves as before.
 
 ## [v0.99.1] - 2026-11-22
 
