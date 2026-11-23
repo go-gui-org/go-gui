@@ -363,3 +363,80 @@ func TestRTLColumnOverflowChildKinds(t *testing.T) {
 		})
 	}
 }
+
+// A container that follows another through ScrollLinkX moves with the
+// followed content on screen, whichever axis or direction each has. The
+// sign is the followed container's: taken from the follower, a Canvas or
+// an LTR column moved against the RTL column it followed.
+func TestScrollLinkMovesWithTargetRTL(t *testing.T) {
+	ink := func(cfg ContainerCfg) View {
+		cfg.inkScrollX = true
+		return Column(cfg)
+	}
+	for _, tc := range []struct {
+		name             string
+		follower, target func(ContainerCfg) View
+		followDir        TextDirection
+	}{
+		{"column, column", Column, Column, TextDirRTL},
+		{"canvas, column", Canvas, Column, TextDirRTL},
+		{"column, canvas", Column, Canvas, TextDirRTL},
+		{"LTR column, column", Column, Column, TextDirLTR},
+		{"column, ink field", Column, ink, TextDirRTL},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			box := func(id string) []View {
+				return []View{Column(ContainerCfg{ID: id, Width: 500, Height: 20,
+					Sizing: FixedFixed, Padding: PaddingNone, SizeBorder: NoBorder})}
+			}
+			w := NewTestWindow(t, WindowCfg{Width: 300, Height: 200})
+			w.TestRender(func(*Window) View {
+				return Column(ContainerCfg{Sizing: FillFill, Padding: PaddingNone,
+					SizeBorder: NoBorder, Content: []View{
+						tc.follower(ContainerCfg{Clip: true, ScrollLinkX: "s", Sizing: FillFixed,
+							Height: 30, HAlign: HAlignLeft, Padding: PaddingNone,
+							SizeBorder: NoBorder, TextDir: tc.followDir, Content: box("f")}),
+						tc.target(ContainerCfg{ID: "s", Scrollable: true, Sizing: FillFill,
+							HAlign: HAlignLeft, Padding: PaddingNone,
+							SizeBorder: NoBorder, TextDir: TextDirRTL, Content: box("c")}),
+					}})
+			})
+			x := func() (follower, target float32) {
+				l := w.TestRender(nil)
+				f, okF := l.FindByID("f")
+				c, okC := l.FindByID(ScopeID("s", "c"))
+				if !okF || !okC {
+					t.Fatalf("found follower %v, target %v", okF, okC)
+				}
+				return f.Shape.X, c.Shape.X
+			}
+			f0, c0 := x()
+			w.ScrollHorizontalTo("s", -60)
+			f1, c1 := x()
+			if !f32AreClose(f32Abs(c1-c0), 60) || !f32AreClose(f1-f0, c1-c0) {
+				t.Fatalf("follower moved %v, target moved %v, want both by 60 the same way",
+					f1-f0, c1-c0)
+			}
+		})
+	}
+}
+
+// A scroll during a horizontal reorder drag moves the items under the
+// pointer, so the pointer maps as if it had moved the other way: the
+// drop index after the content moved 60px right is the index an
+// unscrolled drag has 60px further left.
+func TestDragReorderScrollMappingRTL(t *testing.T) {
+	index := func(mouseX, scroll float32) int {
+		w, root := rtlScrollRow(t)
+		w.layout = *root
+		w.scrollX().Set("sc", scroll)
+		dragReorderSet(w, "k", dragReorderState{active: true, itemX: 0, itemWidth: 60,
+			itemCount: 5, scrollID: "sc"})
+		dragReorderOnMouseMove("k", dragReorderHorizontal, mouseX, 0, w)
+		return dragReorderGet(w, "k").currentIndex
+	}
+	// An RTL row's content moves right by -offset.
+	if got, want := index(150, -60), index(90, 0); got != want || want != 1 {
+		t.Fatalf("index after the content moved 60 right = %d, want %d (and 1)", got, want)
+	}
+}

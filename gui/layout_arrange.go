@@ -15,7 +15,7 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	// The scroll containers of this frame; layoutAdjustScrollOffsets
 	// fills it for every layer (scroll_link.go).
 	if w.scratch.scrollLive == nil {
-		w.scratch.scrollLive = make(map[string]struct{})
+		w.scratch.scrollLive = make(map[string]bool)
 	}
 	clear(w.scratch.scrollLive)
 	// Record the cursor a real move would end with: the one this pass

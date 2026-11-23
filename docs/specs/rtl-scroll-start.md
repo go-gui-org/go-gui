@@ -31,8 +31,11 @@ An RTL column or stack works the way an RTL row already did.
   start edge, so 0 shows the start of the content. Everything that already asked
   `scrollMirrorsX` follows without change: the thumb position, thumb drag, a
   press on the track, the wheel, smooth scrolling and momentum.
-  `layoutChildStartPos` subtracts the offset, for a scroll container's own
-  children and for a container that follows one through `ScrollLinkX`.
+  `layoutChildStartPos` subtracts the offset for a scroll container's own
+  children. A container that follows one through `ScrollLinkX` takes the sign
+  from the container it follows (`w.scratch.scrollLive` keeps it), not from
+  itself: an LTR column or a `Canvas` that follows an RTL column would otherwise
+  move against it.
 - **Canvas is an exception.** A `Canvas` (`axisNone`) adds each child's own X,
   and its content width is the furthest child's X plus width. Its range runs
   from the left edge in either direction, so it neither pins a wide child at the
@@ -50,13 +53,14 @@ An RTL column or stack works the way an RTL row already did.
   moved the text right on End, and the caret left the field. The field has the
   input's ID, so the scroll APIs reach it and report its offset from the left
   edge too.
-- **Drag paths.** A `DragScroll` pan and the edge auto-scroll of a drag-to-
-  reorder pass a pointer delta to `ScrollHorizontalBy`, which takes an offset
-  delta. Both now mirror the delta when `scrollMirrorsX` holds. Before, an RTL
-  row panned against the pointer, and a reorder drag held at its left edge
-  scrolled back toward the start. Without this step the change above would have
-  broken RTL column panning, which worked only because columns were not
-  mirrored.
+- **Drag paths.** A `DragScroll` pan passes a pointer delta to
+  `ScrollHorizontalBy`, which takes an offset delta, so it mirrors the delta
+  when `scrollMirrorsX` holds. Before, an RTL row panned against the pointer.
+  Without this step the change above would have broken RTL column panning, which
+  worked only because columns were not mirrored. A horizontal drag-to-reorder
+  had the same fault in its edge scroll and in the pointer mapping after a
+  scroll, and both mirror now. No widget reaches them yet: `TabControl` is the
+  only horizontal one and it names no scroll container.
 - **API docs.** `ScrollHorizontalTo`, `ScrollHorizontalToPct`,
   `ScrollHorizontalOffset` and `ScrollHorizontalPct` say "start" and "end"
   instead of "left" and "right", and name the Canvas and Input exceptions.

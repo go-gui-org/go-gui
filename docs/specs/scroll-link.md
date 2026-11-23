@@ -27,15 +27,18 @@ The container that sets it does not scroll, but its children move sideways with
 the named container's content.
 
 - **Read at positioning.** `layoutChildStartPos` applies the linked offset to
-  the linking container's children, with the same arithmetic a scroll container
-  uses for its own children (an RTL container subtracts it). This runs after
-  `layoutAdjustScrollOffsets`, so the offset is the clamped one of this frame,
-  and the header can never lag the rows.
+  the linking container's children, in the direction the linked container moves
+  its own. A linked container that mirrors its offset (an RTL row, column or
+  stack, `scrollMirrorsX`) has it subtracted, whatever the axis or direction of
+  the container that follows; an RTL `Canvas` does not mirror, so its offset is
+  added. This runs after `layoutAdjustScrollOffsets`, so the offset is the
+  clamped one of this frame, and the header can never lag the rows.
 - **Live targets only.** The offset store keeps an entry after its container is
   gone. `layoutAdjustScrollOffsets` records the keys of the frame's scroll
-  containers in `w.scratch.scrollLive`, which `layoutArrange` clears each frame.
-  A link applies an offset only when its key is in that set. Clearing keeps the
-  map's buckets, so a steady frame does not allocate.
+  containers in `w.scratch.scrollLive`, with whether each one mirrors, and
+  `layoutArrange` clears it each frame. A link applies an offset only when its
+  key is in that set. Clearing keeps the map's buckets, so a steady frame does
+  not allocate.
 - **Wheel.** `mouseScrollFallbackHandlerDepth` treats a container with a link as
   its target for the wheel: the delta scrolls the linked container. A frozen
   header scrolls the table like its rows do.
@@ -107,9 +110,6 @@ neighbouring cells (`dataGridRowWidth`).
   first one. A table or grid inside a dialog has both parts in one layer and
   works.
 
-- Under RTL a scroll container whose content is wider than itself opens at the
-  end of the content (#1345). This is general layout behaviour; the link keeps
-  header and rows in step there, but does not move the start.
 - The table's row header (the ▶ column) scrolls away with the columns. A
   DataGridView keeps it pinned on the left. This was decided in #1293.
 

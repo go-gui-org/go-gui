@@ -100,14 +100,10 @@ func layoutChildStartPos(
 		if v, ok := sy.Get(id); ok {
 			y += v
 		}
-	} else if v, ok := scrollLinkedX(layout.Shape, w); ok {
+	} else if dx, ok := scrollLinkedX(layout.Shape, w); ok {
 		// Follows another container's X offset (scroll_link.go), the
 		// same way that container moves its own children.
-		if scrollMirrorsX(layout.Shape) {
-			x -= v
-		} else {
-			x += v
-		}
+		x += dx
 	}
 	return x, y
 }
@@ -368,7 +364,7 @@ func layoutAdjustScrollOffsetsDepth(layout *Layout, w *Window, depth int) {
 	id := layout.Shape.idKey()
 	if layout.Shape.Scrollable && id != "" {
 		if w.scratch.scrollLive != nil {
-			w.scratch.scrollLive[id] = struct{}{}
+			w.scratch.scrollLive[id] = scrollMirrorsX(layout.Shape)
 		}
 		sx := w.scrollX()
 		sy := w.scrollY()
