@@ -152,11 +152,11 @@ func touchPressOnPan(gs *gestureState, layout *Layout, w *Window, dx, dy float32
 	// the control's axis, the rule below already sends a pan along it,
 	// and its cross ratio must stay: a diagonal pan on a horizontal
 	// slider in a vertical list scrolls the list (#1116), and the same
-	// ratio locks the pan's axis (panAxisLock).
-	if drag := gs.pressScan.drag; drag != ScrollbarNone &&
-		(ay >= ax) == (drag == ScrollbarVertical) &&
-		((drag == ScrollbarHorizontal && gs.pressScan.h) ||
-			(drag == ScrollbarVertical && gs.pressScan.v)) {
+	// ratio locks the pan's axis (panAxisLock). The comparisons are
+	// strict: a pan at 45 degrees is not along either axis, so it goes to
+	// the rule below for both orientations.
+	if drag := gs.pressScan.drag; (drag == ScrollbarHorizontal && gs.pressScan.h && ax > ay) ||
+		(drag == ScrollbarVertical && gs.pressScan.v && ay > ax) {
 		touchPressSend(gs, layout, w)
 		return
 	}

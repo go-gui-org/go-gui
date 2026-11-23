@@ -58,9 +58,11 @@ func TestTouchPanAlongSliderDrags(t *testing.T) {
 	var value float32 = 10
 	w := touchDragPage(t, touchDragSlider(&value))
 	x, y := rowCenter(t, w, "s")
+	// The press at x-60 alone sets about 26. A value past 50 needs the
+	// later moves to drag the handle on to x+40 (about 66).
 	touchPan(w, x-60, y, 100, 0)
-	if value <= 10 {
-		t.Fatalf("slider value = %v, want it dragged up from 10", value)
+	if value <= 50 {
+		t.Fatalf("slider value = %v, want it dragged past 50", value)
 	}
 	if v, _ := w.scrollX().Get("page"); v != 0 {
 		t.Fatalf("page x offset = %v, want 0: the slider took the pan", v)
@@ -126,9 +128,11 @@ func TestTouchPanAlongLookSliderDrags(t *testing.T) {
 		},
 	}))
 	x, y := rowCenter(t, w, "s")
+	// The press at x-60 alone sets about 26. A value past 50 needs the
+	// later moves to drag the handle on to x+40 (about 66).
 	touchPan(w, x-60, y, 100, 0)
-	if value <= 10 {
-		t.Fatalf("slider value = %v, want it dragged up from 10", value)
+	if value <= 50 {
+		t.Fatalf("slider value = %v, want it dragged past 50", value)
 	}
 	if v, _ := w.scrollX().Get("page"); v != 0 {
 		t.Fatalf("page x offset = %v, want 0: the slider took the pan", v)
@@ -218,5 +222,24 @@ func TestTouchPanAlongDisabledSliderScrolls(t *testing.T) {
 	}
 	if v, _ := w.scrollX().Get("page"); v >= 0 {
 		t.Fatalf("page x offset = %v, want it scrolled", v)
+	}
+}
+
+// TestTouchPanAt45DegreesOnVerticalSliderScrolls checks a pan with equal
+// x and y on a vertical slider is not along the slider: it scrolls the
+// page, as the same pan does on a horizontal slider.
+func TestTouchPanAt45DegreesOnVerticalSliderScrolls(t *testing.T) {
+	var value float32 = 50
+	w := touchDragPage(t, Slider(SliderCfg{
+		ID: "s", Vertical: true, Height: 200, Min: 0, Max: 100, Value: value,
+		OnChange: func(v float32, _ EventCtx) { value = v },
+	}))
+	x, y := rowCenter(t, w, "s")
+	touchPan(w, x, y, -40, -40)
+	if value != 50 {
+		t.Fatalf("slider value = %v, want 50: a 45 degree pan is a scroll", value)
+	}
+	if v, _ := w.scrollY().Get("page"); v >= 0 {
+		t.Fatalf("page y offset = %v, want it scrolled", v)
 	}
 }
