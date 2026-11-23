@@ -241,8 +241,12 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 	t := gui.CurrentTheme()
 	selected := app.SelectedComponent == entry.ID
 	color := gui.ColorTransparent
+	hover := t.ColorHover
 	if selected {
 		color = t.ColorActive
+		// The selected fill stays under the pointer. A hover fill here
+		// replaced it, so the hovered row no longer looked selected.
+		hover = t.ColorActive
 	}
 
 	// VirtualList puts no gap between rows, so the row carries the
@@ -251,19 +255,19 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 		Sizing:     gui.FillFit,
 		Padding:    gui.NewPadding(0, 0, t.SpacingTight, 0),
 		SizeBorder: gui.NoBorder,
-		Content:    []gui.View{catalogButton(entry, color)},
+		Content:    []gui.View{catalogButton(entry, color, hover)},
 	})
 }
 
 // catalogButton is the clickable part of a catalog row. Row text
 // stays at full intensity for readability.
-func catalogButton(entry DemoEntry, color gui.Color) gui.View {
+func catalogButton(entry DemoEntry, color, hover gui.Color) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
 		ID:      gui.ScopeID("showcase", "cat", entry.ID),
 		Sizing:  gui.FillFit,
 		Color:   color,
-		Colors:  gui.ColorSet{Hover: t.ColorHover, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
+		Colors:  gui.ColorSet{Hover: hover, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
 		Radius:  gui.RadiusSmall,
 		Padding: gui.PaddingSmall,
 		HAlign:  gui.Some(gui.HAlignLeft),

@@ -154,3 +154,54 @@ func TestDocsScrollOffset(t *testing.T) {
 		}
 	}
 }
+
+// findShape returns the shape under l whose ID is id, or nil.
+func findShape(l *gui.Layout, id string) *gui.Shape {
+	if l.Shape != nil && l.Shape.ID == id {
+		return l.Shape
+	}
+	for i := range l.Children {
+		if s := findShape(&l.Children[i], id); s != nil {
+			return s
+		}
+	}
+	return nil
+}
+
+// A selected catalog row keeps its selected fill under the pointer. The
+// row's hover color replaced it, so the hovered row no longer looked
+// selected.
+func TestCatalogSelectedRowKeepsFillOnHover(t *testing.T) {
+	app := newShowcaseApp()
+	app.SelectedGroup = groupAll
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 950, Height: 700})
+	w.TestRender(mainView)
+	w.TestRender(nil)
+
+	ids := catalogRowIDs(w)
+	if len(ids) < 2 {
+		t.Fatalf("built %d catalog rows, want at least 2", len(ids))
+	}
+	target := ids[1]
+	if err := w.TestClick(target); err != nil {
+		t.Fatal(err)
+	}
+	w.TestRender(nil)
+
+	mx, my, ok := w.LocalToWindow(target, 4, 4)
+	if !ok {
+		t.Fatal("selected row not on screen")
+	}
+	w.EventFn(&gui.Event{Type: gui.EventMouseMove, MouseX: mx, MouseY: my})
+	layout := w.TestRender(nil)
+	if !w.IsHovered(target) {
+		t.Fatal("selected row not hovered")
+	}
+	s := findShape(layout, target)
+	if s == nil {
+		t.Fatalf("no shape with ID %q", target)
+	}
+	if want := w.Theme().ColorActive; s.Color != want {
+		t.Errorf("hovered selected row fill = %v, want selected fill %v", s.Color, want)
+	}
+}
