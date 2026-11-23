@@ -94,14 +94,15 @@ func TestGLWin32FadeOnOwnDCClass(t *testing.T) {
 					"flags %#x, alpha %d", style, ok, flags, alpha)
 			}
 
-			// DWM composes after the swap returns: poll for the blend.
+			// DWM composes after the swap returns: poll for the blend. No
+			// present here: each checkpoint presents once before it, so a
+			// frame that shows wrong cannot be rescued by a later one.
 			expect := func(when string, px, py int32) {
 				t.Helper()
 				deadline := time.Now().Add(3 * time.Second)
 				for {
 					raise()
 					pumpMessages(&msg)
-					frame(gb, gw)
 					s := screenPixels(t, x+px, y+py, 1, 1)
 					got := [3]int{int(s[2]), int(s[1]), int(s[0])}
 					if near(got, want) {
@@ -115,22 +116,26 @@ func TestGLWin32FadeOnOwnDCClass(t *testing.T) {
 					time.Sleep(20 * time.Millisecond)
 				}
 			}
-			expect("first frame", 150, 110)
+			// The client's center, in physical pixels: the size depends on
+			// the display scale and GOGUI_DEVICE_SCALE.
+			ww, wh, cw, ch := windowAndClient(gb.plat.hwnd)
+			cx, cy := cw/2, ch/2
+			expect("first frame", cx, cy)
 			for range 30 {
 				frame(gb, gw)
 			}
-			expect("after 30 frames", 150, 110)
-			// Grow from the current physical size, which depends on the
-			// display scale, so the strip is new at any scale. The backdrop
-			// grows further, so the strip still has it behind.
-			ww, wh, _, _ := windowAndClient(gb.plat.hwnd)
+			expect("after 30 frames", cx, cy)
+			// Grow from the current physical size, so the strip is new at
+			// any scale. The backdrop grows further, so the strip still has
+			// it behind.
 			pSetWindowPos.Call(back.plat.hwnd, hwndTopmost, x, y,
 				uintptr(ww+40), uintptr(wh+40), swpNoActivate)
 			pSetWindowPos.Call(gb.plat.hwnd, hwndTopmost, x, y,
 				uintptr(ww+20), uintptr(wh+20), swpNoActivate)
 			pumpMessages(&msg)
 			frame(back, bw)
-			expect("after a resize, old area", 150, 110)
+			frame(gb, gw)
+			expect("after a resize, old area", cx, cy)
 			expect("after a resize, new strip", ww+10, wh+10)
 		})
 	}
