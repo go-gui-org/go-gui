@@ -32,8 +32,13 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 	s := &defaultSplitterStyle
 	handleSize := cfg.HandleSize.Get(s.HandleSize)
 	var handleWidth, handleHeight float32
+	// The handle moves across the split: left and right between side by
+	// side panes. A touch pan along that axis drags it, also in a page
+	// that scrolls on that axis (#1226).
+	dragAxis := ScrollbarVertical
 	if orientation == SplitterHorizontal {
 		handleWidth = handleSize
+		dragAxis = ScrollbarHorizontal
 	} else {
 		handleHeight = handleSize
 	}
@@ -58,6 +63,8 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 			splitterOnHandleHover(core, ctx.Layout, ctx.Event, ctx.Window)
 		},
 		Content: content,
+
+		touchDragAxis: dragAxis,
 	}
 
 	if orientation == SplitterHorizontal {

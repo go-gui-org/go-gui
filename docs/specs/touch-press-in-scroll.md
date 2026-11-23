@@ -1,6 +1,6 @@
 # Touch presses inside scrollables
 
-Issue #1116. Status: **implemented**.
+Issue #1116, drag controls #1226. Status: **implemented**.
 
 ## Problem
 
@@ -52,6 +52,18 @@ lost: the track jumped, and the drag lock kept the content from panning. In the
 showcase's DataSource page on a phone, the data grid's horizontal bar was such a
 strip.
 
+A press on a drag control waits too (#1226). In a scrollable that scrolls on the
+control's axis, a pan that runs more along the control than across it sends the
+press, so the control drags in place of rule 2. Any other pan keeps rules 2 and
+3: in a list that scrolls only across the control, the cross ratio still
+decides, so a diagonal pan on a horizontal slider in a vertical list scrolls the
+list. The drag controls are `Slider` (stock and `Look`) and the `Splitter`
+handle; each marks its wrapper with the unexported `Shape.touchDragAxis`, and
+the scan keeps the innermost one. In the showcase on a phone, the detail pane
+scrolls sideways, so the sliders there did not drag: only a tap set the value.
+iOS and Android do the same: a slider in a scroll view drags along its track,
+and a swipe across it scrolls.
+
 The press goes out at touch-down, as before, inside a `DragScroll` container
 (which claims its own press, `drag-scroll.md`), outside any scrollable, in a
 scrollable whose content fits, and while the mouse is locked. Mouse input is
@@ -95,6 +107,15 @@ The scrollbar works for touch:
   cancelled when the finger scrolls. Here the press is the click: a finger that
   rests and then scrolls would pick the row again.
 
+- **Send a press on a drag control at touch-down (#1226).** A swipe that starts
+  on a slider would then never scroll the page on either axis, and a list of
+  sliders would be hard to scroll.
+- **Only the slider thumb takes the pan (#1226).** The thumb is about 16 px, so
+  a finger often misses it, and a drag that starts on the track still scrolled
+  the page.
+- **A `Cfg` field to opt a control in (#1226).** The widget knows its own axis,
+  and no app needs to change it.
+
 - **End a long press that lets the finger go with `GesturePhaseEnded` (#1117).**
   `Ended` says the long press completed, and a handler that acts on it would act
   on a touch that became a scroll. `Cancelled` is what a second finger and a
@@ -114,5 +135,7 @@ The scrollbar works for touch:
 - A quick tap shows no pressed color: the press and the release arrive together
   at the lift.
 - A tap clicks at the lift, typically 50–100 ms later than at touch-down.
-- A vertical slider in a vertical list pans the list; it drags after a long
+- A drag control other than `Slider` and the `Splitter` handle (the color
+  picker's planes and channel sliders, a custom control) still follows rules 2
+  and 3: inside a scrollable that scrolls on its axis it drags only after a long
   press.

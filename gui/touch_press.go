@@ -23,6 +23,13 @@ import "slices"
 //     press took the mouse lock or a handler consumed the long press
 //     (longPressYield, gesture.go).
 //  5. A second finger drops it: a pinch is not a click.
+//  6. On a drag control (a slider, a splitter handle) in a scrollable
+//     that scrolls on the control's axis, a pan that runs more along
+//     the control than across it sends the press: the control wins
+//     over rule 2 (#1226). Any other pan keeps rules 2 and 3, so a
+//     vertical list of horizontal sliders still scrolls, with its
+//     cross ratio. iOS and Android do the same: a slider in a scroll
+//     view drags along its track.
 //
 // A press on a scrollbar waits too, but its axis is the bar's: a pan
 // along the bar sends the press, so the thumb drags, and a pan across it
@@ -45,6 +52,9 @@ type touchPressScan struct {
 	v, h bool
 	// bar is the orientation of a scrollbar part on the path.
 	bar ScrollbarOrientation
+	// drag is the axis of the innermost drag control on the path
+	// (Shape.touchDragAxis).
+	drag ScrollbarOrientation
 	// now reports a part that takes its press at touch-down.
 	now bool
 	// took reports a shape on the path that takes the press (a focusable
@@ -135,6 +145,21 @@ func touchPressOnPan(gs *gestureState, layout *Layout, w *Window, dx, dy float32
 		}
 		return
 	}
+	// A drag control takes a pan along its axis before a scrollable that
+	// scrolls on that axis can claim it. As on a bar, the dominant axis
+	// decides: the control is under the finger, so a pan that runs more
+	// along it than across it is a drag. Where no scrollable scrolls on
+	// the control's axis, the rule below already sends a pan along it,
+	// and its cross ratio must stay: a diagonal pan on a horizontal
+	// slider in a vertical list scrolls the list (#1116), and the same
+	// ratio locks the pan's axis (panAxisLock). The comparisons are
+	// strict: a pan at 45 degrees is not along either axis, so it goes to
+	// the rule below for both orientations.
+	if drag := gs.pressScan.drag; (drag == ScrollbarHorizontal && gs.pressScan.h && ax > ay) ||
+		(drag == ScrollbarVertical && gs.pressScan.v && ay > ax) {
+		touchPressSend(gs, layout, w)
+		return
+	}
 	if (gs.pressScan.v && ax <= touchPressCrossRatio*ay) ||
 		(gs.pressScan.h && ay <= touchPressCrossRatio*ax) {
 		gs.touchPressDrop()
@@ -200,6 +225,14 @@ func touchPressScanAt(layout *Layout, x, y float32, depth int, s *touchPressScan
 // touchPressNote records one shape on the path under the touch.
 func touchPressNote(layout *Layout, s *touchPressScan) {
 	sh := layout.Shape
+	// The scan notes children first: the innermost control wins. A
+	// shape inside the control that took the press (a splitter's
+	// collapse button, a handler in a slider Look's parts) owns it, and
+	// the press is its click: the control's drag axis does not apply.
+	if sh.touchDragAxis != ScrollbarNone && s.drag == ScrollbarNone &&
+		!s.took && !sh.Disabled {
+		s.drag = sh.touchDragAxis
+	}
 	if sh.scrollbarOrientation != ScrollbarNone {
 		// A thumb or gutter: the bar's axis settles the press.
 		s.bar = sh.scrollbarOrientation
