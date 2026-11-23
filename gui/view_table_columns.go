@@ -160,10 +160,19 @@ var tableWarnNoID = sync.OnceFunc(func() {
 // tableEstimateRowHeight estimates row height from TextStyle,
 // cell padding, and border.
 func tableEstimateRowHeight(cfg *TableCfg, w *Window) float32 {
-	style := cfg.TextStyle
-	height := style.Size
-	if w != nil && w.textMeasurer != nil {
-		height = w.textMeasurer.FontHeight(style)
+	fontHeight := func(style TextStyle) float32 {
+		if w != nil && w.textMeasurer != nil {
+			return w.textMeasurer.FontHeight(style)
+		}
+		return style.Size
+	}
+	height := fontHeight(cfg.TextStyle)
+	// The row header cell sits in every row with the same vertical
+	// padding as the data cells, so a RowHeaderTextStyle taller than
+	// TextStyle sets the row height. Count it, or virtualization picks
+	// the wrong visible range and scroll extent (#1156).
+	if cfg.RowHeader && cfg.RowHeaderTextStyle != (TextStyle{}) {
+		height = max(height, fontHeight(cfg.RowHeaderTextStyle))
 	}
 	return height + cfg.CellPadding.Or(PaddingNone).Height()
 }

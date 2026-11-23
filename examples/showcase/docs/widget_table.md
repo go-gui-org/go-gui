@@ -128,21 +128,26 @@ When `RawData` is set, `Data` is ignored.
 | MaxHeight          | float32           | Maximum height                |
 | FreezeHeader       | bool              | Pin header above the rows     |
 | Focusable          | bool              | Opt in to keyboard focus      |
+| RowHeader          | bool              | Row selector column + corner  |
+| RowHeaderWidth     | float32           | Row header width              |
+| CurrentRow         | Opt[int]          | App-owned marker row          |
 | Sound              | SoundCue          | Row-activation cue            |
 | SoundDisabled      | bool              | Suppress row sounds           |
 
 ## Appearance
 
-| Property         | Type      | Description                 |
-| ---------------- | --------- | --------------------------- |
-| Colors           | ColorSet  | Hover, Selected, Border     |
-| ColorSelect      | Color     | Deprecated: Colors.Selected |
-| ColorRowAlt      | *Color    | Alternating row background  |
-| CellPadding      | Padding   | Padding inside each cell    |
-| TextStyle        | TextStyle | Body cell text style        |
-| TextStyleHead    | TextStyle | Header cell text style      |
-| SizeBorder       | float32   | Border line width           |
-| SizeBorderHeader | float32   | Header border line width    |
+| Property           | Type      | Description                    |
+| ------------------ | --------- | ------------------------------ |
+| Colors             | ColorSet  | Hover, Selected, Border        |
+| ColorSelect        | Color     | Deprecated: Colors.Selected    |
+| ColorRowAlt        | *Color    | Alternating row background     |
+| CellPadding        | Padding   | Padding inside each cell       |
+| TextStyle          | TextStyle | Body cell text style           |
+| TextStyleHead      | TextStyle | Header cell text style         |
+| RowHeaderTextStyle | TextStyle | Row header marker/corner style |
+| RowHeaderMarker    | string    | Current-row glyph, default ▶   |
+| SizeBorder         | float32   | Border line width              |
+| SizeBorderHeader   | float32   | Header border line width       |
 
 ## Events
 

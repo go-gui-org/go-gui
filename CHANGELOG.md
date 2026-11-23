@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Table row header: style the marker and let the app own the current row
+  (#1156).** `TableCfg.RowHeaderTextStyle` styles the current-row marker and the
+  corner glyph. Left zero, they take `TextStyle` and `TextStyleHead` as before.
+  `TableCfg.RowHeaderMarker` replaces the default `▶`. The row header cell now
+  centres its glyph vertically, so a small marker sits mid-row when a large
+  `TextStyle` sets the row height. `TableCfg.CurrentRow` (`Opt[int]`) sets the
+  row that shows the marker and wins over the row a click stored. An app whose
+  keyboard navigation lives outside the table can now move the marker without
+  writing internal table state. `Some(-1)`, or an index outside `Data`, shows no
+  marker. It moves only the marker: a focusable table's active row and arrow-key
+  position do not change.
+
 ## [v0.99.1] - 2026-11-22
 
 ### Changed

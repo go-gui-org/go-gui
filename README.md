@@ -110,6 +110,10 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   own. `VirtualList` handles rows the app builds, including rows whose height is
   known only during layout. `Window.ScrollToIndex` can address a row that does
   not exist yet
+- **DataGridView-style tables** — `TableCfg.RowHeader` adds a row selector
+  column and a select-all corner. The app can style the current-row marker and
+  own which row shows it, for apps moving from WinForms
+  ([`examples/table_row_header/`](examples/table_row_header/))
 - **GPU-accelerated rendering** — cgo-free Metal on macOS, cgo-free OpenGL on
   Linux and Windows, WebGL/WASM in the browser, and Metal/UIKit on iOS (cgo)
 - **Rich interaction** — keyframe, spring, and tween animation, hero
