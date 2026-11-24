@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.100.0] - 2026-11-24
+
 ### Added
 
 - **Build rows whose first or last cells stay in place (#1364).**
@@ -40,6 +42,10 @@ and this project adheres to
 
 ### Changed
 
+- **Bump go-glyph v1.29.2 to v1.29.3 (#1367).** When `TextStyle.CellWidth` is
+  set, a fallback CJK ideograph is sized to fill exactly two cells (scale
+  clamped to 0.8×–1.3×). Other callers keep the cap-height fit. The public API
+  does not change.
 - **`Table` allocates about a quarter less per frame (#1363).** Its row and cell
   lists come from the frame arena now. A table of 12 columns and a row header
   with 48 visible rows went from 2267 to 1643 allocations per frame.
