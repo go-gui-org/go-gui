@@ -5,7 +5,7 @@
 ![CI](https://github.com/go-gui-org/go-gui/actions/workflows/ci.yml/badge.svg)
 [![Wiki](https://img.shields.io/badge/docs-wiki-blue)](https://github.com/go-gui-org/go-gui/wiki)
 
-**A modern GUI framework for Go.**
+**A modern, CGO-free GUI framework for Go.**
 
 **Build modern, cross-platform applications entirely in Go — no browser runtime,
 no JavaScript, HTML, or CSS.**
