@@ -81,6 +81,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				Text:             value,
 				Placeholder:      cfg.QuickFilterPlaceholder,
 				Sizing:           gg.FillFill,
+				MinWidth:         dataGridQuickFilterMinWidth,
 				Padding:          gg.NoPadding,
 				SizeBorder:       gg.NoBorder,
 				Radius:           gg.NoRadius,
@@ -245,7 +246,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 					cfg.HiddenColumnIDs, columns, colID, focusID),
 			}))
 		}
-		content = append(content, gg.Row(gg.ContainerCfg{
+		list := gg.ContainerCfg{
 			Height:      rowH,
 			Sizing:      gg.FillFixed,
 			Padding:     cfg.PaddingFilter,
@@ -254,10 +255,19 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 			ColorBorder: cfg.ColorsRow.Border,
 			SizeBorder:  gg.NoBorder,
 			Content:     options,
-		}))
+		}
+		if cfg.pins.on {
+			// The body keeps the chooser in place, and the list can be
+			// wider than the grid.
+			list.ID = gg.ScopeID(gridID, "col-chooser-list")
+			list.Scrollable = true
+			list.ScrollMode = gg.ScrollHorizontalOnly
+		}
+		content = append(content, gg.Row(list))
 	}
 	return gg.Column(gg.ContainerCfg{
 		Height:      dataGridColumnChooserHeight(cfg, isOpen),
+		MinWidth:    cfg.pins.rowMin,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorsRow.Border,

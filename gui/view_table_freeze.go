@@ -23,9 +23,6 @@ type tableFreeze struct {
 	// edge is the line after the last frozen cell, or nil. One view
 	// serves every row: generation only reads it.
 	edge View
-	// lead is the first child of each window when cell borders overlap,
-	// or nil; see window.
-	lead View
 	// scrollID is the key of the container the windows follow.
 	scrollID string
 	// rowWidth is the width of a whole row, the scroll extent.
@@ -70,12 +67,7 @@ func tableFreezeOf(
 		fz.windowWidth += cw
 	}
 	fz.windowWidth -= float32(len(scrolled)-1) * cellBorder
-	if cellBorder > 0 {
-		fz.lead = Rectangle(RectangleCfg{
-			Color:  ColorTransparent,
-			Sizing: FixedFill,
-		})
-	} else {
+	if cellBorder <= 0 {
 		// Cell borders already mark the edge of a full grid. Without
 		// them a cut cell would sit right next to the frozen one.
 		fz.rowWidth += tableFreezeEdgeWidth
@@ -94,7 +86,7 @@ func tableFreezeOf(
 // the window and the edge too when the row is split.
 func (fz *tableFreeze) rowCells(n int) []View {
 	if fz.on {
-		n += 3 // edge, window, lead
+		n += 2 // edge and window
 	}
 	return rowContent(fz.w, n)
 }
@@ -107,52 +99,19 @@ func (fz *tableFreeze) split(cells []View) ([]View, int) {
 		cells = append(cells, fz.edge)
 	}
 	slot := len(cells)
-	cells = append(cells, nil)
-	if fz.lead != nil {
-		cells = append(cells, fz.lead)
-	}
-	return cells, slot
+	return append(cells, nil), slot
 }
 
 // closeWindow fills the window slot with the cells after it and returns
 // the row's own children. Both are parts of one slice, so a split row
 // takes no slice of its own.
 func (fz *tableFreeze) closeWindow(cells []View, slot int) []View {
-	cells[slot] = fz.window(cells[slot+1:])
+	cells[slot] = fz.w.ScrollWindow(ScrollWindowCfg{
+		ScrollID: fz.scrollID,
+		Content:  cells[slot+1:],
+		MinWidth: fz.windowMin,
+		MaxWidth: fz.windowWidth,
+		Border:   fz.border,
+	})
 	return cells[: slot+1 : slot+1]
-}
-
-// window builds the scroll window around a row's scrolling cells.
-//
-// Cells of a full grid share a border: each overlaps its neighbour by
-// one. The window overlaps the last frozen cell the same way, but its
-// start padding keeps the clip off that cell's border, or cells would
-// draw over the border while they scroll. The zero-width lead child
-// takes the padding back, so the first scrolling cell still overlaps.
-func (fz *tableFreeze) window(cells []View) View {
-	cv := containerView{
-		cfg: ContainerCfg{
-			axis:         axisLeftToRight,
-			Sizing:       FillFill,
-			MinWidth:     fz.windowMin,
-			MaxWidth:     fz.windowWidth,
-			Padding:      NewPadding(0, 0, 0, fz.border),
-			Spacing:      SpacingPx(-fz.border),
-			SizeBorder:   NoBorder,
-			Radius:       NoRadius,
-			Clip:         true,
-			ScrollLinkX:  fz.scrollID,
-			scrollWindow: true,
-			clickButton:  clickLeftOnly,
-		},
-		content: cells,
-	}
-	// Pooled: a window per row is the only view a split row adds.
-	if fz.w == nil {
-		// A copy: the address of cv itself would move it to the heap on
-		// the pooled path too.
-		heapCV := cv
-		return &heapCV
-	}
-	return fz.w.scratch.viewWindows.alloc(cv)
 }

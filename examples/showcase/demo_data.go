@@ -216,7 +216,7 @@ func demoDataGrid(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text:      "Simple controlled grid. Sort, filter, and select rows.",
+				Text:      "Simple controlled grid. Sort, filter, and select rows. Hover a header and click the dot to pin its column.",
 				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
 			gui.Text(gui.TextCfg{
@@ -227,7 +227,7 @@ func demoDataGrid(w *gui.Window) gui.View {
 				// The grid takes the page's width and scrolls sideways
 				// when its columns are wider.
 				Sizing:            gui.FillFit,
-				Columns:           showcaseDataGridColumns(),
+				Columns:           showcaseDataGridPinned(app.DataGridPins),
 				Rows:              rows,
 				Query:             app.DataGridQuery,
 				Selection:         app.DataGridSelection,
@@ -238,6 +238,13 @@ func demoDataGrid(w *gui.Window) gui.View {
 				ShowColumnChooser: true,
 				OnHiddenColumnsChange: func(hidden map[string]bool, ctx gui.EventCtx) {
 					appState(ctx.Window).DataGridHidden = hidden
+				},
+				OnColumnPinChange: func(colID string, pin datagrid.GridColumnPin, ctx gui.EventCtx) {
+					a := appState(ctx.Window)
+					if a.DataGridPins == nil {
+						a.DataGridPins = map[string]datagrid.GridColumnPin{}
+					}
+					a.DataGridPins[colID] = pin
 				},
 				OnQueryChange: func(query datagrid.GridQueryState, ctx gui.EventCtx) {
 					appState(ctx.Window).DataGridQuery = query
@@ -253,6 +260,16 @@ func demoDataGrid(w *gui.Window) gui.View {
 			}),
 		},
 	})
+}
+
+// showcaseDataGridPinned returns the demo's columns with the pins the
+// user clicked.
+func showcaseDataGridPinned(pins map[string]datagrid.GridColumnPin) []datagrid.GridColumnCfg {
+	columns := showcaseDataGridColumns()
+	for i := range columns {
+		columns[i].Pin = pins[columns[i].ID]
+	}
+	return columns
 }
 
 func demoDataSource(w *gui.Window) gui.View {

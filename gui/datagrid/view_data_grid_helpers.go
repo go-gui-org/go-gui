@@ -68,9 +68,10 @@ func dataGridHeight(cfg *DataGridCfg) float32 {
 	return 0
 }
 
-// dataGridScrollViewportHeight is the height of the scroll body: the
-// grid height less the chrome stacked outside it (CRUD toolbar, quick
-// filter, frozen header, frozen-top rows, pager). Returns 0 when the
+// dataGridScrollViewportHeight is the height the scroll body shows rows
+// in: the grid height less the chrome stacked outside it (CRUD toolbar,
+// quick filter, frozen header, frozen-top rows, pager) and the strip for
+// the horizontal scrollbar. Returns 0 when the
 // grid has no fixed height. Using the whole grid height let the
 // selected row scroll below the visible body before the grid moved.
 func dataGridScrollViewportHeight(cfg *DataGridCfg, pagerShown, crudEnabled bool, frozenTopRows int, rowHeight float32) float32 {
@@ -93,6 +94,7 @@ func dataGridScrollViewportHeight(cfg *DataGridCfg, pagerShown, crudEnabled bool
 	if pagerShown {
 		h -= dataGridPagerHeight(cfg)
 	}
+	h -= dataGridBodyStrip(cfg)
 	return f32Max(0, h)
 }
 

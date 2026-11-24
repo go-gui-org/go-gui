@@ -114,7 +114,7 @@ func renderLayoutChildren(layout *Layout, bgColor Color, clip drawClip, w *Windo
 	} else if layout.Shape.Clip {
 		shapeClip = scrollWindowClip(layout.Shape,
 			clipContentBoxIn(layout.Shape,
-				renderShapeClip(layout.Shape, clip, w)), clip)
+				renderShapeClip(layout.Shape, clip, w)), clip, w)
 		emitClipCmd(shapeClip, w)
 		stencil, stencilled := xfClipStencilBegin(shapeClip, w)
 		defer func() {

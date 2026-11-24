@@ -1,6 +1,7 @@
 package datagrid
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -183,5 +184,111 @@ func TestQuickFilterPlaceholderUsesThemeRole(t *testing.T) {
 	want := gg.RGBA(10, 20, 30, gg.CurrentTheme().TextStylePlaceholder.Color.A)
 	if got != want {
 		t.Fatalf("placeholder color: got %v, want %v", got, want)
+	}
+}
+
+// quickPins are the pin sets the quick filter is checked with. Pinning
+// every column is the same as pinning none.
+func quickPins() map[string]map[int]GridColumnPin {
+	all := map[int]GridColumnPin{}
+	for c := range pinTestCols {
+		all[c] = GridColumnPinLeft
+	}
+	return map[string]map[int]GridColumnPin{
+		"none": nil,
+		"left": {0: GridColumnPinLeft},
+		"both": {0: GridColumnPinLeft, 9: GridColumnPinRight},
+		"all":  all,
+	}
+}
+
+// The quick filter stays in place while the columns scroll, with and
+// without pinned ones, and shows from the search text to the clear button.
+func TestQuickFilterStaysInPlace(t *testing.T) {
+	for name, pins := range quickPins() {
+		for _, rtl := range []bool{false, true} {
+			for _, width := range []int{520, 240} {
+				t.Run(fmt.Sprintf("pins=%s/rtl=%v/width=%d", name, rtl, width), func(t *testing.T) {
+					if rtl {
+						pinRTL(t)
+					}
+					if width == 240 && name == "both" {
+						t.Skip("too narrow for its pinned columns, which scroll away first")
+					}
+					w := pinWindow(t, width, pins, func(c *DataGridCfg) { c.ShowQuickFilter = true })
+					l := w.TestRender(nil)
+					ids := []string{"g:quick_filter", "g:filter_clear"}
+					before := map[string]float32{}
+					for _, id := range ids {
+						before[id] = pinFind(t, l, id).X
+					}
+					for _, ask := range []float32{0, -80, -100000} {
+						l = pinScroll(w, ask)
+						off, _, _ := w.TestScrollOffset(pinScrollID)
+						if ask != 0 && off >= 0 {
+							t.Fatalf("offset = %.0f, want < 0", off)
+						}
+						for _, id := range ids {
+							s := pinFind(t, l, id)
+							if s.X != before[id] {
+								t.Errorf("offset %.0f: %s moved from %.1f to %.1f", off, id, before[id], s.X)
+							}
+							for _, x := range []float32{s.X + 1, s.X + s.Width - 1} {
+								if !s.PointInShape(x, s.Y+s.Height/2) {
+									t.Errorf("offset %.0f: %s is cut off at x=%.0f", off, id, x)
+								}
+							}
+						}
+					}
+				})
+			}
+		}
+	}
+}
+
+// A wheel over the quick filter scrolls the rows as one over a row does.
+func TestQuickFilterWheelScrollsRows(t *testing.T) {
+	for name, pins := range quickPins() {
+		wheel := func(id string) (x, y float32) {
+			w := pinWindow(t, 520, pins, func(c *DataGridCfg) { c.ShowQuickFilter = true })
+			s := pinFind(t, w.TestRender(nil), id)
+			w.EventFn(&gg.Event{
+				Type: gg.EventMouseScroll, ScrollPrecise: true, ScrollX: -2, ScrollY: -1,
+				MouseX: s.X + s.Width/2, MouseY: s.Y + s.Height/2,
+			})
+			w.TestRender(nil)
+			x, y, err := w.TestScrollOffset(pinScrollID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return x, y
+		}
+		wx, wy := wheel("g:cell:1:c2")
+		if wx >= 0 || wy >= 0 {
+			t.Fatalf("pins %s: wheel over a cell: offset (%.1f, %.1f), want both < 0", name, wx, wy)
+		}
+		for _, id := range []string{"g:quick_filter", "g:filter_clear"} {
+			if x, y := wheel(id); x != wx || y != wy {
+				t.Errorf("pins %s: wheel over %s: offset (%.1f, %.1f), want (%.1f, %.1f)", name, id, x, y, wx, wy)
+			}
+		}
+	}
+}
+
+// The quick filter does not change the width of a grid that fits its
+// columns.
+func TestQuickFilterFitWidth(t *testing.T) {
+	width := func(quick bool) float32 {
+		w := gg.NewTestWindow(t, gg.WindowCfg{Width: 3000, Height: 400})
+		w.TestRender(func(w *gg.Window) gg.View {
+			return pinGrid(w, nil, func(c *DataGridCfg) {
+				c.Sizing, c.Height, c.MaxHeight = gg.FitFit, 0, 300
+				c.ShowQuickFilter = quick
+			})
+		})
+		return pinFind(t, w.TestRender(nil), "g").Width
+	}
+	if plain, quick := width(false), width(true); !near(plain, quick, 0.1) {
+		t.Errorf("grid width = %.1f with the quick filter, %.1f without", quick, plain)
 	}
 }

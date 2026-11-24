@@ -1,0 +1,186 @@
+# go-gui-golden v1
+Rect xy=0.00,0.00 wh=420.00,200.00 color=#ffffffff radius=4.00 fill
+Rect xy=0.00,0.00 wh=420.00,34.00 color=#ffffffff radius=6.00 fill
+Clip xy=0.00,0.00 wh=408.00,34.00
+Rect xy=0.00,0.00 wh=110.00,34.00 color=#ffffffff fill
+Clip xy=5.00,2.00 wh=100.00,30.00
+Clip xy=6.00,3.00 wh=98.00,28.00
+Text xy=6.00,7.20 wh=0.00,0.00 color=#1a1d21ff text="C1" size=14.00
+Clip xy=5.00,2.00 wh=100.00,30.00
+Clip xy=0.00,0.00 wh=408.00,34.00
+Rect xy=110.00,0.00 wh=1.00,34.00 color=#d8dde4ff fill
+Clip xy=111.00,0.00 wh=186.00,34.00
+Rect xy=51.00,0.00 wh=110.00,34.00 color=#ffffffff fill
+Clip xy=111.00,2.00 wh=45.00,30.00
+Clip xy=111.00,3.00 wh=44.00,28.00
+Clip xy=111.00,2.00 wh=45.00,30.00
+Clip xy=111.00,0.00 wh=186.00,34.00
+Rect xy=161.00,0.00 wh=110.00,34.00 color=#ffffffff fill
+Clip xy=166.00,2.00 wh=100.00,30.00
+Clip xy=167.00,3.00 wh=98.00,28.00
+Text xy=167.00,7.20 wh=0.00,0.00 color=#1a1d21ff text="C3" size=14.00
+Clip xy=166.00,2.00 wh=100.00,30.00
+Clip xy=111.00,0.00 wh=186.00,34.00
+Rect xy=271.00,0.00 wh=110.00,34.00 color=#ffffffff fill
+Clip xy=276.00,2.00 wh=21.00,30.00
+Clip xy=277.00,3.00 wh=20.00,28.00
+Text xy=277.00,7.20 wh=0.00,0.00 color=#1a1d21ff text="C4" size=14.00
+Clip xy=276.00,2.00 wh=21.00,30.00
+Clip xy=111.00,0.00 wh=186.00,34.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,0.00 wh=186.00,34.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,0.00 wh=186.00,34.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,0.00 wh=186.00,34.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,0.00 wh=186.00,34.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,0.00 wh=186.00,34.00
+Clip xy=0.00,0.00 wh=408.00,34.00
+Rect xy=297.00,0.00 wh=1.00,34.00 color=#d8dde4ff fill
+Rect xy=298.00,0.00 wh=110.00,34.00 color=#ffffffff fill
+Clip xy=303.00,2.00 wh=100.00,30.00
+Clip xy=304.00,3.00 wh=98.00,28.00
+Text xy=304.00,7.20 wh=0.00,0.00 color=#1a1d21ff text="C2" size=14.00
+Clip xy=303.00,2.00 wh=100.00,30.00
+Clip xy=0.00,0.00 wh=408.00,34.00
+Clip xy=0.00,0.00 wh=420.00,240.00
+Rect xy=0.00,34.00 wh=420.00,166.00 color=#ffffffff radius=6.00 fill
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=0.00,34.00 wh=408.00,34.00 color=#ffffffff radius=6.00 fill
+Rect xy=0.00,34.00 wh=110.00,34.00 color=#ffffff7f fill
+Clip xy=5.00,34.00 wh=100.00,34.00
+Text xy=5.00,41.20 wh=0.00,0.00 color=#1a1d2195 text="Filter" size=14.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=110.00,34.00 wh=1.00,34.00 color=#d8dde4ff fill
+Clip xy=111.00,34.00 wh=186.00,154.00
+Rect xy=51.00,34.00 wh=110.00,34.00 color=#ffffff7f fill
+Clip xy=111.00,34.00 wh=45.00,34.00
+Text xy=56.00,41.20 wh=0.00,0.00 color=#1a1d2195 text="Filter" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Rect xy=161.00,34.00 wh=110.00,34.00 color=#ffffff7f fill
+Clip xy=166.00,34.00 wh=100.00,34.00
+Text xy=166.00,41.20 wh=0.00,0.00 color=#1a1d2195 text="Filter" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Rect xy=271.00,34.00 wh=110.00,34.00 color=#ffffff7f fill
+Clip xy=276.00,34.00 wh=21.00,34.00
+Text xy=276.00,41.20 wh=0.00,0.00 color=#1a1d2195 text="Filter" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=297.00,34.00 wh=1.00,34.00 color=#d8dde4ff fill
+Rect xy=298.00,34.00 wh=110.00,34.00 color=#ffffff7f fill
+Clip xy=303.00,34.00 wh=100.00,34.00
+Text xy=303.00,41.20 wh=0.00,0.00 color=#1a1d2195 text="Filter" size=14.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Clip xy=5.00,70.00 wh=100.00,26.00
+Text xy=5.00,73.20 wh=0.00,0.00 color=#1a1d21ff text="0-1" size=14.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=110.00,68.00 wh=1.00,30.00 color=#d8dde4ff fill
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=111.00,70.00 wh=45.00,26.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=166.00,70.00 wh=100.00,26.00
+Text xy=166.00,73.20 wh=0.00,0.00 color=#1a1d21ff text="0-3" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=276.00,70.00 wh=21.00,26.00
+Text xy=276.00,73.20 wh=0.00,0.00 color=#1a1d21ff text="0-4" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=297.00,68.00 wh=1.00,30.00 color=#d8dde4ff fill
+Clip xy=303.00,70.00 wh=100.00,26.00
+Text xy=303.00,73.20 wh=0.00,0.00 color=#1a1d21ff text="0-2" size=14.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=0.00,98.00 wh=408.00,30.00 color=#2f6fe01e radius=6.00 fill
+Clip xy=5.00,100.00 wh=100.00,26.00
+Text xy=5.00,103.20 wh=0.00,0.00 color=#1a1d21ff text="1-1" size=14.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=110.00,98.00 wh=1.00,30.00 color=#d8dde4ff fill
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=111.00,100.00 wh=45.00,26.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=166.00,100.00 wh=100.00,26.00
+Text xy=166.00,103.20 wh=0.00,0.00 color=#1a1d21ff text="1-3" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=276.00,100.00 wh=21.00,26.00
+Text xy=276.00,103.20 wh=0.00,0.00 color=#1a1d21ff text="1-4" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=297.00,98.00 wh=1.00,30.00 color=#d8dde4ff fill
+Clip xy=303.00,100.00 wh=100.00,26.00
+Text xy=303.00,103.20 wh=0.00,0.00 color=#1a1d21ff text="1-2" size=14.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Clip xy=5.00,130.00 wh=100.00,26.00
+Text xy=5.00,133.20 wh=0.00,0.00 color=#1a1d21ff text="2-1" size=14.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=110.00,128.00 wh=1.00,30.00 color=#d8dde4ff fill
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=111.00,130.00 wh=45.00,26.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=166.00,130.00 wh=100.00,26.00
+Text xy=166.00,133.20 wh=0.00,0.00 color=#1a1d21ff text="2-3" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=276.00,130.00 wh=21.00,26.00
+Text xy=276.00,133.20 wh=0.00,0.00 color=#1a1d21ff text="2-4" size=14.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=111.00,34.00 wh=186.00,154.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Rect xy=297.00,128.00 wh=1.00,30.00 color=#d8dde4ff fill
+Clip xy=303.00,130.00 wh=100.00,26.00
+Text xy=303.00,133.20 wh=0.00,0.00 color=#1a1d21ff text="2-2" size=14.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Clip xy=0.00,190.00 wh=408.00,7.00
+Rect xy=24.21,190.00 wh=147.06,7.00 color=#e0e5ecff radius=4.00 fill
+Clip xy=0.00,34.00 wh=408.00,154.00
+Clip xy=410.00,34.00 wh=7.00,154.00
+Clip xy=0.00,34.00 wh=408.00,154.00
+Clip xy=0.00,0.00 wh=420.00,240.00

@@ -68,20 +68,10 @@ type ContainerCfg struct {
 	// either direction, so the X offset is not mirrored under RTL
 	// (scrollMirrorsX). Input sets it on its field.
 	inkScrollX bool
-	// scrollExtentX, when above 0 on a Scrollable container, is the
-	// width of what it scrolls sideways, in place of its widest child.
-	// The container then keeps its children in place and only the scroll
-	// windows linked to it move (scroll_window.go). A Table with frozen
-	// columns sets it on its body.
-	scrollExtentX float32
-	// scrollExtentMin is the narrowest a child row of a container with
-	// scrollExtentX can be. In a viewport narrower than that the first
-	// part of the scroll range moves the rows, so their end stays
-	// reachable.
-	scrollExtentMin float32
 	// scrollWindow makes a container with ScrollLinkX a window onto the
 	// part of the linked container's content that moves, when that
-	// container has a scrollExtentX. It clips sideways only.
+	// container has a ScrollExtentX. [Window.ScrollWindow] sets it. See
+	// scroll_window.go for what else it changes.
 	scrollWindow bool
 	// inert takes the container and everything in it out of input, the
 	// way the HTML inert attribute does: no hit tests, no tab stops, no
@@ -197,6 +187,21 @@ type ContainerCfg struct {
 	// container laid out before it in the frame has that ID, even if one
 	// had it before.
 	ScrollLinkX string
+
+	// ScrollExtentX, when above 0 on a Scrollable container, is the width
+	// of what the container scrolls sideways, in place of its widest
+	// child. The container then keeps its children in place, and only the
+	// scroll windows linked to it move their content: a grid whose first
+	// columns stay in place sets it on its body to the width of a row and
+	// builds each row with [Window.ScrollWindow].
+	// exportaudit:keep — caller-facing config (issue #1364)
+	ScrollExtentX float32
+	// ScrollExtentMin is the narrowest a child row of a container with
+	// ScrollExtentX can be. In a viewport narrower than that the first
+	// part of the scroll range moves the rows themselves, so their end
+	// can still be reached.
+	// exportaudit:keep — caller-facing config (issue #1364)
+	ScrollExtentMin float32
 	A11YCfg
 
 	// Content holds the child views displayed inside this container.
@@ -493,7 +498,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
 		c.OnScroll == nil && c.OnMouseScroll == nil &&
 		c.AmendLayout == nil && c.ScrollLinkX == "" &&
-		c.scrollExtentX == 0 &&
+		c.ScrollExtentX == 0 &&
 		!c.inkScrollX && !c.AcceptsTextInput &&
 		c.Sound == SoundNone {
 		return eventHandlers{}, false
@@ -528,8 +533,8 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 
 		acceptsTextInput: c.AcceptsTextInput,
 
-		scrollExtentX:   c.scrollExtentX,
-		scrollExtentMin: c.scrollExtentMin,
+		scrollExtentX:   c.ScrollExtentX,
+		scrollExtentMin: c.ScrollExtentMin,
 	}, true
 }
 

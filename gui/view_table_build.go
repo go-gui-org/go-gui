@@ -339,8 +339,8 @@ func tableFreezeLayout(
 		Content:    bodyRows,
 	}
 	if fz.on {
-		bodyCfg.scrollExtentX = fz.rowWidth
-		bodyCfg.scrollExtentMin = fz.rowMin
+		bodyCfg.ScrollExtentX = fz.rowWidth
+		bodyCfg.ScrollExtentMin = fz.rowMin
 	}
 	if cfg.Scrollbar != ScrollbarAuto {
 		bodyCfg.ScrollbarCfgX = &ScrollbarCfg{

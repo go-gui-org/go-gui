@@ -77,12 +77,17 @@ pinned it at its left edge.
 
 ### datagrid
 
-The header, quick-filter and frozen-top-row bands are Columns with the rows'
-padding and `ScrollLinkX` to the rows. They were Rows, which under RTL started
-their content at the right edge while the rows were pinned at the left, so the
-header showed other columns than the rows. A band is as wide as a row: the
-columns, plus the CRUD delete button when it shows, less one border per pair of
-neighbouring cells (`dataGridRowWidth`).
+The rows keep a strip at the bottom for the horizontal scrollbar since #1364, as
+the table's do. Since then the quick filter stays in place too: it is a search
+for the whole grid, and its Clear button was out of view at the end of the
+columns.
+
+The header and frozen-top-row bands are Columns with the rows' padding and
+`ScrollLinkX` to the rows. They were Rows, which under RTL started their content
+at the right edge while the rows were pinned at the left, so the header showed
+other columns than the rows. A band is as wide as a row: the columns, plus the
+CRUD delete button when it shows, less one border per pair of neighbouring cells
+(`dataGridRowWidth`).
 
 ## Testing
 

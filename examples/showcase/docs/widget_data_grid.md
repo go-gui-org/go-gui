@@ -69,10 +69,10 @@ datagrid.New(w, datagrid.DataGridCfg{
 
 A grid takes the width its `Sizing` gives it; the default is `FillFill`. When
 its columns are wider, it scrolls sideways and shows a horizontal scrollbar.
-With `FreezeHeader`, the header, the quick filter and the frozen top rows stay
-at the top but move sideways with the rows, so each header stays above its
-column. A wheel or trackpad scroll over the header scrolls the rows. A `Fit`
-width grows the grid to its columns instead, so it never scrolls sideways.
+With `FreezeHeader`, the header and the frozen top rows stay at the top but move
+sideways with the rows, so each header stays above its column. The quick filter
+does not move. A wheel or trackpad scroll over the header scrolls the rows. A
+`Fit` width grows the grid to its columns instead, so it never scrolls sideways.
 
 ## Key Properties
 
@@ -130,8 +130,22 @@ width grows the grid to its columns instead, so it never scrolls sideways.
 | Editable    | bool            | Enable inline editing |
 | Resizable   | bool            | Enable drag-resize    |
 | Reorderable | bool            | Enable drag-reorder   |
-| Pin         | GridColumnPin   | Pin left or right     |
+| Pin         | GridColumnPin   | Stay left or right    |
 | Align       | HorizontalAlign | Cell alignment        |
+
+## Pinned Columns
+
+A column with `Pin: datagrid.GridColumnPinLeft` stays at the start of the grid
+while the others scroll sideways, and one with `GridColumnPinRight` stays at its
+end. Under RTL the start is the right edge. The header, the filter row, the
+frozen top rows and the data rows keep their pinned cells, and a group header
+stays in view. The row-delete button of a CRUD grid stays with the right-pinned
+columns. Pinning every column pins none, because nothing is left to scroll. A
+grid too narrow for its pinned columns scrolls them away first, so every column
+can be reached.
+
+Set `OnColumnPinChange` to show a pin button in the header of a hovered column.
+The app stores the new value and sets it as `Pin` on the next frame.
 
 ## Appearance
 

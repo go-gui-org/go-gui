@@ -420,8 +420,8 @@ func tableView(cfg TableCfg, w *Window) View {
 	// scroll slot shared by every such table.
 	outerCfg.Scrollable = cfg.ID != ""
 	if fz.on {
-		outerCfg.scrollExtentX = fz.rowWidth
-		outerCfg.scrollExtentMin = fz.rowMin
+		outerCfg.ScrollExtentX = fz.rowWidth
+		outerCfg.ScrollExtentMin = fz.rowMin
 	}
 	// Room on the right for the vertical scrollbar and at the bottom for
 	// the horizontal one, as in the frozen-header layout (#1293).
