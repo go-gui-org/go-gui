@@ -10,6 +10,12 @@ and this project adheres to
 
 ### Added
 
+- **Build rows whose first or last cells stay in place (#1364).**
+  `Window.ScrollWindow` builds the part of a row that scrolls sideways, and
+  `ContainerCfg.ScrollExtentX` and `ScrollExtentMin` tell the scroll container
+  how wide its content is and how narrow a row can be. `Table` and `DataGrid`
+  build their frozen and pinned columns with them, and an app can do the same
+  for a grid of its own.
 - **Table: keep the row header and the first columns in place while the others
   scroll sideways (#1363).** `TableCfg.FreezeColumns` is how many leading
   columns stay in place: the left-most ones, or the right-most under RTL. It
@@ -50,6 +56,28 @@ and this project adheres to
 
 ### Fixed
 
+- **DataGrid: a pinned column stays in place (#1364).** `GridColumnCfg.Pin` only
+  moved a column to the front or the end of the row, and it scrolled away with
+  the others. A left-pinned column now stays at the start of the grid and a
+  right-pinned one at its end, in the header, the filter row, the frozen top
+  rows and the data rows. Under RTL the start is the right edge, and the arrows
+  of the pin button point the right way there. A group header stays in view, and
+  the row-delete button stays with the right-pinned columns. A grid too narrow
+  for its pinned columns scrolls them away first. The columns of a grid with no
+  pinned column, or with every column pinned, scroll as before.
+- **DataGrid: the quick filter stays in place while the columns scroll sideways
+  (#1364).** It was as wide as the columns and scrolled with them, so its match
+  count and Clear button were out of view until the end, and the search text was
+  out of view there. It is now as wide as the grid, in a grid without pinned
+  columns too.
+- **DataGrid: the header is in line with its columns (#1364).** Every header
+  cell sat 1px beside its column, because the rows had an invisible border of
+  their own. The rows now start 1px further left and up.
+- **DataGrid: the horizontal scrollbar does not cover the last row (#1364).**
+  The grid keeps a strip under its rows for the bar, as `Table` does since
+  #1293, so a grid that sizes to its rows is 12px taller with the stock
+  scrollbar. The End key and the arrow keys scroll by the height the rows are
+  really shown in. `Scrollbar: ScrollbarHidden` keeps no strip.
 - **A touch drag on a slider or a splitter handle drags it inside a page that
   scrolls on the same axis (#1226).** Before, a touch pan along a horizontal
   slider in a container that scrolls sideways scrolled the container, and the

@@ -10,12 +10,13 @@ import (
 // dataGridHeaderRow builds the header row with all column
 // header cells.
 func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32, focusID string, hoveredColID, resizingColID, focusedColID string) gg.View {
-	cells := make([]gg.View, 0, len(columns))
+	cells := newDataGridRowCells(cfg, len(columns))
 	for idx, col := range columns {
 		width := dataGridColumnWidthFor(col, columnWidths)
 		showControls := dataGridShowHeaderControls(col.ID, hoveredColID, resizingColID, focusedColID)
-		cells = append(cells, dataGridHeaderCell(cfg, col, idx, len(columns), width, focusID, showControls, resizingColID))
+		cells.add(dataGridHeaderCell(cfg, col, idx, len(columns), width, focusID, showControls, resizingColID))
 	}
+	cells.addTail()
 	return gg.Row(gg.ContainerCfg{
 		Height:      dataGridHeaderHeight(cfg),
 		Sizing:      gg.FillFixed,
@@ -24,7 +25,7 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 		SizeBorder:  gg.NoBorder,
 		Padding:     gg.NoPadding,
 		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Or(0)),
-		Content:     cells,
+		Content:     cells.views(),
 	})
 }
 
@@ -297,14 +298,21 @@ func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColo
 }
 
 func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
+	leftArrow := "\u21A4"  // ↤
+	rightArrow := "\u21A6" // ↦
+	// A left-pinned column is at the start of the row, on the right
+	// under RTL.
+	if gg.CurrentLocale().TextDir == gg.TextDirRTL {
+		leftArrow, rightArrow = rightArrow, leftArrow
+	}
 	var label string
 	switch col.Pin {
 	case GridColumnPinNone:
 		label = "\u2022" // •
 	case GridColumnPinLeft:
-		label = "\u21A4" // ↤
+		label = leftArrow
 	case GridColumnPinRight:
-		label = "\u21A6" // ↦
+		label = rightArrow
 	}
 	onColumnPinChange := cfg.OnColumnPinChange
 	colID := col.ID
@@ -322,10 +330,11 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 }
 
 func dataGridFilterRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths map[string]float32) gg.View {
-	cells := make([]gg.View, 0, len(columns))
+	cells := newDataGridRowCells(cfg, len(columns))
 	for _, col := range columns {
-		cells = append(cells, dataGridFilterCell(cfg, col, dataGridColumnWidthFor(col, columnWidths)))
+		cells.add(dataGridFilterCell(cfg, col, dataGridColumnWidthFor(col, columnWidths)))
 	}
+	cells.addTail()
 	return gg.Row(gg.ContainerCfg{
 		Height:      dataGridFilterHeight(cfg),
 		Sizing:      gg.FillFixed,
@@ -334,7 +343,7 @@ func dataGridFilterRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 		SizeBorder:  gg.NoBorder,
 		Padding:     cfg.PaddingFilter,
 		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Or(0)),
-		Content:     cells,
+		Content:     cells.views(),
 	})
 }
 

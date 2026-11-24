@@ -632,23 +632,32 @@ func TestTableFreezeNested(t *testing.T) {
 	}
 }
 
-// Freezing adds no heap allocation per row: the windows come from the
-// frame's pool and share the row's slice.
+// Freezing costs a few heap allocations per frame and none per row: the
+// windows come from the frame's pool and share the row's slice. So it
+// costs the same few for 40 rows as for 80.
 func TestTableFreezeAllocs(t *testing.T) {
-	frame := func(n int) float64 {
+	frame := func(n, rows int) float64 {
 		w := freezeWindow(t, 600, TableCfg{
-			Data: hscrollTableRows(freezeTestCols, 400), FreezeColumns: n, FreezeHeader: true,
+			Data: hscrollTableRows(freezeTestCols, rows), FreezeColumns: n, FreezeHeader: true,
+			Height: 4000, // every row
 		})
-		return testing.AllocsPerRun(50, func() {
-			w.InvalidateLayout()
-			w.TestRender(nil)
-		})
+		best := float64(1 << 30)
+		for range 3 {
+			best = min(best, testing.AllocsPerRun(20, func() {
+				w.InvalidateLayout()
+				w.TestRender(nil)
+			}))
+		}
+		return best
 	}
-	plain, frozen := frame(0), frame(2)
-	// The edge line and a few per-table values, not one per row: the
-	// body builds about 20 rows.
-	if frozen > plain+6 {
-		t.Fatalf("allocs per frame = %.0f with frozen columns, %.0f without", frozen, plain)
+	extra := func(rows int) float64 {
+		plain, frozen := frame(0, rows), frame(2, rows)
+		t.Logf("%d rows: %.0f allocs plain, %.0f frozen", rows, plain, frozen)
+		return frozen - plain
+	}
+	few, many := extra(40), extra(80)
+	if few > 4 || many > 4 {
+		t.Errorf("frozen columns cost %.0f allocs per frame with 40 rows and %.0f with 80, want at most 4", few, many)
 	}
 }
 

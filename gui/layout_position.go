@@ -72,12 +72,14 @@ func layoutChildStartPos(
 	layout *Layout, isRTL bool, axis Axis, w *Window,
 ) (x, y float32) {
 	if isRTL && axis == axisLeftToRight {
-		x = layout.Shape.X + layout.Shape.Width - layout.Shape.PaddingLeft()
+		x = layout.Shape.X + layout.Shape.Width - layout.Shape.PaddingLeft() +
+			scrollWindowInset(layout.Shape)
 	} else if isRTL {
 		x = layout.Shape.X + layout.Shape.Padding.Right +
 			layout.Shape.SizeBorder
 	} else {
-		x = layout.Shape.X + layout.Shape.PaddingLeft()
+		x = layout.Shape.X + layout.Shape.PaddingLeft() -
+			scrollWindowInset(layout.Shape)
 	}
 	y = layout.Shape.Y + layout.Shape.PaddingTop()
 

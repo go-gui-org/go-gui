@@ -364,6 +364,7 @@ func dataGridSourcePagerJump(cfg *DataGridCfg, focusID string, state dataGridSou
 func dataGridSourceStatusRow(cfg *DataGridCfg, message string) gg.View {
 	return gg.Row(gg.ContainerCfg{
 		Height:      cfg.RowHeight,
+		MinWidth:    cfg.pins.rowMin,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorsRow.Border,

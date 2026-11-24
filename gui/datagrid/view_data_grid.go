@@ -54,7 +54,9 @@ func dataGridColumnsFromMap(row map[string]string) []GridColumnCfg {
 	return cols
 }
 
-// GridColumnPin specifies column pinning position.
+// GridColumnPin specifies column pinning position. A pinned column stays
+// in place while the others scroll sideways. Left is the start of a row
+// and Right its end, so under RTL they are the other way around.
 // exportaudit:keep — caller-facing config (issue #372)
 type GridColumnPin uint8
 
@@ -351,6 +353,9 @@ type DataGridCfg struct {
 	// gui/ factory does; resolving per control would mean one
 	// CurrentTheme() call per row (issue #467).
 	sounds dataGridSounds
+
+	// pins is the pinned columns, computed once per frame.
+	pins dataGridPins
 }
 
 // dataGridSounds holds the grid's cues after resolution. Two
@@ -719,6 +724,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		w:            w,
 	}
 	dctx.rowClick = newDataGridRowClickCtx(dctx)
+	resolvedCfg.pins = newDataGridPins(&resolvedCfg, columns, columnWidths, rowDeleteEnabled, scrollID, w)
 	totalWidth := dataGridRowWidth(&resolvedCfg, columns, columnWidths, rowDeleteEnabled)
 	headerView := dataGridHeaderRow(&resolvedCfg, columns, columnWidths, focusID,
 		hoveredColID, resizingColID, focusedColID)
@@ -747,10 +753,14 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		ScrollbarCfgX: &scrollbarCfg,
 		ScrollbarCfgY: &scrollbarCfg,
 		Color:         resolvedCfg.ColorBackground,
-		Padding:       dataGridScrollPadding(&resolvedCfg),
+		Padding:       dataGridBodyPadding(&resolvedCfg),
+		SizeBorder:    gg.NoBorder, // the bands above have none either
 		Spacing:       gg.NoSpacing,
 		Sizing:        gg.FillFill,
 		Content:       rows,
+		// 0 without pinned columns, which leaves the body as it is.
+		ScrollExtentX:   resolvedCfg.pins.extent,
+		ScrollExtentMin: resolvedCfg.pins.rowMin,
 	})
 
 	// Final assembly.

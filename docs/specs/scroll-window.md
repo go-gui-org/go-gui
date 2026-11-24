@@ -1,6 +1,7 @@
-# Spec: scroll window (frozen table columns)
+# Spec: scroll window (frozen and pinned columns)
 
-Issue #1363. Status: **implemented** (unreleased).
+Issue #1363 (`Table`) and #1364 (`DataGrid`). Status: **implemented**
+(unreleased).
 
 ## Problem
 
@@ -10,6 +11,8 @@ columns, and no leading column could be kept in place. A WinForms `DataGridView`
 keeps the row header at the left edge and can freeze columns. An app could not
 build this itself: the row header cell is built inside every row, and
 `ScrollLinkX` has no counterpart for the Y axis.
+
+`DataGrid` had `GridColumnCfg.Pin`, but it only changed the column order.
 
 ## Decision
 
@@ -26,7 +29,7 @@ body (Scrollable, states its extent; does not move its rows)
   row  [ row header | frozen cells | edge | scroll window -> other cells ]
 ```
 
-- **Extent.** The body states how wide its content is (`scrollExtentX`).
+- **Extent.** The body states how wide its content is (`ScrollExtentX`).
   `contentWidth` answers that width, so the clamp, the scrollbar and the wheel
   need no change. The body keeps its children in place.
 - **Window.** A window is a clipping container with `ScrollLinkX` to the body
@@ -38,13 +41,16 @@ body (Scrollable, states its extent; does not move its rows)
   fill, hover, click and height are those of one row, so the two sides cannot
   drift apart.
 - **Narrow tables.** A window keeps 80px. When the frozen cells and the window
-  do not fit, the rows are wider than the viewport (`scrollExtentMin`). The
+  do not fit, the rows are wider than the viewport (`ScrollExtentMin`). The
   first part of the scroll range, the lead, then moves the rows as a plain
   scroll container would, and the windows move by the rest. Every column can be
   reached at any width. The frozen header follows by its `ScrollLinkX`, which
   takes the part the body moves its own children by.
 - **Clip.** A window clips sideways only when drawn. The focus ring of a control
-  in a cell is a glow around it, and a clip as high as the row would cut it.
+  in a cell is a glow around it, and a clip as high as the row would cut it. Its
+  sides snap to the device pixels that a box's sides round to (`snapClipX`). A
+  backend rounds a clip outward, and at 125% a filled cell drew over the border
+  of the frozen cell beside it: header and filter cells have a fill.
 - **The edge.** With `TableBorderAll` the cell borders mark the frozen edge. The
   window's start padding keeps scrolling cells off the last frozen cell's
   border. With the other border styles a 1px line in the border color follows
@@ -62,10 +68,46 @@ the windows' content, so the views of a table that is gone are freed. A table of
 allocations per frame, and to 1644 with two frozen columns. A window adds two
 clip commands per row.
 
-### Not exported
+### DataGrid
 
-The two `ContainerCfg` fields are unexported. `datagrid` is a subpackage and
-needs them for #1364, so they are exported there, with their first user.
+`Window.ScrollWindow` builds the window, and `Table` and `DataGrid` both call
+it. `datagrid` is a subpackage, so the method and the two `ContainerCfg` fields
+are exported. The geometry of the edge is in one place, and the pool serves
+both. An app can build a grid of its own with them.
+
+A row of a grid with pinned columns is its left-pinned cells, the window and its
+right-pinned cells. The start padding of a window keeps its content off the
+border of the cell before it. The content itself starts at the window's edge
+(`scrollWindowInset`), so it still overlaps that border at rest. With cells
+after the window the end padding does the same (`ClipEnd`).
+
+Not every row is made of cells:
+
+| Row                                           | With pinned columns                  |
+| --------------------------------------------- | ------------------------------------ |
+| Header, filter row, frozen top rows, data row | Pinned cells stay, the rest scrolls  |
+| Row-delete button                             | Stays after right pins, else scrolls |
+| Group header, status line                     | Stays, so its text shows             |
+| Quick filter                                  | Stays, with its Clear button         |
+| Detail row                                    | Scrolls sideways, as without pins    |
+| Column chooser                                | Stays; its list scrolls on its own   |
+
+Without pins a detail row is wider than a data row by its padding, and the
+scroll range is that wide. With pins its content is narrower by that much. A
+range longer than a data row would open a gap between the last scrolling column
+and the right-pinned ones.
+
+`GridColumnPinLeft` means the start of a row, the right edge under RTL. The
+column order already worked that way, and `FreezeColumns` does. The pin button's
+arrows mirror, like the reorder arrows.
+
+The quick filter stays in a grid without pins too, as wide as the grid. A wheel
+over it still scrolls the rows: without pins it is in a scroll window, which
+does not move when the body moves its own rows, and passes the wheel on.
+
+The grid's scroll body has no border of its own any more. It took the theme's
+container border, which is transparent, so every row started 1px beside the
+bands above it.
 
 ## Testing
 
@@ -78,12 +120,18 @@ needs them for #1364, so they are exported there, with their first user.
   resize; ragged rows; row heights; `Fit` width; clicks at the edge; selection;
   hover; the wheel over each part; virtualization; a frozen table in a frozen
   table's cell; no allocation per row.
+- `gui/datagrid/view_data_grid_pins_test.go`: the same for left pins, right pins
+  and both, with and without borders, RTL, the row-delete button and a frozen
+  header; the rows that are not made of cells; a narrow grid.
 - Goldens `table_freeze_columns_grid`, `table_freeze_columns_edge` and
-  `table_freeze_row_header`, dark and light.
+  `table_freeze_row_header`, and in `gui/datagrid` `data_grid_pins` and
+  `data_grid_pins_edge`, dark and light.
 
 ## Known Limits
 
-- `datagrid` columns with `Pin` still scroll away (#1364).
+- iOS and Android do not set `Window.BackingScale`, so the clip is not snapped
+  there. Where the frozen edge falls between two device pixels, a filled cell
+  still draws over one of them.
 - `FreezeHeader` freezes one row. A table cannot freeze more rows at the top.
 - A popup or other float an app anchors to a scrolling cell is not cut at the
   frozen edge, as a float is not cut by any scroll container.
@@ -103,5 +151,11 @@ needs them for #1364, so they are exported there, with their first user.
   parent there does not move them (`gui/CLAUDE.md`).
 - **Unfreeze columns when the table is too narrow.** Needs the width of the
   frame before, and the layout jumps at a threshold. The lead needs neither.
+- **Export the window as a `ContainerCfg` flag (#1364).** Every caller would
+  have to repeat the padding that keeps content off the neighbouring border, and
+  a subpackage could not reach the pool.
+- **Reach the window through a `gui/internal` package (#1364).** Needs untyped
+  hooks between the packages, and the export policy rejects the move
+  (`docs/specs/exportaudit-surface-policy.md`).
 - **Freeze the row header by default, as WinForms does.** Changes every table
   that has a row header today.

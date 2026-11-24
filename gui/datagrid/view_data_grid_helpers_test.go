@@ -583,8 +583,8 @@ func TestScrollViewportHeightSubtractsChrome(t *testing.T) {
 	cfg := &DataGridCfg{Height: 400, RowHeight: 20, HeaderHeight: 30,
 		ShowQuickFilter: true, FreezeHeader: true}
 	// 400 - toolbar - quick filter 30 - frozen header 30 - 2 frozen
-	// rows 40 - pager 20.
-	want := 400 - dataGridCrudToolbarHeight(cfg) - 30 - 30 - 40 - 20
+	// rows 40 - pager 20 - the horizontal scrollbar's strip.
+	want := 400 - dataGridCrudToolbarHeight(cfg) - 30 - 30 - 40 - 20 - dataGridBodyStrip(cfg)
 	if got := dataGridScrollViewportHeight(cfg, true, true, 2, 20); got != want {
 		t.Fatalf("viewport: got %v, want %v", got, want)
 	}

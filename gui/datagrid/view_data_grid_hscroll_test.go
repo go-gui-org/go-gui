@@ -59,9 +59,7 @@ func hscrollHeaderAndCell(t *testing.T, l *gg.Layout, col int) (head, cell *gg.L
 func assertGridColumnInLine(t *testing.T, l *gg.Layout, col int, when string) {
 	t.Helper()
 	head, cell := hscrollHeaderAndCell(t, l, col)
-	// The header cell and the body cell differ by up to the 1px
-	// collapsed border, which the grid draws on different sides.
-	if d := head.Shape.X - cell.Shape.X; d > 1.5 || d < -1.5 {
+	if d := head.Shape.X - cell.Shape.X; d > 0.1 || d < -0.1 {
 		t.Fatalf("%s: column c%d header x=%.1f, body cell x=%.1f",
 			when, col, head.Shape.X, cell.Shape.X)
 	}
@@ -179,4 +177,69 @@ func TestDataGridFrozenHeaderWheelScrollsRows(t *testing.T) {
 		t.Fatalf("offset = %.0f after a wheel over the header, want < 0", x)
 	}
 	assertGridColumnInLine(t, l, 0, "after the wheel")
+}
+
+// The horizontal scrollbar has a strip of its own under the rows. Scrolled
+// to the end, by the wheel range or with the End key, the last row is
+// whole above it, with and without a frozen header, pager and pins.
+func TestDataGridLastRowAboveHorizontalScrollbar(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		mut  func(*DataGridCfg)
+	}{
+		{"frozen header", nil},
+		{"header in the body", func(c *DataGridCfg) { c.FreezeHeader = false }},
+		{"pager", func(c *DataGridCfg) { c.PageSize = 25 }},
+		{"pins", func(c *DataGridCfg) { c.Columns[0].Pin = GridColumnPinLeft }},
+		{"not virtualized", func(c *DataGridCfg) { c.Height, c.Sizing = 0, gg.FillFill }},
+	} {
+		for _, key := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/key=%v", c.name, key), func(t *testing.T) {
+				var selected GridSelection
+				w := gg.NewTestWindow(t, gg.WindowCfg{Width: 500, Height: 300})
+				var lastRow string
+				w.TestRender(func(w *gg.Window) gg.View {
+					return pinGrid(w, nil, func(cfg *DataGridCfg) {
+						cfg.Height = 280
+						cfg.Selection = selected
+						cfg.OnSelectionChange = func(s GridSelection, _ gg.EventCtx) { selected = s }
+						if c.mut != nil {
+							c.mut(cfg)
+						}
+						lastRow = "29"
+						if cfg.PageSize > 0 {
+							lastRow = strconv.Itoa(cfg.PageSize - 1)
+						}
+					})
+				})
+				w.TestRender(nil)
+				if key && c.name == "not virtualized" {
+					t.Skip("a grid with no height does not scroll to the selected row")
+				}
+				if key {
+					if err := w.TestKey("g", gg.KeyEnd, gg.ModNone); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					w.ScrollVerticalTo(pinScrollID, -100000)
+				}
+				w.TestRender(nil)
+				l := w.TestRender(nil)
+				body, _ := l.FindByID(pinScrollID)
+				row := pinFind(t, l, gg.ScopeID("g", "row", lastRow))
+				bar := float32(0)
+				for i := range body.Children {
+					if s := body.Children[i].Shape; s.OverDraw && s.Width > s.Height {
+						bar = s.Y
+					}
+				}
+				if bar == 0 {
+					t.Fatal("no horizontal scrollbar; the case needs one")
+				}
+				if end := row.Y + row.Height; end > bar {
+					t.Fatalf("last row ends at %.1f, the scrollbar starts at %.1f", end, bar)
+				}
+			})
+		}
+	}
 }

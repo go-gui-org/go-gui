@@ -59,6 +59,7 @@ gui/backend/soft/testdata/failures/
 # Command-golden failure artifacts, written by TestGolden on a
 # mismatch. Committed references live alongside.
 gui/testdata/failures/
+gui/datagrid/testdata/failures/
 
 # iOS c-archive build artifacts
 *.a

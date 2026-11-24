@@ -20,6 +20,7 @@ func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowH
 	pc := cfg.PaddingCell.Or(gg.PaddingNone)
 	return gg.Row(gg.ContainerCfg{
 		Height:      rowHeight,
+		MinWidth:    cfg.pins.rowMin,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorsRow.Border,
@@ -47,27 +48,30 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 	}
 	rowID := dataGridRowID(rowData, rowIdx)
 	detailView := cfg.DetailRowView(rowData, dctx.w)
-	pc := cfg.PaddingCell.Or(gg.PaddingNone)
 	focusID := dctx.focusID
+	padding := dataGridDetailPadding(cfg)
+	contentWidth := cfg.pins.detailWidth(
+		dataGridColumnsTotalWidth(dctx.columns, dctx.columnWidths), padding)
 	return gg.Row(gg.ContainerCfg{
 		ID:          gg.ScopeID(cfg.ID, "detail", rowID),
 		Height:      dctx.RowHeight,
+		MinWidth:    cfg.pins.rowMin,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorBackground,
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.NoBorder,
-		Padding:     gg.NewPadding(pc.Top, pc.Right, pc.Bottom, pc.Left+dataGridDetailIndent()),
+		Padding:     padding,
 		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Or(0)),
 		Content: []gg.View{
-			gg.Row(gg.ContainerCfg{
-				Width:       dataGridColumnsTotalWidth(dctx.columns, dctx.columnWidths),
+			cfg.pins.scrollWhole(gg.Row(gg.ContainerCfg{
+				Width:       contentWidth,
 				Sizing:      gg.FixedFill,
 				Padding:     gg.NoPadding,
 				Color:       gg.ColorTransparent,
 				ColorBorder: gg.ColorTransparent,
 				SizeBorder:  gg.NoBorder,
 				Content:     []gg.View{detailView},
-			}),
+			}), contentWidth),
 		},
 		OnClick: func(ctx gg.EventCtx) {
 			if focusID != "" {
@@ -124,7 +128,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 
 	cells := dataGridBuildRowCells(dctx, rowData, rowIdx, isEditingRow)
 	if showDeleteAction {
-		cells = append(cells, dataGridRowDeleteButton(dctx, rowID))
+		cells.addDelete(dataGridRowDeleteButton(dctx, rowID))
 	}
 
 	// Selection paints the subtle wash, not the full accent slab;
@@ -160,13 +164,13 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			Color:  rowHoverColor,
 			Cursor: gg.CursorPointingHand,
 		},
-		Content: cells,
+		Content: cells.views(),
 	})
 }
 
 // dataGridBuildRowCells builds one display cell per column, swapping
 // in the editor for editable cells of the editing row.
-func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEditingRow bool) []gg.View {
+func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEditingRow bool) dataGridRowCells {
 	cfg := dctx.cfg
 	columns := dctx.columns
 	columnWidths := dctx.columnWidths
@@ -177,7 +181,7 @@ func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEdit
 	detailToggleEnabled := cfg.OnDetailExpandedChange != nil
 	detailExpanded := dataGridDetailRowExpanded(cfg, rowID)
 
-	cells := make([]gg.View, 0, len(columns)+1)
+	cells := newDataGridRowCells(cfg, len(columns))
 	// One backing array holds every cell's content (at most a detail
 	// toggle and the value), and one string holds every cell's ID, so
 	// a row pays two allocations for these instead of two per cell.
@@ -224,7 +228,7 @@ func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEdit
 			cellHAlign = gg.HAlignStart
 		}
 
-		cells = append(cells, gg.Row(gg.ContainerCfg{
+		cells.add(gg.Row(gg.ContainerCfg{
 			ID:       cellIDs.next(col.ID),
 			A11YRole: gg.AccessRoleGridCell,
 			Width:    dataGridColumnWidthFor(col, columnWidths),
@@ -560,6 +564,12 @@ func dataGridNextDetailExpandedMap(expanded map[string]bool, rowID string) map[s
 	return next
 }
 
+// dataGridDetailPadding insets a detail row's content.
+func dataGridDetailPadding(cfg *DataGridCfg) gg.Padding {
+	pc := cfg.PaddingCell.Or(gg.PaddingNone)
+	return gg.NewPadding(pc.Top, pc.Right, pc.Bottom, pc.Left+dataGridDetailIndent())
+}
+
 func dataGridDetailIndent() float32 {
 	return dataGridHeaderControlWidth + dataGridDetailIndentGap
 }
@@ -573,6 +583,23 @@ func dataGridScrollPadding(cfg *DataGridCfg) gg.Padding {
 	return gg.NewPadding(0, dataGridScrollGutter(), 0, 0)
 }
 
+// dataGridBodyPadding is the scroll body's padding: the side strip of
+// dataGridScrollPadding for the vertical scrollbar, and one at the bottom
+// for the horizontal one, so neither covers a cell.
+func dataGridBodyPadding(cfg *DataGridCfg) gg.Padding {
+	p := dataGridScrollPadding(cfg)
+	return gg.NewPadding(0, p.Right, dataGridBodyStrip(cfg), 0)
+}
+
+// dataGridBodyStrip is the height of the strip under the rows that the
+// horizontal scrollbar takes.
+func dataGridBodyStrip(cfg *DataGridCfg) float32 {
+	if cfg.Scrollbar == gg.ScrollbarHidden {
+		return 0
+	}
+	return dataGridScrollGutter()
+}
+
 func dataGridScrollGutter() float32 {
 	style := gg.DefaultScrollbarStyle
 	return style.Size + style.GapEdge + style.GapEnd
@@ -580,35 +607,66 @@ func dataGridScrollGutter() float32 {
 
 // --- Frozen top rows ---
 
-// dataGridFrozenTopZone is a band above the scrolling rows: the header,
-// the quick filter or the frozen top rows. It follows the rows' X
-// offset through ScrollLinkX, which reads the offset after this frame's
-// clamp, so the band never lags the rows during a resize (#1293). It is
-// a Column with the body's padding, like the body, so both place their
-// content at the same x, under RTL too.
+// dataGridFrozenTopZone is a band above the scrolling rows: the header or
+// the frozen top rows. It follows the rows' X offset through ScrollLinkX,
+// which reads the offset after this frame's clamp, so the band never lags
+// the rows during a resize (#1293). It is a Column with the body's
+// padding, like the body, so both place their content at the same x,
+// under RTL too.
+//
+// With pinned columns its rows stay in place like the body's, so they
+// are as wide as the band and no wider.
 func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, totalWidth float32, scrollID string) gg.View {
+	sizing := gg.FixedFill
+	if cfg.pins.on {
+		totalWidth, sizing = 0, gg.FillFill
+	}
+	return dataGridTopBand(cfg, zoneHeight, scrollID, gg.Column(gg.ContainerCfg{
+		Width:       totalWidth,
+		MinWidth:    cfg.pins.rowMin,
+		Sizing:      sizing,
+		Color:       gg.ColorTransparent,
+		ColorBorder: gg.ColorTransparent,
+		SizeBorder:  gg.NoBorder,
+		Padding:     gg.NoPadding,
+		Spacing:     gg.NoSpacing,
+		Content:     rowViews,
+	}))
+}
+
+// dataGridQuickFilterZone is the band of the quick filter. It is as wide
+// as the grid and stays in place while the columns scroll, so the search
+// text and the clear button show.
+//
+// A wheel over it scrolls the rows, so something in it has to be linked
+// to them. With pinned columns the body keeps its rows in place, and the
+// band is one like the others. Without them the body moves its own rows
+// by the whole offset. That leaves nothing for a scroll window, which
+// passes the wheel on and keeps its content where it is.
+func dataGridQuickFilterZone(cfg *DataGridCfg, row gg.View, height float32, scrollID string, w *gg.Window) gg.View {
+	if cfg.pins.on {
+		return dataGridFrozenTopZone(cfg, []gg.View{row}, height, 0, scrollID)
+	}
+	return dataGridTopBand(cfg, height, "", w.ScrollWindow(gg.ScrollWindowCfg{
+		ScrollID: scrollID,
+		Content:  []gg.View{row},
+	}))
+}
+
+// dataGridTopBand is the container of a band above the scrolling rows,
+// which follows the container named linkX, if any.
+func dataGridTopBand(cfg *DataGridCfg, height float32, linkX string, content gg.View) gg.View {
 	return gg.Column(gg.ContainerCfg{
-		Height:      zoneHeight,
+		Height:      height,
 		Sizing:      gg.FillFixed,
 		Clip:        true,
-		ScrollLinkX: scrollID,
+		ScrollLinkX: linkX,
 		Color:       cfg.ColorBackground,
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.NoBorder,
 		Padding:     dataGridScrollPadding(cfg),
 		Spacing:     gg.NoSpacing,
-		Content: []gg.View{
-			gg.Column(gg.ContainerCfg{
-				Width:       totalWidth,
-				Sizing:      gg.FixedFill,
-				Color:       gg.ColorTransparent,
-				ColorBorder: gg.ColorTransparent,
-				SizeBorder:  gg.NoBorder,
-				Padding:     gg.NoPadding,
-				Spacing:     gg.NoSpacing,
-				Content:     rowViews,
-			}),
-		},
+		Content:     []gg.View{content},
 	})
 }
 

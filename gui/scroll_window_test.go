@@ -37,7 +37,7 @@ func TestScrollExtentKeepsChildren(t *testing.T) {
 		}},
 		{"fill", func() View { return Column(ContainerCfg{ID: "c", Sizing: FillFit}) }},
 		{"nested body", func() View {
-			return Column(ContainerCfg{ID: "c", Sizing: FillFit, Scrollable: true, scrollExtentX: 900})
+			return Column(ContainerCfg{ID: "c", Sizing: FillFit, Scrollable: true, ScrollExtentX: 900})
 		}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestScrollExtentKeepsChildren(t *testing.T) {
 					content = []View{c.child()}
 				}
 				return Column(ContainerCfg{ID: "body", Scrollable: true, Sizing: FillFill,
-					Padding: NoPadding, SizeBorder: NoBorder, scrollExtentX: 1000,
+					Padding: NoPadding, SizeBorder: NoBorder, ScrollExtentX: 1000,
 					Content: content})
 			})
 			w.ScrollHorizontalTo("body", -100000)
@@ -71,7 +71,7 @@ func TestScrollWindowMovesAndClips(t *testing.T) {
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{ID: "body", Scrollable: true, Sizing: FillFill,
 			Padding: NoPadding, Spacing: NoSpacing, SizeBorder: NoBorder,
-			scrollExtentX: 660, scrollExtentMin: 140, Content: []View{
+			ScrollExtentX: 660, ScrollExtentMin: 140, Content: []View{
 				windowRow("r", Rectangle(RectangleCfg{ID: "cell", Width: 600, Height: 60, Sizing: FixedFixed})),
 			}})
 	})
@@ -159,4 +159,69 @@ func TestScrollLead(t *testing.T) {
 	if got := scrollOwnX(-100, 30); got != -30 {
 		t.Errorf("own offset with lead 30 = %v, want -30", got)
 	}
+}
+
+// Under a fractional scale the sides of a window's clip land on the
+// device pixels a box's sides round to, whichever way a backend rounds
+// the clip: outward leaves them there.
+func TestSnapClipX(t *testing.T) {
+	for _, scale := range []float32{1, 1.25, 1.5, 1.75, 2, 2.625, 3} {
+		for x := float32(0.1); x < 900; x += 3.37 {
+			const width = 187.3
+			got := snapClipX(drawClip{X: x, Width: width, Y: 5, Height: 7}, scale)
+			s := float64(scale)
+			left := math.Round(float64(float32(x * scale)))
+			right := math.Round(float64(float32(float32(x+float32(width)) * scale)))
+			gotLeft := math.Floor(float64(got.X) * s)
+			gotRight := math.Ceil((float64(got.X) + float64(got.Width)) * s)
+			if gotLeft != left || gotRight != right {
+				t.Fatalf("scale %v x %v: device span %v..%v, want %v..%v", scale, x, gotLeft, gotRight, left, right)
+			}
+			if got.Y != 5 || got.Height != 7 {
+				t.Fatalf("y span changed: %+v", got)
+			}
+		}
+	}
+	// Whole device pixels stay as they are.
+	c := drawClip{X: 111, Width: 186, Height: 9}
+	if got := snapClipX(c, 1); got != c {
+		t.Errorf("snapped %+v to %+v, want no change", c, got)
+	}
+	for _, scale := range []float32{0, -1, float32(math.NaN()), float32(math.Inf(1))} {
+		if got := snapClipX(c, scale); got != c {
+			t.Errorf("scale %v changed the clip to %+v", scale, got)
+		}
+	}
+	if got := snapClipX(drawClip{X: 3.1, Width: 0.1, Height: 9}, 1); got != (drawClip{}) {
+		t.Errorf("a clip thinner than a pixel = %+v, want empty", got)
+	}
+}
+
+// The clip a window draws with is the snapped one. At 125% the window
+// starts at device pixel 78.75, and an unsnapped clip would start at 78,
+// on the border of the cell before it.
+func TestScrollWindowClipSnaps(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.BackingScale = 1.25
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{ID: "body", Scrollable: true, Sizing: FillFill,
+			Padding: NewPadding(0, 0, 0, 3), Spacing: NoSpacing, SizeBorder: NoBorder,
+			ScrollExtentX: 660, Content: []View{
+				windowRow("r", Rectangle(RectangleCfg{ID: "cell", Width: 600, Height: 20, Sizing: FixedFixed})),
+			}})
+	})
+	l := w.TestRender(nil)
+	win, _ := l.FindByID("body:r:win")
+	if win.Shape.X != 63 {
+		t.Fatalf("window x = %.2f, want 63", win.Shape.X)
+	}
+	for i := range w.renderers {
+		if r := &w.renderers[i]; r.Kind == RenderClip && r.X > 60 && r.X < 70 {
+			if got := math.Floor(float64(r.X) * 1.25); got != 79 {
+				t.Fatalf("clip starts at device pixel %v, want 79", got)
+			}
+			return
+		}
+	}
+	t.Fatal("no window clip drawn")
 }
