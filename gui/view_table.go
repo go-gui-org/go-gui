@@ -161,6 +161,21 @@ type TableCfg struct {
 	MultiSelect  bool
 	Scrollbar    ScrollbarOverflow
 	FreezeHeader bool
+
+	// FreezeRowHeader keeps the row header in place while the columns
+	// scroll sideways. It needs RowHeader.
+	// exportaudit:keep — caller-facing config (issue #1363)
+	FreezeRowHeader bool
+
+	// FreezeColumns is how many leading columns stay in place while the
+	// others scroll sideways: the left-most ones, or the right-most under
+	// RTL. It counts data columns only, and the row header, when there is
+	// one, stays in place with them. 0 freezes none. So does a count that
+	// covers every column, because nothing is left to scroll. A table too
+	// narrow for its frozen columns scrolls them away first, so every
+	// column can be reached.
+	// exportaudit:keep — caller-facing config (issue #1363)
+	FreezeColumns int
 }
 
 func applyTableDefaults(cfg *TableCfg) {
@@ -321,6 +336,7 @@ func tableView(cfg TableCfg, w *Window) View {
 	// Derived once per view: the freeze path's concatenation must not
 	// be repeated at each use (virtualization read + bodyCfg literal).
 	scrollID := tableScrollID(&cfg, freeze)
+	fz := tableFreezeOf(&cfg, w, columnWidths, cellBorder, rh, scrollID)
 
 	// Hoist loop-invariant values.
 	onSelect := cfg.OnSelect
@@ -360,7 +376,7 @@ func tableView(cfg TableCfg, w *Window) View {
 
 	rows := tableBuildRows(&cfg, columnWidths, cellBorder,
 		selected, multiSelect, onSelect,
-		activeRowIdx, navKey, rh, first, last, lastRowIdx, dataStart,
+		activeRowIdx, navKey, rh, &fz, first, last, lastRowIdx, dataStart,
 		rowHeight, virtualize)
 
 	// Keyboard focus wiring for the outer container, shared by the
@@ -371,7 +387,7 @@ func tableView(cfg TableCfg, w *Window) View {
 	if freeze {
 		return tableFreezeLayout(&cfg, columnWidths, cellBorder,
 			rowSpacing, selected, multiSelect,
-			onSelect, rows, scrollID, activeRowIdx, navKey, rh, fw)
+			onSelect, rows, scrollID, activeRowIdx, navKey, rh, &fz, fw)
 	}
 
 	outerCfg := ContainerCfg{
@@ -403,6 +419,10 @@ func tableView(cfg TableCfg, w *Window) View {
 	// the factory reaches here without one. Declining here beats a
 	// scroll slot shared by every such table.
 	outerCfg.Scrollable = cfg.ID != ""
+	if fz.on {
+		outerCfg.scrollExtentX = fz.rowWidth
+		outerCfg.scrollExtentMin = fz.rowMin
+	}
 	// Room on the right for the vertical scrollbar and at the bottom for
 	// the horizontal one, as in the frozen-header layout (#1293).
 	gutter := DefaultScrollbarStyle.Size + PadXSmall

@@ -197,10 +197,9 @@ type scratchPools struct {
 	// frame being arranged, filled by layoutAdjustScrollOffsets. A
 	// scroll link applies only an offset whose container is here, not
 	// one left in the store by a container that is gone or stopped
-	// scrolling (scroll_link.go). The value reports whether the container
-	// mirrors its X offset (scrollMirrorsX). Cleared, not reallocated, by
-	// each layoutArrange.
-	scrollLive       map[string]bool
+	// scrolling (scroll_link.go). The value says how the container moves
+	// its content. Cleared, not reallocated, by each layoutArrange.
+	scrollLive       map[string]scrollLive
 	svgAnimStates    scratchMap[uint32, svgAnimState]
 	svgAnimOverrides scratchMap[uint32, SvgAnimAttrOverride]
 	svgAnimByPID     scratchMap[uint32, []float32]
@@ -280,6 +279,7 @@ type scratchPools struct {
 	viewShapes   scratchObjPool[Shape]
 	buttonColors scratchObjPool[shapeButtonColors]
 	viewEvents   scratchObjPool[eventHandlers]
+	viewWindows  scratchObjPool[containerView]
 	viewEffects  scratchObjPool[shapeEffects]
 	viewXforms   scratchObjPool[shapeTransform]
 	viewA11Y     scratchObjPool[accessInfo]
@@ -367,6 +367,7 @@ func newScratchPools() scratchPools {
 		viewShapes:             scratchObjPool[Shape]{retainMax: 16384, shrinkTo: 1024},
 		buttonColors:           scratchObjPool[shapeButtonColors]{retainMax: 512, shrinkTo: 32},
 		viewEvents:             scratchObjPool[eventHandlers]{retainMax: 4096, shrinkTo: 256},
+		viewWindows:            scratchObjPool[containerView]{retainMax: 1024, shrinkTo: 64},
 		viewEffects:            scratchObjPool[shapeEffects]{retainMax: 4096, shrinkTo: 256},
 		viewXforms:             scratchObjPool[shapeTransform]{retainMax: 1024, shrinkTo: 64},
 		viewA11Y:               scratchObjPool[accessInfo]{retainMax: 4096, shrinkTo: 256},
@@ -396,6 +397,8 @@ func (p *scratchPools) beginFillPass() {
 func (p *scratchPools) resetViewPools() {
 	p.viewShapes.reset()
 	p.buttonColors.reset()
+	p.releaseViewWindows()
+	p.viewWindows.reset()
 	p.viewEvents.reset()
 	p.viewEffects.reset()
 	p.viewXforms.reset()
@@ -411,7 +414,20 @@ func (p *scratchPools) resetViewPools() {
 	if cap(p.viewArena) > viewArenaRetainMax {
 		p.viewArena = make([]View, 0, viewArenaShrinkTo)
 	} else {
+		// Cleared, not only truncated: the views hold app closures and
+		// data, and the slots of a widget that is gone are not written
+		// again.
+		clear(p.viewArena)
 		p.viewArena = p.viewArena[:0]
+	}
+}
+
+// releaseViewWindows drops what the last frame's scroll windows show.
+// Their cells are a part of viewArena, or of an array it outgrew, and a
+// window kept in the pool would keep that whole array and its views.
+func (p *scratchPools) releaseViewWindows() {
+	for _, cv := range p.viewWindows.items[:p.viewWindows.used] {
+		cv.content = nil
 	}
 }
 

@@ -1,0 +1,36 @@
+# go-gui-golden v1
+Clip xy=16.00,16.00 wh=277.00,24.60
+Text xy=23.80,18.00 wh=0.00,0.00 color=#1a1d21ff text="◢" size=14.00
+Rect xy=40.00,16.00 wh=1.00,23.60 color=#d8dde4ff fill
+Clip xy=41.00,16.00 wh=252.00,24.60
+Text xy=56.80,18.00 wh=0.00,0.00 color=#1a1d21ff text="B" size=14.00
+Text xy=116.80,18.00 wh=0.00,0.00 color=#1a1d21ff text="C" size=14.00
+Text xy=176.80,18.00 wh=0.00,0.00 color=#1a1d21ff text="D" size=14.00
+Text xy=236.80,18.00 wh=0.00,0.00 color=#1a1d21ff text="E" size=14.00
+Clip xy=16.00,16.00 wh=277.00,24.60
+Rect xy=16.00,39.60 wh=277.00,1.00 color=#d8dde4ff fill
+Clip xy=0.00,0.00 wh=320.00,240.00
+Clip xy=16.00,40.60 wh=277.00,172.40
+Text xy=23.80,42.60 wh=0.00,0.00 color=#1a1d21ff text="▶" size=14.00
+Rect xy=40.00,40.60 wh=1.00,23.60 color=#d8dde4ff fill
+Clip xy=41.00,40.60 wh=252.00,172.40
+Text xy=36.00,42.60 wh=0.00,0.00 color=#1a1d21ff text="b" size=14.00
+Text xy=96.00,42.60 wh=0.00,0.00 color=#1a1d21ff text="c" size=14.00
+Text xy=156.00,42.60 wh=0.00,0.00 color=#1a1d21ff text="d" size=14.00
+Text xy=216.00,42.60 wh=0.00,0.00 color=#1a1d21ff text="e" size=14.00
+Text xy=276.00,42.60 wh=0.00,0.00 color=#1a1d21ff text="f" size=14.00
+Clip xy=16.00,40.60 wh=277.00,172.40
+Rect xy=40.00,64.20 wh=1.00,23.60 color=#d8dde4ff fill
+Clip xy=41.00,40.60 wh=252.00,172.40
+Text xy=36.00,66.20 wh=0.00,0.00 color=#1a1d21ff text="b" size=14.00
+Text xy=96.00,66.20 wh=0.00,0.00 color=#1a1d21ff text="c" size=14.00
+Text xy=156.00,66.20 wh=0.00,0.00 color=#1a1d21ff text="d" size=14.00
+Text xy=216.00,66.20 wh=0.00,0.00 color=#1a1d21ff text="e" size=14.00
+Text xy=276.00,66.20 wh=0.00,0.00 color=#1a1d21ff text="f" size=14.00
+Clip xy=16.00,40.60 wh=277.00,172.40
+Clip xy=16.00,214.00 wh=277.00,7.00
+Rect xy=56.40,214.00 wh=147.94,7.00 color=#e0e5ecff radius=4.00 fill
+Clip xy=16.00,40.60 wh=277.00,172.40
+Clip xy=294.00,40.60 wh=7.00,172.40
+Clip xy=16.00,40.60 wh=277.00,172.40
+Clip xy=0.00,0.00 wh=320.00,240.00

@@ -35,7 +35,8 @@ the named container's content.
   clamped one of this frame, and the header can never lag the rows.
 - **Live targets only.** The offset store keeps an entry after its container is
   gone. `layoutAdjustScrollOffsets` records the keys of the frame's scroll
-  containers in `w.scratch.scrollLive`, with whether each one mirrors, and
+  containers in `w.scratch.scrollLive`, with whether each one mirrors and how
+  far it moves its own children (`docs/specs/scroll-window.md`), and
   `layoutArrange` clears it each frame. A link applies an offset only when its
   key is in that set. Clearing keeps the map's buckets, so a steady frame does
   not allocate.
@@ -110,8 +111,9 @@ neighbouring cells (`dataGridRowWidth`).
   first one. A table or grid inside a dialog has both parts in one layer and
   works.
 
-- The table's row header (the ▶ column) scrolls away with the columns. A
-  DataGridView keeps it pinned on the left. This was decided in #1293.
+- The table's row header (the ▶ column) scrolls away with the columns, as
+  decided in #1293. Since #1363 `TableCfg.FreezeRowHeader` keeps it in place
+  (`docs/specs/scroll-window.md`).
 
 ## Rejected Approaches
 

@@ -298,8 +298,12 @@ type ShowcaseApp struct {
 	TableMultiSelect  bool
 	TableFreezeHeader bool
 	TableRowHeader    bool
-	TableMoreColumns  bool
-	ThemeGenPickText  bool
+	// TableFreezeRowHeader and TableFreezeColumn freeze the row header
+	// and the first column.
+	TableFreezeRowHeader bool
+	TableFreezeColumn    bool
+	TableMoreColumns     bool
+	ThemeGenPickText     bool
 }
 
 // GestureMarker records a tap or long-press position.

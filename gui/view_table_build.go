@@ -14,13 +14,15 @@ func tableBuildRow(
 	multiSelect bool,
 	onSelect func(map[int]bool, int, EventCtx),
 	activeRowIdx int, activeKey string, rh tableRowHeader,
+	fz *tableFreeze,
 ) View {
 	r := cfg.Data[rowIdx]
 	isSelected := selected[rowIdx]
 	// The keyboard-active row is the Focus state: arrow-key
 	// movement stays visible through the theme's focus fill.
 	isActive := rowIdx == activeRowIdx && activeRowIdx >= 0
-	cells := make([]View, 0, len(r.Cells)+1)
+	cells := fz.rowCells(len(r.Cells) + 1)
+	windowSlot := -1 // index of the scroll window in a split row
 
 	// The row header leads the row but is not one of its cells, so
 	// colIdx below still indexes columnWidths and ColumnAlignments.
@@ -30,6 +32,9 @@ func tableBuildRow(
 	}
 
 	for colIdx, cell := range r.Cells {
+		if fz.on && colIdx == fz.cols {
+			cells, windowSlot = fz.split(cells)
+		}
 		cellTextStyle := cfg.TextStyle
 		if cell.TextStyle != nil {
 			cellTextStyle = *cell.TextStyle
@@ -56,20 +61,17 @@ func tableBuildRow(
 			hAlign = cfg.ColumnAlignments[colIdx]
 		}
 
-		var cellContent []View
+		cellContent := rowContent(fz.w, 1)
 		if cell.RichText != nil {
-			cellContent = []View{
-				RTF(RTFCfg{RichText: *cell.RichText}),
-			}
+			cellContent = append(cellContent,
+				RTF(RTFCfg{RichText: *cell.RichText}))
 		} else if cell.Content != nil {
-			cellContent = []View{cell.Content}
+			cellContent = append(cellContent, cell.Content)
 		} else {
-			cellContent = []View{
-				Text(TextCfg{
-					Text:      cell.Value,
-					TextStyle: cellTextStyle,
-				}),
-			}
+			cellContent = append(cellContent, Text(TextCfg{
+				Text:      cell.Value,
+				TextStyle: cellTextStyle,
+			}))
 		}
 
 		cellOnClick := cell.OnClick
@@ -110,7 +112,19 @@ func tableBuildRow(
 	rowOnClick := r.OnClick
 	ri := rowIdx
 
+	// A split row fills the viewport, up to its columns, so its window
+	// shows what fits beside the frozen cells.
+	var rowSizing Sizing
+	if fz.on {
+		rowSizing = FillFit
+	}
+	if windowSlot >= 0 {
+		cells = fz.closeWindow(cells, windowSlot)
+	}
+
 	return Row(ContainerCfg{
+		Sizing:     rowSizing,
+		MaxWidth:   fz.rowWidth,
 		Color:      bg,
 		Spacing:    SpacingPx(-cellBorder),
 		Padding:    NoPadding,
@@ -152,6 +166,7 @@ func tableBuildRows(
 	selected map[int]bool, multiSelect bool,
 	onSelect func(map[int]bool, int, EventCtx),
 	activeRowIdx int, navKey string, rh tableRowHeader,
+	fz *tableFreeze,
 	first, last, lastRowIdx, dataStart int,
 	rowHeight float32, virtualize bool,
 ) []View {
@@ -160,7 +175,7 @@ func tableBuildRows(
 		capacity = len(cfg.Data) * 2
 	}
 	rows := make([]View, 0, capacity)
-	sepWidth := tableRowWidth(columnWidths, cellBorder, rh)
+	sepWidth := tableSeparatorWidth(columnWidths, cellBorder, rh, fz)
 
 	// Top spacer for virtualization.
 	if virtualize && first > dataStart && rowHeight > 0 {
@@ -178,7 +193,7 @@ func tableBuildRows(
 		rows = append(rows, tableBuildRow(
 			cfg, rowIdx, columnWidths, cellBorder,
 			selected, multiSelect, onSelect,
-			activeRowIdx, navKey, rh))
+			activeRowIdx, navKey, rh, fz))
 
 		// Horizontal separator.
 		sepHeight := cfg.SizeBorder
@@ -230,6 +245,20 @@ func tableRowWidth(columnWidths []float32, cellBorder float32, rh tableRowHeader
 	return width
 }
 
+// tableSeparatorWidth is the least width of a separator: a full row's,
+// or with frozen columns the narrowest row's. Those rows stay in place
+// while their cells scroll, and a wider separator would be wider than
+// they are.
+func tableSeparatorWidth(
+	columnWidths []float32, cellBorder float32, rh tableRowHeader,
+	fz *tableFreeze,
+) float32 {
+	if fz.on {
+		return fz.rowMin
+	}
+	return tableRowWidth(columnWidths, cellBorder, rh)
+}
+
 // tableSeparator is the line between two rows. It fills the table's
 // width, but is never narrower than a row: in a table scrolled sideways
 // a line only as wide as the table stopped short of the last columns
@@ -255,13 +284,14 @@ func tableFreezeLayout(
 	activeRowIdx int,
 	activeKey string,
 	rh tableRowHeader,
+	fz *tableFreeze,
 	fw tableFocusState,
 ) View {
 	// Header zone: row 0 + optional separator.
 	headerViews := []View{
 		tableBuildRow(cfg, 0, columnWidths, cellBorder,
 			selected, multiSelect, onSelect,
-			activeRowIdx, activeKey, rh),
+			activeRowIdx, activeKey, rh, fz),
 	}
 
 	sepHeight := cfg.SizeBorder
@@ -275,7 +305,7 @@ func tableFreezeLayout(
 	}
 	if needsSep {
 		headerViews = append(headerViews, tableSeparator(cfg, sepHeight,
-			tableRowWidth(columnWidths, cellBorder, rh)))
+			tableSeparatorWidth(columnWidths, cellBorder, rh, fz)))
 	}
 
 	// The body keeps room on the right for the vertical scrollbar and
@@ -307,6 +337,10 @@ func tableFreezeLayout(
 		ID:         scrollID,
 		Scrollable: true,
 		Content:    bodyRows,
+	}
+	if fz.on {
+		bodyCfg.scrollExtentX = fz.rowWidth
+		bodyCfg.scrollExtentMin = fz.rowMin
 	}
 	if cfg.Scrollbar != ScrollbarAuto {
 		bodyCfg.ScrollbarCfgX = &ScrollbarCfg{

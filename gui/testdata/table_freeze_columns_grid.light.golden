@@ -1,0 +1,50 @@
+# go-gui-golden v1
+Clip xy=16.00,16.00 wh=277.00,25.60
+StrokeRect xy=16.00,16.00 wh=24.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=23.80,19.00 wh=0.00,0.00 color=#1a1d21ff text="◢" size=14.00
+StrokeRect xy=39.00,16.00 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=64.80,19.00 wh=0.00,0.00 color=#1a1d21ff text="A" size=14.00
+Clip xy=99.00,16.00 wh=194.00,25.60
+StrokeRect xy=87.00,16.00 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=112.80,19.00 wh=0.00,0.00 color=#1a1d21ff text="C" size=14.00
+StrokeRect xy=146.00,16.00 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=171.80,19.00 wh=0.00,0.00 color=#1a1d21ff text="D" size=14.00
+StrokeRect xy=205.00,16.00 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=230.80,19.00 wh=0.00,0.00 color=#1a1d21ff text="E" size=14.00
+StrokeRect xy=264.00,16.00 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=289.80,19.00 wh=0.00,0.00 color=#1a1d21ff text="F" size=14.00
+Clip xy=16.00,16.00 wh=277.00,25.60
+Clip xy=0.00,0.00 wh=320.00,240.00
+Clip xy=16.00,41.60 wh=277.00,171.40
+StrokeRect xy=16.00,41.60 wh=24.00,25.60 color=#d8dde4ff thickness=1.00
+StrokeRect xy=39.00,41.60 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=45.00,44.60 wh=0.00,0.00 color=#1a1d21ff text="a" size=14.00
+Clip xy=99.00,41.60 wh=194.00,171.40
+StrokeRect xy=87.00,41.60 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=93.00,44.60 wh=0.00,0.00 color=#1a1d21ff text="c" size=14.00
+StrokeRect xy=146.00,41.60 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=152.00,44.60 wh=0.00,0.00 color=#1a1d21ff text="d" size=14.00
+StrokeRect xy=205.00,41.60 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=211.00,44.60 wh=0.00,0.00 color=#1a1d21ff text="e" size=14.00
+StrokeRect xy=264.00,41.60 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=270.00,44.60 wh=0.00,0.00 color=#1a1d21ff text="f" size=14.00
+Clip xy=16.00,41.60 wh=277.00,171.40
+StrokeRect xy=16.00,66.20 wh=24.00,25.60 color=#d8dde4ff thickness=1.00
+StrokeRect xy=39.00,66.20 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=45.00,69.20 wh=0.00,0.00 color=#1a1d21ff text="a" size=14.00
+Clip xy=99.00,41.60 wh=194.00,171.40
+StrokeRect xy=87.00,66.20 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=93.00,69.20 wh=0.00,0.00 color=#1a1d21ff text="c" size=14.00
+StrokeRect xy=146.00,66.20 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=152.00,69.20 wh=0.00,0.00 color=#1a1d21ff text="d" size=14.00
+StrokeRect xy=205.00,66.20 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=211.00,69.20 wh=0.00,0.00 color=#1a1d21ff text="e" size=14.00
+StrokeRect xy=264.00,66.20 wh=60.00,25.60 color=#d8dde4ff thickness=1.00
+Text xy=270.00,69.20 wh=0.00,0.00 color=#1a1d21ff text="f" size=14.00
+Clip xy=16.00,41.60 wh=277.00,171.40
+Clip xy=16.00,214.00 wh=277.00,7.00
+Rect xy=57.09,214.00 wh=150.70,7.00 color=#e0e5ecff radius=4.00 fill
+Clip xy=16.00,41.60 wh=277.00,171.40
+Clip xy=294.00,41.60 wh=7.00,171.40
+Clip xy=16.00,41.60 wh=277.00,171.40
+Clip xy=0.00,0.00 wh=320.00,240.00
