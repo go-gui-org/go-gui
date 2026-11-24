@@ -42,6 +42,10 @@ func demoTable(w *gui.Window) gui.View {
 	cfg.MultiSelect = app.TableMultiSelect
 	cfg.FreezeHeader = app.TableFreezeHeader
 	cfg.RowHeader = app.TableRowHeader
+	cfg.FreezeRowHeader = app.TableFreezeRowHeader
+	if app.TableFreezeColumn {
+		cfg.FreezeColumns = 1
+	}
 	cfg.Selected = app.TableSelected
 	cfg.OnSelect = func(sel map[int]bool, _ int, ctx gui.EventCtx) {
 		appState(ctx.Window).TableSelected = sel
@@ -153,6 +157,22 @@ func demoTable(w *gui.Window) gui.View {
 								Selected: app.TableRowHeader,
 								OnClick: func(ctx gui.EventCtx) {
 									appState(ctx.Window).TableRowHeader = !app.TableRowHeader
+								},
+							}),
+							gui.Toggle(gui.ToggleCfg{
+								ID:       "showcase_table_freeze_row_header",
+								Label:    "Freeze row header",
+								Selected: app.TableFreezeRowHeader,
+								OnClick: func(ctx gui.EventCtx) {
+									appState(ctx.Window).TableFreezeRowHeader = !app.TableFreezeRowHeader
+								},
+							}),
+							gui.Toggle(gui.ToggleCfg{
+								ID:       "showcase_table_freeze_column",
+								Label:    "Freeze first column",
+								Selected: app.TableFreezeColumn,
+								OnClick: func(ctx gui.EventCtx) {
+									appState(ctx.Window).TableFreezeColumn = !app.TableFreezeColumn
 								},
 							}),
 							gui.Toggle(gui.ToggleCfg{

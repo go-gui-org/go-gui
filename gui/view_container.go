@@ -68,6 +68,21 @@ type ContainerCfg struct {
 	// either direction, so the X offset is not mirrored under RTL
 	// (scrollMirrorsX). Input sets it on its field.
 	inkScrollX bool
+	// scrollExtentX, when above 0 on a Scrollable container, is the
+	// width of what it scrolls sideways, in place of its widest child.
+	// The container then keeps its children in place and only the scroll
+	// windows linked to it move (scroll_window.go). A Table with frozen
+	// columns sets it on its body.
+	scrollExtentX float32
+	// scrollExtentMin is the narrowest a child row of a container with
+	// scrollExtentX can be. In a viewport narrower than that the first
+	// part of the scroll range moves the rows, so their end stays
+	// reachable.
+	scrollExtentMin float32
+	// scrollWindow makes a container with ScrollLinkX a window onto the
+	// part of the linked container's content that moves, when that
+	// container has a scrollExtentX. It clips sideways only.
+	scrollWindow bool
 	// inert takes the container and everything in it out of input, the
 	// way the HTML inert attribute does: no hit tests, no tab stops, no
 	// accessibility nodes. It still draws. FlipPanel sets it on the face
@@ -478,6 +493,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
 		c.OnScroll == nil && c.OnMouseScroll == nil &&
 		c.AmendLayout == nil && c.ScrollLinkX == "" &&
+		c.scrollExtentX == 0 &&
 		!c.inkScrollX && !c.AcceptsTextInput &&
 		c.Sound == SoundNone {
 		return eventHandlers{}, false
@@ -503,6 +519,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		hoverStatic:   c.hoverStatic,
 		pointerAmend:  c.pointerAmend,
 		scrollLinkX:   c.ScrollLinkX,
+		scrollWindow:  c.scrollWindow,
 		inkScrollX:    c.inkScrollX,
 		clickOnSpace:  c.ClickOnSpace,
 		clickOnEnter:  c.ClickOnEnter,
@@ -510,6 +527,9 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		rowClick:      c.rowClick,
 
 		acceptsTextInput: c.AcceptsTextInput,
+
+		scrollExtentX:   c.scrollExtentX,
+		scrollExtentMin: c.scrollExtentMin,
 	}, true
 }
 

@@ -182,10 +182,14 @@ func (layout *Layout) remainingMain(horizontal bool) float32 {
 }
 
 // contentWidth returns total content width. Uses the fill-pass cache
-// when available to avoid redundant child-tree summation.
+// when available to avoid redundant child-tree summation. A container
+// that states its extent (scroll_window.go) answers that instead.
 func contentWidth(layout *Layout) float32 {
 	if layout == nil || layout.Shape == nil {
 		return 0
+	}
+	if extent, ok := layout.Shape.scrollExtent(); ok {
+		return extent
 	}
 	if layout.Shape.fillGen != 0 {
 		return layout.Shape.contentW

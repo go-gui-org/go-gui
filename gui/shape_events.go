@@ -32,6 +32,12 @@ type eventHandlers struct {
 	// container whose X offset this one follows (scroll_link.go). Here,
 	// not on Shape, to keep Shape small.
 	scrollLinkX string
+	// scrollExtentX and scrollExtentMin are the ContainerCfg fields of
+	// the same name (scroll_window.go). Here, not on Shape, to keep
+	// Shape small.
+	scrollExtentX, scrollExtentMin float32
+	// scrollWindow is ContainerCfg.scrollWindow.
+	scrollWindow bool
 	// inkScrollX is ContainerCfg.inkScrollX: the container scrolls
 	// sideways only to reach ink painted past the right edge of a text
 	// box, so its X offset is never mirrored (scrollMirrorsX).

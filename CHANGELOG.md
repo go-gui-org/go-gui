@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- **Table: keep the row header and the first columns in place while the others
+  scroll sideways (#1363).** `TableCfg.FreezeColumns` is how many leading
+  columns stay in place: the left-most ones, or the right-most under RTL. It
+  counts data columns, and the row header stays with them.
+  `TableCfg.FreezeRowHeader` keeps the row header in place on its own. Both are
+  off by default and work with or without `FreezeHeader`. Scrolling cells are
+  cut off at the frozen edge, so a transparent table, a selected row or a
+  gradient behind it shows no text underneath. Without cell borders a 1px line
+  marks the edge. A table too narrow for its frozen columns scrolls them away
+  first, so every column can be reached. See `examples/table_freeze/`.
 - **Table row header: style the marker and let the app own the current row
   (#1156).** `TableCfg.RowHeaderTextStyle` styles the current-row marker and the
   corner glyph. Left zero, they take `TextStyle` and `TextStyleHead` as before.
@@ -24,6 +34,9 @@ and this project adheres to
 
 ### Changed
 
+- **`Table` allocates about a quarter less per frame (#1363).** Its row and cell
+  lists come from the frame arena now. A table of 12 columns and a row header
+  with 48 visible rows went from 2267 to 1643 allocations per frame.
 - **BREAKING: the horizontal scroll offset of an RTL `Column` or `Stack` counts
   from its right edge (#1345).** It counted from the left edge. Now it works as
   it already did for an RTL `Row`: `ScrollHorizontalTo(id, 0)` and

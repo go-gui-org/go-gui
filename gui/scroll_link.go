@@ -41,12 +41,20 @@ func scrollLinkedX(s *Shape, w *Window) (dx float32, ok bool) {
 	if key == "" || w == nil {
 		return 0, false
 	}
-	mirrors, live := w.scratch.scrollLive[key]
-	if !live {
+	live, isLive := w.scratch.scrollLive[key]
+	if !isLive {
 		return 0, false
 	}
 	dx, ok = w.scrollX().Get(key)
-	if mirrors {
+	// A link moves with the container's own children, a scroll window by
+	// the rest of the offset (scroll_window.go).
+	own := scrollOwnX(dx, live.lead)
+	if s.events.scrollWindow {
+		dx -= own
+	} else {
+		dx = own
+	}
+	if live.mirrors {
 		dx = -dx
 	}
 	return dx, ok

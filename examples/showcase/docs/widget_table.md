@@ -79,6 +79,21 @@ cfg.Sizing = gui.FillFit
 cfg.FreezeHeader = true
 ```
 
+## Frozen Columns
+
+`FreezeColumns` keeps the first columns in place while the others scroll
+sideways: the left-most ones, or the right-most under RTL. It counts data
+columns, and the row header stays with them. `FreezeRowHeader` keeps the row
+header in place on its own. Both work with or without `FreezeHeader`. Without
+cell borders a thin line marks the edge. A count that covers every column
+freezes none. A table too narrow for its frozen columns scrolls them away first,
+so every column can be reached.
+
+```go
+cfg.RowHeader = true
+cfg.FreezeColumns = 1
+```
+
 ## Stdlib Data Binding
 
 Set `RawData` for CSV-style string data. First row is the header:
@@ -127,6 +142,8 @@ When `RawData` is set, `Data` is ignored.
 | MinHeight          | float32           | Minimum height                |
 | MaxHeight          | float32           | Maximum height                |
 | FreezeHeader       | bool              | Pin header above the rows     |
+| FreezeColumns      | int               | Leading columns kept in place |
+| FreezeRowHeader    | bool              | Keep the row header in place  |
 | Focusable          | bool              | Opt in to keyboard focus      |
 | RowHeader          | bool              | Row selector column + corner  |
 | RowHeaderWidth     | float32           | Row header width              |

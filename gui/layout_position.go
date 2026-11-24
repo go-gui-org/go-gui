@@ -86,6 +86,8 @@ func layoutChildStartPos(
 		sy := w.scrollY()
 		id := layout.Shape.idKey()
 		if v, ok := sx.Get(id); ok {
+			// Rows with frozen columns stay in place (scroll_window.go).
+			v = scrollOwnX(v, scrollLead(layout.Shape))
 			// An RTL container starts its content at the right edge, so
 			// what does not fit is off the left, and the offset — a
 			// distance from that start edge — moves the children back to
@@ -364,7 +366,7 @@ func layoutAdjustScrollOffsetsDepth(layout *Layout, w *Window, depth int) {
 	id := layout.Shape.idKey()
 	if layout.Shape.Scrollable && id != "" {
 		if w.scratch.scrollLive != nil {
-			w.scratch.scrollLive[id] = scrollMirrorsX(layout.Shape)
+			w.scratch.scrollLive[id] = scrollLiveOf(layout.Shape)
 		}
 		sx := w.scrollX()
 		sy := w.scrollY()
