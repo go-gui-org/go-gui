@@ -8,6 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **The End caret on a soft-wrapped right-to-left line is on the correct edge
+  (#1371).** Press End on a wrapped Hebrew line and the caret now goes after the
+  last letter, at the left edge of the line. Before, it went to the right edge,
+  where the line starts. The caret comes from go-glyph
+  `Layout.LineEndCursorPos`.
+
+### Changed
+
+- go-glyph v1.30.0.
+
 ## [v0.100.0] - 2026-11-24
 
 ### Added
