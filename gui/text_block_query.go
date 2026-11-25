@@ -61,12 +61,21 @@ func (b *textBlock) cursorPosTrailing(
 	if !ok || !trailing {
 		return cp, ok
 	}
-	if _, _, r, found := b.lineBefore(idx); found {
-		cp.X = r.X + r.Width
-		cp.Y = r.Y
-		cp.Height = r.Height
+	c, k, found := b.prevLine(idx)
+	if !found {
+		return cp, true
 	}
-	return cp, true
+	// go-glyph puts the caret on the trailing edge of the last char of the
+	// line, in logical order: the left edge for right-to-left text. The
+	// right edge of the line rect is the start of an RTL line, not its end
+	// (#1371).
+	end, ok := c.layout.LineEndCursorPos(k)
+	if !ok {
+		return cp, true
+	}
+	end.X += c.x
+	end.Y += c.y
+	return end, true
 }
 
 // lineBefore reports the line that ends where the line holding idx
@@ -75,35 +84,50 @@ func (b *textBlock) cursorPosTrailing(
 // byte does not answer; one inside a packed chunk does, which is harmless
 // because a trailing caret only sits at a soft wrap.
 func (b *textBlock) lineBefore(idx int) (start, end int, r glyph.Rect, ok bool) {
-	if len(b.chunks) == 0 || idx < 0 || idx > len(b.text) {
+	c, k, ok := b.prevLine(idx)
+	if !ok {
 		return 0, 0, glyph.Rect{}, false
+	}
+	line := c.layout.Lines[k]
+	start = c.start + line.StartIndex
+	end = c.start + line.StartIndex + line.Length
+	if k == len(c.layout.Lines)-1 {
+		// Only the last line of an earlier piece is the last line of its
+		// layout. It ends where the piece ends.
+		end = c.end
+	}
+	return start, end, offsetRect(line.Rect, c), true
+}
+
+// prevLine finds the line that lineBefore reports: the chunk that holds
+// it and its index in that chunk's layout. The chunk pointer is valid
+// until the next call that shapes a chunk.
+func (b *textBlock) prevLine(idx int) (c *textChunk, k int, ok bool) {
+	if len(b.chunks) == 0 || idx < 0 || idx > len(b.text) {
+		return nil, 0, false
 	}
 	i := b.shapedChunkAt(idx)
 	b.settle()
-	c := &b.chunks[i]
+	c = &b.chunks[i]
 	local := idx - c.start
 	if c.layout != nil {
 		lines := c.layout.Lines
 		for k := 1; k < len(lines); k++ {
 			if local == lines[k].StartIndex {
-				prev := lines[k-1]
-				return c.start + prev.StartIndex,
-					c.start + prev.StartIndex + prev.Length,
-					offsetRect(prev.Rect, c), true
+				return c, k - 1, true
 			}
 		}
 	}
 	if local != 0 || !c.piece || i == 0 || !b.wraps() {
-		return 0, 0, glyph.Rect{}, false
+		return nil, 0, false
 	}
 	b.ensure(i-1, b.w)
 	b.settle()
 	p := &b.chunks[i-1]
 	if p.layout == nil || len(p.layout.Lines) == 0 {
-		return 0, 0, glyph.Rect{}, false
+		return nil, 0, false
 	}
-	last := p.layout.Lines[len(p.layout.Lines)-1]
-	return p.start + last.StartIndex, p.end, offsetRect(last.Rect, p), true
+	return p, len(p.layout.Lines) - 1, true
 }
 
 func offsetRect(r glyph.Rect, c *textChunk) glyph.Rect {
