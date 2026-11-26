@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Fixed
 
+- **A DataGrid with a pager or the CRUD toolbar fits a narrow parent (#1368).**
+  The pager and the toolbar were plain rows of single-line texts and fixed-width
+  buttons, so the grid could not be narrower than the row. In a narrow parent,
+  such as a phone screen, the grid stuck out past the parent's end, and the
+  vertical scrollbar and the end of the bar could not be reached. The width also
+  changed with the text: one added row changed the status to "Draft 1 Dirty 1
+  Delete 0" and made the grid wider. Now the grid takes its parent's width, and
+  each bar scrolls sideways when its content does not fit. Scroll with the wheel
+  or the trackpad. The bar's scrollbar shows under the pointer. Keyboard focus
+  does not yet scroll a hidden button of the bar into view.
 - **Tabs reorder and take arrow keys correctly under right-to-left (#1359).** In
   a `TabControl` with `Reorderable: true` under an RTL locale, a tab dragged
   past its neighbours did not move. The drop slot was found as if the tabs ran

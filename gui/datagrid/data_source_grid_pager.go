@@ -232,7 +232,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	if jump := dataGridSourcePagerJump(cfg, focusID, state, caps, kind, pageLimit, jumpText); jump != nil {
 		content = append(content, jump...)
 	}
-	return dataGridPagerShell(cfg, content)
+	return dataGridPagerShell(cfg, gg.ScopeID(cfg.ID, "src_pager"), content)
 }
 
 // dataGridSourcePagerNav builds the prev/mode/next buttons plus the

@@ -32,24 +32,55 @@ func dataGridPagerRow(cfg *DataGridCfg, focusID string, pageIndex, pageCount, pa
 }
 
 func dataGridBuildPagerRow(pctx dataGridPagerContext) gg.View {
-	return dataGridPagerShell(pctx.cfg, dataGridPagerContent(pctx))
+	return dataGridPagerShell(pctx.cfg, gg.ScopeID(pctx.cfg.ID, "pager"),
+		dataGridPagerContent(pctx))
+}
+
+// dataGridBarScrollbarX and dataGridBarScrollbarY style the scrollbars
+// of a bar row (pager, CRUD toolbar). The row scrolls only sideways, and
+// its bar shows only under the pointer, so it does not cover the
+// buttons. appendScrollbar copies them, so sharing them is safe and
+// costs no allocation per frame.
+var (
+	dataGridBarScrollbarX = gg.ScrollbarCfg{Overflow: gg.ScrollbarOnHover}
+	dataGridBarScrollbarY = gg.ScrollbarCfg{Overflow: gg.ScrollbarHidden}
+)
+
+// dataGridBarRow is the container of a bar row above or below the grid
+// body: the CRUD toolbar and both pagers. Its texts are single-line
+// and its buttons have a fixed width, so as a plain row its width was
+// the grid's smallest width: the grid stuck out of a narrow parent, and
+// the end of the bar and the vertical scrollbar could not be reached
+// (#1368). The row scrolls sideways instead. A Scrollable Fill row
+// drops its content's minimum (scrollFillResetMin in gui), so the grid
+// takes its parent's width and the hidden part of the bar scrolls into
+// view. The height stays fixed, because dataGridScrollViewportHeight
+// subtracts it.
+func dataGridBarRow(cfg *DataGridCfg, id string, height float32, content []gg.View) gg.View {
+	return gg.Row(gg.ContainerCfg{
+		ID:            id,
+		Scrollable:    true,
+		ScrollMode:    gg.ScrollHorizontalOnly,
+		ScrollbarCfgX: &dataGridBarScrollbarX,
+		ScrollbarCfgY: &dataGridBarScrollbarY,
+		Height:        height,
+		Sizing:        gg.FillFixed,
+		Color:         cfg.ColorFilter,
+		ColorBorder:   cfg.ColorsRow.Border,
+		SizeBorder:    gg.NoBorder,
+		Padding:       dataGridPagerPadding(cfg),
+		Spacing:       gg.SpacingPx(6),
+		VAlign:        gg.VAlignMiddle,
+		Content:       content,
+	})
 }
 
 // dataGridPagerShell is the shared pager container both the local
 // and the source pager rows render inside, so the two shells
-// cannot drift apart.
-func dataGridPagerShell(cfg *DataGridCfg, content []gg.View) gg.View {
-	return gg.Row(gg.ContainerCfg{
-		Height:      dataGridPagerHeight(cfg),
-		Sizing:      gg.FillFixed,
-		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorsRow.Border,
-		SizeBorder:  gg.NoBorder,
-		Padding:     dataGridPagerPadding(cfg),
-		Spacing:     gg.SpacingPx(6),
-		VAlign:      gg.VAlignMiddle,
-		Content:     content,
-	})
+// cannot drift apart. id differs per pager: a source grid with a
+// PageSize can show both.
+func dataGridPagerShell(cfg *DataGridCfg, id string, content []gg.View) gg.View {
+	return dataGridBarRow(cfg, id, dataGridPagerHeight(cfg), content)
 }
 
 func dataGridPagerContent(pctx dataGridPagerContext) []gg.View {
