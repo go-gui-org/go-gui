@@ -65,7 +65,7 @@ func TestTabControlDragReorderFollowsDirection(t *testing.T) {
 			w.TestRender(tabRTLView(&got))
 			l := w.TestRender(nil)
 			mid := func(id string) (x, y float32) {
-				s, ok := l.FindByID("tc:tab:" + id)
+				s, ok := l.FindByID(ScopeID("tc", "tab", id))
 				if !ok {
 					t.Fatalf("tab %q not found", id)
 				}
@@ -257,7 +257,7 @@ func TestDragReorderGhostFollowsPointerRTL(t *testing.T) {
 			w := NewTestWindow(t, WindowCfg{Width: 600, Height: 200})
 			w.TestRender(tabRTLView(&got))
 			l := w.TestRender(nil)
-			s, ok := l.FindByID("tc:tab:a")
+			s, ok := l.FindByID(ScopeID("tc", "tab", "a"))
 			if !ok {
 				t.Fatal("tab a not found")
 			}
@@ -336,7 +336,7 @@ func TestDragReorderResizeCancelsDrag(t *testing.T) {
 			w.TestRender(tabRTLView(&got))
 			l := w.TestRender(nil)
 			mid := func(id string) (x, y float32) {
-				s, ok := l.FindByID("tc:tab:" + id)
+				s, ok := l.FindByID(ScopeID("tc", "tab", id))
 				if !ok {
 					t.Fatalf("tab %q not found", id)
 				}
