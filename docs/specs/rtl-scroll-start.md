@@ -39,11 +39,12 @@ An RTL column or stack works the way an RTL row already did.
 - **Canvas is an exception.** A `Canvas` (`axisNone`) adds each child's own X,
   and its content width is the furthest child's X plus width. Its range runs
   from the left edge in either direction, so it neither pins a wide child at the
-  right nor mirrors its offset. It behaves as it did before this change,
-  including one flaw left alone: with the default alignment, an RTL canvas
-  shifts a narrower child right by the free space, which the range does not
-  count. Mirroring it moved a child at X 250, 100 wide, in a 300-wide canvas to
-  300..400 when scrolled to the end, out of view.
+  right nor mirrors its offset. It behaves as it did before this change. One
+  flaw was left alone here: with the default alignment, an RTL canvas shifted a
+  narrower child right by the free space, which the range did not count.
+  Mirroring it moved a child at X 250, 100 wide, in a 300-wide canvas to
+  300..400 when scrolled to the end, out of view. #1358 removed the shift: a
+  Canvas does not align its children.
 - **Input is an exception.** A multiline `Input` field scrolls sideways only to
   reach the ink of an unbreakable run, which paints past the right edge of its
   text box in either direction. Its field sets the unexported
