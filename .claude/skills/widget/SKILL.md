@@ -9,6 +9,19 @@ disable-model-invocation: true
 
 Create a new widget in the `gui/` package. Follow established conventions.
 
+## Design first
+
+A new widget adds API surface, so the first deliverable is a design, not code:
+
+1. A table of 2-3 candidate designs (Cfg shape, factory, events), one row each,
+   with the tradeoffs that separate them: allocation cost, exported surface
+   added, migration burden on the siblings, how it fails when misused.
+2. The one to pick, named, with the reason.
+3. What is rejected and why.
+
+Then stop and wait for approval. Scaffold the widget only after the user picks a
+design.
+
 ## Arguments
 
 - `name` (required): widget name (for example, "Slider" or "ColorPicker")
