@@ -424,7 +424,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 				for idx, id := range tabIDs {
 					if id == selected {
 						if dragReorderKeyboardMove(
-							ctx.Event.KeyCode, ctx.Event.Modifiers,
+							tabArrowKey(ctx.Event.KeyCode), ctx.Event.Modifiers,
 							dragReorderHorizontal,
 							idx, tabIDs, onReorder, tabDropCue, ctx.Window) {
 							ctx.Consume()
@@ -479,7 +479,7 @@ func tabControlOnKeydown(
 	selectedIdx := tabSelectedIndex(tabNavIDs, tabNavDisabled, selected)
 	var targetIdx int
 
-	switch e.KeyCode {
+	switch tabArrowKey(e.KeyCode) {
 	case KeyLeft, KeyUp:
 		if selectedIdx >= 0 {
 			targetIdx = tabPrevEnabledIndex(tabNavDisabled, selectedIdx)
@@ -527,6 +527,26 @@ func tabControlOnKeydown(
 		w.SetFocus(focusID)
 	}
 	e.IsHandled = true
+}
+
+// tabArrowKey maps Left and Right to the reading-order key they stand
+// for. Under RTL the strip runs right to left, so the previous item is to
+// the right: Right acts as Left and Left as Right. The arrows then go the
+// way they point, for the selection and for an Alt+arrow move (#1359). Up
+// and Down already name reading order and pass through, as do all other
+// keys. The strip reads the global direction because a strip row has no
+// TextDir of its own, which is the direction dragReorderRowRTL sees.
+func tabArrowKey(k KeyCode) KeyCode {
+	if activeTextDir() != TextDirRTL {
+		return k
+	}
+	switch k {
+	case KeyLeft:
+		return KeyRight
+	case KeyRight:
+		return KeyLeft
+	}
+	return k
 }
 
 func tabSelectedIndex(ids []string, disabled []bool, selected string) int {
