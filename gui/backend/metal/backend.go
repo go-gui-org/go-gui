@@ -9,24 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
-	"os"
 	"runtime"
 
 	"github.com/ebitengine/purego/objc"
-	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/mtldraw"
 	"github.com/go-gui-org/go-gui/gui/svg"
 )
-
-const maxCustomPipelines = 32
 
 // idleWaitMs returns the poll timeout for one event-loop iteration.
 // -1 blocks until an event ([NSDate distantFuture]); 0 drains without
@@ -425,49 +415,13 @@ func (ws *windowState) updateCursor(mc gui.MouseCursor) {
 }
 
 // windowState holds per-window backend resources for
-// multi-window mode.
+// multi-window mode: the AppKit window, and the shared Metal renderer
+// (gui/backend/internal/mtldraw) that draws into its layer.
 type windowState struct {
-	ctx      *metalCtx
-	window   *macWindow
-	textSys  *glyph.TextSystem
-	dpiScale float32
-	physW    int32
-	physH    int32
-	mvp      [16]float32
-
-	// Per-draw scratch handed to the renderer by pointer: see drawQuad.
-	quad [4]vertex
-	tm   [16]float32
-	tm2  [16]float32
-
-	mvpStack [][16]float32
-
-	svgVerts           []gpu.Vertex
-	textPathPlacements []glyph.GlyphPlacement
-
-	// textErrLogged warns once for a persistent DrawText failure
-	// instead of spamming stderr every frame.
-	textErrLogged bool
-	normBuf       []gui.GradientStop
-	sampledBuf    []gui.GradientStop
-
-	textures          texcache.Cache[string, metalTexture]
-	memSweep          memtex.Sweeper // when to check mem: textures (#1230)
-	surfaces          metalSurfaces
-	glyphBack         *metalGlyphBackend
-	filterBlur        float32
-	filterLayer       int
-	filterColorMatrix *[16]float32
-	customCache       texcache.Cache[uint64, int32]
-	shaderHashes      gui.ShaderHashCache // memoizes ShaderHash per draw
-	iconFontPath      string
-
-	allowedImageRoots []string
-	imagePathCache    texcache.Cache[string, string]
-	maxImageBytes     int64
-	maxImagePixels    int64
-	appIconPNG        []byte
-	attachedWindow    *gui.Window // for file-drop callbacks
+	r              *mtldraw.Renderer
+	window         *macWindow
+	appIconPNG     []byte
+	attachedWindow *gui.Window // for file-drop callbacks
 }
 
 func (ws *windowState) setAttachedWindow(w *gui.Window) {
@@ -537,75 +491,21 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		return nil, errors.New("metal: window has no CAMetalLayer")
 	}
 
-	// Shader source is owned by Go so the build cache tracks edits to
-	// it; C copies it during the call. See gui/backend/internal/msl.
-	ctx := newMetalCtx(win.layer, msl.Source)
-	if ctx == nil {
-		metalWindowDestroy(win)
-		return nil, errors.New("metal: renderer setup failed")
-	}
-
 	// Compute DPI scale from framebuffer vs logical size.
 	fbW, fbH := metalWindowGetFramebufferSize(win, scaleOverride())
 	logW, _ := metalWindowGetSize(win)
 	dpiScale := drawableScale(int32(fbW), int32(logW), 1)
-	ctx.resize(fbW, fbH)
 
-	ws := &windowState{
-		ctx:      ctx,
-		window:   win,
-		dpiScale: dpiScale,
-		physW:    int32(fbW),
-		physH:    int32(fbH),
-		textures: newMetalTexCacheLRU(ctx, 128, cfg.MaxTextureBytes),
-		customCache: texcache.New[uint64, int32](
-			maxCustomPipelines,
-			func(idx int32) {
-				// A cached compile failure holds a negative
-				// idx with no pipeline behind it.
-				if idx >= 0 {
-					ctx.deleteCustomPipeline(idx)
-				}
-			},
-		),
-		imagePathCache: texcache.New[string, string](1024, nil),
-		maxImageBytes:  cfg.MaxImageBytes,
-		maxImagePixels: cfg.MaxImagePixels,
-		appIconPNG:     iconPNG,
-	}
-	ws.surfaces.setup(ws)
-	ws.allowedImageRoots = imgpath.NormalizeRoots(
-		cfg.AllowedImageRoots)
-	ws.updateProjection()
-
-	ws.glyphBack = newMetalGlyphBackend(ctx, dpiScale)
-	textSys, err := glyph.NewTextSystem(ws.glyphBack)
+	r, err := mtldraw.New(win.layer, fbW, fbH, dpiScale, cfg, "metal")
 	if err != nil {
-		ws.destroy()
-		return nil, fmt.Errorf("NewTextSystem: %w", err)
+		metalWindowDestroy(win)
+		return nil, err
 	}
-	ws.textSys = textSys
-
-	// Load embedded icon font.
-	if data := gui.IconFontData; len(data) > 0 {
-		tmp, err := tempfont.Write("go_gui_feathericon", data)
-		if err != nil {
-			log.Printf("metal: write icon font: %v", err)
-		} else if err := textSys.AddFontFile(tmp); err != nil {
-			log.Printf("metal: load icon font: %v", err)
-			_ = os.Remove(tmp)
-		} else {
-			ws.iconFontPath = tmp
-		}
-	}
-
-	gui.LoadAppFonts(textSys, "metal")
-
-	return ws, nil
+	return &windowState{r: r, window: win, appIconPNG: iconPNG}, nil
 }
 
 func injectInterfaces(w *gui.Window, ws *windowState) {
-	w.SetTextMeasurer(&textMeasurer{textSys: ws.textSys})
+	w.SetTextMeasurer(ws.r.TextMeasurer())
 	w.SetSvgParser(svg.New())
 	w.SetClipboardFn(metalClipboardSet)
 	w.SetClipboardGetFn(func() string {
@@ -622,21 +522,9 @@ func (ws *windowState) destroy() {
 	if ws.window != nil {
 		unregisterWindow(metalWindowGetID(ws.window))
 	}
-	ws.textures.DestroyAll()
-	ws.surfaces.clear()
-	ws.customCache.DestroyAll()
-	if ws.glyphBack != nil {
-		ws.glyphBack.destroy()
-	}
-	if ws.textSys != nil {
-		ws.textSys.Free()
-	}
-	if ws.iconFontPath != "" {
-		_ = os.Remove(ws.iconFontPath)
-	}
-	if ws.ctx != nil {
-		ws.ctx.destroy()
-		ws.ctx = nil
+	if ws.r != nil {
+		ws.r.Destroy()
+		ws.r = nil
 	}
 	if ws.window != nil {
 		metalWindowDestroy(ws.window)
@@ -645,22 +533,7 @@ func (ws *windowState) destroy() {
 }
 
 func (ws *windowState) renderFrame(w *gui.Window) {
-	bg := w.FrameBackground()
-	if !ws.ctx.beginFrame(float32(bg.R)/255, float32(bg.G)/255,
-		float32(bg.B)/255, float32(bg.A)/255) {
-		return
-	}
-	ws.ctx.setPipeline(pipeSolid)
-	ws.ctx.setMVP(&ws.mvp)
-
-	w.Lock()
-	w.BackingScale = ws.dpiScale
-	ws.renderersDraw(w)
-	w.Unlock()
-
-	ws.useGlyphPipeline()
-	ws.textSys.Commit()
-	ws.ctx.endFrame()
+	ws.r.RenderFrame(w)
 }
 
 func (ws *windowState) handleResize() {
@@ -673,56 +546,8 @@ func (ws *windowState) handleResize() {
 	if fbW <= 0 || fbH <= 0 {
 		return
 	}
-
-	ws.physW = int32(fbW)
-	ws.physH = int32(fbH)
-	ws.applyDPIScale(drawableScale(int32(fbW), int32(logW), ws.dpiScale))
-	ws.ctx.resize(fbW, fbH)
-	ws.updateProjection()
-}
-
-// applyDPIScale adopts a new backing scale for the whole window. Text
-// needs both halves: glyphBack.dpiScale places the quads, and the text
-// system shapes and rasterizes at the new density. Without the second
-// half a window dragged between a Retina and a non-Retina display keeps
-// rendering glyphs at the density it was created at, so text drifts out
-// of the boxes laid out for it.
-func (ws *windowState) applyDPIScale(s float32) {
-	if ws == nil {
-		return
-	}
-	if s != s || math.IsInf(float64(s), 0) || s <= 0 || s > 8 {
-		// An implausible value means the backing-scale query failed.
-		// Keeping the old scale beats adopting a broken one, but the
-		// symptom is mis-sized text with no trace of the cause, so
-		// leave evidence when the dev gate is on.
-		if gui.DebugEnabled() {
-			log.Printf("metal: rejected implausible dpi scale %v", s)
-		}
-		return
-	}
-	if s == ws.dpiScale {
-		return
-	}
-	ws.dpiScale = s
-	if ws.glyphBack != nil {
-		ws.glyphBack.dpiScale = s
-	}
-	if ws.textSys != nil {
-		ws.textSys.SetDPIScale(s)
-	}
-}
-
-func (ws *windowState) updateProjection() {
-	gpu.Ortho(&ws.mvp,
-		0, float32(ws.physW),
-		float32(ws.physH), 0,
-		-1, 1)
-}
-
-func (ws *windowState) useGlyphPipeline() {
-	ws.ctx.setPipeline(pipeGlyphTex)
-	ws.ctx.setMVP(&ws.mvp)
+	ws.r.SetDPIScale(drawableScale(int32(fbW), int32(logW), ws.r.DPIScale()))
+	ws.r.Resize(fbW, fbH)
 }
 
 // Destroy releases all backend resources.

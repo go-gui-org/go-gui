@@ -1,11 +1,6 @@
-//go:build ios
+//go:build darwin && arm64
 
-package ios
-
-/*
-#include "metal_darwin.h"
-*/
-import "C"
+package mtldraw
 
 import (
 	"unsafe"
@@ -19,18 +14,29 @@ import (
 
 // metalGlyphBackend implements glyph.DrawBackend using Metal.
 type metalGlyphBackend struct {
+	ctx      *metalCtx
 	textures map[glyph.TextureID]metalTexInfo
 	nextID   glyph.TextureID
 	dpiScale float32
+
+	// quad is the vertex scratch every draw hands to the renderer. Its
+	// address can reach Metal as a uintptr, which does not keep a stack
+	// local in place, so it lives here, on the heap. Under cgo a local
+	// array cost one 128-byte allocation per glyph, the largest source
+	// of garbage while a terminal repaints. Main thread only; each draw
+	// overwrites it.
+	quad [4][8]float32
 }
 
 type metalTexInfo struct {
-	cID  int32 // C-side texture ID
+	cID  int32 // renderer texture ID
 	w, h int32
 }
 
-func newMetalGlyphBackend(dpiScale float32) *metalGlyphBackend {
+func newMetalGlyphBackend(ctx *metalCtx,
+	dpiScale float32) *metalGlyphBackend {
 	return &metalGlyphBackend{
+		ctx:      ctx,
 		textures: make(map[glyph.TextureID]metalTexInfo),
 		dpiScale: dpiScale,
 	}
@@ -38,7 +44,7 @@ func newMetalGlyphBackend(dpiScale float32) *metalGlyphBackend {
 
 func (gb *metalGlyphBackend) destroy() {
 	for _, t := range gb.textures {
-		C.metalDeleteTexture(C.int(t.cID))
+		gb.ctx.deleteTexture(int(t.cID))
 	}
 	gb.textures = nil
 }
@@ -48,8 +54,12 @@ func (gb *metalGlyphBackend) NewTexture(
 	gb.nextID++
 	id := gb.nextID
 
-	cID := C.metalCreateTexture(C.int(width), C.int(height),
-		nil, C.int(0))
+	// A failed upload keeps cID 0; the Draw paths skip it
+	// instead of binding a stale texture (see below).
+	var cID int
+	if width > 0 && height > 0 {
+		cID = gb.ctx.createTexture(width, height, nil)
+	}
 	gb.textures[id] = metalTexInfo{
 		cID: int32(cID), w: int32(width), h: int32(height),
 	}
@@ -59,11 +69,16 @@ func (gb *metalGlyphBackend) NewTexture(
 func (gb *metalGlyphBackend) UpdateTexture(
 	id glyph.TextureID, data []byte) {
 	t, ok := gb.textures[id]
-	if !ok || len(data) == 0 {
+	if !ok || t.cID == 0 || len(data) == 0 {
 		return
 	}
-	C.metalUpdateTexture(C.int(t.cID), 0, 0,
-		C.int(t.w), C.int(t.h),
+	// Full-texture upload needs w*h*4 bytes (RGBA8). A short
+	// buffer would overread in C; drop it instead.
+	if t.w <= 0 || t.h <= 0 ||
+		int64(len(data)) < int64(t.w)*int64(t.h)*4 {
+		return
+	}
+	gb.ctx.updateTexture(int(t.cID), 0, 0, int(t.w), int(t.h),
 		unsafe.Pointer(&data[0]))
 }
 
@@ -73,7 +88,7 @@ func (gb *metalGlyphBackend) DeleteTexture(
 	if !ok {
 		return
 	}
-	C.metalDeleteTexture(C.int(t.cID))
+	gb.ctx.deleteTexture(int(t.cID))
 	delete(gb.textures, id)
 }
 
@@ -82,7 +97,7 @@ func (gb *metalGlyphBackend) DrawTexturedQuad(
 	src, dst glyph.Rect, c glyph.Color) {
 
 	t, ok := gb.textures[id]
-	if !ok {
+	if !ok || t.cID == 0 {
 		return
 	}
 	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
@@ -100,17 +115,16 @@ func (gb *metalGlyphBackend) DrawTexturedQuad(
 	x1 := (dst.X + dst.Width) * s
 	y1 := (dst.Y + dst.Height) * s
 
-	verts := [4][8]float32{
+	gb.quad = [4][8]float32{
 		{x0, y0, u0, v0, cr, cg, cb, ca},
 		{x1, y0, u1, v0, cr, cg, cb, ca},
 		{x1, y1, u1, v1, cr, cg, cb, ca},
 		{x0, y1, u0, v1, cr, cg, cb, ca},
 	}
 
-	C.metalSetPipeline(C.int(pipeGlyphTex))
-	C.metalBindTexture(C.int(t.cID))
-	C.metalDrawGlyphQuad(
-		(*C.float)(unsafe.Pointer(&verts[0])))
+	gb.ctx.setPipeline(pipeGlyphTex)
+	gb.ctx.bindTexture(int(t.cID))
+	gb.ctx.drawGlyphQuad(unsafe.Pointer(&gb.quad))
 }
 
 func (gb *metalGlyphBackend) DrawFilledRect(
@@ -123,16 +137,15 @@ func (gb *metalGlyphBackend) DrawFilledRect(
 	x1 := (dst.X + dst.Width) * s
 	y1 := (dst.Y + dst.Height) * s
 
-	verts := [4][8]float32{
+	gb.quad = [4][8]float32{
 		{x0, y0, 0, 0, cr, cg, cb, ca},
 		{x1, y0, 0, 0, cr, cg, cb, ca},
 		{x1, y1, 0, 0, cr, cg, cb, ca},
 		{x0, y1, 0, 0, cr, cg, cb, ca},
 	}
 
-	C.metalSetPipeline(C.int(pipeGlyphColor))
-	C.metalDrawGlyphQuad(
-		(*C.float)(unsafe.Pointer(&verts[0])))
+	gb.ctx.setPipeline(pipeGlyphColor)
+	gb.ctx.drawGlyphQuad(unsafe.Pointer(&gb.quad))
 }
 
 // DrawFilledRectTransformed implements glyph.TransformedFillBackend: the
@@ -151,18 +164,16 @@ func (gb *metalGlyphBackend) DrawFilledRectTransformed(
 	}
 
 	s := gb.dpiScale
-	var verts [4][8]float32
 	for i := range 4 {
 		px := corners[i][0]
 		py := corners[i][1]
 		tx := (tr.XX*px + tr.XY*py + tr.X0) * s
 		ty := (tr.YX*px + tr.YY*py + tr.Y0) * s
-		verts[i] = [8]float32{tx, ty, 0, 0, cr, cg, cb, ca}
+		gb.quad[i] = [8]float32{tx, ty, 0, 0, cr, cg, cb, ca}
 	}
 
-	C.metalSetPipeline(C.int(pipeGlyphColor))
-	C.metalDrawGlyphQuad(
-		(*C.float)(unsafe.Pointer(&verts[0])))
+	gb.ctx.setPipeline(pipeGlyphColor)
+	gb.ctx.drawGlyphQuad(unsafe.Pointer(&gb.quad))
 }
 
 // Asserted, not merely implemented: the interface is optional, so a
@@ -174,7 +185,7 @@ func (gb *metalGlyphBackend) DrawTexturedQuadTransformed(
 	c glyph.Color, tr glyph.AffineTransform) {
 
 	t, ok := gb.textures[id]
-	if !ok {
+	if !ok || t.cID == 0 {
 		return
 	}
 	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
@@ -197,22 +208,20 @@ func (gb *metalGlyphBackend) DrawTexturedQuadTransformed(
 	}
 
 	s := gb.dpiScale
-	var verts [4][8]float32
 	for i := range 4 {
 		px := corners[i][0]
 		py := corners[i][1]
 		tx := (tr.XX*px + tr.XY*py + tr.X0) * s
 		ty := (tr.YX*px + tr.YY*py + tr.Y0) * s
-		verts[i] = [8]float32{
+		gb.quad[i] = [8]float32{
 			tx, ty, uvs[i][0], uvs[i][1],
 			cr, cg, cb, ca,
 		}
 	}
 
-	C.metalSetPipeline(C.int(pipeGlyphTex))
-	C.metalBindTexture(C.int(t.cID))
-	C.metalDrawGlyphQuad(
-		(*C.float)(unsafe.Pointer(&verts[0])))
+	gb.ctx.setPipeline(pipeGlyphTex)
+	gb.ctx.bindTexture(int(t.cID))
+	gb.ctx.drawGlyphQuad(unsafe.Pointer(&gb.quad))
 }
 
 func (gb *metalGlyphBackend) DPIScale() float32 {

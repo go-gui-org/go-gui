@@ -19,6 +19,15 @@ and this project adheres to
 ### Changed
 
 - go-glyph v1.30.0.
+- **iOS draws with the macOS Metal renderer (#1342).** The iOS backend's own cgo
+  renderer (`metal_darwin.m`) and its copy of the draw code are gone. iOS now
+  uses the purego renderer that macOS uses, so a renderer fix lands on both at
+  once. On the simulator a frame takes about a third of the main-thread time it
+  did, and the draw path makes no allocations (121 a frame before), because the
+  frame no longer waits for the GPU to schedule it. Keychain and locale on iOS
+  use the macOS purego code too. The iOS package API does not change, and an iOS
+  build still needs `CGO_ENABLED=1`: purego needs cgo on iOS, and the UIKit
+  shell stays cgo.
 
 ## [v0.100.0] - 2026-11-24
 

@@ -1,10 +1,11 @@
-//go:build darwin && !ios
+//go:build darwin && (!ios || cgo)
 
 package keyring
 
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"sync"
 
 	"github.com/ebitengine/purego"
@@ -38,6 +39,10 @@ var sec struct {
 
 	class, classGenericPassword, attrService, attrAccount uintptr
 	returnData, matchLimit, matchLimitOne, valueData      uintptr
+
+	// attrAccessible and accessibleAfterFirstUnlockThisDeviceOnly
+	// are set on a new item on iOS only (see Save).
+	attrAccessible, accessibleAfterFirstUnlockThisDeviceOnly uintptr
 }
 
 func loadSec() {
@@ -56,6 +61,9 @@ func loadSec() {
 		sec.matchLimit = darwinffi.Data(lib, "kSecMatchLimit")
 		sec.matchLimitOne = darwinffi.Data(lib, "kSecMatchLimitOne")
 		sec.valueData = darwinffi.Data(lib, "kSecValueData")
+		sec.attrAccessible = darwinffi.Data(lib, "kSecAttrAccessible")
+		sec.accessibleAfterFirstUnlockThisDeviceOnly = darwinffi.Data(lib,
+			"kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly")
 	})
 }
 
@@ -144,6 +152,13 @@ func Save(service, key string, value []byte) error {
 	darwinffi.CFRelease(upd)
 	if st == errSecItemNotFound {
 		darwinffi.CFDictSet(q, sec.valueData, d)
+		if runtime.GOOS == "ios" {
+			// Readable by a background task after the first unlock,
+			// and never moved to another device by a backup restore.
+			// The cgo iOS form set this; macOS keeps the default.
+			darwinffi.CFDictSet(q, sec.attrAccessible,
+				sec.accessibleAfterFirstUnlockThisDeviceOnly)
+		}
 		st = sec.add(q, 0)
 	}
 	if st != errSecSuccess {

@@ -1,11 +1,6 @@
-//go:build ios
+//go:build darwin && arm64
 
-package ios
-
-/*
-#include "metal_darwin.h"
-*/
-import "C"
+package mtldraw
 
 import (
 	"unsafe"
@@ -37,38 +32,37 @@ func metalTextureBytes(tex metalTexture) int64 {
 }
 
 // newMetalTexCacheLRU bounds the textures by count and by bytes (#1239).
-// A non-positive maxBytes (WindowCfg.MaxTextureBytes unset) takes the mobile
+// A non-positive maxBytes (WindowCfg.MaxTextureBytes unset) takes the desktop
 // default.
-func newMetalTexCacheLRU(
+func newMetalTexCacheLRU(ctx *metalCtx,
 	maxSize int, maxBytes int64,
 ) texcache.Cache[string, metalTexture] {
 	return texcache.NewSized[string, metalTexture](maxSize,
-		texcache.Budget(maxBytes, texcache.MobileTextureBudget), metalTextureBytes,
+		texcache.Budget(maxBytes, texcache.DesktopTextureBudget), metalTextureBytes,
 		func(tex metalTexture) {
 			if tex.id != 0 {
-				C.metalDeleteTexture(C.int(tex.id))
+				ctx.deleteTexture(int(tex.id))
 			}
 		})
 }
 
-func createMetalTexture(w, h int32,
+func createMetalTexture(ctx *metalCtx, w, h int32,
 	pixels []byte) metalTexture {
-	hasData := C.int(0)
 	var ptr unsafe.Pointer
 	if len(pixels) > 0 {
-		hasData = C.int(1)
 		ptr = unsafe.Pointer(&pixels[0])
 	}
-	id := C.metalCreateTexture(
-		C.int(w), C.int(h), ptr, hasData)
+	id := ctx.createTexture(int(w), int(h), ptr)
 	return metalTexture{id: int32(id), w: w, h: h}
 }
 
+// --- Image loading ---
+
 // loadImageTexture opens, validates, decodes, and uploads an
 // image to a Metal texture.
-func (b *Backend) loadImageTexture(
+func (b *Renderer) loadImageTexture(
 	path string) (metalTexture, error) {
-	f, err := imgload.OpenSafe(path, b.AllowedImageRoots)
+	f, err := imgload.OpenSafe(path, b.allowedImageRoots)
 	if err != nil {
 		return metalTexture{}, err
 	}
@@ -82,5 +76,5 @@ func (b *Backend) loadImageTexture(
 	bounds := nrgba.Bounds()
 	w := int32(bounds.Dx())
 	h := int32(bounds.Dy())
-	return createMetalTexture(w, h, nrgba.Pix), nil
+	return createMetalTexture(b.ctx, w, h, nrgba.Pix), nil
 }

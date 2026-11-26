@@ -245,7 +245,10 @@ go-glyph main, not the `go.mod` pin).
   second `!cgo` backend. On the per-frame paths use `msg`/`darwinffi.FCaller` (0
   allocations); `objc.ID.Send` and `purego.RegisterFunc` allocate on every call.
   The renderer batches quads and caches encoder state, because a purego send
-  costs ~2.4× a send inside C. iOS and Android keep cgo.
+  costs ~2.4× a send inside C. iOS and Android keep cgo. On iOS that is only the
+  UIKit shell (`ios_app.m`) and purego's own need for cgo there: iOS draws with
+  the macOS renderer, `gui/backend/internal/mtldraw` (#1342). Do not re-propose
+  a second iOS renderer.
 
 Full history and rationale in `docs/specs/cgo-free-backend-feasibility.md`.
 

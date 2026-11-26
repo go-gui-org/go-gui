@@ -186,18 +186,17 @@ func TestCustomWrappersUnpackBuiltinsAlike(t *testing.T) {
 }
 
 // TestCustomShaderBackendsUploadBuiltins pins every GPU backend's
-// custom-shader draw to an upload of the built-in block. On Metal and
-// iOS a missed upload is not just stale values: fs_main reads fragment
-// buffer(0) whatever the body uses, and an unbound buffer is undefined
-// behavior.
+// custom-shader draw to an upload of the built-in block. On Metal (macOS
+// and iOS share mtldraw, #1342) a missed upload is not just stale values:
+// fs_main reads fragment buffer(0) whatever the body uses, and an unbound
+// buffer is undefined behavior.
 func TestCustomShaderBackendsUploadBuiltins(t *testing.T) {
 	t.Parallel()
 	checks := map[string]string{
 		"../../gl/draw.go":           "ShaderBuiltinsAt(",
 		"../../web/custom_shader.go": "ShaderBuiltinsAt(",
 		"../../android/draw.go":      "C.glesSetBuiltins(",
-		"../../metal/draw.go":        "b.ctx.setFragment0(&builtins)",
-		"../../ios/draw.go":          "C.metalSetCustomBuiltins(",
+		"../mtldraw/draw.go":         "b.ctx.setFragment0(&builtins)",
 	}
 	for path, want := range checks {
 		data, err := os.ReadFile(path)
@@ -212,12 +211,14 @@ func TestCustomShaderBackendsUploadBuiltins(t *testing.T) {
 
 // TestCustomWrappersAreShared pins the backends to the shared
 // builders. A hand-edited wrapper copy in any backend drifts
-// silently, the way the gradient copies once did.
+// silently, the way the gradient copies once did. iOS draws with
+// mtldraw (#1342): the ios/backend.go check keeps it from growing a
+// second renderer again.
 func TestCustomWrappersAreShared(t *testing.T) {
 	t.Parallel()
 	checks := map[string]string{
-		"../../metal/draw.go":        "msl.BuildCustomDecls(",
-		"../../ios/draw.go":          "msl.BuildCustomDecls(",
+		"../mtldraw/draw.go":         "msl.BuildCustomDecls(",
+		"../../ios/backend.go":       "mtldraw.New(",
 		"../../android/draw.go":      "gui.BuildGLSLESFragmentDecls(",
 		"../../web/custom_shader.go": "gui.BuildGLSLESFragmentDecls(",
 		"../../gl/pipeline.go":       "gui.BuildGLSLFragmentDecls(",
@@ -234,8 +235,7 @@ func TestCustomWrappersAreShared(t *testing.T) {
 	}
 	stale := map[string]string{
 		"../../web/custom_shader.go": "func webGL2FragmentSource(",
-		"../../metal/draw.go":        "fragment float4 fs_main(",
-		"../../ios/draw.go":          "fragment float4 fs_main(",
+		"../mtldraw/draw.go":         "fragment float4 fs_main(",
 	}
 	for path, want := range stale {
 		data, err := os.ReadFile(path)

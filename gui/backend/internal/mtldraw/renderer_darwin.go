@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 // The Metal renderer, in Go through purego. It was metal_darwin.m until
 // #STEP6. One metalCtx is the renderer of one window: its device, queue,

@@ -1,10 +1,11 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
@@ -117,8 +118,14 @@ func TestBuiltinShadersCompile(t *testing.T) {
 // and compiles its MSL output as the Metal backend would (#573). The
 // GLSL side is checked by TestPortGLSLCompiles in internal/shaderport.
 func TestShaderportCompiles(t *testing.T) {
-	files, err := filepath.Glob("../../../internal/shaderport/testdata/*.frag")
+	files, err := filepath.Glob("../../../../internal/shaderport/testdata/*.frag")
 	if err != nil || len(files) == 0 {
+		// A test binary spawned on the iOS simulator does not run in
+		// the package directory, so the source tree is out of reach.
+		// The desktop run of this test covers the same MSL.
+		if runtime.GOOS == "ios" {
+			t.Skip("shaderport fixtures not reachable on iOS")
+		}
 		t.Fatalf("no shaderport fixtures: %v", err)
 	}
 	for _, f := range files {

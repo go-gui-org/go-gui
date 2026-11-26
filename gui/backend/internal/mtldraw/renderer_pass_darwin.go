@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 // Custom shader pipelines, the filter and stencil passes, and the
 // test probes of the renderer. See renderer_darwin.go.
