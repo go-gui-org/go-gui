@@ -96,15 +96,21 @@ func TestDataGridNarrowParentKeepsWidth(t *testing.T) {
 			if last == nil {
 				t.Fatal("bar has no in-flow child")
 			}
-			barRight := bar.Shape.X + bar.Shape.Width
+			// The scroll clamp keeps content inside the padded area (padding
+			// plus border), so the check uses the same visible area. An outer
+			// edge check would pass a control that sits in the padding and
+			// is partly clipped.
+			barLeft := bar.Shape.X + bar.Shape.Padding.Left + bar.Shape.SizeBorder
+			barRight := bar.Shape.X + bar.Shape.Width -
+				bar.Shape.Padding.Right - bar.Shape.SizeBorder
 			lastRight := last.Shape.X + last.Shape.Width
 			if lastRight > barRight+0.5 {
 				t.Fatalf("after scrolling to the end, last control ends at %.1f, "+
-					"past the bar's right edge %.1f", lastRight, barRight)
+					"past the bar's content edge %.1f", lastRight, barRight)
 			}
-			if last.Shape.X < bar.Shape.X-0.5 {
+			if last.Shape.X < barLeft-0.5 {
 				t.Fatalf("after scrolling to the end, last control starts at %.1f, "+
-					"before the bar's left edge %.1f", last.Shape.X, bar.Shape.X)
+					"before the bar's content edge %.1f", last.Shape.X, barLeft)
 			}
 		})
 	}
