@@ -132,7 +132,18 @@ type dragReorderState struct {
 	itemHeight    float32
 	parentX       float32
 	parentY       float32
-	scrollID      string
+	// parentWidth and parentRTL place the ghost. A float in an RTL
+	// parent is anchored to the parent's right edge with its X offset
+	// mirrored (floatPosition), so the ghost must give its offset from
+	// that edge.
+	parentWidth float32
+	parentRTL   bool
+	scrollID    string
+	// mirrored is set when the items run right to left on screen (a
+	// horizontal drag in an RTL row). The drag then works on -X, so
+	// item order and axis order agree again and the index math stays
+	// the LTR math (#1359).
+	mirrored bool
 	// dropCue is resolved by the widget at generation time and rides
 	// the drag state: the drop fires from a MouseLock callback with a
 	// nil Layout, so there is no shape left to read a cue off
@@ -242,10 +253,13 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	itemLayoutIDs := cfg.ItemLayoutIDs
 	midsOffset := cfg.MidsOffset
 	scrollID := cfg.ScrollID
-	var parentX, parentY float32
+	var parentX, parentY, parentWidth float32
+	parentRTL := false
 	if layout.Parent != nil && layout.Parent.Shape != nil {
 		parentX = layout.Parent.Shape.X
 		parentY = layout.Parent.Shape.Y
+		parentWidth = layout.Parent.Shape.Width
+		parentRTL = effectiveTextDir(layout.Parent.Shape) == TextDirRTL
 	}
 
 	var containerStart, containerEnd float32
@@ -281,6 +295,18 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	layoutsValid := len(itemMids) > 0 &&
 		len(itemMids) == len(itemLayoutIDs)
 
+	// An RTL row places its first item at the right edge, so the
+	// midpoints fall as the index rises and the binary search, which
+	// needs them to rise, found no slot. Negating X puts them back in
+	// rising order. itemMids is this call's own slice, so the negation
+	// changes nothing the caller holds.
+	mirrored := axis == dragReorderHorizontal && dragReorderRowRTL(layout)
+	if mirrored {
+		for i := range itemMids {
+			itemMids[i] = -itemMids[i]
+		}
+	}
+
 	layoutIDs := make([]string, len(itemLayoutIDs))
 	copy(layoutIDs, itemLayoutIDs)
 
@@ -308,6 +334,8 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 		itemHeight:     layout.Shape.Height,
 		parentX:        parentX,
 		parentY:        parentY,
+		parentWidth:    parentWidth,
+		parentRTL:      parentRTL,
 		itemID:         itemID,
 		scrollID:       scrollID,
 		dropCue:        cfg.DropCue,
@@ -317,6 +345,7 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 		startScrollY:   startScrollY,
 		layoutsValid:   layoutsValid,
 		midsOffset:     midsOffset,
+		mirrored:       mirrored,
 	}
 	dragReorderSet(w, dragKey, state)
 	w.MouseLock(dragReorderMakeLock(
@@ -437,6 +466,11 @@ func dragReorderOnMouseMove(
 		}
 		mouseMain -= shift
 	}
+	// Mirror after the scroll correction: that shift is a screen
+	// distance, and the mids were mirrored from screen positions.
+	if state.mirrored {
+		mouseMain = -mouseMain
+	}
 
 	newIndex := -1
 	if !scrolledSinceStart && state.layoutsValid {
@@ -460,6 +494,10 @@ func dragReorderOnMouseMove(
 		case dragReorderHorizontal:
 			itemStart = state.itemX
 			itemSize = state.itemWidth
+			// Mirrored, the item's start edge is its right edge.
+			if state.mirrored {
+				itemStart = -(state.itemX + state.itemWidth)
+			}
 		}
 		newIndex = dragReorderCalcIndex(
 			mouseMain, itemStart, itemSize,
@@ -578,6 +616,17 @@ func dragReorderCancel(dragKey string, w *Window) {
 	// hides ghost/gap, then Clear removes state for next frame.
 	w.InvalidateLayout()
 	dragReorderClear(w, dragKey)
+}
+
+// dragReorderRowRTL reports whether the row that holds the item
+// layout places its children right to left. That is the rule
+// layoutPositionsDepth applies: a left-to-right axis whose own shape
+// resolves RTL.
+func dragReorderRowRTL(item *Layout) bool {
+	p := item.Parent
+	return p != nil && p.Shape != nil &&
+		p.Shape.Axis == axisLeftToRight &&
+		effectiveTextDir(p.Shape) == TextDirRTL
 }
 
 // --- auto-scroll ---

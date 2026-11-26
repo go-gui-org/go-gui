@@ -115,10 +115,21 @@ func dragReorderGhostView(state dragReorderState, content View) View {
 	ghostX := state.mouseX - (state.startMouseX - state.itemX)
 	ghostY := state.mouseY - (state.startMouseY - state.itemY)
 
+	// The offset runs from the parent's left edge. In an RTL parent the
+	// float is placed from the right edge with the offset negated, so
+	// give the distance from the ghost's right edge to the parent's
+	// right edge instead. Without this the ghost was drawn mirrored
+	// across the parent during a drag (#1359).
+	offsetX := ghostX - state.parentX
+	if state.parentRTL {
+		offsetX = state.parentX + state.parentWidth -
+			(ghostX + state.itemWidth)
+	}
+
 	return Column(ContainerCfg{
 		ID:           "drag_reorder_ghost",
 		Float:        true,
-		FloatOffsetX: ghostX - state.parentX,
+		FloatOffsetX: offsetX,
 		FloatOffsetY: ghostY - state.parentY,
 		Width:        state.itemWidth,
 		Height:       state.itemHeight,

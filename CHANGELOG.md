@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Fixed
 
+- **Tabs reorder and take arrow keys correctly under right-to-left (#1359).** In
+  a `TabControl` with `Reorderable: true` under an RTL locale, a tab dragged
+  past its neighbours did not move. The drop slot was found as if the tabs ran
+  left to right. Now the tab lands where the pointer is, as under LTR. During a
+  drag the floating copy of the tab was drawn on the opposite side of the strip,
+  because its position was mirrored. It now stays under the pointer. This also
+  applies to the floating row in a reorderable `ListBox` and `Tree`. The arrow
+  keys now go the way they point: under RTL, Left selects the tab to the left,
+  which is the next one, and Alt+Left moves the tab to the left. This also
+  applies to `SegmentedControl`. Up, Down, Home and End keep reading order.
 - **The End caret on a soft-wrapped right-to-left line is on the correct edge
   (#1371).** Press End on a wrapped Hebrew line and the caret now goes after the
   last letter, at the left edge of the line. Before, it went to the right edge,
