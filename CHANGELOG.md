@@ -19,7 +19,10 @@ and this project adheres to
   applies to the floating row in a reorderable `ListBox` and `Tree`. The arrow
   keys now go the way they point: under RTL, Left selects the tab to the left,
   which is the next one, and Alt+Left moves the tab to the left. This also
-  applies to `SegmentedControl`. Up, Down, Home and End keep reading order.
+  applies to `SegmentedControl`. Up, Down, Home and End keep reading order. A
+  window resize during a drag now cancels the drag, in either direction. A drag
+  records the tab positions when it starts, and a resize moves them, so the drop
+  slot and the floating tab would no longer follow the pointer.
 - **The End caret on a soft-wrapped right-to-left line is on the correct edge
   (#1371).** Press End on a wrapped Hebrew line and the caret now goes after the
   last letter, at the left edge of the line. Before, it went to the right edge,

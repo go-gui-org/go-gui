@@ -618,15 +618,20 @@ func dragReorderCancel(dragKey string, w *Window) {
 	dragReorderClear(w, dragKey)
 }
 
-// dragReorderRowRTL reports whether the row that holds the item
-// layout places its children right to left. That is the rule
-// layoutPositionsDepth applies: a left-to-right axis whose own shape
-// resolves RTL.
-func dragReorderRowRTL(item *Layout) bool {
-	p := item.Parent
-	return p != nil && p.Shape != nil &&
-		p.Shape.Axis == axisLeftToRight &&
-		effectiveTextDir(p.Shape) == TextDirRTL
+// dragReorderCancelAll cancels every drag in progress. A window resize
+// calls it: a drag records the item midpoints and the ghost anchor when
+// it starts, and a resize moves the items (an RTL row sits against the
+// right edge), so after it the drop slot and the ghost would no longer
+// follow the pointer.
+func dragReorderCancelAll(w *Window) {
+	sm := StateMapRead[string, dragReorderState](w, nsDragReorder)
+	if sm == nil || sm.Len() == 0 {
+		return
+	}
+	// Keys is a copy: each cancel deletes from the map.
+	for _, key := range sm.Keys() {
+		dragReorderCancel(key, w)
+	}
 }
 
 // --- auto-scroll ---

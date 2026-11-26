@@ -107,6 +107,17 @@ func dragReorderCollectMids(
 	}
 }
 
+// dragReorderRowRTL reports whether the row that holds the item
+// layout places its children right to left. That is the rule
+// layoutPositionsDepth applies: a left-to-right axis whose own shape
+// resolves RTL.
+func dragReorderRowRTL(item *Layout) bool {
+	p := item.Parent
+	return p != nil && p.Shape != nil &&
+		p.Shape.Axis == axisLeftToRight &&
+		effectiveTextDir(p.Shape) == TextDirRTL
+}
+
 // --- view helpers ---
 
 // dragReorderGhostView returns a floating container at the

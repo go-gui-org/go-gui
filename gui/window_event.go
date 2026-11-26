@@ -375,8 +375,13 @@ func (w *Window) handleMouseScrollEvent(layout *Layout, e *Event) {
 }
 
 func (w *Window) handleResizedEvent(e *Event) {
+	resized := e.WindowWidth != w.windowWidth ||
+		e.WindowHeight != w.windowHeight
 	w.windowWidth = e.WindowWidth
 	w.windowHeight = e.WindowHeight
+	if resized {
+		dragReorderCancelAll(w)
+	}
 }
 
 func (w *Window) handleFileDroppedEvent(layout *Layout, e *Event) {

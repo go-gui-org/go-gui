@@ -311,3 +311,56 @@ func TestDragReorderGhostFollowsPointerRTL(t *testing.T) {
 		})
 	}
 }
+
+// A drag records the item midpoints and the ghost anchor when it starts.
+// A window resize moves the items (under RTL the strip sits against the
+// right edge), so after a resize that geometry is stale: the ghost
+// drifts from the pointer and the drop lands on the wrong slot. A resize
+// that changes the size cancels the drag. One that keeps the size does
+// not.
+func TestDragReorderResizeCancelsDrag(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		dir   TextDirection
+		width int
+		want  string
+	}{
+		{"LTR resized", TextDirLTR, 700, " select a"},
+		{"RTL resized", TextDirRTL, 700, " select a"},
+		{"RTL same size", TextDirRTL, 600, " select a move a before [c]"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tabRTLLocale(t, tc.dir)
+			var got string
+			w := NewTestWindow(t, WindowCfg{Width: 600, Height: 200})
+			w.TestRender(tabRTLView(&got))
+			l := w.TestRender(nil)
+			mid := func(id string) (x, y float32) {
+				s, ok := l.FindByID("tc:tab:" + id)
+				if !ok {
+					t.Fatalf("tab %q not found", id)
+				}
+				return s.Shape.X + s.Shape.Width/2, s.Shape.Y + s.Shape.Height/2
+			}
+			past := float32(10)
+			if tc.dir == TextDirRTL {
+				past = -10
+			}
+			from, y := mid("a")
+			to, _ := mid("b")
+			send := func(ty EventType, x float32) {
+				w.EventFn(&Event{Type: ty, MouseX: x, MouseY: y, MouseButton: MouseLeft})
+				w.TestRender(nil)
+			}
+			send(EventMouseDown, from)
+			send(EventMouseMove, from+past)
+			send(EventMouseMove, to+past)
+			w.EventFn(&Event{Type: EventResized, WindowWidth: tc.width, WindowHeight: 200})
+			w.TestRender(nil)
+			send(EventMouseUp, to+past)
+			if got != tc.want {
+				t.Fatalf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
