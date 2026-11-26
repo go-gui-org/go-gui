@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 // Metal constants, selectors and send helpers of the renderer
 // (renderer_darwin.go).
@@ -92,6 +92,7 @@ const (
 	mtlTextureUsageShaderRead    = 1
 	mtlTextureUsageRenderTarget  = 4
 	mtlTextureType2DMultisample  = 4
+	mtlPixelFormatBGRA8Unorm     = 80
 	mtlStorageModeShared         = 0
 	mtlStorageModePrivate        = 2
 	mtlResourceStorageModeShared = 0
@@ -99,6 +100,7 @@ const (
 	mtlPrimitiveTypeTriangle = 3
 	mtlIndexTypeUInt16       = 0
 
+	mtlLanguageVersion2_4           = 2<<16 | 4
 	mtlLanguageVersion3_0           = 3 << 16
 	mtlCommandBufferStatusCompleted = 4
 )
@@ -161,7 +163,10 @@ var (
 // loadRenderer loads Metal and fills rsel and rcls.
 func loadRenderer() {
 	rendererOnce.Do(func() {
-		loadObjc()
+		sels.alloc = darwinffi.Sel("alloc")
+		sels.init = darwinffi.Sel("init")
+		sels.retain = darwinffi.Sel("retain")
+		sels.release = darwinffi.Sel("release")
 		metal := darwinffi.Open(darwinffi.PathMetal)
 		darwinffi.Open(darwinffi.PathQuartzCore)
 		mtlCreateDevice = darwinffi.Func(metal, "MTLCreateSystemDefaultDevice")

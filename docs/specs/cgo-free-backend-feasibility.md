@@ -4,9 +4,10 @@ Status: **done** — desktop is cgo-free. Phase 1 (Linux + Windows, 2026-07-31)
 and the `gui/audio` follow-up closed the Linux CGo dependency. Phase 2 (macOS)
 was closed 2026-08-12 by decision (not pursued — macOS stays cgo), **reopened
 and decided 2026-11-20 (#1304), and the port is done (#1323): the macOS backend
-has no cgo.** What follows is the historical assessment, kept for the rationale
-and the rejected approaches. For the current state see `docs/architecture.md`
-and `docs/deployment.md`.
+has no cgo.** iOS shares the purego Metal renderer since #1342 (see § iOS). What
+follows is the historical assessment, kept for the rationale and the rejected
+approaches. For the current state see `docs/architecture.md` and
+`docs/deployment.md`.
 
 ## Phase 1 outcome (2026-07-31)
 
@@ -471,23 +472,23 @@ contain different code, so the size difference does not measure cgo.
 
 "Proven" means the spike or a reference project runs the API with no cgo.
 
-| go-gui service (file)                                             | purego status                                                                            | Evidence                                                       |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Renderer (`metal_darwin.m`, 1642 lines)                           | Proven. Batch quads (see above).                                                         | Spike pipeline tests, gowaku `gpu/metal/`                      |
-| Window, events, live resize (`metal_window_darwin.m`, 2740 lines) | Proven                                                                                   | Spike `-selftest`, gowaku `window_darwin.go`                   |
-| IME (`MetalContentView <NSTextInputClient>`)                      | Proven for the ABI. Not tested with a real input source.                                 | Spike IME tests, gowaku `classes_darwin.go`, mygo `surface.go` |
-| Accessibility (`a11y_darwin.m`, 395 lines)                        | Proven                                                                                   | gowaku `accessibility_darwin.go`, mygo `access.go`             |
-| Menus and tray (`menu_darwin.m`, 505 lines)                       | Proven                                                                                   | Spike menu action, gowaku `tray_darwin.go`, mygo `menu.go`     |
-| File dialogs and alerts (`dialog_darwin.m`, 273 lines)            | Proven                                                                                   | gowaku `filedialog_darwin.go`, mygo `dialog.go`                |
-| Print (`print_darwin.m`, 81 lines)                                | Proven                                                                                   | mygo `window.go` (`NSPrintOperation`)                          |
-| Spell check (`spellcheck_darwin.m`, 172 lines)                    | Not tested. Plain `NSSpellChecker` sends with no blocks or subclass, so no new risk.     | None                                                           |
-| Appearance observer (`appearance_darwin.m`)                       | Proven                                                                                   | gowaku `platform_darwin.go`, mygo `system.go`                  |
-| Keep awake (`keep_awake_darwin.m`, `NSProcessInfo` activity)      | Not tested. Two plain sends.                                                             | None                                                           |
-| System beep (`sysbeep_*.m`, `NSSound`)                            | Proven for `NSBeep`. `NSSound` is plain sends.                                           | mygo `cf.go`                                                   |
-| Keyring (`keyring_darwin.go`, Security C API)                     | Proven                                                                                   | mygo `secrets.go`                                              |
-| Locale (`gui/locale_detect_darwin.go`, CoreFoundation)            | Proven                                                                                   | gowaku `platform_darwin.go`, mygo `locale.go`                  |
-| Blocks: `dispatch_async`, `dispatch_once`, `NSTimer …block:` (15) | Proven. Use `dispatch_async_f` with one callback, `sync.Once`, and target/action timers. | Spike `-selftest`                                              |
-| iOS backend (`gui/backend/ios/`)                                  | Out of scope. It stays cgo, so the module is never fully cgo-free.                       | —                                                              |
+| go-gui service (file)                                             | purego status                                                                             | Evidence                                                       |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Renderer (`metal_darwin.m`, 1642 lines)                           | Proven. Batch quads (see above).                                                          | Spike pipeline tests, gowaku `gpu/metal/`                      |
+| Window, events, live resize (`metal_window_darwin.m`, 2740 lines) | Proven                                                                                    | Spike `-selftest`, gowaku `window_darwin.go`                   |
+| IME (`MetalContentView <NSTextInputClient>`)                      | Proven for the ABI. Not tested with a real input source.                                  | Spike IME tests, gowaku `classes_darwin.go`, mygo `surface.go` |
+| Accessibility (`a11y_darwin.m`, 395 lines)                        | Proven                                                                                    | gowaku `accessibility_darwin.go`, mygo `access.go`             |
+| Menus and tray (`menu_darwin.m`, 505 lines)                       | Proven                                                                                    | Spike menu action, gowaku `tray_darwin.go`, mygo `menu.go`     |
+| File dialogs and alerts (`dialog_darwin.m`, 273 lines)            | Proven                                                                                    | gowaku `filedialog_darwin.go`, mygo `dialog.go`                |
+| Print (`print_darwin.m`, 81 lines)                                | Proven                                                                                    | mygo `window.go` (`NSPrintOperation`)                          |
+| Spell check (`spellcheck_darwin.m`, 172 lines)                    | Not tested. Plain `NSSpellChecker` sends with no blocks or subclass, so no new risk.      | None                                                           |
+| Appearance observer (`appearance_darwin.m`)                       | Proven                                                                                    | gowaku `platform_darwin.go`, mygo `system.go`                  |
+| Keep awake (`keep_awake_darwin.m`, `NSProcessInfo` activity)      | Not tested. Two plain sends.                                                              | None                                                           |
+| System beep (`sysbeep_*.m`, `NSSound`)                            | Proven for `NSBeep`. `NSSound` is plain sends.                                            | mygo `cf.go`                                                   |
+| Keyring (`keyring_darwin.go`, Security C API)                     | Proven                                                                                    | mygo `secrets.go`                                              |
+| Locale (`gui/locale_detect_darwin.go`, CoreFoundation)            | Proven                                                                                    | gowaku `platform_darwin.go`, mygo `locale.go`                  |
+| Blocks: `dispatch_async`, `dispatch_once`, `NSTimer …block:` (15) | Proven. Use `dispatch_async_f` with one callback, `sync.Once`, and target/action timers.  | Spike `-selftest`                                              |
+| iOS backend (`gui/backend/ios/`)                                  | Out of scope here. #1342 moved its renderer to purego (§ iOS). The UIKit shell stays cgo. | —                                                              |
 
 No service needs a small cgo boundary on darwin/arm64.
 
@@ -535,8 +536,9 @@ last service moves. Each step is one PR.
    appearance. **Done in #1307.** The shared helpers are in
    `gui/internal/darwinffi`. iOS keeps cgo copies of keyring and locale
    (`keyring_ios.go`, `locale_detect_ios.go`), because purego needs cgo on iOS.
-   Keep awake and appearance have no cgo of their own, but keep the `cgo` build
-   term until step 6, because the rest of `gui/backend/metal` needs cgo.
+   #1342 removed them: iOS now uses the purego files too. Keep awake and
+   appearance have no cgo of their own, but keep the `cgo` build term until step
+   6, because the rest of `gui/backend/metal` needs cgo.
 2. Dialogs, print, spell check. **Done in #1312.** No test shows a panel or an
    alert: AppKit aborts when one is made off the main thread, and `go test` runs
    each test on its own goroutine. The tests cover the parts that need no
@@ -609,6 +611,103 @@ last service moves. Each step is one PR.
    `loadObjc` gets nil. `GoGuiA11yElement` then had no superclass and stopped
    the app on its first message. Each lookup that can come first now calls
    `loadObjc`.
+
+### iOS (2026-11, #1342)
+
+Issue #1342. Status: **done for the renderer on the simulator** (option 1
+below). No device run yet: see Open.
+
+The iOS backend kept its own cgo renderer (`metal_darwin.m`, 1213 lines) and its
+own copy of the draw code after #1323. Each renderer fix had to be made twice.
+
+#### Options
+
+| Option                                  | What changes                                                                 | Cost                                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 1. Share the renderer only (**chosen**) | iOS draws with the macOS renderer. The UIKit shell (`ios_app.m`) stays cgo.  | About 2,500 lines removed. The iOS build keeps `CGO_ENABLED=1`.                           |
+| 2. Full port, UIKit shell included      | Option 1, and the UIKit view, view controller and events move to purego too. | About 700 more lines of Objective-C become Go. The iOS build still needs cgo (see below). |
+| 3. Do nothing                           | Two renderers stay.                                                          | Every renderer change is made and tested twice. The iOS copy allocates on every frame.    |
+
+Option 2 is rejected. purego needs cgo on iOS (`is_ios.go` in purego), so a full
+port does not give `CGO_ENABLED=0` on iOS. The shell has no duplicate on macOS,
+so moving it removes no duplicate code. The renderer is where the two backends
+had the same code twice.
+
+Option 3 is rejected. The iOS copy had fallen behind: it waited for the GPU on
+every frame and made 121 allocations a frame (see Results).
+
+#### What changed
+
+- The renderer and the draw code moved from `gui/backend/metal` to
+  `gui/backend/internal/mtldraw` (`darwin && arm64`, which includes iOS). The
+  macOS and iOS backends both make a `mtldraw.Renderer` on their own
+  CAMetalLayer. The package knows nothing about windows or views.
+- `gui/internal/darwinffi` builds for iOS too. `fcall_arm64.s` must carry the
+  same build tag as `fcall_arm64.go`: without it, the first send stops with
+  `cgocall nil`.
+- `gui/backend/ios/metal_darwin.m`, `metal_darwin.h` and the iOS copies of
+  `draw.go`, `text.go`, `textures.go`, `shader_channels.go`, `pixel_surface.go`,
+  `buffers.go` and `rotation.go` are gone. The public API of the iOS package
+  (`Start`, `Render`, `Resize`, `CleanUp`, `TouchInput`) is the same.
+- The cgo copies of keyring and locale (`keyring_ios.go`,
+  `locale_detect_ios.go`) are gone. One iOS rule stays: a new Keychain item is
+  `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`.
+- Two more iOS rules from the cgo renderer stay. The built-in MSL compiles at
+  2.4 on iOS (`mslPin`), because the iOS build deploys to iOS 15 and MSL 3.0
+  needs iOS 16. macOS stays at 3.0. The backend retains the CAMetalLayer until
+  `Destroy`, as the cgo renderer's strong reference did, so a host that passes a
+  layer to `Start` can drop its own reference.
+
+#### Results (iOS simulator)
+
+`examples/ios_demo`, same scene, 600-frame windows, main-thread time of one
+render:
+
+| Renderer               | Time per render | Allocations per render |
+| ---------------------- | --------------: | ---------------------: |
+| cgo (`metal_darwin.m`) |         1100 µs |                    121 |
+| purego (`mtldraw`)     |          350 µs |                      0 |
+
+Most of the time difference is not the call cost. The cgo renderer waited in
+`waitUntilScheduled` on every frame. The shared renderer presents with
+`presentDrawable:` and does not wait, except during a live resize on macOS.
+`TestDrawPathsDoNotAllocate` and `TestBatchedDrawDoesNotAllocate` pass on the
+simulator.
+
+#### Tests on the simulator
+
+A test binary for iOS runs on a booted simulator with no Xcode project:
+
+```fish
+set SDK (xcrun --sdk iphonesimulator --show-sdk-path)
+env CGO_ENABLED=1 GOOS=ios GOARCH=arm64 \
+  CC=(xcrun --sdk iphonesimulator -f clang) \
+  CGO_CFLAGS="-isysroot $SDK -arch arm64 -mios-simulator-version-min=17.0" \
+  CGO_LDFLAGS="-isysroot $SDK -arch arm64 -mios-simulator-version-min=17.0" \
+  go test -c -o /tmp/mtldraw.test ./gui/backend/internal/mtldraw
+env SIMCTL_CHILD_MTL_DEBUG_LAYER=1 xcrun simctl spawn booted /tmp/mtldraw.test -test.v
+```
+
+`gui/internal/darwinffi/spike_ios_test.go` holds the first proof: it clears a
+render target on iOS through purego and reads every pixel back. A Keychain test
+cannot run this way. A bare binary gets `errSecMissingEntitlement` (-34018), and
+the simulator does not start a bare binary that claims keychain entitlements.
+`keyring_ios_test.go` skips then. The Keychain rule was checked inside the
+signed demo app.
+
+#### Open
+
+- **Device performance.** No device was available. The simulator runs on the
+  Mac's GPU, so the table above shows the CPU side only. Measure
+  `examples/ios_demo` on a device before a claim about device frame time.
+- **iPad live resize.** The cgo renderer set `presentsWithTransaction` for the
+  life of the layer, so the new bounds and the new frame reach the screen
+  together. The shared renderer presents asynchronously, and iOS has no
+  resize-end signal to turn transaction mode on only during a resize. A resize
+  in Split View or Stage Manager can show one frame of the old content at the
+  new size. Check on an iPad before adding a switch.
+- **iOS 15.** The 2.4 pin is the cgo renderer's choice and the simulator
+  compiles the shaders at 2.4. No iOS 15 system was tested.
 
 ### Out of scope
 

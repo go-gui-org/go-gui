@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 // The Metal renderer, in Go through purego. It was metal_darwin.m until
 // #STEP6. One metalCtx is the renderer of one window: its device, queue,
@@ -309,6 +309,21 @@ func newMetalCtx(layer objc.ID, src string) *metalCtx {
 // pin is a decision to drop macOS versions: if a shader change trips it,
 // change the shader.
 //
+// mslPin returns the MSL version the built-in library compiles at on
+// goos. Without a pin the accepted feature set tracks the build machine's
+// OS, and newer constructs fail at runtime on older systems (issue 126).
+//
+// macOS pins 3.0 (macOS 13). iOS pins 2.4, because the iOS build deploys
+// to iOS 15 (-miphoneos-version-min=15.0 in the Makefile) and MSL 3.0
+// needs iOS 16. The cgo iOS renderer had the same pin; #1342 kept it.
+// Raise the iOS pin only together with the deployment target.
+func mslPin(goos string) uintptr {
+	if goos == "ios" {
+		return mtlLanguageVersion2_4
+	}
+	return mtlLanguageVersion3_0
+}
+
 // A custom shader is app source, so its OS floor is the app's decision:
 // it compiles with no options. Call inside an autorelease pool.
 func (c *metalCtx) compileLibrary(src string, pinned bool) objc.ID {
@@ -320,7 +335,7 @@ func (c *metalCtx) compileLibrary(src string, pinned bool) objc.ID {
 	var opts objc.ID
 	if pinned {
 		opts = newObj(rcls.compileOptions)
-		msg(opts, rsel.setLanguageVersion, mtlLanguageVersion3_0)
+		msg(opts, rsel.setLanguageVersion, mslPin(runtime.GOOS))
 		defer release(opts)
 	}
 	c.errOut = 0

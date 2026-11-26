@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 // The draw path of the renderer: the cached state setters, the quad
 // batch and the textures. See renderer_darwin.go.

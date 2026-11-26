@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 import (
 	"unsafe"
@@ -19,7 +19,7 @@ type metalChannels struct {
 
 // uploadChannels puts a frame's planes into c, reusing each texture while
 // its plane keeps its format and size.
-func (b *windowState) uploadChannels(c metalChannels, planes []gui.SurfacePlane) metalChannels {
+func (b *Renderer) uploadChannels(c metalChannels, planes []gui.SurfacePlane) metalChannels {
 	for i, p := range planes {
 		t := c.tex[i]
 		w, h := int32(p.Width), int32(p.Height)
@@ -43,7 +43,7 @@ func (b *windowState) uploadChannels(c metalChannels, planes []gui.SurfacePlane)
 }
 
 // deleteChannels releases a surface's plane textures.
-func (b *windowState) deleteChannels(c metalChannels) {
+func (b *Renderer) deleteChannels(c metalChannels) {
 	for i := range c.n {
 		b.deleteSurfaceTexture(c.tex[i])
 	}
@@ -52,7 +52,7 @@ func (b *windowState) deleteChannels(c metalChannels) {
 // bindChannels binds plane i at texture(i+1), and the transparent texture
 // for every channel without a plane (or all of them when ok is false: a
 // closed surface).
-func (b *windowState) bindChannels(c metalChannels, ok bool) {
+func (b *Renderer) bindChannels(c metalChannels, ok bool) {
 	for i := range 4 {
 		var id int32
 		if ok && i < c.n {

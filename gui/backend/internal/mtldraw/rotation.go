@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 import (
 	"github.com/go-gui-org/go-gui/gui"
@@ -9,7 +9,7 @@ import (
 
 // --- Rotation ---
 
-func (b *windowState) beginRotation(r *gui.RenderCmd) {
+func (b *Renderer) beginRotation(r *gui.RenderCmd) {
 	b.mvpStack = append(b.mvpStack, b.mvp)
 	s := b.dpiScale
 	cx := r.RotCX * s
@@ -22,7 +22,7 @@ func (b *windowState) beginRotation(r *gui.RenderCmd) {
 // beginTransform saves the MVP and multiplies in a view transform
 // (ContainerCfg.Transform). RenderTransformEnd pops it through
 // endRotation: both brackets share the MVP stack.
-func (b *windowState) beginTransform(r *gui.RenderCmd) {
+func (b *Renderer) beginTransform(r *gui.RenderCmd) {
 	b.mvpStack = append(b.mvpStack, b.mvp)
 	if r.Homography == nil {
 		return
@@ -32,7 +32,7 @@ func (b *windowState) beginTransform(r *gui.RenderCmd) {
 	b.ctx.setMVP(&b.mvp)
 }
 
-func (b *windowState) endRotation() {
+func (b *Renderer) endRotation() {
 	n := len(b.mvpStack)
 	if n == 0 {
 		return

@@ -55,7 +55,7 @@ frame rebuilds the entire UI from the view function.
 │                                                                     │
 │  darwin && arm64 && !ios → Metal + AppKit (purego, no CGo)          │
 │  darwin && !arm64 && !ios → link error, Intel unsupported           │
-│  ios → Metal (CGo) + UIKit                                          │
+│  ios → Metal (purego, shared) + UIKit (CGo)                         │
 │  android → Run panics, use android.SetWindow/Start/Render           │
 │  js && wasm → Canvas2D + WebGL2 (custom shaders)                    │
 │  linux && !js && !android && !gl → native GL (X11 + EGL)            │
@@ -298,7 +298,10 @@ policy from code that drifts.
 - Platform dispatch is by build tag per the Backend Layer diagram above. The
   macOS backend calls AppKit and Metal through purego (#1304, #1323), so
   `CGO_ENABLED=0 go build ./...` is green on Linux, Windows and darwin/arm64.
-  darwin/amd64 is not supported. iOS and Android keep cgo.
+  darwin/amd64 is not supported. iOS and Android keep cgo. On iOS only the UIKit
+  shell (`ios_app.m`) is cgo: the Metal renderer is the macOS one
+  (`gui/backend/internal/mtldraw`) through purego, and purego itself needs cgo
+  on iOS (#1342).
 - **Where to change:** new backends must follow the injected-interface pattern
   (below) and the build-tag table. Keep `gui/` free of platform imports.
 - **Catches:** `make cross-compile`, `make lint-cross`, `make test` (runs the GL

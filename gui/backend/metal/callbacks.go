@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
 )
 
 // windowRegistry maps window IDs to windowState pointers.
@@ -56,7 +55,7 @@ func goMetalPumpFrames() {
 // func, not a closure, so passing it to pumpWindows allocates nothing.
 func pumpWindow(ws *windowState) {
 	w := ws.attachedWindow
-	if w == nil || ws.ctx == nil {
+	if w == nil || !ws.r.Ready() {
 		return
 	}
 	// PumpFrame, not FrameFn: it declines the frame instead of
@@ -97,32 +96,6 @@ func pumpWindows(pump func(*windowState)) {
 	if cap(buf) >= cap(pumpScratch) {
 		pumpScratch = buf[:0]
 	}
-}
-
-// ─── Test helpers ──────────────────────────────────────────────
-//
-// The renderer probes are in renderer_darwin.go. The window test hooks
-// live in window_hooks_darwin_test.go.
-
-// testCompileShaders compiles the built-in MSL library standalone at
-// the pinned language version. 0 = compiled, -1 = compile failed,
-// 1 = no Metal device. See TestBuiltinShadersCompile.
-func testCompileShaders() int {
-	return testCompileMSL(msl.Source)
-}
-
-// testCompileMSL compiles src through the same probe; return codes
-// as testCompileShaders. See TestCustomWrapperCompiles.
-func testCompileMSL(src string) int {
-	return compileShadersProbe(src)
-}
-
-// testEdgeCoverage draws a diagonal triangle edge through the main
-// render pass and returns how many edge pixels are partly covered.
-// -1 = no Metal device, -2 = setup failed. See
-// TestTriangleEdgesAntialiased.
-func testEdgeCoverage() int {
-	return edgeCoverageProbe(msl.Source)
 }
 
 // ─── Window callbacks (from the GUIWindow methods) ────────────
@@ -241,19 +214,4 @@ func deliverOpen(app *gui.App, items []string, isFile []bool) {
 		return
 	}
 	app.DispatchOpen(ev)
-}
-
-// testNullBackends returns a windowState and a glyph backend over a
-// renderer with no device and no encoder. Every draw call returns at
-// its encoder guard, so a test sees only the Go side of a draw
-// path — what TestDrawPathsDoNotAllocate needs to count heap
-// allocations without a GPU. The texture registered under glyph id 1
-// lets the textured-quad paths get past their lookup. Call the
-// returned func to free the context.
-func testNullBackends() (*windowState, *metalGlyphBackend, func()) {
-	ctx := &metalCtx{nextTexID: 1}
-	ws := &windowState{ctx: ctx, dpiScale: 2}
-	gb := newMetalGlyphBackend(ctx, 2)
-	gb.textures[1] = metalTexInfo{cID: 1, w: 256, h: 256}
-	return ws, gb, func() { ctx.destroy() }
 }

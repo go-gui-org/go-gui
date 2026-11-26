@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 import (
 	"bytes"
@@ -15,14 +15,14 @@ import (
 
 func TestApplyDPIScale(t *testing.T) {
 	t.Run("nil receiver", func(t *testing.T) {
-		var ws *windowState
-		ws.applyDPIScale(2) // must not panic
+		var ws *Renderer
+		ws.SetDPIScale(2) // must not panic
 	})
 
 	t.Run("valid update", func(t *testing.T) {
-		ws := &windowState{dpiScale: 1}
+		ws := &Renderer{dpiScale: 1}
 		ws.glyphBack = &metalGlyphBackend{dpiScale: 1}
-		ws.applyDPIScale(2)
+		ws.SetDPIScale(2)
 		if ws.dpiScale != 2 {
 			t.Fatalf("dpiScale = %v, want 2", ws.dpiScale)
 		}
@@ -32,30 +32,30 @@ func TestApplyDPIScale(t *testing.T) {
 	})
 
 	t.Run("early return same scale", func(t *testing.T) {
-		ws := &windowState{dpiScale: 2}
+		ws := &Renderer{dpiScale: 2}
 		ws.glyphBack = &metalGlyphBackend{dpiScale: 2}
 		// Should not change; call with same scale is no-op
-		ws.applyDPIScale(2)
+		ws.SetDPIScale(2)
 		if ws.dpiScale != 2 {
 			t.Fatalf("dpiScale changed on same-scale call: %v", ws.dpiScale)
 		}
 	})
 
 	t.Run("reject NaN", func(t *testing.T) {
-		ws := &windowState{dpiScale: 1}
-		ws.applyDPIScale(float32(math.NaN()))
+		ws := &Renderer{dpiScale: 1}
+		ws.SetDPIScale(float32(math.NaN()))
 		if ws.dpiScale != 1 {
 			t.Fatalf("NaN accepted: dpiScale = %v, want 1", ws.dpiScale)
 		}
 	})
 
 	t.Run("reject Inf", func(t *testing.T) {
-		ws := &windowState{dpiScale: 1}
-		ws.applyDPIScale(float32(math.Inf(1)))
+		ws := &Renderer{dpiScale: 1}
+		ws.SetDPIScale(float32(math.Inf(1)))
 		if ws.dpiScale != 1 {
 			t.Fatalf("Inf accepted: dpiScale = %v, want 1", ws.dpiScale)
 		}
-		ws.applyDPIScale(float32(math.Inf(-1)))
+		ws.SetDPIScale(float32(math.Inf(-1)))
 		if ws.dpiScale != 1 {
 			t.Fatalf("-Inf accepted: dpiScale = %v, want 1", ws.dpiScale)
 		}
@@ -63,8 +63,8 @@ func TestApplyDPIScale(t *testing.T) {
 
 	t.Run("reject non-positive", func(t *testing.T) {
 		for _, s := range []float32{0, -1, -0.5} {
-			ws := &windowState{dpiScale: 1}
-			ws.applyDPIScale(s)
+			ws := &Renderer{dpiScale: 1}
+			ws.SetDPIScale(s)
 			if ws.dpiScale != 1 {
 				t.Fatalf("scale %v accepted: got %v, want 1", s, ws.dpiScale)
 			}
@@ -72,17 +72,17 @@ func TestApplyDPIScale(t *testing.T) {
 	})
 
 	t.Run("reject absurdly large", func(t *testing.T) {
-		ws := &windowState{dpiScale: 1}
-		ws.applyDPIScale(100)
+		ws := &Renderer{dpiScale: 1}
+		ws.SetDPIScale(100)
 		if ws.dpiScale != 1 {
 			t.Fatalf("large scale accepted: dpiScale = %v, want 1", ws.dpiScale)
 		}
 	})
 
 	t.Run("accept upper bound", func(t *testing.T) {
-		ws := &windowState{dpiScale: 1}
+		ws := &Renderer{dpiScale: 1}
 		ws.glyphBack = &metalGlyphBackend{dpiScale: 1}
-		ws.applyDPIScale(5)
+		ws.SetDPIScale(5)
 		if ws.dpiScale != 5 {
 			t.Fatalf("scale 5 rejected: dpiScale = %v, want 5", ws.dpiScale)
 		}
@@ -92,9 +92,9 @@ func TestApplyDPIScale(t *testing.T) {
 	// broken scale in one half and not the other is worse than keeping
 	// both at the old density.
 	t.Run("reject leaves glyph backend untouched", func(t *testing.T) {
-		ws := &windowState{dpiScale: 2}
+		ws := &Renderer{dpiScale: 2}
 		ws.glyphBack = &metalGlyphBackend{dpiScale: 2}
-		ws.applyDPIScale(0)
+		ws.SetDPIScale(0)
 		if ws.glyphBack.dpiScale != 2 {
 			t.Fatalf("glyphBack.dpiScale = %v, want 2", ws.glyphBack.dpiScale)
 		}
@@ -109,8 +109,8 @@ func TestApplyDPIScale(t *testing.T) {
 		gui.Debug(true)
 		t.Cleanup(func() { gui.Debug(false) })
 
-		ws := &windowState{dpiScale: 1}
-		ws.applyDPIScale(float32(math.NaN()))
+		ws := &Renderer{dpiScale: 1}
+		ws.SetDPIScale(float32(math.NaN()))
 		if ws.dpiScale != 1 {
 			t.Fatalf("NaN accepted under debug: dpiScale = %v", ws.dpiScale)
 		}

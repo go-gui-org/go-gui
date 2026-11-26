@@ -1,6 +1,6 @@
-//go:build darwin && arm64 && !ios
+//go:build darwin && arm64
 
-package metal
+package mtldraw
 
 import (
 	"unsafe"
@@ -9,7 +9,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 )
 
-func (b *windowState) deleteSurfaceTexture(tex metalTexture) {
+func (b *Renderer) deleteSurfaceTexture(tex metalTexture) {
 	if tex.id != 0 {
 		b.ctx.deleteTexture(int(tex.id))
 	}
@@ -19,7 +19,7 @@ func (b *windowState) deleteSurfaceTexture(tex metalTexture) {
 // a fixed size and recreating it on a resize. The texture is streamed: an
 // earlier frame may still be sampling it on the GPU, so the update waits for
 // that frame first (metalUpdateStreamTexture).
-func (b *windowState) uploadSurfaceTexture(tex metalTexture, w, h int, pix []byte) metalTexture {
+func (b *Renderer) uploadSurfaceTexture(tex metalTexture, w, h int, pix []byte) metalTexture {
 	if tex.id == 0 || tex.w != int32(w) || tex.h != int32(h) {
 		b.deleteSurfaceTexture(tex)
 		tex = createMetalTexture(b.ctx, int32(w), int32(h), pix)
@@ -39,7 +39,7 @@ type metalSurfaces struct {
 }
 
 // setup binds the functions that release the textures.
-func (s *metalSurfaces) setup(b *windowState) {
+func (s *metalSurfaces) setup(b *Renderer) {
 	s.images.SetRelease(b.deleteSurfaceTexture)
 	s.channels.SetRelease(b.deleteChannels)
 }

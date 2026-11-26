@@ -49,7 +49,7 @@ asserts the method set at compile time.
 | Platform | Store                                                                                                   |
 | -------- | ------------------------------------------------------------------------------------------------------- |
 | macOS    | Keychain generic password, service = app ID, account = key (purego, no cgo)                             |
-| iOS      | Keychain generic password, service = app ID, account = key (cgo, Security.framework)                    |
+| iOS      | Keychain generic password, service = app ID, account = key (purego, the macOS code; #1342)              |
 | Windows  | Credential Manager generic credential, target `<app ID>/<key>`, persist local machine (syscall, no cgo) |
 | Linux    | Secret Service over D-Bus (godbus), default collection, attributes `application` and `key`              |
 | Android  | app-bound callback plus app-supplied Kotlin; the demo uses Android Keystore AES-GCM                     |

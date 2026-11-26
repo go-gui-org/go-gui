@@ -2,49 +2,31 @@
 
 // Package ios provides an iOS backend for go-gui using Metal
 // rendering and UIKit for windowing/events.
+//
+// The UIKit shell (ios_app.m) stays cgo. The Metal renderer is the one
+// the macOS backend uses, gui/backend/internal/mtldraw, which calls
+// Metal through purego (#1342).
 package ios
 
 /*
 #cgo CFLAGS: -fobjc-arc
 #cgo LDFLAGS: -framework Metal -framework QuartzCore -framework Foundation -framework UIKit -framework CoreGraphics
 #include <stdlib.h>
-#include "metal_darwin.h"
 #include "ios_app.h"
 */
 import "C"
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"runtime"
 	"unsafe"
 
-	"github.com/go-gui-org/go-glyph"
+	"github.com/ebitengine/purego/objc"
 
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/framestate"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/memtex"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/mtldraw"
 	"github.com/go-gui-org/go-gui/gui/svg"
 )
-
-// Pipeline IDs matching the C enum.
-const (
-	pipeSolid      = C.PIPE_SOLID
-	pipeShadow     = C.PIPE_SHADOW
-	pipeBlur       = C.PIPE_BLUR
-	pipeGradient   = C.PIPE_GRADIENT
-	pipeImageClip  = C.PIPE_IMAGE_CLIP
-	pipeGlyphTex   = C.PIPE_GLYPH_TEX
-	pipeGlyphColor = C.PIPE_GLYPH_COLOR
-)
-
-const maxCustomPipelines = 32
 
 // Package-level singleton (iOS has exactly one window).
 var (
@@ -52,40 +34,12 @@ var (
 	iosWindow  *gui.Window
 )
 
-// metalBridge implements framestate.Bridge with the Metal C calls.
-type metalBridge struct{}
-
-func (metalBridge) SetPipeline(pipe int, mvp *[16]float32) {
-	C.metalSetPipeline(C.int(pipe))
-	C.metalSetMVP((*C.float)(unsafe.Pointer(mvp)))
-}
-
-func (metalBridge) Resize(physW, physH int32) {
-	C.metalResize(C.int(physW), C.int(physH))
-}
-
-// Backend is the iOS Metal backend for go-gui.
-// Embeds framestate.FrameState for all shared render-frame
-// state; platform-specific resources stay on the Backend.
+// Backend is the iOS Metal backend for go-gui. The shared renderer
+// holds all GPU and text state; the backend only feeds it sizes and
+// frames from UIKit.
 type Backend struct {
-	framestate.FrameState
-
-	textSys      *glyph.TextSystem
-	textures     texcache.Cache[string, metalTexture]
-	memSweep     memtex.Sweeper // when to check mem: textures (#1230)
-	surfaces     surfacecache.Cache[metalTexture]
-	channels     surfacecache.Cache[metalChannels]
-	glyphBack    *metalGlyphBackend
-	customCache  texcache.Cache[uint64, C.int]
-	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
-	iconFontPath string
-
-	maxImageBytes  int64
-	maxImagePixels int64
-
-	// textErrLogged warns once for a persistent DrawText failure
-	// instead of spamming stderr every frame.
-	textErrLogged bool
+	r     *mtldraw.Renderer
+	layer objc.ID // retained in initBackend, released in Destroy
 }
 
 // --- Pattern A: Go-driven (backend.Run) ---
@@ -108,71 +62,34 @@ func SetWindow(w *gui.Window) { iosWindow = w }
 
 // --- Shared initialization ---
 
+// physSize converts a size in points to drawable pixels.
+func physSize(w, h int32, scale float32) (int, int) {
+	return int(float32(w) * scale), int(float32(h) * scale)
+}
+
 func initBackend(layerPtr unsafe.Pointer,
 	w, h int32, scale float32) {
 
-	// Shader source is owned by Go so the build cache tracks edits to
-	// it; C copies it during the call. See gui/backend/internal/msl.
-	cMSL := C.CString(msl.Source)
-	rc := C.metalInit(layerPtr, cMSL)
-	C.free(unsafe.Pointer(cMSL))
-	if rc != 0 {
-		panic(fmt.Sprintf("ios: metalInit failed: %d", rc))
-	}
-
-	physW := int32(float32(w) * scale)
-	physH := int32(float32(h) * scale)
-	C.metalResize(C.int(physW), C.int(physH))
-
-	cfg := iosWindow.Config
-	b := &Backend{
-		FrameState: *framestate.New(
-			int(pipeSolid), int(pipeGlyphTex), metalBridge{}),
-		textures: newMetalTexCacheLRU(128, cfg.MaxTextureBytes),
-		customCache: texcache.New[uint64, C.int](
-			maxCustomPipelines,
-			func(idx C.int) {
-				// A cached compile failure holds a negative
-				// idx with no pipeline behind it.
-				if idx >= 0 {
-					C.metalDeleteCustomPipeline(idx)
-				}
-			},
-		),
-		maxImageBytes:  cfg.MaxImageBytes,
-		maxImagePixels: cfg.MaxImagePixels,
-	}
-	b.surfaces.SetRelease(b.deleteSurfaceTexture)
-	b.channels.SetRelease(b.deleteChannels)
-	gui.SetWindowRendersShaders(iosWindow, true)
-	b.AllowedImageRoots = imgpath.NormalizeRoots(
-		cfg.AllowedImageRoots)
-	b.HandleResize(int32(w), int32(h), scale)
-
-	// Initialize glyph text system with Metal backend.
-	b.glyphBack = newMetalGlyphBackend(scale)
-	textSys, err := glyph.NewTextSystem(b.glyphBack)
+	// layerPtr is a CAMetalLayer: the view's backing layer (Pattern A)
+	// or a layer the host passes to Start (Pattern B). The renderer
+	// keeps it unretained and asks it for a drawable every frame, so
+	// the backend retains it for its lifetime. The cgo renderer held
+	// it in a strong ARC reference; this keeps that guarantee for a
+	// Pattern B host that drops its own reference.
+	layer := objc.ID(uintptr(layerPtr))
+	layer.Send(objc.RegisterName("retain"))
+	physW, physH := physSize(w, h, scale)
+	r, err := mtldraw.New(layer, physW, physH,
+		scale, iosWindow.Config, "ios")
 	if err != nil {
-		panic(fmt.Sprintf("ios: NewTextSystem: %v", err))
+		layer.Send(objc.RegisterName("release"))
+		panic(fmt.Sprintf("ios: %v", err))
 	}
-	b.textSys = textSys
-
-	// Load embedded icon font.
-	if data := gui.IconFontData; len(data) > 0 {
-		tmp, err := tempfont.Write("go_gui_feathericon", data)
-		if err != nil {
-			log.Printf("ios: write icon font: %v", err)
-		} else if err = textSys.AddFontFile(tmp); err != nil {
-			log.Printf("ios: load icon font: %v", err)
-			_ = os.Remove(tmp)
-		} else {
-			b.iconFontPath = tmp
-		}
-	}
-	gui.LoadAppFonts(textSys, "ios")
+	b := &Backend{r: r, layer: layer}
+	gui.SetWindowRendersShaders(iosWindow, true)
 
 	// Set injected interfaces on gui Window.
-	iosWindow.SetTextMeasurer(&textMeasurer{textSys: textSys})
+	iosWindow.SetTextMeasurer(r.TextMeasurer())
 	iosWindow.SetSvgParser(svg.New())
 	iosWindow.SetClipboardFn(func(_ string) {})
 	iosWindow.SetClipboardGetFn(func() string { return "" })
@@ -203,49 +120,28 @@ func initBackend(layerPtr unsafe.Pointer,
 // renderFrame clears the screen, draws the current layout, and
 // presents the Metal drawable.
 func (b *Backend) renderFrame(w *gui.Window) {
-	r, g, bl, a := b.FrameBg(w)
-
-	rc := C.metalBeginFrame(
-		C.float(r), C.float(g), C.float(bl), C.float(a),
-	)
-	if rc != 0 {
-		return
-	}
-
-	b.InvalidatePipelineState()
-	b.SetPipeline(b.SolidPipe)
-
-	w.Lock()
-	b.renderersDraw(w)
-	w.Unlock()
-
-	// Flush queued text.
-	b.FlushText(b.textSys)
-
-	C.metalEndFrame()
+	b.r.RenderFrame(w)
 }
 
+// handleResize adopts a new view size in points and a new screen scale.
+// The scale goes first: Resize recomputes the projection, and text
+// must shape at the new density before the next frame.
 func (b *Backend) handleResize(w, h int32, scale float32) {
-	b.HandleResize(w, h, scale)
+	b.r.SetDPIScale(scale)
+	// Size the drawable from the scale the renderer kept: SetDPIScale
+	// rejects an implausible value, and the drawable must match the
+	// projection and text density.
+	b.r.Resize(physSize(w, h, b.r.DPIScale()))
 }
 
 // Destroy releases all backend resources.
+// The layer is released last, after the renderer stops using it.
 func (b *Backend) Destroy() {
-	b.textures.DestroyAll()
-	b.surfaces.Clear()
-	b.channels.Clear()
-	b.customCache.DestroyAll()
-	if b.glyphBack != nil {
-		b.glyphBack.destroy()
+	b.r.Destroy()
+	if b.layer != 0 {
+		b.layer.Send(objc.RegisterName("release"))
+		b.layer = 0
 	}
-	if b.textSys != nil {
-		b.textSys.Free()
-	}
-	if b.iconFontPath != "" {
-		_ = os.Remove(b.iconFontPath)
-		b.iconFontPath = ""
-	}
-	C.metalDestroy()
 }
 
 // --- Exported callbacks for ios_app.m (Pattern A) ---
