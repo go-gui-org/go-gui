@@ -11,7 +11,12 @@ package darwinffi
 //
 // Run it on a booted simulator (no device needed):
 //
-//	go test -c -o /tmp/ffi.test ./gui/internal/darwinffi   (GOOS=ios, cgo on)
+//	SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+//	FLAGS="-isysroot $SDK -arch arm64 -mios-simulator-version-min=17.0"
+//	CGO_ENABLED=1 GOOS=ios GOARCH=arm64 \
+//	  CC="$(xcrun --sdk iphonesimulator -f clang)" \
+//	  CGO_CFLAGS="$FLAGS" CGO_LDFLAGS="$FLAGS" \
+//	  go test -c -o /tmp/ffi.test ./gui/internal/darwinffi
 //	xcrun simctl spawn booted /tmp/ffi.test -test.v -test.run IOS
 
 import (

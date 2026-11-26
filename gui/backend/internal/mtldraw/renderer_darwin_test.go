@@ -235,3 +235,17 @@ func BenchmarkBatchedQuads(b *testing.B) {
 		b.StartTimer()
 	}
 }
+
+// TestMSLPinFollowsDeploymentFloor checks the built-in library's MSL
+// pin per target. iOS deploys to iOS 15, where MSL 3.0 does not exist,
+// so a 3.0 pin there fails the library compile and no renderer starts
+// (#1342 review). TestBuiltinShadersCompile, run on the simulator,
+// checks that the shaders compile at 2.4.
+func TestMSLPinFollowsDeploymentFloor(t *testing.T) {
+	if got := mslPin("ios"); got != mtlLanguageVersion2_4 {
+		t.Errorf("mslPin(ios) = %#x, want MSL 2.4 (%#x)", got, mtlLanguageVersion2_4)
+	}
+	if got := mslPin("darwin"); got != mtlLanguageVersion3_0 {
+		t.Errorf("mslPin(darwin) = %#x, want MSL 3.0 (%#x)", got, mtlLanguageVersion3_0)
+	}
+}

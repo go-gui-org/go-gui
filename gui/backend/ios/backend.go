@@ -38,7 +38,8 @@ var (
 // holds all GPU and text state; the backend only feeds it sizes and
 // frames from UIKit.
 type Backend struct {
-	r *mtldraw.Renderer
+	r     *mtldraw.Renderer
+	layer objc.ID // retained in initBackend, released in Destroy
 }
 
 // --- Pattern A: Go-driven (backend.Run) ---
@@ -69,15 +70,22 @@ func physSize(w, h int32, scale float32) (int, int) {
 func initBackend(layerPtr unsafe.Pointer,
 	w, h int32, scale float32) {
 
-	// layerPtr is the view's CAMetalLayer. UIKit owns it: the
-	// renderer only draws into it and never releases it.
+	// layerPtr is a CAMetalLayer: the view's backing layer (Pattern A)
+	// or a layer the host passes to Start (Pattern B). The renderer
+	// keeps it unretained and asks it for a drawable every frame, so
+	// the backend retains it for its lifetime. The cgo renderer held
+	// it in a strong ARC reference; this keeps that guarantee for a
+	// Pattern B host that drops its own reference.
+	layer := objc.ID(uintptr(layerPtr))
+	layer.Send(objc.RegisterName("retain"))
 	physW, physH := physSize(w, h, scale)
-	r, err := mtldraw.New(objc.ID(uintptr(layerPtr)), physW, physH,
+	r, err := mtldraw.New(layer, physW, physH,
 		scale, iosWindow.Config, "ios")
 	if err != nil {
+		layer.Send(objc.RegisterName("release"))
 		panic(fmt.Sprintf("ios: %v", err))
 	}
-	b := &Backend{r: r}
+	b := &Backend{r: r, layer: layer}
 	gui.SetWindowRendersShaders(iosWindow, true)
 
 	// Set injected interfaces on gui Window.
@@ -120,12 +128,20 @@ func (b *Backend) renderFrame(w *gui.Window) {
 // must shape at the new density before the next frame.
 func (b *Backend) handleResize(w, h int32, scale float32) {
 	b.r.SetDPIScale(scale)
-	b.r.Resize(physSize(w, h, scale))
+	// Size the drawable from the scale the renderer kept: SetDPIScale
+	// rejects an implausible value, and the drawable must match the
+	// projection and text density.
+	b.r.Resize(physSize(w, h, b.r.DPIScale()))
 }
 
 // Destroy releases all backend resources.
+// The layer is released last, after the renderer stops using it.
 func (b *Backend) Destroy() {
 	b.r.Destroy()
+	if b.layer != 0 {
+		b.layer.Send(objc.RegisterName("release"))
+		b.layer = 0
+	}
 }
 
 // --- Exported callbacks for ios_app.m (Pattern A) ---

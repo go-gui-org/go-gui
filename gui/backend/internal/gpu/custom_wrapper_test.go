@@ -212,13 +212,13 @@ func TestCustomShaderBackendsUploadBuiltins(t *testing.T) {
 // TestCustomWrappersAreShared pins the backends to the shared
 // builders. A hand-edited wrapper copy in any backend drifts
 // silently, the way the gradient copies once did. iOS draws with
-// mtldraw (#1342): the ios/backend.go check keeps it from growing a
-// second renderer again.
+// mtldraw (#1342): the ios/backend.go check pins its frame to
+// mtldraw's RenderFrame, so it does not grow a second renderer again.
 func TestCustomWrappersAreShared(t *testing.T) {
 	t.Parallel()
 	checks := map[string]string{
 		"../mtldraw/draw.go":         "msl.BuildCustomDecls(",
-		"../../ios/backend.go":       "mtldraw.New(",
+		"../../ios/backend.go":       "b.r.RenderFrame(w)",
 		"../../android/draw.go":      "gui.BuildGLSLESFragmentDecls(",
 		"../../web/custom_shader.go": "gui.BuildGLSLESFragmentDecls(",
 		"../../gl/pipeline.go":       "gui.BuildGLSLFragmentDecls(",

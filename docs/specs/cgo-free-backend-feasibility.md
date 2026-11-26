@@ -614,8 +614,8 @@ last service moves. Each step is one PR.
 
 ### iOS (2026-11, #1342)
 
-Issue #1342. Status: **done for the renderer** (option 1 below). Device
-performance is not measured.
+Issue #1342. Status: **done for the renderer on the simulator** (option 1
+below). No device run yet: see Open.
 
 The iOS backend kept its own cgo renderer (`metal_darwin.m`, 1213 lines) and its
 own copy of the draw code after #1323. Each renderer fix had to be made twice.
@@ -652,6 +652,11 @@ every frame and made 121 allocations a frame (see Results).
 - The cgo copies of keyring and locale (`keyring_ios.go`,
   `locale_detect_ios.go`) are gone. One iOS rule stays: a new Keychain item is
   `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`.
+- Two more iOS rules from the cgo renderer stay. The built-in MSL compiles at
+  2.4 on iOS (`mslPin`), because the iOS build deploys to iOS 15 and MSL 3.0
+  needs iOS 16. macOS stays at 3.0. The backend retains the CAMetalLayer until
+  `Destroy`, as the cgo renderer's strong reference did, so a host that passes a
+  layer to `Start` can drop its own reference.
 
 #### Results (iOS simulator)
 
@@ -695,6 +700,14 @@ signed demo app.
 - **Device performance.** No device was available. The simulator runs on the
   Mac's GPU, so the table above shows the CPU side only. Measure
   `examples/ios_demo` on a device before a claim about device frame time.
+- **iPad live resize.** The cgo renderer set `presentsWithTransaction` for the
+  life of the layer, so the new bounds and the new frame reach the screen
+  together. The shared renderer presents asynchronously, and iOS has no
+  resize-end signal to turn transaction mode on only during a resize. A resize
+  in Split View or Stage Manager can show one frame of the old content at the
+  new size. Check on an iPad before adding a switch.
+- **iOS 15.** The 2.4 pin is the cgo renderer's choice and the simulator
+  compiles the shaders at 2.4. No iOS 15 system was tested.
 
 ### Out of scope
 

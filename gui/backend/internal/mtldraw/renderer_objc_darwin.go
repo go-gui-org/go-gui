@@ -100,6 +100,7 @@ const (
 	mtlPrimitiveTypeTriangle = 3
 	mtlIndexTypeUInt16       = 0
 
+	mtlLanguageVersion2_4           = 2<<16 | 4
 	mtlLanguageVersion3_0           = 3 << 16
 	mtlCommandBufferStatusCompleted = 4
 )
