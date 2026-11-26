@@ -6,7 +6,8 @@ disable-model-invocation: true
 
 # New Example App Scaffold
 
-Create a new example app under `examples/<name>/main.go`.
+Create a new example app under `examples/<name>/`: `main.go`, `main_test.go` and
+`README.md`.
 
 ## Arguments
 
@@ -57,9 +58,26 @@ func mainView(w *gui.Window) gui.View {
 }
 ```
 
+## Test and README
+
+- `main_test.go`: at least a smoke test that builds the view, as in
+  `examples/get_started/main_test.go`:
+
+  ```go
+  func TestMainViewNoPanic(t *testing.T) {
+      t.Parallel()
+      gui.SetTheme(gui.ThemeDark)
+      w := gui.NewWindow(gui.WindowCfg{State: &App{}, Width: 800, Height: 600})
+      _ = mainView(w).GenerateLayout(w)
+  }
+  ```
+
+- `README.md`: follow the layout of `examples/get_started/README.md` (title,
+  framework/description header, run command, what it demonstrates).
+
 ## Rules
 
-- Place in `examples/<name>/main.go`
+- Place in `examples/<name>/` with all three files
 - Use the default theme unless the user specifies otherwise
 - Use `gui.FillFill` sizing for the root container; it fills the window
 - Follow all conventions in CLAUDE.md (no variable shadowing, clean lint)

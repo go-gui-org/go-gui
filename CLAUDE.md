@@ -163,8 +163,8 @@ nothing.
 
 **A plan lists its doc updates as deliverables, beside the tests.** For a
 feature: the example directory and its README, the top-level `README.md` entry,
-the `CHANGELOG.md` entry, and status rows in feature docs such as
-`docs/svg-support.md`. Docs left to a later polish pass go stale.
+the `CHANGELOG.md` entry, and status rows in the feature docs it touches. Docs
+left to a later polish pass go stale.
 
 **A PR is not pushed while anything that describes the change disagrees with
 it.** Before pushing, grep every identifier the change adds, removes or changes
@@ -228,9 +228,10 @@ showcase guide, wiki) because earlier changes skipped this pass.
 ### Cross-repo root-causing
 
 **A fix that does not hold is a signal the state lives in another module.**
-Before a second fix at the same site, load the `cross-repo-root-cause` skill. It
-also covers go-gui CI failing with `updates to go.mod needed` (CI builds against
-go-glyph main, not the `go.mod` pin).
+Before a second fix at the same site, trace the state into the module that owns
+it (go-glyph, a sibling) instead of patching the caller again. go-gui CI failing
+with `updates to go.mod needed` is this case: CI builds against go-glyph main
+(`.github/actions/setup-go-glyph`, no `ref:`), not the `go.mod` pin.
 
 ## Rejected Approaches
 
