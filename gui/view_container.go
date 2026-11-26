@@ -743,6 +743,8 @@ func Wrap(cfg ContainerCfg) View {
 // Canvas places each child at its own X/Y and does not arrange them. Each
 // child is still sized: a Fit child takes its content's size, and a Fill
 // child is not stretched to the Canvas, so it takes its content's size too.
+// HAlign and VAlign have no effect: a child at X 0 is at the left edge,
+// inside the padding, in either text direction (#1358).
 func Canvas(cfg ContainerCfg) View {
 	return container(cfg)
 }

@@ -15,6 +15,18 @@ and this project adheres to
   last letter, at the left edge of the line. Before, it went to the right edge,
   where the line starts. The caret comes from go-glyph
   `Layout.LineEndCursorPos`.
+- **A Canvas child sits at its own X under every alignment and text direction
+  (#1358).** A `Canvas` added its horizontal alignment to each child's X, so
+  each child moved right by its own share of the free space. Children of
+  different widths moved by different amounts. Under a right-to-left locale the
+  default alignment resolves to the right, so this happened with no `HAlign`
+  set: in `examples/2048` most tiles were drawn outside the board. The scroll
+  range and the `Fit` size did not count the shift. Now `HAlign` has no effect
+  on a Canvas, as `VAlign` already had none. Under RTL a Canvas also took its
+  left inset from `Padding.Right`, as a column does. It now uses `Padding.Left`,
+  so its children use left-to-right coordinates, as its scroll offset already
+  did. An app that set `HAlign: gui.HAlignLeft` on a Canvas to work around this
+  can remove it.
 
 ### Changed
 

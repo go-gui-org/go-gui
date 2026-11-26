@@ -37,6 +37,12 @@ func layoutPositionsDepth(layout *Layout, offsetX, offsetY float32, w *Window, d
 			// aligned on both.
 			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, isRTL, layoutW)
 			yAlign = childCrossAxisVAlign(child, layout.Shape, layoutH)
+		case axisNone:
+			// A Canvas child sits at its own X/Y and is not aligned. The
+			// shift added each child's own share of the free space, so
+			// children of different widths moved apart, and under RTL the
+			// default alignment did it with no HAlign set. Neither the
+			// scroll range nor the Fit size counted the shift (#1358).
 		default:
 			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, isRTL, layoutW)
 		}
@@ -74,7 +80,12 @@ func layoutChildStartPos(
 	if isRTL && axis == axisLeftToRight {
 		x = layout.Shape.X + layout.Shape.Width - layout.Shape.PaddingLeft() +
 			scrollWindowInset(layout.Shape)
-	} else if isRTL {
+	} else if isRTL && axis != axisNone {
+		// A column or stack mirrors its padding: Padding.Left is the
+		// start inset, on the right, so the left inset is Padding.Right.
+		// A Canvas uses left-to-right coordinates in either direction, as
+		// its scroll offset does (scrollMirrorsX), so it takes the LTR
+		// start below (#1358).
 		x = layout.Shape.X + layout.Shape.Padding.Right +
 			layout.Shape.SizeBorder
 	} else {
@@ -222,14 +233,14 @@ func childCrossAxisVAlign(
 // with the rest sticking out past the end edge as a browser does with
 // dir="rtl". That is also where an RTL scroll container's offset 0 is
 // (scrollMirrorsX), so the unscrolled view shows the child's start
-// (#1345). A Canvas (axisNone) is not pinned: its children carry an X.
+// (#1345). A Canvas (axisNone) never calls this: its children carry an X.
 func childCrossAxisHAlign(
 	child *Layout, parent *Shape,
 	hAlign HorizontalAlign, isRTL bool, layoutW float32,
 ) (xAlign float32) {
 	remaining := layoutW - child.Shape.Width -
 		parent.paddingWidth()
-	if remaining < 0 && isRTL && parent.Axis != axisNone {
+	if remaining < 0 && isRTL {
 		return remaining
 	}
 	if remaining > 0 {
