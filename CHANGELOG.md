@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.100.1] - 2026-11-27
+
 ### Fixed
 
 - **A DataGrid with a pager or the CRUD toolbar fits a narrow parent (#1368).**
