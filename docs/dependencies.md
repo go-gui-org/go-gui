@@ -33,14 +33,14 @@ Pulled in transitively; listed for completeness.
 
 | Module | Version | Pulled in by |
 | ------ | ------- | ------------ |
-| `github.com/dlclark/regexp2/v2` | v2.13.2 | chroma |
+| `github.com/dlclark/regexp2/v2` | v2.13.3 | chroma |
 | `github.com/ebitengine/oto/v3` | v3.5.1 | gopxl/beep (audio output). Used on Windows/macOS, and on Linux only under `-tags otoaudio` (ALSA, cgo). |
 | `github.com/go-text/typesetting` | v0.3.5 | go-glyph (pure-Go text shaping) |
 | `github.com/hajimehoshi/go-mp3` | v0.3.4 | gopxl/beep (MP3 decode) |
 | `github.com/icza/bitio` | v1.1.0 | mewkiz/flac (FLAC decode) |
 | `github.com/jfreymuth/oggvorbis` | v1.0.6 | gopxl/beep (Vorbis decode) |
 | `github.com/mewkiz/flac` | v1.0.14 | gopxl/beep (FLAC decode) |
-| `github.com/mewkiz/pkg` | v0.0.0-20260703220044-4fb89b18cc87 | mewkiz/flac (FLAC decode) |
+| `github.com/mewkiz/pkg` | v0.0.0-20261125230257-7bcffafe131e | mewkiz/flac (FLAC decode) |
 | `github.com/mewpkg/term` | v0.0.0-20241026122259-37a80af23985 | mewkiz/pkg (FLAC decode error output) |
 | `github.com/pkg/errors` | v0.9.1 | gopxl/beep (audio) |
 | `golang.org/x/mobile` | v0.0.0-20261117202452-47699113848a | gobind tool (Android AAR builds) |

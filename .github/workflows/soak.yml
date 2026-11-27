@@ -37,7 +37,7 @@ jobs:
         # events and fails only on a panic.
         mode: [scripted, random]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-go-glyph
         with:
