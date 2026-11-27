@@ -15,7 +15,9 @@ and this project adheres to
   applied: 14 px on each side in the default theme. A view that got a tooltip
   moved and grew, and in a list with a fixed row height it was pushed down and
   cut off. The wrapper now adds no room. A layout that relied on those 14 px
-  shrinks; give the wrapped view its own padding to keep them.
+  shrinks. To keep them, put the wrapped view in a container with that padding
+  inside `Content`. Padding on the wrapped view itself does not work for a
+  fixed-size view: it stays the same size, and its content gets less room.
 
 ## [v0.100.1] - 2026-11-27
 
