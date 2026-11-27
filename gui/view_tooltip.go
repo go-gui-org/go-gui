@@ -235,10 +235,14 @@ func withTooltipBuild(w *Window, cfg WithTooltipCfg) View {
 		}))
 	}
 
+	// The wrapper only adds a hover test: it takes no room of its own
+	// around the view it wraps (#1381).
 	return Column(ContainerCfg{
 		A11YRole:    AccessRoleGroup,
 		A11YCfg:     A11YCfg{A11YDescription: cfg.Text},
 		SizeBorder:  NoBorder,
+		Padding:     PaddingNone,
+		Spacing:     NoSpacing,
 		Content:     content,
 		AmendLayout: withTooltipAmend(tipID, delay),
 		// The hook tests the pointer against the wrapper's bounds, so

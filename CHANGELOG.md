@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **`WithTooltip` no longer moves or grows the view it wraps (#1381).** Its
+  wrapper set no padding or spacing, so the theme's default container padding
+  applied: 14 px on each side in the default theme. A view that got a tooltip
+  moved and grew, and in a list with a fixed row height it was pushed down and
+  cut off. The wrapper now adds no room. A layout that relied on those 14 px
+  shrinks; give the wrapped view its own padding to keep them.
+
 ## [v0.100.1] - 2026-11-27
 
 ### Fixed
