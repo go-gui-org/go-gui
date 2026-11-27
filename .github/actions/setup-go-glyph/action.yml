@@ -2,7 +2,7 @@ name: Setup go-glyph
 description: |
   Checkout go-glyph, install Go, and optionally install Linux system
   dependencies and add the go-glyph replace directive.
-  Requires the go-gui repo already checked out (actions/checkout@v6
+  Requires the go-gui repo already checked out (actions/checkout@v7
   before this action).
 
 inputs:
@@ -16,12 +16,12 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         repository: go-gui-org/go-glyph
         path: go-glyph
 
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: stable
         cache: true

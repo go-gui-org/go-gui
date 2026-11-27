@@ -14,16 +14,16 @@ jobs:
     name: Linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: go-gui
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
@@ -50,16 +50,16 @@ jobs:
     name: macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: go-gui
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
@@ -86,11 +86,11 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: go-gui
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
@@ -108,7 +108,7 @@ jobs:
           install: >-
             make
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
@@ -131,16 +131,16 @@ jobs:
     name: iOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: go-gui
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
@@ -208,16 +208,16 @@ jobs:
     name: Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: go-gui
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
@@ -260,7 +260,7 @@ jobs:
       # CHANGELOG.md is the release-notes source, so the tag's commit
       # must be present. Full history also lets GitHub generate the
       # commit/PR list appended below the changelog entry.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
