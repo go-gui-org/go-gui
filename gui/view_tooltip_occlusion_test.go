@@ -213,7 +213,7 @@ func TestWithTooltipShutWhereClipped(t *testing.T) {
 						WithTooltip(w, WithTooltipCfg{ID: "tip", Text: "tooltip",
 							Content: []View{Column(ContainerCfg{
 								ID:     "box",
-								Sizing: FixedFixed, Width: 200, Height: 60,
+								Sizing: FixedFixed, Width: 200, Height: 80,
 								SizeBorder: NoBorder,
 							})}}),
 					},
