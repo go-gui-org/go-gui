@@ -97,6 +97,9 @@ func (b *Backend) Run(w *gui.Window) {
 				break
 			}
 			if evt.Type != gui.EventInvalid {
+				if evt.Type == gui.EventMouseLeave || evt.Type == gui.EventFocused {
+					b.lastCursorInBounds = false
+				}
 				w.EventFn(evt)
 			}
 			ev = metalPollEvent(0) // drain remaining
@@ -269,6 +272,11 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 			}
 
 			if w := app.Window(wid); w != nil {
+				if evt.Type == gui.EventMouseLeave || evt.Type == gui.EventFocused {
+					if ws := states[wid]; ws != nil {
+						ws.lastCursorInBounds = false
+					}
+				}
 				w.EventFn(evt)
 			}
 			ev = metalPollEvent(0) // drain remaining
@@ -405,11 +413,25 @@ var cursorSelectors = func() map[gui.MouseCursor]objc.SEL {
 }()
 
 // updateCursor sets the native cursor for the window from a cached
-// selector. No-op when the cursor has no NSCursor mapping.
+// selector, skipping redundant AppKit calls when both the cursor shape
+// and pointer-in-bounds state are unchanged.
 func (ws *windowState) updateCursor(mc gui.MouseCursor) {
 	sel := cursorSelectors[mc]
 	if sel == 0 {
 		return
+	}
+	if ws.logW > 0 && ws.logH > 0 {
+		inBounds := cursorInContentBounds(pollState.ev.mouseX, pollState.ev.mouseY,
+			float32(ws.logW), float32(ws.logH))
+		if !inBounds {
+			ws.lastCursorInBounds = false
+			return
+		}
+		if ws.lastCursorInBounds && mc == ws.lastCursor {
+			return
+		}
+		ws.lastCursor = mc
+		ws.lastCursorInBounds = true
 	}
 	metalWindowSetCursor(ws.window, sel, pollState.ev.mouseX, pollState.ev.mouseY)
 }
@@ -418,10 +440,13 @@ func (ws *windowState) updateCursor(mc gui.MouseCursor) {
 // multi-window mode: the AppKit window, and the shared Metal renderer
 // (gui/backend/internal/mtldraw) that draws into its layer.
 type windowState struct {
-	r              *mtldraw.Renderer
-	window         *macWindow
-	appIconPNG     []byte
-	attachedWindow *gui.Window // for file-drop callbacks
+	r                  *mtldraw.Renderer
+	window             *macWindow
+	appIconPNG         []byte
+	attachedWindow     *gui.Window // for file-drop callbacks
+	lastCursor         gui.MouseCursor
+	lastCursorInBounds bool
+	logW, logH         int
 }
 
 func (ws *windowState) setAttachedWindow(w *gui.Window) {
@@ -493,7 +518,7 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 
 	// Compute DPI scale from framebuffer vs logical size.
 	fbW, fbH := metalWindowGetFramebufferSize(win, scaleOverride())
-	logW, _ := metalWindowGetSize(win)
+	logW, logH := metalWindowGetSize(win)
 	dpiScale := drawableScale(int32(fbW), int32(logW), 1)
 
 	r, err := mtldraw.New(win.layer, fbW, fbH, dpiScale, cfg, "metal")
@@ -501,7 +526,7 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		metalWindowDestroy(win)
 		return nil, err
 	}
-	return &windowState{r: r, window: win, appIconPNG: iconPNG}, nil
+	return &windowState{r: r, window: win, appIconPNG: iconPNG, logW: logW, logH: logH}, nil
 }
 
 func injectInterfaces(w *gui.Window, ws *windowState) {
@@ -538,7 +563,9 @@ func (ws *windowState) renderFrame(w *gui.Window) {
 
 func (ws *windowState) handleResize() {
 	fbW, fbH := metalWindowGetFramebufferSize(ws.window, scaleOverride())
-	logW, _ := metalWindowGetSize(ws.window)
+	logW, logH := metalWindowGetSize(ws.window)
+	ws.logW, ws.logH = logW, logH
+	ws.lastCursorInBounds = false
 
 	// Guard against zero dimensions — can occur during
 	// teardown or if the window is occluded before its first

@@ -165,6 +165,9 @@ func scrollMomentumStart(w *Window, id string, axis scrollAxis, velocity float32
 	e.tau = scrollMomentumTau
 	e.active = true
 	e.settled = false
+	if ss.stopped {
+		ss.resetSyncLocked()
+	}
 	ss.stopped = false
 	w.animationAddLocked(ss)
 	return true

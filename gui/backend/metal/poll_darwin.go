@@ -9,6 +9,7 @@ package metal
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
@@ -456,9 +457,10 @@ var mainQueue struct {
 	wakeCB uintptr // posts the wake event
 	runCB  uintptr // runs the oldest fns entry
 
-	mu     sync.Mutex
-	caller darwinffi.Caller // guarded by mu
-	fns    []func()         // guarded by mu
+	mu          sync.Mutex
+	caller      darwinffi.Caller // guarded by mu
+	fns         []func()         // guarded by mu
+	wakePending atomic.Bool
 }
 
 func loadMainQueue() {
@@ -478,6 +480,9 @@ func loadMainQueue() {
 // that is safe from any thread, and the event is built on the main
 // thread.
 func wakeUp() {
+	if !mainQueue.wakePending.CompareAndSwap(false, true) {
+		return
+	}
 	loadMainQueue()
 	mainQueue.mu.Lock()
 	mainQueue.caller.Call(mainQueue.asyncF, mainQueue.queue, 0, mainQueue.wakeCB)
@@ -486,6 +491,7 @@ func wakeUp() {
 
 // postWakeEvent posts the wake event. Main thread, from the main queue.
 func postWakeEvent() {
+	mainQueue.wakePending.Store(false)
 	if objs.app == 0 {
 		return
 	}

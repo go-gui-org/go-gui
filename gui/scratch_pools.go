@@ -260,7 +260,8 @@ type scratchPools struct {
 	// chunked layout still holds estimated heights (text_block_anchor.go).
 	textAnchors []*Layout
 	// textBlockStale collects the keys sweepTextBlocks drops.
-	textBlockStale []string
+	textBlockStale     []string
+	anonTextBlockStale []anonTextBlockKey
 
 	svgAnimTriangles scratchSlice[TessellatedPath]
 	svgAnimContribs  scratchSlice[animContrib]

@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Scrolling feels smoother and more responsive across desktop and web.**
+  Smooth-scroll interpolation now advances synchronously inside the render frame
+  instead of via a fixed 16 ms background timer, eliminating frame-pacing jitter
+  on 60/120 Hz displays. Wrapped text blocks without explicit IDs are now cached
+  across frames, offscreen children inside clipped scroll viewports are culled
+  before rendering, the Metal backend caches cursor state and coalesces `wakeUp`
+  dispatches, and the web backend detects precise trackpad wheel events so
+  trackpads scroll 1:1 without artificial smoothing lag.
 - **`WithTooltip` no longer moves or grows the view it wraps (#1381).** Its
   wrapper set no padding or spacing, so the theme's default container padding
   applied: 14 px on each side in the default theme. A view that got a tooltip

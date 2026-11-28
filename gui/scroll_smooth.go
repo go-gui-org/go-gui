@@ -68,10 +68,12 @@ type scrollApply struct {
 // deferred commandApplyScrollSmooth, so the scrollX/scrollY maps stay
 // single-goroutine.
 type scrollSmoothAnimation struct {
-	start   time.Time
-	entries []scrollSmoothEntry
-	pending []scrollApply // apply-pass scratch, main goroutine only
-	stopped bool
+	start      time.Time
+	lastStep   time.Time
+	entries    []scrollSmoothEntry
+	pending    []scrollApply // apply-pass scratch, main goroutine only
+	stopped    bool
+	syncDriven bool
 }
 
 // ID implements Animation.
@@ -109,11 +111,38 @@ func scrollEaseStep(dt, tau float32) float32 {
 }
 
 // Update implements Animation. Runs on the animation goroutine while
-// w.animMu is held (see animationLoop).
-func (s *scrollSmoothAnimation) Update(_ *Window, dt float32, ac *AnimationCommands) bool {
+// w.animMu is held (see animationLoop). When FrameFn is actively stepping
+// smooth scroll synchronously, the background tick yields to avoid racing
+// or double-stepping, falling back automatically if FrameFn stops running
+// (e.g., headless tests or occluded windows).
+func (s *scrollSmoothAnimation) Update(w *Window, dt float32, ac *AnimationCommands) bool {
+	if s.syncDriven && w != nil && !w.occluded.Load() &&
+		!s.lastStep.IsZero() && ac.clock().Sub(s.lastStep) < 100*time.Millisecond {
+		return false
+	}
+	anyActive, anyDirty := s.advanceEntriesLocked(dt)
+	if !anyActive {
+		// All entries are inactive: drop them rather than retaining one
+		// per scrollable ever touched for the window's lifetime. The
+		// next ease rebuilds its entry from the displayed offset (see
+		// scrollSmoothArm), so nothing is lost. Entries with a dirty
+		// value the main thread has not applied yet are kept: the
+		// apply pass is keyed on dirty, and a slow flush must still
+		// apply the final value instead of ending fractionally short.
+		if !anyDirty {
+			s.entries = s.entries[:0]
+		}
+		s.stopped = true
+		return false
+	}
+	ac.appendOnDone(commandApplyScrollSmooth)
+	return true
+}
+
+// advanceEntriesLocked steps all active smooth-scroll entries by dt seconds.
+// Caller must hold w.animMu.
+func (s *scrollSmoothAnimation) advanceEntriesLocked(dt float32) (anyActive, anyDirty bool) {
 	step := scrollEaseStep(dt, scrollSmoothTau)
-	anyActive := false
-	anyDirty := false
 	for i := range s.entries {
 		e := &s.entries[i]
 		if e.dirty {
@@ -145,22 +174,7 @@ func (s *scrollSmoothAnimation) Update(_ *Window, dt float32, ac *AnimationComma
 		e.dirty = true
 		anyActive = true
 	}
-	if !anyActive {
-		// All entries are inactive: drop them rather than retaining one
-		// per scrollable ever touched for the window's lifetime. The
-		// next ease rebuilds its entry from the displayed offset (see
-		// scrollSmoothArm), so nothing is lost. Entries with a dirty
-		// value the main thread has not applied yet are kept: the
-		// apply pass is keyed on dirty, and a slow flush must still
-		// apply the final value instead of ending fractionally short.
-		if !anyDirty {
-			s.entries = s.entries[:0]
-		}
-		s.stopped = true
-		return false
-	}
-	ac.appendOnDone(commandApplyScrollSmooth)
-	return true
+	return anyActive, anyDirty
 }
 
 // entryFor returns the entry for id+axis, creating an inactive
@@ -289,6 +303,9 @@ func scrollSmoothArm(w *Window, id string, axis scrollAxis, displayed, maxOffset
 	e.target = newTarget
 	e.active = true
 	e.settled = false
+	if ss.stopped {
+		ss.resetSyncLocked()
+	}
 	ss.stopped = false
 	w.animationAddLocked(ss)
 	return true
@@ -426,6 +443,11 @@ func (w *Window) scrollSmoothReset() {
 	}
 }
 
+func (s *scrollSmoothAnimation) resetSyncLocked() {
+	s.lastStep = time.Time{}
+	s.syncDriven = false
+}
+
 // commandApplyScrollSmooth writes each active entry's eased offset to
 // the scroll map and fires OnScroll. Runs on the main goroutine
 // (enqueued via AppendOnDone). Snapshots under animMu, then applies
@@ -436,23 +458,73 @@ func commandApplyScrollSmooth(w *Window) {
 		return
 	}
 	w.animMu.Lock()
-	ss.pending = ss.pending[:0]
-	// Reap fully-quiesced entries below: the animation tick cannot
-	// clear a final value the main thread has not applied yet (see
-	// Update), so the apply pass releases them once applied.
+	ss.collectPendingLocked(w)
+	w.animMu.Unlock()
+	ss.applyPending(w)
+}
+
+// stepScrollSmoothSync advances and applies active smooth-scroll entries
+// synchronously at the start of FrameFn on the main goroutine. This removes
+// the 1-frame initial lag, prevents goroutine/vsync phase judder, and ensures
+// single-threaded loops (such as Web requestAnimationFrame) step every frame.
+func (w *Window) stepScrollSmoothSync() {
+	if w.occluded.Load() || w.manualClock.Load() {
+		return
+	}
+	w.animMu.Lock()
+	ss := w.scrollSmooth
+	if ss == nil || ss.stopped {
+		w.animMu.Unlock()
+		return
+	}
+	ss.syncDriven = true
+	now := w.clockNow()
+	var dt float32
+	if ss.lastStep.IsZero() {
+		dt = float32(animationCycle.Seconds())
+	} else {
+		elapsed := now.Sub(ss.lastStep)
+		if elapsed < time.Millisecond {
+			w.animMu.Unlock()
+			return
+		}
+		dt = float32(elapsed.Seconds())
+		if dt > 0.05 {
+			dt = 0.05
+		}
+	}
+	ss.lastStep = now
+	anyActive, anyDirty := ss.advanceEntriesLocked(dt)
+	if !anyActive && !anyDirty {
+		ss.entries = ss.entries[:0]
+		ss.stopped = true
+		w.animMu.Unlock()
+		return
+	}
+	ss.collectPendingLocked(w)
+	if !anyActive {
+		ss.stopped = true
+	}
+	w.animMu.Unlock()
+
+	if ss.applyPending(w) {
+		w.markLayoutRefresh(refreshAnimation)
+	}
+}
+
+// collectPendingLocked clamps flings and moves dirty offsets into ss.pending.
+// Caller must hold w.animMu.
+func (s *scrollSmoothAnimation) collectPendingLocked(w *Window) {
+	s.pending = s.pending[:0]
 	quiesced := true
-	for i := range ss.entries {
-		e := &ss.entries[i]
+	for i := range s.entries {
+		e := &s.entries[i]
 		if e.tau > 0 && (e.active || e.dirty) {
 			scrollFlingEdge(w, e)
 		}
-		// Keyed on dirty, not active: a settled entry retires on
-		// the tick after its final value is computed, and a slow
-		// flush must still apply that value instead of ending the
-		// ease fractionally short of its target.
 		if e.dirty {
 			e.dirty = false
-			ss.pending = append(ss.pending, scrollApply{
+			s.pending = append(s.pending, scrollApply{
 				id: e.id, axis: e.axis, val: e.current,
 			})
 		}
@@ -461,11 +533,17 @@ func commandApplyScrollSmooth(w *Window) {
 		}
 	}
 	if quiesced {
-		ss.entries = ss.entries[:0]
+		s.entries = s.entries[:0]
 	}
-	w.animMu.Unlock()
+}
 
-	for _, p := range ss.pending {
+// applyPending writes snapshotted eased offsets to the scroll maps and fires
+// OnScroll. Main goroutine only, outside w.animMu.
+func (s *scrollSmoothAnimation) applyPending(w *Window) bool {
+	if len(s.pending) == 0 {
+		return false
+	}
+	for _, p := range s.pending {
 		if p.axis == scrollAxisY {
 			w.scrollY().Set(p.id, p.val)
 		} else {
@@ -475,4 +553,5 @@ func commandApplyScrollSmooth(w *Window) {
 			fireOnScroll(ly, w)
 		}
 	}
+	return true
 }
