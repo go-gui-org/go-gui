@@ -10,21 +10,6 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
-// Wheel delta normalization constants. Converts browser delta values to
-// gui.Event's scroll unit, lines of text (see Event.ScrollY):
-//   - DOM_DELTA_PIXEL: ~17.7px per line, so a 53px trackpad notch stays
-//     the three lines every other backend reports
-//   - DOM_DELTA_LINE: already lines; passed through
-//   - DOM_DELTA_PAGE: a page is ~30 lines
-//
-// The ratios are unchanged from when this produced "notches" — only the
-// unit is scaled, so web scrolling feels exactly as it did.
-const (
-	wheelPixelDivisor   = 17.7
-	wheelLineDivisor    = 1
-	wheelPageMultiplier = 30
-)
-
 // registerEvents attaches DOM event listeners to the canvas and
 // window. Registered callbacks are appended to b.callbacks to
 // prevent garbage collection.
@@ -42,6 +27,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	// Single shared Event — safe in WASM's single-threaded JS
 	// runtime. Must not be read from goroutines.
 	evt := new(gui.Event)
+	lastWheelTS := -1.0
 
 	reg(canvas, "mousedown", func(_ js.Value, args []js.Value) any {
 		*evt = mouseButtonEvent(gui.EventMouseDown, args[0])
@@ -72,26 +58,21 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(canvas, "wheel", func(_ js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		dx := jsFloat(e.Get("deltaX"))
-		dy := jsFloat(e.Get("deltaY"))
-		switch jsInt(e.Get("deltaMode")) {
-		case 0: // DOM_DELTA_PIXEL
-			dx /= wheelPixelDivisor
-			dy /= wheelPixelDivisor
-		case 1: // DOM_DELTA_LINE
-			dx /= wheelLineDivisor
-			dy /= wheelLineDivisor
-		case 2: // DOM_DELTA_PAGE
-			dx *= wheelPageMultiplier
-			dy *= wheelPageMultiplier
-		}
+		dx, dy, precise := normalizeWebWheel(
+			jsInt(e.Get("deltaMode")),
+			jsFloat(e.Get("deltaX")),
+			jsFloat(e.Get("deltaY")),
+			jsFloat(e.Get("timeStamp")),
+			&lastWheelTS,
+		)
 		*evt = gui.Event{
-			Type:      gui.EventMouseScroll,
-			ScrollX:   -float32(dx),
-			ScrollY:   -float32(dy),
-			MouseX:    float32(jsFloat(e.Get("offsetX"))),
-			MouseY:    float32(jsFloat(e.Get("offsetY"))),
-			Modifiers: mapModifiers(e),
+			Type:          gui.EventMouseScroll,
+			ScrollX:       -float32(dx),
+			ScrollY:       -float32(dy),
+			ScrollPrecise: precise,
+			MouseX:        float32(jsFloat(e.Get("offsetX"))),
+			MouseY:        float32(jsFloat(e.Get("offsetY"))),
+			Modifiers:     mapModifiers(e),
 		}
 		w.EventFn(evt)
 		return nil

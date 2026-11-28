@@ -232,6 +232,7 @@ func (w *Window) FrameFn() bool {
 	// theme the installed one. Also covers the backend's clear-color
 	// read, which happens right after FrameFn on the same thread.
 	w.installTheme()
+	w.stepScrollSmoothSync()
 	w.flushCommands()
 	// An occluded window (issue #943) runs its commands so app callbacks
 	// keep their timing, but builds and presents nothing. The refresh

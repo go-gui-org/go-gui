@@ -210,6 +210,7 @@ const (
 	nsSelect              = "gui.select"
 	nsInput               = "gui.input"
 	nsTextBlock           = "gui.text.block"
+	nsAnonTextBlock       = "gui.text.block.anon"
 	nsInputFocus          = "gui.input.focus"
 	nsSelectHL            = "gui.select.highlight"
 	nsListBoxFocus        = "gui.listbox.focus"
@@ -284,8 +285,9 @@ const (
 	// one per identified text shape, so a screen of labels stays all
 	// hits while a longer list recomputes what does not fit, as it did
 	// before the cache.
-	capTextBlocks = 256
-	capImageCache = 500
+	capTextBlocks     = 256
+	capAnonTextBlocks = 1024
+	capImageCache     = 500
 	// capIDJoin bounds the ID-join memo. Sized well above the number of
 	// distinct identities a normal screen holds so the common frame is
 	// all hits; a bigger frame simply recomputes what does not fit.

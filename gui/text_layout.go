@@ -4,6 +4,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"unsafe"
 
 	"github.com/go-gui-org/go-glyph"
 )
@@ -128,12 +129,41 @@ func plainTextLayoutWidthArg(
 	return 0
 }
 
+// anonTextBlockKey caches shaped blocks for anonymous Text shapes (no ID)
+// across frames so scrolling non-virtualized cards or wrapped paragraphs does
+// not re-shape unchanged text every frame. Short strings key by content; large
+// strings (> 256 bytes) key by backing pointer and are content-checked on hit.
+type anonTextBlockKey struct {
+	text      string
+	dataPtr   uintptr
+	textLen   int
+	widthBits uint32
+	styleHash uint64
+	mode      TextMode
+}
+
+func makeAnonTextBlockKey(
+	text string, widthArg float32, mode TextMode, style TextStyle,
+) anonTextBlockKey {
+	k := anonTextBlockKey{
+		textLen:   len(text),
+		widthBits: math.Float32bits(widthArg),
+		styleHash: textStyleShapingHash(style),
+		mode:      mode,
+	}
+	if len(text) <= 256 {
+		k.text = text
+	} else {
+		k.dataPtr = uintptr(unsafe.Pointer(unsafe.StringData(text)))
+	}
+	return k
+}
+
 // plainTextBlock returns the chunked layout of a text shape's text at
 // the shape's width: the block the frame already resolved for the
 // shape, else the one cached under the shape's identity (an input's
-// owner, a Text's ID, or for a large anonymous text the string's own
-// memory), brought up to date, else a new one. A short anonymous label
-// gets a block for the frame, which shapes it once as before.
+// owner, a Text's ID, or for an anonymous text its content/pointer key),
+// brought up to date, else a new one.
 func plainTextBlock(
 	text string, shape *Shape, style TextStyle, w *Window,
 ) (*textBlock, bool) {
@@ -145,15 +175,20 @@ func plainTextBlock(
 	widthArg := plainTextLayoutWidthArg(shape, tc, style)
 	b := tc.block
 	key := ""
+	var anonKey anonTextBlockKey
+	hasAnonKey := false
 	var blocks *BoundedMap[string, *textBlock]
+	var anonBlocks *BoundedMap[anonTextBlockKey, *textBlock]
 	if b == nil {
 		key = shape.focusKey()
-		if key == "" && len(text) > textChunkBytes {
-			key = textBlockAnonKey(text, widthArg, tc.TextMode, style)
-		}
 		if key != "" {
 			blocks = StateMap[string, *textBlock](w, nsTextBlock, capTextBlocks)
 			b, _ = blocks.Get(key)
+		} else {
+			anonKey = makeAnonTextBlockKey(text, widthArg, tc.TextMode, style)
+			hasAnonKey = true
+			anonBlocks = StateMap[anonTextBlockKey, *textBlock](w, nsAnonTextBlock, capAnonTextBlocks)
+			b, _ = anonBlocks.Get(anonKey)
 		}
 	}
 
@@ -202,6 +237,8 @@ func plainTextBlock(
 		b = newTextBlock(text, widthArg, style, tc.TextMode, w)
 		if blocks != nil {
 			blocks.Set(key, b)
+		} else if anonBlocks != nil {
+			anonBlocks.Set(anonKey, b)
 		}
 	}
 	b.sourceText, b.sourceTextSet, b.sourceLineBreaks = "", false, 0
@@ -210,7 +247,7 @@ func plainTextBlock(
 		b.sourceTextSet = true
 		b.sourceLineBreaks = sourceLineBreaks
 	}
-	if key != "" {
+	if key != "" || hasAnonKey {
 		b.seen = w.viewPass
 	}
 	tc.block = b
@@ -231,13 +268,17 @@ func plainTextBlock(
 // capTextBlocks other identities pushed it out. Same rule as
 // pruneContentTransitionStates. Called once per view pass, after layout.
 func sweepTextBlocks(w *Window) {
-	m := StateMapRead[string, *textBlock](w, nsTextBlock)
+	sweepTextBlockMap(StateMapRead[string, *textBlock](w, nsTextBlock), &w.scratch.textBlockStale, w)
+	sweepTextBlockMap(StateMapRead[anonTextBlockKey, *textBlock](w, nsAnonTextBlock), &w.scratch.anonTextBlockStale, w)
+}
+
+func sweepTextBlockMap[K comparable](m *BoundedMap[K, *textBlock], buf *[]K, w *Window) {
 	if m == nil || m.Len() == 0 {
 		return
 	}
 	// Walk the entries in place: Range takes a closure, which would
 	// escape and allocate on every pass.
-	stale := w.scratch.textBlockStale[:0]
+	stale := (*buf)[:0]
 	for k, e := range m.data {
 		if b := e.val; b == nil || b.seen+1 < w.viewPass {
 			stale = append(stale, k)
@@ -247,7 +288,7 @@ func sweepTextBlocks(w *Window) {
 		m.Delete(k)
 	}
 	clear(stale)
-	w.scratch.textBlockStale = stale[:0]
+	*buf = stale[:0]
 }
 
 // textBlockWarnRefused reports a chunk the shaper refused, once per
@@ -351,7 +392,7 @@ func fontFeaturesEqual(a, b *glyph.FontFeatures) bool {
 
 // textStyleShapingHash hashes what textLayoutStyleEqual compares, so two
 // styles it calls equal hash alike, for the key of a block with no
-// identity (textBlockAnonKey). TestTextStyleShapingHashCoversEquality
+// identity (makeAnonTextBlockKey). TestTextStyleShapingHashCoversEquality
 // fails when a field that shapes is left out.
 func textStyleShapingHash(s TextStyle) uint64 {
 	h := shapingHash(14695981039346656037) // FNV-1a offset basis

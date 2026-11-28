@@ -210,9 +210,51 @@ func renderLayoutChildren(layout *Layout, bgColor Color, clip drawClip, w *Windo
 	if layout.Shape.Color != ColorTransparent {
 		color = layout.Shape.Color
 	}
+	cullChildren := layout.Shape.Clip &&
+		layout.Shape.Scrollable &&
+		layout.Shape.QuarterTurns == 0 &&
+		len(w.xfStack) == 0 &&
+		shapeClip.Width > 0 && shapeClip.Height > 0
 	for i := range layout.Children {
-		renderLayoutDepth(&layout.Children[i], color, shapeClip, w, depth+1)
+		child := &layout.Children[i]
+		if cullChildren && childClippedOut(child.Shape, shapeClip) {
+			continue
+		}
+		renderLayoutDepth(child, color, shapeClip, w, depth+1)
 	}
+}
+
+// childClippedOut reports whether a child subtree under a clipped parent is
+// strictly outside shapeClip even with conservative margins for borders,
+// shadows, focus rings, and text ink overflow.
+func childClippedOut(s *Shape, clip drawClip) bool {
+	if s == nil || s.OverDraw || s.Float || s.xf != nil || s.QuarterTurns > 0 {
+		return false
+	}
+	if clip.Width <= 0 || clip.Height <= 0 {
+		return false
+	}
+	b := shapeBounds(s)
+	if f32IsFinite(s.inkOverflowW) && s.inkOverflowW > b.Width {
+		b.Width = s.inkOverflowW
+	}
+	if f32IsFinite(s.MinWidth) && s.MinWidth > b.Width {
+		b.Width = s.MinWidth
+	}
+	const baseMargin = float32(64)
+	marginX, marginY := baseMargin, baseMargin
+	if s.fx != nil && s.fx.Shadow != nil {
+		sh := s.fx.Shadow
+		marginX += f32Abs(sh.OffsetX) + sh.BlurRadius + sh.Spread
+		marginY += f32Abs(sh.OffsetY) + sh.BlurRadius + sh.Spread
+	}
+	expanded := drawClip{
+		X:      b.X - marginX,
+		Y:      b.Y - marginY,
+		Width:  b.Width + 2*marginX,
+		Height: b.Height + 2*marginY,
+	}
+	return !rectsOverlap(expanded, clip)
 }
 
 // renderShape dispatches to the type-specific renderer, applying
